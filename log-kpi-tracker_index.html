@@ -167,6 +167,15 @@
   .legend{display:flex;gap:16px;flex-wrap:wrap;margin:2px 0 26px;font-size:11.5px;color:var(--text-muted);}
   .legend span{display:inline-flex;align-items:center;gap:6px;}
 
+  /* RFID: district-level values are masked in the table and only reveal on hover/click, per spec */
+  td.kpi-cell.masked{color:var(--text-muted);letter-spacing:1px;}
+  td.kpi-cell.masked .dot{opacity:.5;}
+  .kpi-card .kpi-two-month{display:flex;flex-direction:column;gap:6px;margin:2px 0 8px;}
+  .kpi-card .kpi-two-month .row{display:flex;justify-content:space-between;align-items:baseline;}
+  .kpi-card .kpi-two-month .row .m-label{font-size:10.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;}
+  .kpi-card .kpi-two-month .row .m-val{font-family:'IBM Plex Mono';font-size:16px;font-weight:600;color:var(--text);}
+  .kpi-card .kpi-note{font-size:10.5px;color:var(--text-muted);margin-top:2px;}
+
   @media (max-width:980px){
     .kpi-grid{grid-template-columns:repeat(2,1fr);}
   }
@@ -198,11 +207,8 @@
       <div class="rail-icon" title="Waybills">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
       </div>
-      <div class="rail-icon" title="Data Source Settings" id="settingsIcon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-      </div>
     </div>
-    <div class="rail-foot">v1.0</div>
+    <div class="rail-foot">v2.0</div>
   </nav>
 
   <!-- MAIN -->
@@ -286,248 +292,104 @@
   <div class="drawer-body" id="drawerBody"></div>
 </aside>
 
-<aside class="drawer settings-drawer" id="settingsDrawer">
-  <div class="drawer-head">
-    <div class="eyebrow">Data Source</div>
-    <h3>Tableau Connection</h3>
-    <button class="drawer-close" id="settingsClose">✕</button>
-  </div>
-  <div class="drawer-body">
-    <div class="settings-warning">
-      <strong>Do not commit real credentials to this file or a public repo.</strong>
-      Values entered here are kept only in this browser tab's memory — they reset on refresh and are
-      never written back into the HTML. For a deployed site, keep the API key out of the page entirely;
-      pull data on a schedule into <code>data.json</code> instead (see chat for the recommended pattern).
-    </div>
-
-    <div class="settings-field">
-      <label for="cfgMode">Data source mode</label>
-      <select id="cfgMode">
-        <option value="datajson">data.json file (recommended)</option>
-        <option value="tableau">Tableau REST API (direct, session-only)</option>
-      </select>
-    </div>
-
-    <div id="tableauFields" style="display:none;">
-      <div class="settings-field">
-        <label for="cfgServer">Tableau Server / Cloud URL</label>
-        <input type="text" id="cfgServer" placeholder="https://your-server.online.tableau.com">
-      </div>
-      <div class="settings-field">
-        <label for="cfgSite">Site ID</label>
-        <input type="text" id="cfgSite" placeholder="e.g. my-site (blank for Default)">
-      </div>
-      <div class="settings-field">
-        <label for="cfgPatName">Personal Access Token — name</label>
-        <input type="text" id="cfgPatName" placeholder="token-name">
-      </div>
-      <div class="settings-field">
-        <label for="cfgPatSecret">Personal Access Token — secret</label>
-        <input type="password" id="cfgPatSecret" placeholder="paste token secret" autocomplete="off">
-      </div>
-      <div class="settings-field">
-        <label for="cfgViewId">View / Workbook ID</label>
-        <input type="text" id="cfgViewId" placeholder="view LUID or content URL">
-      </div>
-      <button class="settings-save" id="cfgSave">Connect for this session</button>
-      <div class="settings-status" id="cfgStatus"></div>
-    </div>
-
-    <div class="drawer-note">
-      This panel calls Tableau's REST API sign-in and view-data endpoints directly from the browser.
-      Most Tableau Server/Cloud deployments block cross-origin browser requests like this by default (CORS),
-      so this is best used for local testing against a server you control, or once you've allow-listed this
-      page's origin. If the call is blocked, the site falls back to <code>data.json</code> automatically.
-    </div>
-  </div>
-</aside>
-
 <script>
 (function(){
 
-  /* ---------------- KPI DEFINITIONS ---------------- */
-  const KPIS = [
-    { key:'delayRate',   label:'Delay Rate',                      unit:'%',  target:5,     better:'low',  fmt:v=>v.toFixed(1)+'%' },
-    { key:'fulfillCost',  label:'Fulfillment Cost',                unit:'%',  target:12,    better:'low',  fmt:v=>v.toFixed(1)+'%' },
-    { key:'poorRating',  label:'Poor Rating',                     unit:'%',  target:3,     better:'low',  fmt:v=>v.toFixed(1)+'%' },
-    { key:'waybill',     label:'Missing & Lost Waybill Amount',   unit:'$',  target:50000, better:'low',  fmt:v=>'$'+Math.round(v).toLocaleString() },
-    { key:'tote',        label:'Amounting Missing Tote',          unit:'$',  target:20000, better:'low',  fmt:v=>'$'+Math.round(v).toLocaleString() },
-    { key:'adra',        label:'ADRA',                            unit:'%',  target:95,    better:'high', fmt:v=>v.toFixed(1)+'%' },
+  /* ==========================================================================
+     MATRIX DEFINITIONS
+     Matches KPI_Dashboard_Build-up_Script.txt: 5 leadership matrices, where
+     Matrix 1 (Overall Productivity / Staff) is split into 2 site sections
+     (HKTV Staff, ODS Ratio) — so 6 keys total, matching data.json's
+     `matrices` object and kpi_pipeline.py's output exactly.
+
+     TODO: none of these `target` values were specified in the brief — they
+     are placeholders so the status chips/bars have something to compare
+     against. Edit them to your real thresholds before relying on the
+     good/warn/bad coloring.
+  ========================================================================== */
+  const MATRICES = [
+    { key:'hktvStaff',        section:'productivity', label:'HKTV Staff Productivity',  unit:'#',  target:24,     better:'high', fmt:v=>v==null?'—':v.toFixed(2) },
+    { key:'odsRatio',         section:'productivity', label:'ODS / VAN Productivity',   unit:'#',  target:19,     better:'high', fmt:v=>v==null?'—':v.toFixed(2) },
+    { key:'delayRate',        section:'tableau',      label:'Delay Rate',               unit:'%',  target:5,      better:'low',  fmt:v=>v==null?'—':v.toFixed(1)+'%' },
+    { key:'poorRating',       section:'tableau',      label:'Poor Rating %',            unit:'%',  target:3,      better:'low',  fmt:v=>v==null?'—':v.toFixed(1)+'%' },
+    { key:'missingLostAmount',section:'tableau',      label:'Missing & Lost Amount',    unit:'$',  target:250000, better:'low',  fmt:v=>v==null?'—':'$'+Math.round(v).toLocaleString() },
+    { key:'rfidMissingTote',  section:'tableau',      label:'RFID Missing Tote',        unit:'#',  target:500,    better:'low',  fmt:v=>v==null?'—':Math.round(v).toLocaleString(), masked:true },
   ];
+  const RFID_KEY = 'rfidMissingTote';
+
+  const DISTRICTS = ["ETH","ETK","ETX","NT-ST","NT-TM","NT-TSM","NT-TW","WTH","WTK","WTX"];
 
   /* ---------------- DEMO FALLBACK DATA ----------------
-     Used only if /data.json can't be loaded (e.g. previewing the file directly
-     instead of through a web server). Structure matches data.json exactly. */
-  let DEPARTMENTS = [
-    { name:'ETH',    values:{delayRate:4.2, fulfillCost:11.0, poorRating:2.1, waybill:32000, tote:14000, adra:97.2} },
-    { name:'ETK',    values:{delayRate:6.8, fulfillCost:13.5, poorRating:3.8, waybill:58000, tote:24000, adra:93.1} },
-    { name:'ETX',    values:{delayRate:5.5, fulfillCost:12.4, poorRating:2.9, waybill:41000, tote:17500, adra:95.8} },
-    { name:'NT-TM',  values:{delayRate:9.4, fulfillCost:15.2, poorRating:6.1, waybill:87000, tote:36000, adra:88.4} },
-    { name:'NT-ST',  values:{delayRate:3.6, fulfillCost:10.2, poorRating:1.8, waybill:27000, tote:11000, adra:98.1} },
-    { name:'NT-TSM', values:{delayRate:7.2, fulfillCost:14.1, poorRating:4.5, waybill:63000, tote:29000, adra:91.6} },
-    { name:'NT-TW',  values:{delayRate:4.9, fulfillCost:11.8, poorRating:2.4, waybill:35000, tote:15500, adra:96.4} },
-    { name:'WTH',    values:{delayRate:8.1, fulfillCost:16.7, poorRating:3.3, waybill:49000, tote:21000, adra:90.2} },
-    { name:'WTK',    values:{delayRate:5.0, fulfillCost:12.0, poorRating:3.0, waybill:50000, tote:20000, adra:95.0} },
-    { name:'WTX',    values:{delayRate:6.1, fulfillCost:13.0, poorRating:3.6, waybill:54000, tote:23500, adra:92.8} },
-  ];
+     Used only if ./data.json can't be loaded (e.g. previewing the file
+     directly instead of through a web server, or before the first pipeline
+     run). Shape matches data.json / data_schema_example.json exactly. */
+  function emptyMatrix(){
+    const districts = {}; DISTRICTS.forEach(d=>districts[d]=null);
+    return { actual:{overall:null, districts:{...districts}}, forecast:{overall:null, districts:{...districts}}, asOf:null };
+  }
+  let DATA = {
+    generatedAt: null,
+    matrices: Object.fromEntries(MATRICES.map(m=>[m.key, emptyMatrix()])),
+    rfidMonthly: {},
+  };
   let dataSource = { status:'demo', generatedAt:null };
 
-  function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); } // month is 1-12
-  function parseDateStr(str){ const [y,m,d] = str.split('-').map(Number); return {year:y, month:m, day:d}; }
-
-  let cur = parseDateStr(document.getElementById('dateInput').value);
-  let totalDays = daysInMonth(cur.year, cur.month);
-  let dataDate = Math.min(cur.day, totalDays);
+  function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); }
 
   let currentView = 'actual';   // which value (actual|forecast) drives ranking/sort
   let sortKey = null, sortDir = 1;
   let selectedKpi = null;
   let searchTerm = '';
 
-  /* ---------------- CALC ----------------
-     "Actual" is a direct read of whatever figure is in the data file as of the
-     chosen Data Date (a real snapshot, not simulated) — forecast is the only
-     derived number, using the requested run-rate formula. */
-  function getActual(dept, kpiKey){
-    return dept.values[kpiKey];
-  }
-  function getForecast(dept, kpiKey){
-    const actual = getActual(dept, kpiKey);
-    return actual * (totalDays / dataDate);                 // the requested simple forecast formula
-  }
+  /* ---------------- READ HELPERS ----------------
+     Actual and forecast are both computed server-side by kpi_pipeline.py
+     (rolling averages for productivity/delay/rating, run-rate prorate for
+     the two amount-based matrices) and simply read here — no client-side
+     math beyond ranking/sorting. */
+  function matrixOf(key){ return (DATA.matrices && DATA.matrices[key]) || emptyMatrix(); }
+  function getActualOverall(key){ return matrixOf(key).actual.overall; }
+  function getForecastOverall(key){ return matrixOf(key).forecast.overall; }
+  function getActual(key, district){ return matrixOf(key).actual.districts[district] ?? null; }
+  function getForecast(key, district){ return matrixOf(key).forecast.districts[district] ?? null; }
 
-  // Minimal CSV parser: respects "quoted, fields", skips blank lines and
-  // lines starting with # (used for an optional leading "# generatedAt: ..." stamp).
-  function splitCSVLine(line){
-    const out = []; let cur = '', inQ = false;
-    for(let i=0;i<line.length;i++){
-      const c = line[i];
-      if(c === '"'){ if(inQ && line[i+1] === '"'){ cur+='"'; i++; } else inQ = !inQ; }
-      else if(c === ',' && !inQ){ out.push(cur); cur=''; }
-      else cur += c;
-    }
-    out.push(cur);
-    return out.map(s=>s.trim());
-  }
-  function parseCSV(text){
-    const rawLines = text.split(/\r?\n/);
-    const stampLine = rawLines.find(l => /^#\s*generatedAt\s*:/i.test(l.trim()));
-    const generatedAt = stampLine ? stampLine.split(':').slice(1).join(':').trim() : null;
-    const lines = rawLines.filter(l => l.trim().length && !l.trim().startsWith('#'));
-    if(lines.length < 2) return { departments:[], generatedAt };
-    const headers = splitCSVLine(lines[0]).map(h=>h.toLowerCase());
-    const col = name => headers.indexOf(name);
-    const departments = lines.slice(1).map(line=>{
-      const c = splitCSVLine(line);
-      return {
-        name: c[col('department')],
-        values: {
-          delayRate:   parseFloat(c[col('delayrate')]),
-          fulfillCost: parseFloat(c[col('fulfillcost')]),
-          poorRating:  parseFloat(c[col('poorrating')]),
-          waybill:     parseFloat(c[col('waybill')]),
-          tote:        parseFloat(c[col('tote')]),
-          adra:        parseFloat(c[col('adra')]),
-        }
-      };
-    }).filter(d => d.name);
-    return { departments, generatedAt };
-  }
-
-  // Session-only Tableau connection config — filled in via the Settings panel at
-  // runtime, never persisted (no localStorage, nothing written back to this file).
-  // Reload the page and it's gone. Keep it that way for anything other than local testing.
-  let TABLEAU_CONFIG = {
-    serverUrl: '',
-    siteId: '',
-    patName: '',
-    patSecret: '',
-    viewId: '',
-  };
-
-  // Real Tableau REST API flow: sign in with a Personal Access Token, then pull
-  // the view's underlying data as CSV. This is a genuine implementation, not a
-  // mock — but Tableau Server/Cloud typically blocks browser-origin requests
-  // like this via CORS unless your admin has explicitly allow-listed this page's
-  // origin, so expect it to need that step (or a small relay) to actually succeed.
-  async function fetchFromTableau(cfg){
-    if(!cfg.serverUrl || !cfg.patName || !cfg.patSecret || !cfg.viewId){
-      throw new Error('Fill in server URL, token name/secret, and view ID.');
-    }
-    const base = cfg.serverUrl.replace(/\/$/, '');
-    const apiVersion = '3.22';
-
-    const signinRes = await fetch(`${base}/api/${apiVersion}/auth/signin`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        credentials: {
-          personalAccessTokenName: cfg.patName,
-          personalAccessTokenSecret: cfg.patSecret,
-          site: { contentUrl: cfg.siteId || '' }
-        }
-      })
-    });
-    if(!signinRes.ok) throw new Error(`Sign-in failed (HTTP ${signinRes.status})`);
-    const signinJson = await signinRes.json();
-    const token = signinJson.credentials.token;
-
-    const dataRes = await fetch(`${base}/api/${apiVersion}/views/${cfg.viewId}/data`, {
-      headers: { 'X-Tableau-Auth': token, 'Accept': 'text/csv' }
-    });
-    if(!dataRes.ok) throw new Error(`View data request failed (HTTP ${dataRes.status})`);
-    const parsed = parseCSV(await dataRes.text());
-    if(!parsed.departments.length) throw new Error('View returned no rows matching the expected columns.');
-    return parsed;
-  }
+  /* RFID accumulates monthly and can straddle a month boundary (see spec §5) —
+     rfidMonthly holds up to the last 2 month-keys, e.g. {"2026-07":{...},"2026-08":{...}} */
+  function rfidMonthKeys(){ return Object.keys(DATA.rfidMonthly || {}).sort(); }
 
   async function loadDataSource(){
-    // 1) Prefer data.csv — matches a direct Tableau export, no reformatting needed.
-    try{
-      const res = await fetch('./data.csv', {cache:'no-store'});
-      if(!res.ok) throw new Error('no data.csv');
-      const parsed = parseCSV(await res.text());
-      if(!parsed.departments.length) throw new Error('empty csv');
-      DEPARTMENTS = parsed.departments;
-      dataSource = { status:'live', format:'CSV', generatedAt: parsed.generatedAt };
-      renderSourceBanner(); renderDate(); renderAll();
-      return;
-    }catch(err){ /* fall through to JSON */ }
-
-    // 2) Fall back to data.json if present.
     try{
       const res = await fetch('./data.json', {cache:'no-store'});
       if(!res.ok) throw new Error('no data.json');
       const json = await res.json();
-      if(!Array.isArray(json.departments) || !json.departments.length) throw new Error('empty');
-      DEPARTMENTS = json.departments;
-      dataSource = { status:'live', format:'JSON', generatedAt: json.generatedAt || null };
-      renderSourceBanner(); renderDate(); renderAll();
-      return;
-    }catch(err){ /* fall through to demo */ }
-
-    // 3) Neither found — show built-in sample data so the page still works.
-    dataSource = { status:'demo', format:null, generatedAt:null };
-    renderSourceBanner();
-    renderDate();
-    renderAll();
+      if(!json.matrices) throw new Error('data.json is missing "matrices" — is this the old schema?');
+      DATA = {
+        generatedAt: json.generatedAt || null,
+        matrices: { ...Object.fromEntries(MATRICES.map(m=>[m.key, emptyMatrix()])), ...json.matrices },
+        rfidMonthly: json.rfidMonthly || {},
+      };
+      dataSource = { status:'live', generatedAt: json.generatedAt || null };
+    }catch(err){
+      dataSource = { status:'demo', generatedAt:null };
+    }
+    syncDateFromData();
+    renderSourceBanner(); renderDate(); renderAll();
   }
 
   function renderSourceBanner(){
     const banner = document.getElementById('sourceBanner');
     if(dataSource.status === 'live'){
-      const label = dataSource.format === 'Tableau' ? 'Tableau (direct)' : dataSource.format === 'CSV' ? 'data.csv' : 'data.json';
       banner.className = 'source-banner live';
-      banner.textContent = `● Connected to ${label}${dataSource.generatedAt ? ' · exported ' + dataSource.generatedAt : ''}`;
+      banner.textContent = `● Connected to data.json${dataSource.generatedAt ? ' · generated ' + dataSource.generatedAt : ''}`;
     } else {
       banner.className = 'source-banner demo';
-      banner.textContent = '● Demo data — no data.csv or data.json found alongside this page. Showing sample figures.';
+      banner.textContent = '● Demo data — no data.json found alongside this page yet. Run kpi_pipeline.py, or wait for the scheduled tasks, then refresh.';
     }
   }
 
-  function statusFor(kpi, val){
-    const t = kpi.target;
-    if(kpi.better === 'low'){
+  function statusFor(m, val){
+    if(val == null) return 'warn';
+    const t = m.target;
+    if(m.better === 'low'){
       if(val <= t) return 'good';
       if(val <= t*1.15) return 'warn';
       return 'bad';
@@ -537,33 +399,37 @@
       return 'bad';
     }
   }
-
-  // Achievement % = how far a value sits above/below target, as a percentage of target.
-  // For "lower is better" KPIs a negative % is the good direction; for "higher is better" (ADRA) positive is good.
-  function achievementPct(kpi, val){
-    return ((val - kpi.target) / kpi.target) * 100;
+  function achievementPct(m, val){
+    if(val == null) return 0;
+    return ((val - m.target) / m.target) * 100;
   }
   function fmtPct(p){
     const sign = p >= 0 ? '+' : '';
     return sign + p.toFixed(1) + '%';
   }
 
-  function aggregate(kpiKey, useForecast){
-    const vals = DEPARTMENTS.map(d => useForecast ? getForecast(d,kpiKey) : getActual(d,kpiKey));
-    const kpi = KPIS.find(k=>k.key===kpiKey);
-    if(kpi.unit === '$') return vals.reduce((a,b)=>a+b,0);
-    return vals.reduce((a,b)=>a+b,0) / vals.length;
-  }
-
-  /* ---------------- RENDER: data date control ---------------- */
+  /* ---------------- RENDER: data date readout ----------------
+     Forecasts are precomputed server-side now, so this control is a display
+     only — it reflects the most recent asOf date the pipeline wrote and no
+     longer drives any calculation client-side. Kept editable so you can
+     eyeball "day X of Y elapsed" for context. */
   const dateInputEl = document.getElementById('dateInput');
   const dateReadout = document.getElementById('dateReadout');
   const dateSub = document.getElementById('dateSub');
   const dateProgressFill = document.getElementById('dateProgressFill');
+  let cur = { year:2026, month:1, day:1 };
 
+  function syncDateFromData(){
+    const asOf = DATA.generatedAt || (matrixOf('delayRate').asOf) || null;
+    const d = asOf ? new Date(asOf) : new Date();
+    if(!isNaN(d)){
+      cur = { year:d.getFullYear(), month:d.getMonth()+1, day:d.getDate() };
+      dateInputEl.value = `${cur.year}-${String(cur.month).padStart(2,'0')}-${String(cur.day).padStart(2,'0')}`;
+    }
+  }
   function renderDate(){
-    totalDays = daysInMonth(cur.year, cur.month);
-    dataDate = Math.min(Math.max(cur.day,1), totalDays);
+    const totalDays = daysInMonth(cur.year, cur.month);
+    const dataDate = Math.min(Math.max(cur.day,1), totalDays);
     const dateObj = new Date(cur.year, cur.month-1, dataDate);
     const weekday = dateObj.toLocaleDateString('en-US', {weekday:'long'});
     const monthName = dateObj.toLocaleDateString('en-US', {month:'long'});
@@ -574,49 +440,85 @@
   }
   dateInputEl.addEventListener('change', e=>{
     if(!e.target.value) return;
-    cur = parseDateStr(e.target.value);
-    renderDate(); renderAll();
+    const [y,m,d] = e.target.value.split('-').map(Number);
+    cur = {year:y, month:m, day:d};
+    renderDate();
   });
 
   /* ---------------- RENDER: KPI cards ---------------- */
   const kpiGrid = document.getElementById('kpiGrid');
 
+  function renderRfidCard(m){
+    const keys = rfidMonthKeys();
+    const rows = keys.map(k=>{
+      const bucket = DATA.rfidMonthly[k];
+      const label = new Date(k+'-01').toLocaleDateString('en-US',{month:'short',year:'numeric'});
+      return `<div class="row"><span class="m-label">${label}</span><span class="m-val">${m.fmt(bucket ? bucket.overall : null)}</span></div>`;
+    }).join('') || `<div class="row"><span class="m-label">No data yet</span><span class="m-val">—</span></div>`;
+
+    const actualAgg = getActualOverall(m.key), forecastAgg = getForecastOverall(m.key);
+    const st = statusFor(m, forecastAgg);
+
+    const card = document.createElement('div');
+    card.className = 'kpi-card' + (selectedKpi===m.key ? ' selected':'');
+    card.innerHTML = `
+      <div class="kpi-card-top">
+        <div class="kpi-label">${m.label}</div>
+        <div class="status-chip status-${st}">${st==='good'?'On target':st==='warn'?'Watch':'Critical'}</div>
+      </div>
+      <div class="kpi-two-month">${rows}</div>
+      <div class="kpi-row primary">
+        <span class="kpi-row-label">EOM Forecast</span>
+        <span class="kpi-row-val">${m.fmt(forecastAgg)}</span>
+        <span class="pct pct-${st}">${fmtPct(achievementPct(m, forecastAgg))}</span>
+      </div>
+      <div class="kpi-foot"><span>Target: ${m.fmt(m.target)}</span><span>10 districts</span></div>
+      <div class="kpi-note">District detail: hover a table cell or click a row — not shown inline.</div>
+    `;
+    card.addEventListener('click', ()=>{
+      selectedKpi = selectedKpi===m.key ? null : m.key;
+      sortKey = selectedKpi; sortDir = -1;
+      renderAll();
+    });
+    return card;
+  }
+
   function renderKpiCards(){
     kpiGrid.innerHTML = '';
-    KPIS.forEach(kpi=>{
-      const actualAgg = aggregate(kpi.key, false);
-      const forecastAgg = aggregate(kpi.key, true);
-      const st = statusFor(kpi, forecastAgg);
-      const stA = statusFor(kpi, actualAgg);
-      const achA = achievementPct(kpi, actualAgg);
-      const achF = achievementPct(kpi, forecastAgg);
+    MATRICES.forEach(m=>{
+      if(m.masked){ kpiGrid.appendChild(renderRfidCard(m)); return; }
+
+      const actualAgg = getActualOverall(m.key);
+      const forecastAgg = getForecastOverall(m.key);
+      const st = statusFor(m, forecastAgg);
+      const stA = statusFor(m, actualAgg);
+      const achA = achievementPct(m, actualAgg);
+      const achF = achievementPct(m, forecastAgg);
       const barColor = st==='good' ? 'var(--green)' : st==='warn' ? 'var(--amber)' : 'var(--red)';
-      // progress bar: how actual-to-date compares against a pro-rated slice of target
-      const proratedTarget = kpi.unit==='$' ? kpi.target*DEPARTMENTS.length*(dataDate/totalDays) : kpi.target;
-      const barPct = Math.min(100, (actualAgg/ (kpi.unit==='$' ? proratedTarget : kpi.target)) * 100);
+      const barPct = actualAgg==null ? 0 : Math.min(100, (actualAgg / m.target) * 100);
 
       const card = document.createElement('div');
-      card.className = 'kpi-card' + (selectedKpi===kpi.key ? ' selected':'');
+      card.className = 'kpi-card' + (selectedKpi===m.key ? ' selected':'');
       card.innerHTML = `
         <div class="kpi-card-top">
-          <div class="kpi-label">${kpi.label}</div>
+          <div class="kpi-label">${m.label}</div>
           <div class="status-chip status-${st}">${st==='good'?'On target':st==='warn'?'Watch':'Critical'}</div>
         </div>
         <div class="kpi-row">
-          <span class="kpi-row-label">Actual (MTD)</span>
-          <span class="kpi-row-val">${kpi.fmt(actualAgg)}</span>
+          <span class="kpi-row-label">Actual</span>
+          <span class="kpi-row-val">${m.fmt(actualAgg)}</span>
           <span class="pct pct-${stA}">${fmtPct(achA)}</span>
         </div>
         <div class="kpi-row primary">
           <span class="kpi-row-label">Forecast (EOM)</span>
-          <span class="kpi-row-val">${kpi.fmt(forecastAgg)}</span>
+          <span class="kpi-row-val">${m.fmt(forecastAgg)}</span>
           <span class="pct pct-${st}">${fmtPct(achF)}</span>
         </div>
         <div class="kpi-bar-wrap"><div class="kpi-bar" style="width:${barPct}%;background:${barColor}"></div></div>
-        <div class="kpi-foot"><span>Target: ${kpi.fmt(kpi.target)}${kpi.unit==='$' ? ' / dept':''}</span><span>10 depts</span></div>
+        <div class="kpi-foot"><span>Target: ${m.fmt(m.target)}</span><span>10 districts</span></div>
       `;
       card.addEventListener('click', ()=>{
-        selectedKpi = selectedKpi===kpi.key ? null : kpi.key;
+        selectedKpi = selectedKpi===m.key ? null : m.key;
         sortKey = selectedKpi; sortDir = -1;
         renderAll();
       });
@@ -630,8 +532,8 @@
   const tableSub = document.getElementById('tableSub');
 
   function renderTableHead(){
-    tableHead.innerHTML = `<th data-key="name">Department</th>` +
-      KPIS.map(k=>`<th data-key="${k.key}" class="${sortKey===k.key?'sorted':''}">${k.label.length>18? k.label.split(' ').slice(0,2).join(' ')+'…' : k.label}${sortKey===k.key ? `<span class="arrow">${sortDir>0?'▲':'▼'}</span>`:''}</th>`).join('');
+    tableHead.innerHTML = `<th data-key="name">District</th>` +
+      MATRICES.map(m=>`<th data-key="${m.key}" class="${sortKey===m.key?'sorted':''}">${m.label.length>18? m.label.split(' ').slice(0,2).join(' ')+'…' : m.label}${sortKey===m.key ? `<span class="arrow">${sortDir>0?'▲':'▼'}</span>`:''}</th>`).join('');
     tableHead.querySelectorAll('th').forEach(th=>{
       th.addEventListener('click', ()=>{
         const key = th.dataset.key;
@@ -642,36 +544,41 @@
   }
 
   function renderTableBody(){
-    let rows = DEPARTMENTS.map(d=>{
+    let rows = DISTRICTS.map(d=>{
       const vals = {};
-      KPIS.forEach(k=>{ vals[k.key] = { actual:getActual(d,k.key), forecast:getForecast(d,k.key) }; });
-      return {dept:d, vals};
+      MATRICES.forEach(m=>{ vals[m.key] = { actual:getActual(m.key,d), forecast:getForecast(m.key,d) }; });
+      return {name:d, vals};
     });
 
     if(searchTerm){
-      rows = rows.filter(r=>r.dept.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      rows = rows.filter(r=>r.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
 
     if(sortKey){
       rows.sort((a,b)=>{
-        if(sortKey==='name') return a.dept.name.localeCompare(b.dept.name)*sortDir;
+        if(sortKey==='name') return a.name.localeCompare(b.name)*sortDir;
         const av = currentView==='actual' ? a.vals[sortKey].actual : a.vals[sortKey].forecast;
         const bv = currentView==='actual' ? b.vals[sortKey].actual : b.vals[sortKey].forecast;
-        return (av-bv)*sortDir;
+        return ((av??0)-(bv??0))*sortDir;
       });
     }
 
     tableBody.innerHTML = rows.map((r,idx)=>{
-      const cells = KPIS.map(k=>{
-        const primary = currentView==='actual' ? r.vals[k.key].actual : r.vals[k.key].forecast;
-        const st = statusFor(k, primary);
-        const ach = achievementPct(k, primary);
-        return `<td class="kpi-cell" data-kpi="${k.key}"><span class="dot dot-${st}"></span>${k.fmt(primary)}<span class="pct pct-${st}">${fmtPct(ach)}</span></td>`;
+      const cells = MATRICES.map(m=>{
+        const primary = currentView==='actual' ? r.vals[m.key].actual : r.vals[m.key].forecast;
+        const st = statusFor(m, primary);
+        const ach = achievementPct(m, primary);
+        if(m.masked){
+          // RFID district values are intentionally hidden in the table itself —
+          // per spec, only reveal on hover (tooltip) or click (drawer).
+          return `<td class="kpi-cell masked" data-kpi="${m.key}"><span class="dot dot-${st}"></span>•••</td>`;
+        }
+        return `<td class="kpi-cell" data-kpi="${m.key}"><span class="dot dot-${st}"></span>${m.fmt(primary)}<span class="pct pct-${st}">${fmtPct(ach)}</span></td>`;
       }).join('');
-      return `<tr data-dept="${r.dept.name}"><td><span class="rank-badge">${idx+1}</span>${r.dept.name}</td>${cells}</tr>`;
+      return `<tr data-dept="${r.name}"><td><span class="rank-badge">${idx+1}</span>${r.name}</td>${cells}</tr>`;
     }).join('');
 
-    tableSub.textContent = `Showing ${rows.length} of ${DEPARTMENTS.length} departments · ranked by ${currentView==='actual'?'actual':'forecast'} · hover a cell for the full actual vs. forecast breakdown · click a row for department detail`;
+    tableSub.textContent = `Showing ${rows.length} of ${DISTRICTS.length} districts · ranked by ${currentView==='actual'?'actual':'forecast'} · hover a cell (RFID included) for the full breakdown · click a row for district detail`;
 
     tableBody.querySelectorAll('tr').forEach(tr=>{
       tr.addEventListener('click', ()=> openDrawer(tr.dataset.dept));
@@ -696,18 +603,28 @@
     const td = e.target.closest('td.kpi-cell');
     if(!td || td === ttCurrentTd) return;
     ttCurrentTd = td;
-    const deptName = td.closest('tr').dataset.dept;
+    const district = td.closest('tr').dataset.dept;
     const kpiKey = td.dataset.kpi;
-    const dept = DEPARTMENTS.find(d=>d.name===deptName);
-    const k = KPIS.find(x=>x.key===kpiKey);
-    const av = getActual(dept,kpiKey), fv = getForecast(dept,kpiKey);
-    const stA = statusFor(k,av), stF = statusFor(k,fv);
-    const achA = achievementPct(k,av), achF = achievementPct(k,fv);
+    const m = MATRICES.find(x=>x.key===kpiKey);
+    const av = getActual(kpiKey, district), fv = getForecast(kpiKey, district);
+    const stA = statusFor(m,av), stF = statusFor(m,fv);
+    const achA = achievementPct(m,av), achF = achievementPct(m,fv);
+    let extra = '';
+    if(m.masked){
+      const keys = rfidMonthKeys();
+      extra = keys.map(k=>{
+        const bucket = DATA.rfidMonthly[k];
+        const label = new Date(k+'-01').toLocaleDateString('en-US',{month:'short',year:'numeric'});
+        const val = bucket ? bucket.districts[district] : null;
+        return `<div class="tt-row"><span class="tt-label">${label}</span><span class="tt-val">${m.fmt(val)}</span></div>`;
+      }).join('');
+    }
     cellTooltip.innerHTML = `
-      <div class="tt-title">${dept.name} · ${k.label}</div>
-      <div class="tt-row"><span class="tt-label">Actual (MTD)</span><span class="tt-val">${k.fmt(av)}<span class="pct pct-${stA}">${fmtPct(achA)}</span></span></div>
-      <div class="tt-row"><span class="tt-label">Forecast (EOM)</span><span class="tt-val">${k.fmt(fv)}<span class="pct pct-${stF}">${fmtPct(achF)}</span></span></div>
-      <div class="tt-row tt-target"><span class="tt-label">Target</span><span class="tt-val">${k.fmt(k.target)}</span></div>
+      <div class="tt-title">${district} · ${m.label}</div>
+      ${extra}
+      <div class="tt-row"><span class="tt-label">Actual</span><span class="tt-val">${m.fmt(av)}<span class="pct pct-${stA}">${fmtPct(achA)}</span></span></div>
+      <div class="tt-row"><span class="tt-label">Forecast (EOM)</span><span class="tt-val">${m.fmt(fv)}<span class="pct pct-${stF}">${fmtPct(achF)}</span></span></div>
+      <div class="tt-row tt-target"><span class="tt-label">Target</span><span class="tt-val">${m.fmt(m.target)}</span></div>
     `;
     cellTooltip.classList.add('show');
   });
@@ -733,36 +650,42 @@
     searchTerm = e.target.value; renderTableBody();
   });
 
-  /* ---------------- Drawer ---------------- */
+  /* ---------------- Drawer (district detail) ---------------- */
   const scrim = document.getElementById('scrim');
   const drawer = document.getElementById('drawer');
   const drawerTitle = document.getElementById('drawerTitle');
   const drawerEyebrow = document.getElementById('drawerEyebrow');
   const drawerBody = document.getElementById('drawerBody');
 
-  function openDrawer(deptName){
-    const dept = DEPARTMENTS.find(d=>d.name===deptName);
-    drawerEyebrow.textContent = `Department Detail · Day ${dataDate} of ${totalDays}`;
-    drawerTitle.textContent = dept.name;
-    drawerBody.innerHTML = KPIS.map(k=>{
-      const forecast = getForecast(dept,k.key);
-      const st = statusFor(k, forecast);
-      const achF = achievementPct(k, forecast);
+  function openDrawer(district){
+    drawerEyebrow.textContent = `District Detail · ${DATA.generatedAt || 'no data.json yet'}`;
+    drawerTitle.textContent = district;
+    drawerBody.innerHTML = MATRICES.map(m=>{
+      const forecast = getForecast(m.key, district);
+      const actual = getActual(m.key, district);
+      const st = statusFor(m, forecast);
+      const achF = achievementPct(m, forecast);
       const color = st==='good' ? 'var(--green)' : st==='warn' ? 'var(--amber)' : 'var(--red)';
-      const barPct = k.better==='low'
-        ? Math.min(100, (forecast/(k.target*1.4))*100)
-        : Math.min(100, (forecast/(k.target*1.1))*100);
-      return `
+      const barPct = forecast==null ? 0 : Math.min(100, m.better==='low' ? (forecast/(m.target*1.4))*100 : (forecast/(m.target*1.1))*100);
+      let rfidExtra = '';
+      if(m.masked){
+        rfidExtra = rfidMonthKeys().map(k=>{
+          const bucket = DATA.rfidMonthly[k];
+          const label = new Date(k+'-01').toLocaleDateString('en-US',{month:'short',year:'numeric'});
+          return `<div class="drawer-row"><div class="name">${label} actual</div><div class="val">${m.fmt(bucket ? bucket.districts[district] : null)}</div></div>`;
+        }).join('');
+      }
+      return rfidExtra + `
         <div class="drawer-row">
-          <div class="name">${k.label}</div>
+          <div class="name">${m.label}</div>
           <div class="barwrap"><div class="bar" style="width:${barPct}%;background:${color}"></div></div>
-          <div class="val">${k.fmt(forecast)} <span class="pct pct-${st}">${fmtPct(achF)}</span></div>
+          <div class="val">${m.fmt(forecast)} <span class="pct pct-${st}">${fmtPct(achF)}</span></div>
         </div>`;
     }).join('') + `
       <div class="drawer-note">
-        Actual is measured through Day ${dataDate} of ${totalDays}. Forecast projects the full period using
-        <span class="mono">actual × (${totalDays} ÷ ${dataDate})</span> — a simple run-rate projection.
-        The % shown is achievement vs. target: (value − target) ÷ target × 100.
+        Actual and forecast are both computed by the scheduled pipeline (rolling averages for
+        productivity/delay/rating; run-rate proration for the two amount-based matrices) — this
+        view only reads what's already in <span class="mono">data.json</span>.
       </div>`;
     scrim.classList.add('open');
     drawer.classList.add('open');
@@ -770,51 +693,10 @@
   function closeDrawer(){
     scrim.classList.remove('open');
     drawer.classList.remove('open');
-    settingsDrawer.classList.remove('open');
   }
   document.getElementById('drawerClose').addEventListener('click', closeDrawer);
   scrim.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer(); });
-
-  /* ---------------- Settings drawer: reserved Tableau connection point ---------------- */
-  const settingsDrawer = document.getElementById('settingsDrawer');
-  const settingsIcon = document.getElementById('settingsIcon');
-  const cfgMode = document.getElementById('cfgMode');
-  const tableauFields = document.getElementById('tableauFields');
-  const cfgStatus = document.getElementById('cfgStatus');
-
-  settingsIcon.addEventListener('click', ()=>{
-    scrim.classList.add('open');
-    settingsDrawer.classList.add('open');
-  });
-  document.getElementById('settingsClose').addEventListener('click', closeDrawer);
-
-  cfgMode.addEventListener('change', ()=>{
-    tableauFields.style.display = cfgMode.value === 'tableau' ? 'block' : 'none';
-  });
-
-  document.getElementById('cfgSave').addEventListener('click', async ()=>{
-    TABLEAU_CONFIG = {
-      serverUrl: document.getElementById('cfgServer').value.trim(),
-      siteId: document.getElementById('cfgSite').value.trim(),
-      patName: document.getElementById('cfgPatName').value.trim(),
-      patSecret: document.getElementById('cfgPatSecret').value,
-      viewId: document.getElementById('cfgViewId').value.trim(),
-    };
-    cfgStatus.className = 'settings-status';
-    cfgStatus.textContent = 'Connecting…';
-    try{
-      const parsed = await fetchFromTableau(TABLEAU_CONFIG);
-      DEPARTMENTS = parsed.departments;
-      dataSource = { status:'live', format:'Tableau', generatedAt: parsed.generatedAt || new Date().toLocaleString() };
-      cfgStatus.className = 'settings-status ok';
-      cfgStatus.textContent = `Connected · ${parsed.departments.length} departments loaded`;
-      renderSourceBanner(); renderDate(); renderAll();
-    }catch(err){
-      cfgStatus.className = 'settings-status err';
-      cfgStatus.textContent = `${err.message} — likely blocked by CORS from this origin. Falling back to data.csv / data.json.`;
-    }
-  });
 
   /* ---------------- root render ---------------- */
   function renderAll(){
