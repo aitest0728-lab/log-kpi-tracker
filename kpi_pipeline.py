@@ -60,7 +60,7 @@ TABLEAU_PAT_SECRET = os.environ.get("TABLEAU_PAT_SECRET", "")
 API_VERSION = "3.22"
 
 OIX_FOLDER = os.environ.get("OIX_FOLDER", r"C:\Users\chipanl\Downloads\Digimobi Report")
-DATA_JSON_PATH = os.environ.get("DATA_JSON_PATH", "./data.json")
+DATA_JSON_PATH = os.environ.get("DATA_JSON_PATH", "./public/data.json")  # public/ is the only folder the Cloudflare Worker serves
 HISTORY_PATH = os.environ.get("HISTORY_PATH", "./history.json")
 RAW_DUMP_DIR = Path("./raw_dumps")
 
