@@ -1,5 +1,8 @@
 name = "log-kpi-tracker"
 compatibility_date = "2026-08-18"
-
+ 
 [assets]
 directory = "./public"
+ 
+[observability]
+enabled = false
