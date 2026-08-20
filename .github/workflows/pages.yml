@@ -1,0 +1,45 @@
+name: Deploy to GitHub Pages
+
+# Fires automatically every time main is pushed — including the automated
+# commits run_productivity_0300.bat / run_tableau_1500.bat make — plus you
+# can trigger it by hand from the Actions tab (workflow_dispatch).
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment runs at a time; if the 03:00 and 15:00 jobs ever
+# overlap, the second push queues instead of racing the first.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # Publishes the ./public folder as-is — index.html, data.json, and
+      # productivity_history.json all go up together. No build step needed,
+      # this is already a static site.
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./public"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

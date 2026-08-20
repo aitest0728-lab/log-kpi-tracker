@@ -106,23 +106,44 @@
   .search-wrap{position:relative;}
   .search-wrap input{font-family:'Inter';font-size:13px;padding:8px 12px 8px 30px;border:1px solid var(--line);border-radius:8px;width:220px;background:var(--panel);}
   .search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-muted);}
+  /* table-scroll only needs its own horizontal scrollbar when a table
+     genuinely has too many columns to fit (e.g. Daily Records' 10 districts).
+     Tables that fit the panel (Department Manifest, ODS breakdown,
+     Productivity Detail) no longer force a min-width wider than their
+     content, which was pushing the rightmost column (RFID, in particular)
+     past the visible edge with no obvious scroll cue — reading as "hidden". */
+  .table-wrap{position:relative;}
+  .table-wrap .scroll-fade{position:absolute;top:1px;right:1px;bottom:1px;width:34px;border-radius:0 9px 9px 0;background:linear-gradient(90deg,rgba(244,246,248,0),var(--panel) 70%);pointer-events:none;opacity:0;transition:opacity .15s;z-index:6;}
+  .table-wrap .scroll-hint{position:absolute;top:8px;right:8px;background:var(--amber);color:var(--ink);font-family:'IBM Plex Mono';font-weight:700;font-size:9.5px;letter-spacing:.03em;padding:3px 9px;border-radius:20px;opacity:0;transition:opacity .15s;pointer-events:none;z-index:7;box-shadow:0 2px 6px rgba(16,24,38,.3);}
+  .table-wrap.has-overflow .scroll-fade,.table-wrap.has-overflow .scroll-hint{opacity:1;}
   .table-scroll{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto;}
-  table{border-collapse:collapse;width:100%;min-width:920px;}
-  thead th{position:sticky;top:0;background:var(--ink);color:var(--text-inverse-muted);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;text-align:right;padding:12px 16px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;}
-  thead th:first-child{text-align:left;position:sticky;left:0;z-index:2;}
+  table{border-collapse:collapse;width:100%;}
+  thead th{position:sticky;top:0;background:var(--ink);color:var(--text-inverse-muted);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;text-align:right;padding:10px 12px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;border-left:1px solid rgba(255,255,255,.08);}
+  thead th:first-child{text-align:left;position:sticky;left:0;z-index:2;border-left:none;}
   thead th:hover{color:#fff;}
   thead th.sorted{color:var(--amber);}
   thead th .arrow{font-size:9px;margin-left:3px;opacity:.8;}
-  tbody td{padding:12px 16px;text-align:right;font-family:'IBM Plex Mono';font-size:13px;border-top:1px solid var(--line-soft);white-space:nowrap;}
-  tbody td:first-child{text-align:left;font-family:'Inter';font-weight:600;font-size:13px;position:sticky;left:0;background:var(--panel);}
+  tbody td{padding:10px 12px;text-align:right;font-family:'IBM Plex Mono';font-size:13px;border-top:1px solid var(--line-soft);border-left:1px solid var(--line-soft);white-space:nowrap;}
+  tbody td:first-child{text-align:left;font-family:'Inter';font-weight:600;font-size:13px;position:sticky;left:0;background:var(--panel);border-left:none;}
   tbody tr{cursor:pointer;}
   tbody tr:hover td{background:#f9fafb;}
   tbody tr:hover td:first-child{background:#f2f4f6;}
-  td.kpi-cell{cursor:help;}
-  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:middle;flex:none;}
+  td.kpi-cell{cursor:help;min-width:118px;}
+  /* Tables with very few metric columns (ODS breakdown = District + 1 metric)
+     must not stretch a single column across the whole panel width — that's
+     what was creating the huge dead gap between the district name and its
+     value. Cap them so columns stay a normal, readable width and hug left. */
+  table.table-narrow{width:auto;min-width:0;}
+  table.table-narrow td.kpi-cell, table.table-narrow th{width:220px;}
+  /* The ODS breakdown has only District + 1 metric column — without this the
+     surrounding panel (border/shadow) still stretched to the full content
+     width even though the table itself no longer did, leaving a big dead
+     white box to the right of the numbers. */
+  .table-wrap.fit{width:fit-content;max-width:100%;}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:8px;vertical-align:middle;flex:none;}
   .dot-good{background:var(--green);} .dot-warn{background:var(--amber);} .dot-bad{background:var(--red);}
   .pct-good{color:var(--green);} .pct-warn{color:#9c6a1c;} .pct-bad{color:var(--red);}
-  td.kpi-cell .pct{margin-left:8px;font-size:11px;font-weight:700;}
+  td.kpi-cell .pct{margin-left:10px;font-size:11px;font-weight:700;display:inline-block;min-width:44px;}
 
   /* Hover tooltip: full actual/forecast breakdown for a single cell */
   .cell-tooltip{position:fixed;z-index:50;background:var(--ink);color:#fff;border-radius:9px;padding:12px 14px;font-size:11.5px;box-shadow:0 12px 30px -8px rgba(16,24,38,.45);pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .1s ease;min-width:210px;}
@@ -146,6 +167,7 @@
   .drawer-body{padding:20px 24px;overflow-y:auto;flex:1;}
   .drawer-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft);}
   .drawer-row .name{font-size:12.5px;font-weight:600;color:var(--text);width:44%;}
+  .drawer-row .name .drawer-target-inline{font-weight:400;color:var(--text-muted);font-size:11px;}
   .drawer-row .barwrap{flex:1;height:8px;background:var(--line-soft);border-radius:4px;overflow:hidden;margin:0 10px;position:relative;}
   .drawer-row .bar{height:100%;border-radius:4px;}
   .drawer-row .val{font-family:'IBM Plex Mono';font-size:12px;width:132px;text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:none;}
@@ -167,9 +189,99 @@
   .legend{display:flex;gap:16px;flex-wrap:wrap;margin:2px 0 26px;font-size:11.5px;color:var(--text-muted);}
   .legend span{display:inline-flex;align-items:center;gap:6px;}
 
-  /* RFID: district-level values are masked in the table and only reveal on hover/click, per spec */
-  td.kpi-cell.masked{color:var(--text-muted);letter-spacing:1px;}
-  td.kpi-cell.masked .dot{opacity:.5;}
+  /* View switching (rail icons swap which of these is visible) */
+  .view{display:none;} .view.active{display:block;}
+  .main-tabs{display:flex;gap:0;padding:0 28px;border-bottom:1px solid var(--line);background:var(--panel);}
+  .main-tab{border:none;background:transparent;font-family:'Inter';font-size:13px;font-weight:600;color:var(--text-muted);padding:14px 4px;margin-right:26px;cursor:pointer;border-bottom:2px solid transparent;}
+  .main-tab:hover{color:var(--text);}
+  .main-tab.active{color:var(--ink);border-bottom-color:var(--ink);}
+
+  /* Productivity Detail + Daily Records controls */
+  .prod-controls{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+  .prod-field{display:flex;flex-direction:column;gap:5px;}
+  .prod-field label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-weight:600;}
+  .prod-field select{font-family:'Inter';font-size:13px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);min-width:180px;}
+  .prod-group-a{background:#16324a;}
+  .prod-group-b{background:#4a3016;}
+  #prodNote{font-size:11.5px;color:var(--text-muted);margin-top:12px;}
+  .prod-note{font-size:11.5px;color:var(--text-muted);margin-top:14px;}
+
+  /* Total-network summary strip: the "understand it in the first minute"
+     view — one card per weekday showing Period A vs Period B as a paired
+     bar plus the actual numbers, before anyone has to read the dense
+     per-district table below. This is the headline; the table is the detail. */
+  .prod-summary{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:22px;}
+  .prod-summary-card{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 12px 12px;box-shadow:var(--shadow);}
+  .prod-summary-card .wd{font-family:'Oswald';font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
+  .prod-summary-card .bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+  .prod-summary-card .bar-row .tag{font-size:9.5px;color:var(--text-muted);width:14px;flex:none;font-family:'IBM Plex Mono';}
+  .prod-summary-card .bar-track{flex:1;height:7px;border-radius:4px;background:var(--line-soft);overflow:hidden;}
+  .prod-summary-card .bar-fill{height:100%;border-radius:4px;}
+  .prod-summary-card .bar-fill.a{background:#8aa2bb;}
+  .prod-summary-card .bar-fill.b{background:var(--ink);}
+  .prod-summary-card .bar-row .v{font-family:'IBM Plex Mono';font-size:11px;font-weight:600;width:40px;text-align:right;flex:none;}
+  .prod-summary-card .delta-pill{display:inline-block;margin-top:2px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;}
+  .prod-summary-card .delta-pill.delta-up{background:var(--green-soft);color:var(--green);}
+  .prod-summary-card .delta-pill.delta-down{background:var(--red-soft);color:var(--red);}
+  .prod-summary-card .delta-pill.delta-flat{background:var(--line-soft);color:var(--text-muted);}
+  @media (max-width:980px){ .prod-summary{grid-template-columns:repeat(4,1fr);} }
+  @media (max-width:640px){ .prod-summary{grid-template-columns:repeat(2,1fr);} }
+  /* Below this width, squeezing 7 weekday columns via table-layout:fixed makes
+     every number illegible — switch to natural column widths + horizontal
+     scroll (with the same fade/hint affordance as the other tables) instead. */
+  @media (max-width:900px){ #prodTable{table-layout:auto;min-width:760px;} }
+
+  .prod-detail-label{font-family:'Oswald';font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--text);margin:0 0 10px;}
+
+  /* Per-district table: ONE column per weekday (not two side-by-side groups),
+     current period (B) is the large primary number so the table can be read
+     top-to-bottom in one pass; Period A sits as a small reference figure
+     above it. A light heat tint per cell (green=up, red=down) means the
+     shape of the week is visible before reading a single digit. */
+  #prodTable{border-collapse:collapse;width:100%;table-layout:fixed;}
+  #prodTableHead th{position:sticky;top:0;background:var(--ink);color:var(--text-inverse-muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:11px 8px;font-weight:600;white-space:nowrap;border-left:1px solid rgba(255,255,255,.08);}
+  #prodTableHead th:first-child{text-align:left;width:128px;border-left:none;}
+  #prodTable tbody td{padding:0;text-align:center;border-top:1px solid var(--line-soft);border-left:1px solid var(--line-soft);}
+  #prodTable tbody td:first-child{padding:0 10px;text-align:left;font-family:'Inter';font-weight:600;font-size:12.5px;background:var(--panel);border-left:none;white-space:nowrap;}
+  #prodTable tbody td:first-child .tgt{display:block;font-weight:400;color:var(--text-muted);font-size:10px;font-family:'IBM Plex Mono';margin-top:1px;}
+  #prodTable tbody tr.total-row td{font-weight:700;background:#f6f7f9;}
+  #prodTable tbody tr.total-row td:first-child{background:#eef0f3;}
+  #prodTable tbody td.heat-up{background:#f0f9f4;}
+  #prodTable tbody td.heat-down{background:#fdf1f1;}
+  #prodTable tbody tr.total-row td.heat-up{background:#e2f2e9;}
+  #prodTable tbody tr.total-row td.heat-down{background:#fbe4e4;}
+  .prod-cell{display:flex;flex-direction:column;gap:2px;align-items:center;justify-content:center;line-height:1.25;padding:8px 6px;min-height:56px;}
+  .prod-cell .val-a{color:var(--text-muted);font-size:10.5px;font-family:'IBM Plex Mono';}
+  .prod-cell .val-b{color:var(--text);font-weight:700;font-size:15px;font-family:'IBM Plex Mono';}
+  .prod-cell .delta-pill{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:20px;margin-top:1px;}
+  .prod-cell .delta-pill.delta-up{background:var(--green-soft);color:var(--green);}
+  .prod-cell .delta-pill.delta-down{background:var(--red-soft);color:var(--red);}
+  .prod-cell .delta-pill.delta-flat{background:var(--line-soft);color:var(--text-muted);}
+  .prod-legend{display:flex;gap:16px;align-items:center;margin-bottom:12px;font-size:11.5px;color:var(--text-muted);flex-wrap:wrap;}
+  .prod-legend .swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+  .prod-legend .target-note{margin-left:auto;font-family:'IBM Plex Mono';color:var(--text);}
+
+  /* Daily Records table: Date + 10 districts + Total is genuinely a lot of
+     columns, so unlike the other tables this one keeps a horizontal scroll —
+     but the Total column (the number leadership actually scans for) is now
+     pinned to the right edge, same trick as Date pinned left, so it's never
+     the thing that scrolls out of view. The .scroll-hint chip + fade (shared
+     .table-scroll rules above) make the remaining scroll obvious instead of
+     leaving districts silently cut off past the panel edge. */
+  #dailyTable{border-collapse:collapse;width:100%;min-width:920px;}
+  #dailyTable thead th{position:sticky;top:0;background:var(--ink);color:var(--text-inverse-muted);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;text-align:right;padding:10px 12px;font-weight:600;white-space:nowrap;border-left:1px solid rgba(255,255,255,.08);}
+  #dailyTable thead th:first-child{text-align:left;position:sticky;left:0;z-index:3;border-left:none;}
+  #dailyTable tbody td{padding:10px 12px;text-align:right;font-family:'IBM Plex Mono';font-size:12.5px;border-top:1px solid var(--line-soft);border-left:1px solid var(--line-soft);white-space:nowrap;}
+  #dailyTable tbody td:first-child{text-align:left;font-family:'Inter';font-weight:600;font-size:12.5px;position:sticky;left:0;z-index:1;background:var(--panel);border-left:none;}
+  #dailyTable th.total-cell,#dailyTable td.total-cell{font-weight:700;background:#f6f7f9;position:sticky;right:0;z-index:2;box-shadow:-6px 0 8px -6px rgba(16,24,38,.12);}
+  #dailyTable thead th.total-cell{background:var(--ink);z-index:4;}
+  #dailyTable tbody tr:hover td{background:#f9fafb;}
+  #dailyTable tbody tr:hover td:first-child{background:#f2f4f6;}
+  #dailyTable tbody tr:hover td.total-cell{background:#eef0f3;}
+
+  /* RFID now renders with the exact same treatment as every other matrix —
+     no more masking. Kept slightly tighter row padding across the whole
+     table for a more even, consistent gap between all columns. */
   .kpi-card .kpi-two-month{display:flex;flex-direction:column;gap:6px;margin:2px 0 8px;}
   .kpi-card .kpi-two-month .row{display:flex;justify-content:space-between;align-items:baseline;}
   .kpi-card .kpi-two-month .row .m-label{font-size:10.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;}
@@ -198,13 +310,16 @@
   <nav class="rail">
     <div class="rail-mark">L</div>
     <div class="rail-icons">
-      <div class="rail-icon active" title="Dashboard">
+      <div class="rail-icon active" title="Dashboard" data-view="overview">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       </div>
-      <div class="rail-icon" title="Departments">
+      <div class="rail-icon" title="ODS / VAN Productivity" data-view="ods">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      </div>
+      <div class="rail-icon" title="Productivity Detail" data-view="productivity">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>
       </div>
-      <div class="rail-icon" title="Waybills">
+      <div class="rail-icon" title="Daily Records" data-view="daily">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
       </div>
     </div>
@@ -234,7 +349,16 @@
       </div>
     </header>
 
+    <nav class="main-tabs" id="mainTabs">
+      <button class="main-tab active" data-target="view-overview">Overview</button>
+      <button class="main-tab" data-target="view-ods">ODS / VAN Productivity</button>
+      <button class="main-tab" data-target="view-productivity">Productivity Detail</button>
+      <button class="main-tab" data-target="view-daily">Daily Records</button>
+    </nav>
+
     <div class="content">
+
+      <div class="view active" id="view-overview">
 
       <div class="source-banner demo" id="sourceBanner">● Checking for data.json…</div>
 
@@ -264,17 +388,154 @@
         </div>
       </div>
 
-      <div class="table-scroll">
-        <table id="deptTable">
-          <thead><tr id="tableHead"></tr></thead>
-          <tbody id="tableBody"></tbody>
-        </table>
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table id="deptTable">
+            <thead><tr id="tableHead"></tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="scroll-fade"></div>
+        <div class="scroll-hint">scroll →</div>
       </div>
 
       <div class="legend">
         <span><i class="dot dot-good"></i> On target</span>
         <span><i class="dot dot-warn"></i> Within 15% of target</span>
         <span><i class="dot dot-bad"></i> Off target &gt;15%</span>
+      </div>
+
+      </div>
+
+      <!-- ODS / VAN PRODUCTIVITY: its own dedicated tab, mirroring Overview's
+           card + district-breakdown pattern but scoped to odsRatio only. -->
+      <div class="view" id="view-ods">
+        <div class="section-head">
+          <div>
+            <h2>ODS / VAN Productivity</h2>
+            <div class="sub">Achievement % = (value − target) ÷ target × 100, shown for actual-to-date and forecast alike</div>
+          </div>
+          <div class="view-toggle" id="odsViewToggle">
+            <button data-view="actual" class="on">Rank by Actual</button>
+            <button data-view="forecast">Rank by Forecast</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="odsKpiGrid" style="grid-template-columns:1fr;max-width:420px;"></div>
+
+        <div class="section-head">
+          <div>
+            <h2>District Breakdown</h2>
+            <div class="sub" id="odsTableSub">Click a column to sort · click a row for detail</div>
+          </div>
+        </div>
+
+        <div class="table-wrap fit">
+          <div class="table-scroll">
+            <table id="odsDeptTable" class="table-narrow">
+              <thead><tr id="odsTableHead"></tr></thead>
+              <tbody id="odsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span><i class="dot dot-good"></i> On target</span>
+          <span><i class="dot dot-warn"></i> Within 15% of target</span>
+          <span><i class="dot dot-bad"></i> Off target &gt;15%</span>
+        </div>
+      </div>
+
+      <!-- PRODUCTIVITY DETAIL: week-to-week / month-to-month, two periods side-by-side,
+           weekdays as columns. Reads DATA.dailyProductivity — see the JS section for the
+           exact schema this expects from data.json. -->
+      <div class="view" id="view-productivity">
+        <div class="section-head">
+          <div>
+            <h2>Productivity Detail</h2>
+            <div class="sub">Weekday-by-weekday productivity · two periods compared side-by-side</div>
+          </div>
+        </div>
+        <div class="prod-controls">
+          <div class="prod-field">
+            <label for="prodMatrixSelect">Matrix</label>
+            <select id="prodMatrixSelect">
+              <option value="hktvStaff">HKTV Staff Productivity</option>
+              <option value="odsRatio">ODS / VAN Productivity</option>
+            </select>
+          </div>
+          <div class="prod-field">
+            <label for="prodGranularitySelect">Compare by</label>
+            <select id="prodGranularitySelect">
+              <option value="week">Week to Week</option>
+              <option value="month">Month to Month</option>
+            </select>
+          </div>
+          <div class="prod-field">
+            <label for="prodPeriodASelect">Period A</label>
+            <select id="prodPeriodASelect"></select>
+          </div>
+          <div class="prod-field">
+            <label for="prodPeriodBSelect">Period B</label>
+            <select id="prodPeriodBSelect"></select>
+          </div>
+        </div>
+        <div class="prod-legend" id="prodLegend"></div>
+
+        <div class="prod-summary" id="prodSummary"></div>
+
+        <h3 class="prod-detail-label">District Breakdown</h3>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table id="prodTable">
+              <thead id="prodTableHead"></thead>
+              <tbody id="prodTableBody"></tbody>
+            </table>
+          </div>
+          <div class="scroll-fade"></div>
+          <div class="scroll-hint">scroll →</div>
+        </div>
+        <div class="prod-note" id="prodNote">
+          Month view: each weekday cell is the <em>average</em> of that weekday across the whole month
+          (e.g. August's Saturday column averages all 5 Saturdays), matching how it was requested.
+        </div>
+      </div>
+
+      <!-- DAILY RECORDS: raw order count / manpower per district + total, one row per day.
+           Same DATA.dailyProductivity source as Productivity Detail above. -->
+      <div class="view" id="view-daily">
+        <div class="section-head">
+          <div>
+            <h2>Daily Records</h2>
+            <div class="sub">Order count and manpower by district · most recent 30 days, newest first</div>
+          </div>
+        </div>
+        <div class="prod-controls">
+          <div class="prod-field">
+            <label for="dailyMatrixSelect">Matrix</label>
+            <select id="dailyMatrixSelect">
+              <option value="hktvStaff">HKTV Staff Productivity</option>
+              <option value="odsRatio">ODS / VAN Productivity</option>
+            </select>
+          </div>
+          <div class="prod-field">
+            <label for="dailyMetricSelect">Metric</label>
+            <select id="dailyMetricSelect">
+              <option value="orderCount">Order Count</option>
+              <option value="manpower">Manpower</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table id="dailyTable">
+              <thead><tr id="dailyTableHead"></tr></thead>
+              <tbody id="dailyTableBody"></tbody>
+            </table>
+          </div>
+          <div class="scroll-fade"></div>
+          <div class="scroll-hint">scroll →</div>
+        </div>
       </div>
 
     </div>
@@ -313,9 +574,11 @@
     { key:'delayRate',        section:'tableau',      label:'Delay Rate',               unit:'%',  target:5,      better:'low',  fmt:v=>v==null?'—':v.toFixed(1)+'%' },
     { key:'poorRating',       section:'tableau',      label:'Poor Rating %',            unit:'%',  target:3,      better:'low',  fmt:v=>v==null?'—':v.toFixed(1)+'%' },
     { key:'missingLostAmount',section:'tableau',      label:'Missing & Lost Amount',    unit:'$',  target:250000, better:'low',  fmt:v=>v==null?'—':'$'+Math.round(v).toLocaleString() },
-    { key:'rfidMissingTote',  section:'tableau',      label:'RFID Missing Tote',        unit:'#',  target:500,    better:'low',  fmt:v=>v==null?'—':Math.round(v).toLocaleString(), masked:true },
+    { key:'rfidMissingTote',  section:'tableau',      label:'RFID Missing Tote',        unit:'#',  target:500,    better:'low',  fmt:v=>v==null?'—':Math.round(v).toLocaleString() },
   ];
   const RFID_KEY = 'rfidMissingTote';
+  // Overview shows every matrix except ODS/VAN, which has its own dedicated tab.
+  const OVERVIEW_MATRICES = MATRICES.filter(m => m.key !== 'odsRatio');
 
   const DISTRICTS = ["ETH","ETK","ETX","NT-ST","NT-TM","NT-TSM","NT-TW","WTH","WTK","WTX"];
 
@@ -331,6 +594,7 @@
     generatedAt: null,
     matrices: Object.fromEntries(MATRICES.map(m=>[m.key, emptyMatrix()])),
     rfidMonthly: {},
+    dailyProductivity: {},
   };
   let dataSource = { status:'demo', generatedAt:null };
 
@@ -352,6 +616,26 @@
   function getActual(key, district){ return matrixOf(key).actual.districts[district] ?? null; }
   function getForecast(key, district){ return matrixOf(key).forecast.districts[district] ?? null; }
 
+  /* ---------------- TARGETS (overall + per-district) ----------------
+     Reserved slot per matrix: data.json can optionally carry a `target`
+     block shaped like `actual`/`forecast` —
+       "target": { "overall": 24, "districts": { "ETH": 22, "ETK": 26, ... } }
+     — so business can set different thresholds per district instead of one
+     flat number. If data.json doesn't provide it yet, every read below
+     falls back to the single default in MATRICES (same behavior as before),
+     so nothing breaks while targets are still being finalized. */
+  function getTargetOverall(key){
+    const t = matrixOf(key).target;
+    if(t && t.overall != null) return t.overall;
+    const m = MATRICES.find(x=>x.key===key);
+    return m ? m.target : null;
+  }
+  function getTargetForDistrict(key, district){
+    const t = matrixOf(key).target;
+    if(t && t.districts && t.districts[district] != null) return t.districts[district];
+    return getTargetOverall(key);
+  }
+
   /* RFID accumulates monthly and can straddle a month boundary (see spec §5) —
      rfidMonthly holds up to the last 2 month-keys, e.g. {"2026-07":{...},"2026-08":{...}} */
   function rfidMonthKeys(){ return Object.keys(DATA.rfidMonthly || {}).sort(); }
@@ -366,11 +650,31 @@
         generatedAt: json.generatedAt || null,
         matrices: { ...Object.fromEntries(MATRICES.map(m=>[m.key, emptyMatrix()])), ...json.matrices },
         rfidMonthly: json.rfidMonthly || {},
+        dailyProductivity: {},  // filled in below, from its own file
       };
       dataSource = { status:'live', generatedAt: json.generatedAt || null };
     }catch(err){
       dataSource = { status:'demo', generatedAt:null };
+      DATA.dailyProductivity = buildDemoDailyProductivity();
     }
+
+    // Daily order-count/manpower history lives in its own file, not data.json —
+    // it's a separate, independently-growing daily log (see kpi_pipeline.py's
+    // productivity section) rather than a snapshot like the rest of data.json.
+    // Loaded regardless of whether data.json itself was live or demo, so real
+    // productivity history can show up even before data.json's own schema
+    // changes, or vice versa.
+    if(dataSource.status === 'live'){
+      try{
+        const res2 = await fetch('./productivity_history.json', {cache:'no-store'});
+        if(!res2.ok) throw new Error('no productivity_history.json');
+        const json2 = await res2.json();
+        DATA.dailyProductivity = json2.daily || {};
+      }catch(err){
+        DATA.dailyProductivity = {};  // real empty state — see the on-page note in each tab
+      }
+    }
+
     syncDateFromData();
     renderSourceBanner(); renderDate(); renderAll();
   }
@@ -386,9 +690,9 @@
     }
   }
 
-  function statusFor(m, val){
+  function statusFor(m, val, target){
     if(val == null) return 'warn';
-    const t = m.target;
+    const t = target != null ? target : m.target;
     if(m.better === 'low'){
       if(val <= t) return 'good';
       if(val <= t*1.15) return 'warn';
@@ -399,9 +703,10 @@
       return 'bad';
     }
   }
-  function achievementPct(m, val){
+  function achievementPct(m, val, target){
     if(val == null) return 0;
-    return ((val - m.target) / m.target) * 100;
+    const t = target != null ? target : m.target;
+    return ((val - t) / t) * 100;
   }
   function fmtPct(p){
     const sign = p >= 0 ? '+' : '';
@@ -448,142 +753,145 @@
   /* ---------------- RENDER: KPI cards ---------------- */
   const kpiGrid = document.getElementById('kpiGrid');
 
-  function renderRfidCard(m){
+  function renderTrendRows(m){
     const keys = rfidMonthKeys();
     const rows = keys.map(k=>{
       const bucket = DATA.rfidMonthly[k];
       const label = new Date(k+'-01').toLocaleDateString('en-US',{month:'short',year:'numeric'});
       return `<div class="row"><span class="m-label">${label}</span><span class="m-val">${m.fmt(bucket ? bucket.overall : null)}</span></div>`;
     }).join('') || `<div class="row"><span class="m-label">No data yet</span><span class="m-val">—</span></div>`;
+    return `<div class="kpi-two-month">${rows}</div>`;
+  }
 
-    const actualAgg = getActualOverall(m.key), forecastAgg = getForecastOverall(m.key);
-    const st = statusFor(m, forecastAgg);
+  function renderMatrixCard(m, interactive=true){
+    const actualAgg = getActualOverall(m.key);
+    const forecastAgg = getForecastOverall(m.key);
+    const targetOverall = getTargetOverall(m.key);
+    const st = statusFor(m, forecastAgg, targetOverall);
+    const stA = statusFor(m, actualAgg, targetOverall);
+    const achA = achievementPct(m, actualAgg, targetOverall);
+    const achF = achievementPct(m, forecastAgg, targetOverall);
+    const barColor = st==='good' ? 'var(--green)' : st==='warn' ? 'var(--amber)' : 'var(--red)';
+    const barPct = actualAgg==null ? 0 : Math.min(100, (actualAgg / targetOverall) * 100);
 
     const card = document.createElement('div');
-    card.className = 'kpi-card' + (selectedKpi===m.key ? ' selected':'');
+    card.className = 'kpi-card' + (interactive && selectedKpi===m.key ? ' selected':'');
     card.innerHTML = `
       <div class="kpi-card-top">
         <div class="kpi-label">${m.label}</div>
         <div class="status-chip status-${st}">${st==='good'?'On target':st==='warn'?'Watch':'Critical'}</div>
       </div>
-      <div class="kpi-two-month">${rows}</div>
-      <div class="kpi-row primary">
-        <span class="kpi-row-label">EOM Forecast</span>
-        <span class="kpi-row-val">${m.fmt(forecastAgg)}</span>
-        <span class="pct pct-${st}">${fmtPct(achievementPct(m, forecastAgg))}</span>
+      ${m.key===RFID_KEY ? renderTrendRows(m) : ''}
+      <div class="kpi-row">
+        <span class="kpi-row-label">Actual</span>
+        <span class="kpi-row-val">${m.fmt(actualAgg)}</span>
+        <span class="pct pct-${stA}">${fmtPct(achA)}</span>
       </div>
-      <div class="kpi-foot"><span>Target: ${m.fmt(m.target)}</span><span>10 districts</span></div>
-      <div class="kpi-note">District detail: hover a table cell or click a row — not shown inline.</div>
+      <div class="kpi-row primary">
+        <span class="kpi-row-label">Forecast (EOM)</span>
+        <span class="kpi-row-val">${m.fmt(forecastAgg)}</span>
+        <span class="pct pct-${st}">${fmtPct(achF)}</span>
+      </div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" style="width:${barPct}%;background:${barColor}"></div></div>
+      <div class="kpi-foot"><span>Target: ${m.fmt(targetOverall)}</span><span>10 districts</span></div>
     `;
-    card.addEventListener('click', ()=>{
-      selectedKpi = selectedKpi===m.key ? null : m.key;
-      sortKey = selectedKpi; sortDir = -1;
-      renderAll();
-    });
-    return card;
-  }
-
-  function renderKpiCards(){
-    kpiGrid.innerHTML = '';
-    MATRICES.forEach(m=>{
-      if(m.masked){ kpiGrid.appendChild(renderRfidCard(m)); return; }
-
-      const actualAgg = getActualOverall(m.key);
-      const forecastAgg = getForecastOverall(m.key);
-      const st = statusFor(m, forecastAgg);
-      const stA = statusFor(m, actualAgg);
-      const achA = achievementPct(m, actualAgg);
-      const achF = achievementPct(m, forecastAgg);
-      const barColor = st==='good' ? 'var(--green)' : st==='warn' ? 'var(--amber)' : 'var(--red)';
-      const barPct = actualAgg==null ? 0 : Math.min(100, (actualAgg / m.target) * 100);
-
-      const card = document.createElement('div');
-      card.className = 'kpi-card' + (selectedKpi===m.key ? ' selected':'');
-      card.innerHTML = `
-        <div class="kpi-card-top">
-          <div class="kpi-label">${m.label}</div>
-          <div class="status-chip status-${st}">${st==='good'?'On target':st==='warn'?'Watch':'Critical'}</div>
-        </div>
-        <div class="kpi-row">
-          <span class="kpi-row-label">Actual</span>
-          <span class="kpi-row-val">${m.fmt(actualAgg)}</span>
-          <span class="pct pct-${stA}">${fmtPct(achA)}</span>
-        </div>
-        <div class="kpi-row primary">
-          <span class="kpi-row-label">Forecast (EOM)</span>
-          <span class="kpi-row-val">${m.fmt(forecastAgg)}</span>
-          <span class="pct pct-${st}">${fmtPct(achF)}</span>
-        </div>
-        <div class="kpi-bar-wrap"><div class="kpi-bar" style="width:${barPct}%;background:${barColor}"></div></div>
-        <div class="kpi-foot"><span>Target: ${m.fmt(m.target)}</span><span>10 districts</span></div>
-      `;
+    if(interactive){
       card.addEventListener('click', ()=>{
         selectedKpi = selectedKpi===m.key ? null : m.key;
         sortKey = selectedKpi; sortDir = -1;
         renderAll();
       });
-      kpiGrid.appendChild(card);
-    });
+    }
+    return card;
+  }
+
+  function renderKpiCards(){
+    kpiGrid.innerHTML = '';
+    OVERVIEW_MATRICES.forEach(m => kpiGrid.appendChild(renderMatrixCard(m)));
+  }
+
+  function renderOdsCard(){
+    const odsGrid = document.getElementById('odsKpiGrid');
+    const m = MATRICES.find(x=>x.key==='odsRatio');
+    odsGrid.innerHTML = '';
+    odsGrid.appendChild(renderMatrixCard(m, /*interactive=*/false));
   }
 
   /* ---------------- RENDER: table ---------------- */
   const tableHead = document.getElementById('tableHead');
   const tableBody = document.getElementById('tableBody');
   const tableSub = document.getElementById('tableSub');
+  const odsTableHead = document.getElementById('odsTableHead');
+  const odsTableBody = document.getElementById('odsTableBody');
+  const odsTableSub = document.getElementById('odsTableSub');
 
-  function renderTableHead(){
-    tableHead.innerHTML = `<th data-key="name">District</th>` +
-      MATRICES.map(m=>`<th data-key="${m.key}" class="${sortKey===m.key?'sorted':''}">${m.label.length>18? m.label.split(' ').slice(0,2).join(' ')+'…' : m.label}${sortKey===m.key ? `<span class="arrow">${sortDir>0?'▲':'▼'}</span>`:''}</th>`).join('');
-    tableHead.querySelectorAll('th').forEach(th=>{
+  function renderTableHeadInto(headEl, matrices, sortState){
+    headEl.innerHTML = `<th data-key="name">District</th>` +
+      matrices.map(m=>`<th data-key="${m.key}" class="${sortState.key===m.key?'sorted':''}">${m.label.length>18? m.label.split(' ').slice(0,2).join(' ')+'…' : m.label}${sortState.key===m.key ? `<span class="arrow">${sortState.dir>0?'▲':'▼'}</span>`:''}</th>`).join('');
+    headEl.querySelectorAll('th').forEach(th=>{
       th.addEventListener('click', ()=>{
         const key = th.dataset.key;
-        if(sortKey===key){ sortDir *= -1; } else { sortKey=key; sortDir=1; }
+        if(sortState.key===key){ sortState.dir *= -1; } else { sortState.key=key; sortState.dir=1; }
         renderAll();
       });
     });
   }
 
-  function renderTableBody(){
+  function renderTableBodyInto(bodyEl, subEl, matrices, sortState, view){
     let rows = DISTRICTS.map(d=>{
       const vals = {};
-      MATRICES.forEach(m=>{ vals[m.key] = { actual:getActual(m.key,d), forecast:getForecast(m.key,d) }; });
+      matrices.forEach(m=>{ vals[m.key] = { actual:getActual(m.key,d), forecast:getForecast(m.key,d) }; });
       return {name:d, vals};
     });
 
-    if(searchTerm){
-      rows = rows.filter(r=>r.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    if(sortState.searchTerm){
+      rows = rows.filter(r=>r.name.toLowerCase().includes(sortState.searchTerm.toLowerCase()));
     }
 
-    if(sortKey){
+    if(sortState.key){
       rows.sort((a,b)=>{
-        if(sortKey==='name') return a.name.localeCompare(b.name)*sortDir;
-        const av = currentView==='actual' ? a.vals[sortKey].actual : a.vals[sortKey].forecast;
-        const bv = currentView==='actual' ? b.vals[sortKey].actual : b.vals[sortKey].forecast;
-        return ((av??0)-(bv??0))*sortDir;
+        if(sortState.key==='name') return a.name.localeCompare(b.name)*sortState.dir;
+        const av = view==='actual' ? a.vals[sortState.key].actual : a.vals[sortState.key].forecast;
+        const bv = view==='actual' ? b.vals[sortState.key].actual : b.vals[sortState.key].forecast;
+        return ((av??0)-(bv??0))*sortState.dir;
       });
     }
 
-    tableBody.innerHTML = rows.map((r,idx)=>{
-      const cells = MATRICES.map(m=>{
-        const primary = currentView==='actual' ? r.vals[m.key].actual : r.vals[m.key].forecast;
-        const st = statusFor(m, primary);
-        const ach = achievementPct(m, primary);
-        if(m.masked){
-          // RFID district values are intentionally hidden in the table itself —
-          // per spec, only reveal on hover (tooltip) or click (drawer).
-          return `<td class="kpi-cell masked" data-kpi="${m.key}"><span class="dot dot-${st}"></span>•••</td>`;
-        }
+    bodyEl.innerHTML = rows.map((r,idx)=>{
+      const cells = matrices.map(m=>{
+        const primary = view==='actual' ? r.vals[m.key].actual : r.vals[m.key].forecast;
+        const targetD = getTargetForDistrict(m.key, r.name);
+        const st = statusFor(m, primary, targetD);
+        const ach = achievementPct(m, primary, targetD);
         return `<td class="kpi-cell" data-kpi="${m.key}"><span class="dot dot-${st}"></span>${m.fmt(primary)}<span class="pct pct-${st}">${fmtPct(ach)}</span></td>`;
       }).join('');
       return `<tr data-dept="${r.name}"><td><span class="rank-badge">${idx+1}</span>${r.name}</td>${cells}</tr>`;
     }).join('');
 
-    tableSub.textContent = `Showing ${rows.length} of ${DISTRICTS.length} districts · ranked by ${currentView==='actual'?'actual':'forecast'} · hover a cell (RFID included) for the full breakdown · click a row for district detail`;
+    subEl.textContent = `Showing ${rows.length} of ${DISTRICTS.length} districts · ranked by ${view==='actual'?'actual':'forecast'} · hover a cell for the full breakdown · click a row for district detail`;
 
-    tableBody.querySelectorAll('tr').forEach(tr=>{
+    bodyEl.querySelectorAll('tr').forEach(tr=>{
       tr.addEventListener('click', ()=> openDrawer(tr.dataset.dept));
     });
   }
+
+  const overviewSort = { get key(){return sortKey;}, set key(v){sortKey=v;}, get dir(){return sortDir;}, set dir(v){sortDir=v;}, get searchTerm(){ return searchTerm; } };
+  function renderTableHead(){ renderTableHeadInto(tableHead, OVERVIEW_MATRICES, overviewSort); }
+  function renderTableBody(){ renderTableBodyInto(tableBody, tableSub, OVERVIEW_MATRICES, overviewSort, currentView); }
+
+  const odsMatrixList = [MATRICES.find(m=>m.key==='odsRatio')];
+  const odsSort = { key:null, dir:1, searchTerm:'' };
+  let odsView = 'actual';
+  function renderOdsTableHead(){ renderTableHeadInto(odsTableHead, odsMatrixList, odsSort); }
+  function renderOdsTableBody(){ renderTableBodyInto(odsTableBody, odsTableSub, odsMatrixList, odsSort, odsView); }
+  function renderOdsTab(){ renderOdsCard(); renderOdsTableHead(); renderOdsTableBody(); }
+
+  document.getElementById('odsViewToggle').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    odsView = btn.dataset.view;
+    document.querySelectorAll('#odsViewToggle button').forEach(b=>b.classList.toggle('on', b===btn));
+    renderOdsTab();
+  });
 
   /* ---------------- Hover tooltip: full actual/forecast breakdown per cell ---------------- */
   const cellTooltip = document.getElementById('cellTooltip');
@@ -599,44 +907,47 @@
     cellTooltip.style.top = y+'px';
   }
 
-  document.querySelector('.table-scroll').addEventListener('mouseover', e=>{
-    const td = e.target.closest('td.kpi-cell');
-    if(!td || td === ttCurrentTd) return;
-    ttCurrentTd = td;
-    const district = td.closest('tr').dataset.dept;
-    const kpiKey = td.dataset.kpi;
-    const m = MATRICES.find(x=>x.key===kpiKey);
-    const av = getActual(kpiKey, district), fv = getForecast(kpiKey, district);
-    const stA = statusFor(m,av), stF = statusFor(m,fv);
-    const achA = achievementPct(m,av), achF = achievementPct(m,fv);
-    let extra = '';
-    if(m.masked){
-      const keys = rfidMonthKeys();
-      extra = keys.map(k=>{
-        const bucket = DATA.rfidMonthly[k];
-        const label = new Date(k+'-01').toLocaleDateString('en-US',{month:'short',year:'numeric'});
-        const val = bucket ? bucket.districts[district] : null;
-        return `<div class="tt-row"><span class="tt-label">${label}</span><span class="tt-val">${m.fmt(val)}</span></div>`;
-      }).join('');
-    }
-    cellTooltip.innerHTML = `
-      <div class="tt-title">${district} · ${m.label}</div>
-      ${extra}
-      <div class="tt-row"><span class="tt-label">Actual</span><span class="tt-val">${m.fmt(av)}<span class="pct pct-${stA}">${fmtPct(achA)}</span></span></div>
-      <div class="tt-row"><span class="tt-label">Forecast (EOM)</span><span class="tt-val">${m.fmt(fv)}<span class="pct pct-${stF}">${fmtPct(achF)}</span></span></div>
-      <div class="tt-row tt-target"><span class="tt-label">Target</span><span class="tt-val">${m.fmt(m.target)}</span></div>
-    `;
-    cellTooltip.classList.add('show');
-  });
-  document.querySelector('.table-scroll').addEventListener('mousemove', e=>{
-    if(e.target.closest('td.kpi-cell')) positionTooltip(e);
-  });
-  document.querySelector('.table-scroll').addEventListener('mouseout', e=>{
-    const td = e.target.closest('td.kpi-cell');
-    if(!td) return;
-    if(td.contains(e.relatedTarget)) return;
-    ttCurrentTd = null;
-    cellTooltip.classList.remove('show');
+  document.querySelectorAll('.table-scroll').forEach(scrollEl => {
+    scrollEl.addEventListener('mouseover', e=>{
+      const td = e.target.closest('td.kpi-cell');
+      if(!td || td === ttCurrentTd) return;
+      ttCurrentTd = td;
+      const district = td.closest('tr').dataset.dept;
+      const kpiKey = td.dataset.kpi;
+      const m = MATRICES.find(x=>x.key===kpiKey);
+      const av = getActual(kpiKey, district), fv = getForecast(kpiKey, district);
+      const targetD = getTargetForDistrict(kpiKey, district);
+      const stA = statusFor(m,av,targetD), stF = statusFor(m,fv,targetD);
+      const achA = achievementPct(m,av,targetD), achF = achievementPct(m,fv,targetD);
+      let extra = '';
+      if(m.key===RFID_KEY){
+        const keys = rfidMonthKeys();
+        extra = keys.map(k=>{
+          const bucket = DATA.rfidMonthly[k];
+          const label = new Date(k+'-01').toLocaleDateString('en-US',{month:'short',year:'numeric'});
+          const val = bucket ? bucket.districts[district] : null;
+          return `<div class="tt-row"><span class="tt-label">${label}</span><span class="tt-val">${m.fmt(val)}</span></div>`;
+        }).join('');
+      }
+      cellTooltip.innerHTML = `
+        <div class="tt-title">${district} · ${m.label}</div>
+        ${extra}
+        <div class="tt-row"><span class="tt-label">Actual</span><span class="tt-val">${m.fmt(av)}<span class="pct pct-${stA}">${fmtPct(achA)}</span></span></div>
+        <div class="tt-row"><span class="tt-label">Forecast (EOM)</span><span class="tt-val">${m.fmt(fv)}<span class="pct pct-${stF}">${fmtPct(achF)}</span></span></div>
+        <div class="tt-row tt-target"><span class="tt-label">Target (${district})</span><span class="tt-val">${m.fmt(targetD)}</span></div>
+      `;
+      cellTooltip.classList.add('show');
+    });
+    scrollEl.addEventListener('mousemove', e=>{
+      if(e.target.closest('td.kpi-cell')) positionTooltip(e);
+    });
+    scrollEl.addEventListener('mouseout', e=>{
+      const td = e.target.closest('td.kpi-cell');
+      if(!td) return;
+      if(td.contains(e.relatedTarget)) return;
+      ttCurrentTd = null;
+      cellTooltip.classList.remove('show');
+    });
   });
 
   /* ---------------- Toggle / search ---------------- */
@@ -663,12 +974,13 @@
     drawerBody.innerHTML = MATRICES.map(m=>{
       const forecast = getForecast(m.key, district);
       const actual = getActual(m.key, district);
-      const st = statusFor(m, forecast);
-      const achF = achievementPct(m, forecast);
+      const targetD = getTargetForDistrict(m.key, district);
+      const st = statusFor(m, forecast, targetD);
+      const achF = achievementPct(m, forecast, targetD);
       const color = st==='good' ? 'var(--green)' : st==='warn' ? 'var(--amber)' : 'var(--red)';
-      const barPct = forecast==null ? 0 : Math.min(100, m.better==='low' ? (forecast/(m.target*1.4))*100 : (forecast/(m.target*1.1))*100);
+      const barPct = forecast==null ? 0 : Math.min(100, m.better==='low' ? (forecast/(targetD*1.4))*100 : (forecast/(targetD*1.1))*100);
       let rfidExtra = '';
-      if(m.masked){
+      if(m.key===RFID_KEY){
         rfidExtra = rfidMonthKeys().map(k=>{
           const bucket = DATA.rfidMonthly[k];
           const label = new Date(k+'-01').toLocaleDateString('en-US',{month:'short',year:'numeric'});
@@ -677,7 +989,7 @@
       }
       return rfidExtra + `
         <div class="drawer-row">
-          <div class="name">${m.label}</div>
+          <div class="name">${m.label} <span class="drawer-target-inline">(target: ${m.fmt(targetD)})</span></div>
           <div class="barwrap"><div class="bar" style="width:${barPct}%;background:${color}"></div></div>
           <div class="val">${m.fmt(forecast)} <span class="pct pct-${st}">${fmtPct(achF)}</span></div>
         </div>`;
@@ -698,11 +1010,290 @@
   scrim.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer(); });
 
+  /* ---------------- PRODUCTIVITY DETAIL + DAILY RECORDS ----------------
+     This tab's data does NOT live inside data.json — it's fetched separately
+     from ./productivity_history.json (see loadDataSource() above), because
+     it's an independently-growing daily log rather than a point-in-time
+     snapshot like the rest of data.json. Expected shape:
+
+       { "daily": {
+           "2026-08-19": {
+             "hktvStaff": {
+               "districts": { "ETH": {"orderCount": 812, "manpower": 21}, ... },
+               "total":     {"orderCount": 7940, "manpower": 210}
+             },
+             "odsRatio": { ...same shape... }
+           },
+           "2026-08-18": { ... },
+           ...
+       } }
+
+     One entry per calendar day, going back as far as history is kept.
+     Everything below (week/month aggregation, weekday averaging) is derived
+     client-side from this raw daily log — the pipeline only needs to append
+     one day's record at a time. kpi_pipeline.py writes this file's contents
+     from history.json's "dailyProductivityLog" (the durable full record) —
+     see append_daily_productivity_log() / trimmed_daily_productivity() in
+     run_productivity_section().
+
+     "manpower" DEFINITION (per brief item 4) — already implemented exactly
+     this way in kpi_pipeline.py's productivity_for_group(), unchanged here:
+       manpower for a given district+day = COUNT OF DISTINCT user IDs
+       active that day, where:
+         - hktvStaff.manpower counts distinct user IDs starting with
+           "LF" or "LP"
+         - odsRatio.manpower counts distinct user IDs starting with
+           "ODS" or "VAN"
+       orderCount is the count of orders/totes handled by that same
+       district+day+population. productivity (shown throughout this page)
+       is always orderCount / manpower — never stored directly, always
+       derived, so it never drifts out of sync with the two inputs. */
+
+  function buildDemoDailyProductivity(){
+    const out = {};
+    const today = new Date();
+    for(let i=59;i>=0;i--){
+      const d = new Date(today); d.setDate(d.getDate()-i);
+      const key = d.toISOString().slice(0,10);
+      const mk = (base)=>{
+        const districts = {}; let totalOrders=0, totalManpower=0;
+        DISTRICTS.forEach(dist=>{
+          const manpower = 15 + Math.round(Math.random()*12);
+          const orderCount = Math.round(manpower * (base + (Math.random()*6-3)));
+          districts[dist] = {orderCount, manpower};
+          totalOrders += orderCount; totalManpower += manpower;
+        });
+        return {districts, total:{orderCount: totalOrders, manpower: totalManpower}};
+      };
+      out[key] = { hktvStaff: mk(45), odsRatio: mk(38) };
+    }
+    return out;
+  }
+
+  const WEEKDAY_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  function weekdayIndexOf(dateStr){ const d=new Date(dateStr+'T00:00:00'); return (d.getDay()+6)%7; }
+  function mondayOf(dateStr){ const d=new Date(dateStr+'T00:00:00'); const idx=(d.getDay()+6)%7; d.setDate(d.getDate()-idx); return d.toISOString().slice(0,10); }
+  function addDays(dateStr,n){ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+
+  function listAvailableWeeks(){
+    const set = new Set();
+    Object.keys(DATA.dailyProductivity).forEach(k=>set.add(mondayOf(k)));
+    return Array.from(set).sort().reverse();
+  }
+  function listAvailableMonths(){
+    const set = new Set();
+    Object.keys(DATA.dailyProductivity).forEach(k=>set.add(k.slice(0,7)));
+    return Array.from(set).sort().reverse();
+  }
+  function weekLabel(mondayStr){ return `Week of ${mondayStr} – ${addDays(mondayStr,6)}`; }
+  function monthLabel(monthStr){ return new Date(monthStr+'-01T00:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
+
+  function dayRecord(dateKey, metricKey, district){
+    const day = DATA.dailyProductivity[dateKey];
+    if(!day || !day[metricKey]) return null;
+    const rec = district==='Total' ? day[metricKey].total : day[metricKey].districts[district];
+    if(!rec || !rec.manpower) return null;
+    return rec;
+  }
+  function dayProductivity(dateKey, metricKey, district){
+    const rec = dayRecord(dateKey, metricKey, district);
+    return rec ? rec.orderCount / rec.manpower : null;
+  }
+  function getWeekRow(mondayStr, metricKey, district){
+    const vals = [];
+    for(let i=0;i<7;i++) vals.push(dayProductivity(addDays(mondayStr,i), metricKey, district));
+    return vals;
+  }
+  function getMonthRow(monthStr, metricKey, district){
+    // Averages each weekday name across however many occurred that month —
+    // e.g. August's Saturday column divides by however many Saturdays (5, in
+    // the example given), not by a fixed count.
+    const sums = Array(7).fill(0), counts = Array(7).fill(0);
+    Object.keys(DATA.dailyProductivity).forEach(key=>{
+      if(!key.startsWith(monthStr)) return;
+      const v = dayProductivity(key, metricKey, district);
+      if(v==null) return;
+      const wd = weekdayIndexOf(key);
+      sums[wd]+=v; counts[wd]++;
+    });
+    return sums.map((s,i)=> counts[i] ? s/counts[i] : null);
+  }
+
+  function populateProdPeriodSelectors(){
+    const granularity = document.getElementById('prodGranularitySelect').value;
+    const aSel = document.getElementById('prodPeriodASelect');
+    const bSel = document.getElementById('prodPeriodBSelect');
+    const periods = granularity==='week' ? listAvailableWeeks() : listAvailableMonths();
+    const labelFn = granularity==='week' ? weekLabel : monthLabel;
+    const prevA = aSel.value, prevB = bSel.value;
+    const opts = periods.map(p=>`<option value="${p}">${labelFn(p)}</option>`).join('');
+    aSel.innerHTML = opts; bSel.innerHTML = opts;
+    aSel.value = periods.includes(prevA) ? prevA : (periods[0] || '');
+    bSel.value = periods.includes(prevB) ? prevB : (periods[1] || periods[0] || '');
+  }
+
+  function deltaInfo(va, vb){
+    if(va == null || vb == null || va === 0) return { cls:'delta-flat', pct:null, arrow:'●' };
+    const pct = ((vb - va) / va) * 100;
+    const cls = pct > 0.5 ? 'delta-up' : pct < -0.5 ? 'delta-down' : 'delta-flat';
+    const arrow = pct > 0.5 ? '▲' : pct < -0.5 ? '▼' : '●';
+    return { cls, pct, arrow };
+  }
+
+  function renderProductivityTab(){
+    const head = document.getElementById('prodTableHead');
+    const body = document.getElementById('prodTableBody');
+    const note = document.getElementById('prodNote');
+    const legend = document.getElementById('prodLegend');
+    const summary = document.getElementById('prodSummary');
+    if(Object.keys(DATA.dailyProductivity).length === 0){
+      head.innerHTML = '';
+      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No productivity_history.json alongside this page yet — kpi_pipeline.py's productivity section writes it automatically from tomorrow's 03:00 run. This table will populate on its own once that file exists.</td></tr>`;
+      document.getElementById('prodPeriodASelect').innerHTML = '';
+      document.getElementById('prodPeriodBSelect').innerHTML = '';
+      legend.innerHTML = ''; summary.innerHTML = '';
+      return;
+    }
+    populateProdPeriodSelectors();
+    const metricKey = document.getElementById('prodMatrixSelect').value;
+    const granularity = document.getElementById('prodGranularitySelect').value;
+    const periodA = document.getElementById('prodPeriodASelect').value;
+    const periodB = document.getElementById('prodPeriodBSelect').value;
+    const labelFn = granularity==='week' ? weekLabel : monthLabel;
+    const getRow = granularity==='week' ? getWeekRow : getMonthRow;
+    const m = MATRICES.find(x=>x.key===metricKey);
+    const labelA = periodA ? labelFn(periodA) : 'Period A', labelB = periodB ? labelFn(periodB) : 'Period B';
+    const targetOverall = getTargetOverall(metricKey);
+
+    legend.innerHTML = `
+      <span><i class="swatch" style="background:#8aa2bb"></i>${labelA} (reference)</span>
+      <span><i class="swatch" style="background:var(--ink)"></i>${labelB} — this row's current period</span>
+      <span class="target-note">Target: ${m.fmt(targetOverall)}</span>`;
+
+    // ---- Summary strip: Total (all districts), one card per weekday ----
+    const totalA = periodA ? getRow(periodA, metricKey, 'Total') : Array(7).fill(null);
+    const totalB = periodB ? getRow(periodB, metricKey, 'Total') : Array(7).fill(null);
+    summary.innerHTML = WEEKDAY_LABELS.map((w,i)=>{
+      const va = totalA[i], vb = totalB[i];
+      const maxV = Math.max(va||0, vb||0, 1);
+      const pctA = va==null?0:Math.max(4,(va/maxV)*100), pctB = vb==null?0:Math.max(4,(vb/maxV)*100);
+      const d = deltaInfo(va, vb);
+      const deltaTxt = d.pct==null ? '—' : `${d.arrow}${Math.abs(d.pct).toFixed(0)}%`;
+      return `<div class="prod-summary-card">
+        <div class="wd">${w}</div>
+        <div class="bar-row"><span class="tag">A</span><div class="bar-track"><div class="bar-fill a" style="width:${pctA}%"></div></div><span class="v">${m.fmt(va)}</span></div>
+        <div class="bar-row"><span class="tag">B</span><div class="bar-track"><div class="bar-fill b" style="width:${pctB}%"></div></div><span class="v">${m.fmt(vb)}</span></div>
+        <span class="delta-pill ${d.cls}">${deltaTxt}</span>
+      </div>`;
+    }).join('');
+
+    // Single header row — one column per weekday, not two side-by-side groups —
+    // so the whole comparison fits without horizontal scrolling.
+    head.innerHTML = `<tr><th>District</th>${WEEKDAY_LABELS.map(w=>`<th>${w}</th>`).join('')}</tr>`;
+
+    const rowDistricts = [...DISTRICTS, 'Total'];
+    body.innerHTML = rowDistricts.map(d=>{
+      const target = getTargetForDistrict(metricKey, d);
+      const rowA = periodA ? getRow(periodA, metricKey, d) : Array(7).fill(null);
+      const rowB = periodB ? getRow(periodB, metricKey, d) : Array(7).fill(null);
+      const cells = rowA.map((va, i)=>{
+        const vb = rowB[i];
+        const dl = deltaInfo(va, vb);
+        const deltaTxt = dl.pct==null ? '—' : `${dl.arrow}${Math.abs(dl.pct).toFixed(0)}%`;
+        const heatCls = dl.cls==='delta-up' ? 'heat-up' : dl.cls==='delta-down' ? 'heat-down' : '';
+        return `<td class="kpi-cell ${heatCls}">
+          <div class="prod-cell">
+            <span class="val-a">${m.fmt(va)}</span>
+            <span class="val-b">${m.fmt(vb)}</span>
+            <span class="delta-pill ${dl.cls}">${deltaTxt}</span>
+          </div>
+        </td>`;
+      }).join('');
+      const rowLabel = d==='Total' ? '<strong>Total</strong>' : `${d}<span class="tgt">target ${m.fmt(target)}</span>`;
+      return `<tr class="${d==='Total'?'total-row':''}"><td>${rowLabel}</td>${cells}</tr>`;
+    }).join('');
+
+    note.innerHTML = (granularity==='month'
+      ? 'Month view: each weekday cell is the <em>average</em> of that weekday across the whole month (e.g. August\'s Saturday column averages all 5 Saturdays). '
+      : 'Week view: each weekday cell is that single day\'s value (Monday through Sunday). ')
+      + `Small number = ${labelA}, bold number = ${labelB} (current), pill = % change between them. Cell tint: green = up, red = down.`;
+  }
+
+  function renderDailyRecordsTab(){
+    const head = document.getElementById('dailyTableHead');
+    const body = document.getElementById('dailyTableBody');
+    if(Object.keys(DATA.dailyProductivity).length === 0){
+      head.innerHTML = '<th>Date</th>';
+      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No productivity_history.json alongside this page yet — same file as the Productivity Detail tab. Once kpi_pipeline.py's 03:00 run appends daily order count + manpower per district, this table populates automatically.</td></tr>`;
+      return;
+    }
+    const metricKey = document.getElementById('dailyMatrixSelect').value;
+    const metric = document.getElementById('dailyMetricSelect').value;
+    const dates = Object.keys(DATA.dailyProductivity).sort().reverse().slice(0,30);
+    head.innerHTML = `<th>Date</th>` + DISTRICTS.map(d=>`<th>${d}</th>`).join('') + `<th class="total-cell">Total</th>`;
+    body.innerHTML = dates.map(dateKey=>{
+      const cells = DISTRICTS.map(d=>{
+        const rec = dayRecord(dateKey, metricKey, d);
+        const val = rec ? rec[metric] : null;
+        return `<td class="kpi-cell">${val==null?'—':val.toLocaleString()}</td>`;
+      }).join('');
+      const totalRec = dayRecord(dateKey, metricKey, 'Total');
+      const totalVal = totalRec ? totalRec[metric] : null;
+      return `<tr><td>${dateKey}</td>${cells}<td class="total-cell">${totalVal==null?'—':totalVal.toLocaleString()}</td></tr>`;
+    }).join('');
+  }
+
+  /* ---------------- scroll affordance ----------------
+     Toggles .has-overflow on each .table-wrap when its inner .table-scroll
+     is actually wider than what's visible, so the fade + "scroll →" chip
+     only ever show up when there's really more content off-screen — this
+     is what makes an overflowing table (Daily Records' 10 districts) read
+     as "scroll for more" instead of numbers just silently disappearing
+     past the edge. Re-run after every render and on resize. */
+  function updateScrollHints(){
+    document.querySelectorAll('.table-wrap').forEach(wrap=>{
+      const scroller = wrap.querySelector('.table-scroll');
+      if(!scroller) return;
+      wrap.classList.toggle('has-overflow', scroller.scrollWidth > scroller.clientWidth + 2);
+    });
+  }
+  window.addEventListener('resize', updateScrollHints);
+
+  /* ---------------- tab switching ---------------- */
+  const VIEW_ID_BY_RAIL_KEY = { overview:'view-overview', ods:'view-ods', productivity:'view-productivity', daily:'view-daily' };
+
+  function switchToView(viewId){
+    document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active', b.dataset.target===viewId));
+    document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id===viewId));
+    document.querySelectorAll('.rail-icon').forEach(ic=>ic.classList.toggle('active', VIEW_ID_BY_RAIL_KEY[ic.dataset.view]===viewId));
+    // Tables in the tab we just switched to were display:none until now, so
+    // their scroll widths couldn't be measured until this point.
+    requestAnimationFrame(updateScrollHints);
+  }
+  document.getElementById('mainTabs').addEventListener('click', e=>{
+    const btn = e.target.closest('.main-tab');
+    if(!btn) return;
+    switchToView(btn.dataset.target);
+  });
+  document.querySelectorAll('.rail-icon').forEach(icon=>{
+    icon.addEventListener('click', ()=> switchToView(VIEW_ID_BY_RAIL_KEY[icon.dataset.view]));
+  });
+  ['prodMatrixSelect','prodGranularitySelect','prodPeriodASelect','prodPeriodBSelect'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', ()=>{ renderProductivityTab(); updateScrollHints(); });
+  });
+  ['dailyMatrixSelect','dailyMetricSelect'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', ()=>{ renderDailyRecordsTab(); updateScrollHints(); });
+  });
+
   /* ---------------- root render ---------------- */
   function renderAll(){
     renderKpiCards();
     renderTableHead();
     renderTableBody();
+    renderOdsTab();
+    renderProductivityTab();
+    renderDailyRecordsTab();
+    updateScrollHints();
   }
 
   loadDataSource();

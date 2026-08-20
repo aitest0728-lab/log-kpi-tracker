@@ -49,6 +49,14 @@ OIX_FOLDER = os.environ.get("OIX_FOLDER", r"C:\Users\chipanl\Downloads\Digimobi 
 REPORT_FOLDER = os.environ.get("REPORT_FOLDER", r"C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker\Folder for KPI Dashboard")
 DATA_JSON_PATH = os.environ.get("DATA_JSON_PATH", "./public/data.json")
 HISTORY_PATH = os.environ.get("HISTORY_PATH", "./history.json")
+# The dashboard's Productivity Detail / Daily Records tabs fetch this file
+# directly (not data.json) — see loadDataSource() in the HTML. It lives next
+# to data.json in ./public so both get served by the same static host.
+PRODUCTIVITY_HISTORY_PATH = os.environ.get("PRODUCTIVITY_HISTORY_PATH", "./public/productivity_history.json")
+# How many days of raw order-count/manpower history productivity_history.json
+# carries. history.json (not this) is the durable full log, so raising this
+# later doesn't lose anything already run — it just widens the served window.
+DAILY_PRODUCTIVITY_KEEP_DAYS = int(os.environ.get("DAILY_PRODUCTIVITY_KEEP_DAYS", "60"))
 
 os.makedirs(REPORT_FOLDER, exist_ok=True)
 
@@ -697,9 +705,51 @@ def run_productivity_section():
             "asOf": target_date.isoformat(),
         }
 
+    # Dashboard's Productivity Detail / Daily Records tabs (week-to-week,
+    # month-to-month, and raw order-count-per-manpower history). This is
+    # purely additive on top of the block above — hktv_staff/ods_ratio are
+    # the exact same already-computed groups (LF/LP and ODS/VAN unique-user
+    # counts via productivity_for_group(), untouched), just also persisted
+    # in their raw orderCount/manpower form instead of only as the reduced
+    # productivity ratio the matrices/forecast block above keeps. Written to
+    # its own file (productivity_history.json), not data.json — see the
+    # PRODUCTIVITY_HISTORY_PATH comment above.
+    append_daily_productivity_log(history, target_date.isoformat(), hktv_staff, ods_ratio)
+    save_productivity_history(trimmed_daily_productivity(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
+
     save_history(history)
     save_data_json(payload)
     print("✅ Productivity 數據處理完成，已寫入 data.json")
+
+
+def _group_to_log_shape(group):
+    """productivity_for_group() gives {overall, districts:{d:{orderCount,userCount,productivity}}}.
+    The dashboard's dailyProductivity schema wants {districts:{d:{orderCount,manpower}}, total:{...}}
+    (manpower = the same unique-user count, just under the name the dashboard uses)."""
+    districts = {
+        d: {"orderCount": v["orderCount"], "manpower": v["userCount"]}
+        for d, v in group["districts"].items()
+    }
+    total_orders = sum(v["orderCount"] for v in districts.values())
+    total_manpower = sum(v["manpower"] for v in districts.values())
+    return {"districts": districts, "total": {"orderCount": total_orders, "manpower": total_manpower}}
+
+
+def append_daily_productivity_log(history, date_str, hktv_group, ods_group):
+    log = history.setdefault("dailyProductivityLog", {})
+    log[date_str] = {
+        "hktvStaff": _group_to_log_shape(hktv_group),
+        "odsRatio": _group_to_log_shape(ods_group),
+    }
+
+
+def trimmed_daily_productivity(history, keep_days):
+    """Recomputed fresh from history.json (the durable store) every run, same
+    pattern as rfidMonthly below — data.json only ever carries a recent
+    window so it doesn't grow unbounded, while history.json keeps everything."""
+    log = history.get("dailyProductivityLog", {})
+    recent_dates = sorted(log.keys())[-keep_days:]
+    return {d: log[d] for d in recent_dates}
 
 
 # =============================================================================
@@ -731,6 +781,18 @@ def load_history():
 def save_history(history):
     with open(HISTORY_PATH, "w", encoding="utf-8") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
+
+
+def save_productivity_history(daily_dict):
+    """Writes ./public/productivity_history.json as {"daily": {...}} — the
+    exact shape the dashboard's loadDataSource() fetches. Recomputed fresh
+    from history.json's full log every run (see trimmed_daily_productivity),
+    so this file is always a derived, disposable window — same pattern as
+    data.json itself, never hand-edited or incrementally patched."""
+    os.makedirs(os.path.dirname(PRODUCTIVITY_HISTORY_PATH) or ".", exist_ok=True)
+    with open(PRODUCTIVITY_HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump({"daily": daily_dict}, f, ensure_ascii=False, indent=2)
+    print(f"Wrote {PRODUCTIVITY_HISTORY_PATH}")
 
 
 def append_history(history, metric_key, date_str, overall_value, district_values):
