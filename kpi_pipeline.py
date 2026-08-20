@@ -21,6 +21,16 @@ from pathlib import Path
 import pandas as pd
 from playwright.sync_api import sync_playwright
 
+# Windows Task Scheduler 執行時，stdout/stderr 會被導向到檔案 (pipeline_log.txt)
+# 而非真正的主控台，此時 Python 常會退回系統的 ANSI codepage (cp1252)，
+# 導致印出 emoji 或中文字元時丟出 UnicodeEncodeError 而讓整支程式當掉。
+# 這裡強制 stdout/stderr 用 UTF-8，不管是手動執行還是排程執行都不會再炸掉。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass  # 極舊版本 Python 或非標準串流時，安靜略過，不影響主流程
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
