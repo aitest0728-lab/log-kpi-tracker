@@ -1054,7 +1054,7 @@
     const today = new Date();
     for(let i=59;i>=0;i--){
       const d = new Date(today); d.setDate(d.getDate()-i);
-      const key = d.toISOString().slice(0,10);
+      const key = toDateStr(d);
       const mk = (base)=>{
         const districts = {}; let totalOrders=0, totalManpower=0;
         DISTRICTS.forEach(dist=>{
@@ -1070,10 +1070,27 @@
     return out;
   }
 
+  // Weeks run Monday → Sunday.
   const WEEKDAY_LABELS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  function weekdayIndexOf(dateStr){ const d=new Date(dateStr+'T00:00:00'); return (d.getDay()+6)%7; }
-  function mondayOf(dateStr){ const d=new Date(dateStr+'T00:00:00'); const idx=(d.getDay()+6)%7; d.setDate(d.getDate()-idx); return d.toISOString().slice(0,10); }
-  function addDays(dateStr,n){ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+
+  // IMPORTANT: never use .toISOString().slice(0,10) to turn a Date back into
+  // a "YYYY-MM-DD" string here. toISOString() always converts to UTC — in a
+  // UTC+8 timezone (Hong Kong), local midnight is 16:00 the PREVIOUS day in
+  // UTC, so that pattern silently shifts every derived date back by one day.
+  // Since mondayOf() and addDays() used to chain (addDays running on an
+  // already-shifted string), the error compounded to 2 days — which is
+  // exactly why a Wednesday's data was showing up under the Friday column.
+  // toDateStr() below builds the string from local getFullYear/Month/Date
+  // instead, so it can never drift with the browser's timezone.
+  function toDateStr(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  function weekdayIndexOf(dateStr){ const d=new Date(dateStr+'T00:00:00'); return (d.getDay()+6)%7; } // 0=Mon..6=Sun, matches WEEKDAY_LABELS directly
+  function mondayOf(dateStr){ const d=new Date(dateStr+'T00:00:00'); const idx=(d.getDay()+6)%7; d.setDate(d.getDate()-idx); return toDateStr(d); }
+  function addDays(dateStr,n){ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return toDateStr(d); }
 
   function listAvailableWeeks(){
     const set = new Set();
