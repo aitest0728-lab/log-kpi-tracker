@@ -1,6 +1,6 @@
 {
   "_readme": "PLACEHOLDER seed data in the new 6-key schema (5 matrices, Matrix 1 split into hktvStaff + odsRatio). This file is overwritten automatically by kpi_pipeline.py via run_productivity_0300.bat (03:00) and run_tableau_1500.bat (15:00) once Task Scheduler is set up. Delete this _readme field or leave it; the page ignores it.",
-  "generatedAt": "2026-08-21T09:35",
+  "generatedAt": "2026-08-21T11:02",
   "matrices": {
     "hktvStaff": {
       "actual": {
@@ -19,18 +19,18 @@
         }
       },
       "forecast": {
-        "overall": 46.91,
+        "overall": 46.66,
         "districts": {
-          "ETH": 43.03,
-          "ETK": 47.33,
-          "ETX": 43.84,
-          "NT-ST": 52.69,
-          "NT-TM": 53.81,
-          "NT-TSM": 53.31,
-          "NT-TW": 51.37,
-          "WTH": 40.44,
-          "WTK": 46.26,
-          "WTX": 40.79
+          "ETH": 42.73,
+          "ETK": 46.5,
+          "ETX": 44.92,
+          "NT-ST": 50.93,
+          "NT-TM": 53.02,
+          "NT-TSM": 53.23,
+          "NT-TW": 51.51,
+          "WTH": 39.73,
+          "WTK": 45.2,
+          "WTX": 41.14
         }
       },
       "asOf": "2026-08-20"
@@ -52,18 +52,18 @@
         }
       },
       "forecast": {
-        "overall": 33.53,
+        "overall": 33.91,
         "districts": {
-          "ETH": 29.79,
-          "ETK": 49.05,
-          "ETX": 31.14,
-          "NT-ST": 37.55,
-          "NT-TM": 37.4,
-          "NT-TSM": 35.18,
-          "NT-TW": 30.03,
-          "WTH": 34.61,
-          "WTK": 36.76,
-          "WTX": 32.21
+          "ETH": 27.11,
+          "ETK": 42.08,
+          "ETX": 34.18,
+          "NT-ST": 36.33,
+          "NT-TM": 39.34,
+          "NT-TSM": 38.29,
+          "NT-TW": 30.43,
+          "WTH": 36.92,
+          "WTK": 36.92,
+          "WTX": 32.48
         }
       },
       "asOf": "2026-08-20"
