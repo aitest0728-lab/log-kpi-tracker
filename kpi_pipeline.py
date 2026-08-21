@@ -657,9 +657,33 @@ def process_oix(df):
 
     parent = df.iloc[:, c_parent]
     order_no = df.iloc[:, c_order_no]
-    blank_parent = parent.isna() | (parent.astype(str).str.strip() == "")
-    filled_parent = order_no.astype(str).str.slice(0, 13)
-    df.iloc[:, c_parent] = parent.where(~blank_parent, filled_parent)
+
+    def normalize_parent_order(l_val, k_val):
+        """Two Parent Order formats now exist:
+          - "H..." — the original/existing format, unchanged.
+          - "EM..." — newer format; the leading "E" gets stripped (so "EM..."
+            becomes "M...") wherever it's found, whether that's already
+            sitting in Column L or has to be derived from Column K.
+        Priority: Column L's OWN existing value wins whenever it's non-blank
+        — its own prefix decides the transformation, and Column K's prefix
+        is irrelevant in that case (e.g. L starts with "H" and K starts with
+        "EM" -> still counted as an "H" order, using L's value as-is).
+        Only when L is blank do we derive a value from K at all."""
+        l_str = "" if pd.isna(l_val) else str(l_val).strip()
+        if l_str:
+            if l_str.startswith("EM"):
+                return l_str[1:]              # "EM..." -> "M..." — strip the leading E only
+            return l_str                       # "H..." (or anything else) — unchanged
+
+        k_str = "" if pd.isna(k_val) else str(k_val).strip()
+        if k_str.startswith("EM"):
+            return k_str[1:][:13]              # strip "E" first, THEN take 13 chars of the
+                                                # remainder — keeps the same 13-char, single-
+                                                # leading-letter shape as the "H" format below
+        return k_str[:13]                      # existing "H" (or unrecognized-prefix fallback)
+                                                # behavior, unchanged from before
+
+    df.iloc[:, c_parent] = [normalize_parent_order(l, k) for l, k in zip(parent, order_no)]
 
     df = df.drop_duplicates(subset=[df.columns[c_parent], df.columns[c_user]])
 

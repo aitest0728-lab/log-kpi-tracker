@@ -1,6 +1,6 @@
 {
   "_readme": "PLACEHOLDER seed data in the new 6-key schema (5 matrices, Matrix 1 split into hktvStaff + odsRatio). This file is overwritten automatically by kpi_pipeline.py via run_productivity_0300.bat (03:00) and run_tableau_1500.bat (15:00) once Task Scheduler is set up. Delete this _readme field or leave it; the page ignores it.",
-  "generatedAt": "2026-08-21T12:23",
+  "generatedAt": "2026-08-21T18:21",
   "matrices": {
     "hktvStaff": {
       "actual": {
@@ -70,135 +70,135 @@
     },
     "delayRate": {
       "actual": {
-        "overall": 8.05,
+        "overall": 8.14,
         "districts": {
-          "ETH": 5.09,
-          "ETK": 9.24,
-          "ETX": 10.63,
-          "NT-ST": 5.47,
-          "NT-TM": 6.73,
-          "NT-TSM": 8.4,
-          "NT-TW": 6.66,
-          "WTH": 13.54,
-          "WTK": 6.47,
-          "WTX": 8.51
+          "ETH": 5.11,
+          "ETK": 9.52,
+          "ETX": 10.4,
+          "NT-ST": 5.26,
+          "NT-TM": 6.47,
+          "NT-TSM": 8.64,
+          "NT-TW": 6.91,
+          "WTH": 14.36,
+          "WTK": 6.58,
+          "WTX": 8.26
         }
       },
       "forecast": {
-        "overall": 8.05,
+        "overall": 8.08,
         "districts": {
-          "ETH": 5.04,
-          "ETK": 9.19,
-          "ETX": 10.76,
-          "NT-ST": 5.44,
-          "NT-TM": 6.88,
-          "NT-TSM": 8.04,
-          "NT-TW": 6.7,
-          "WTH": 13.83,
-          "WTK": 6.4,
-          "WTX": 8.62
+          "ETH": 5.06,
+          "ETK": 9.3,
+          "ETX": 10.64,
+          "NT-ST": 5.38,
+          "NT-TM": 6.74,
+          "NT-TSM": 8.24,
+          "NT-TW": 6.77,
+          "WTH": 14.01,
+          "WTK": 6.46,
+          "WTX": 8.5
         }
       },
-      "asOf": "2026-08-20"
+      "asOf": "2026-08-21"
     },
     "poorRating": {
       "actual": {
-        "overall": 2.51,
+        "overall": 2.56,
         "districts": {
-          "ETH": 2.99,
+          "ETH": 3.29,
           "ETK": 1.71,
-          "ETX": 3.17,
-          "NT-ST": 1.32,
+          "ETX": 3.22,
+          "NT-ST": 1.3,
           "NT-TM": 2.36,
-          "NT-TSM": 2.72,
-          "NT-TW": 1.54,
-          "WTH": 4.63,
-          "WTK": 3.19,
-          "WTX": 3.25
+          "NT-TSM": 2.65,
+          "NT-TW": 1.69,
+          "WTH": 4.66,
+          "WTK": 3.21,
+          "WTX": 3.37
         }
       },
       "forecast": {
-        "overall": 2.5,
+        "overall": 2.52,
         "districts": {
-          "ETH": 3.04,
-          "ETK": 1.67,
-          "ETX": 3.04,
+          "ETH": 3.13,
+          "ETK": 1.69,
+          "ETX": 3.1,
           "NT-ST": 1.31,
           "NT-TM": 2.35,
-          "NT-TSM": 2.73,
-          "NT-TW": 1.61,
-          "WTH": 4.62,
+          "NT-TSM": 2.7,
+          "NT-TW": 1.64,
+          "WTH": 4.63,
           "WTK": 3.19,
-          "WTX": 3.25
+          "WTX": 3.29
         }
       },
-      "asOf": "2026-08-20"
+      "asOf": "2026-08-21"
     },
     "missingLostAmount": {
       "actual": {
-        "overall": 319243.0,
+        "overall": 335554.0,
         "districts": {
-          "ETH": 25148.0,
-          "ETK": 24906.0,
-          "ETX": 29497.0,
-          "NT-ST": 27107.0,
-          "NT-TM": 31216.0,
-          "NT-TSM": 19255.0,
-          "NT-TW": 28798.0,
-          "WTH": 39663.0,
-          "WTK": 24668.0,
-          "WTX": 31127.0
+          "ETH": 25948.0,
+          "ETK": 26072.0,
+          "ETX": 29566.0,
+          "NT-ST": 29012.0,
+          "NT-TM": 33197.0,
+          "NT-TSM": 19646.0,
+          "NT-TW": 30041.0,
+          "WTH": 43829.0,
+          "WTK": 24896.0,
+          "WTX": 32929.0
         }
       },
       "forecast": {
-        "overall": 494826.65,
+        "overall": 495341.62,
         "districts": {
-          "ETH": 38979.4,
-          "ETK": 38604.3,
-          "ETX": 45720.35,
-          "NT-ST": 42015.85,
-          "NT-TM": 48384.8,
-          "NT-TSM": 29845.25,
-          "NT-TW": 44636.9,
-          "WTH": 61477.65,
-          "WTK": 38235.4,
-          "WTX": 48246.85
+          "ETH": 38304.19,
+          "ETK": 38487.24,
+          "ETX": 43645.05,
+          "NT-ST": 42827.24,
+          "NT-TM": 49005.1,
+          "NT-TSM": 29001.24,
+          "NT-TW": 44346.24,
+          "WTH": 64699.95,
+          "WTK": 36751.24,
+          "WTX": 48609.48
         }
       },
-      "asOf": "2026-08-20"
+      "asOf": "2026-08-21"
     },
     "rfidMissingTote": {
       "actual": {
-        "overall": 14.0,
+        "overall": 26.0,
         "districts": {
-          "ETH": 1.0,
-          "ETK": 3.0,
+          "ETH": 5.0,
+          "ETK": 7.0,
           "ETX": 1.0,
-          "NT-ST": 3.0,
+          "NT-ST": 5.0,
           "NT-TM": 1.0,
           "NT-TSM": 2.0,
-          "NT-TW": 0.0,
-          "WTH": 1.0,
+          "NT-TW": 1.0,
+          "WTH": 2.0,
           "WTK": 1.0,
           "WTX": 1.0
         }
       },
       "forecast": {
-        "overall": 21.7,
+        "overall": 38.38,
         "districts": {
-          "ETH": 1.55,
-          "ETK": 4.65,
-          "ETX": 1.55,
-          "NT-ST": 4.65,
-          "NT-TM": 1.55,
-          "NT-TSM": 3.1,
-          "NT-TW": 0.0,
-          "WTH": 1.55,
-          "WTK": 1.55,
-          "WTX": 1.55
+          "ETH": 7.38,
+          "ETK": 10.33,
+          "ETX": 1.48,
+          "NT-ST": 7.38,
+          "NT-TM": 1.48,
+          "NT-TSM": 2.95,
+          "NT-TW": 1.48,
+          "WTH": 2.95,
+          "WTK": 1.48,
+          "WTX": 1.48
         }
       },
-      "asOf": "2026-08-20",
+      "asOf": "2026-08-21",
       "monthKey": "2026-08"
     }
   },
@@ -219,16 +219,16 @@
       }
     },
     "2026-08": {
-      "overall": 14.0,
+      "overall": 26.0,
       "districts": {
-        "ETH": 1.0,
-        "ETK": 3.0,
+        "ETH": 5.0,
+        "ETK": 7.0,
         "ETX": 1.0,
-        "NT-ST": 3.0,
+        "NT-ST": 5.0,
         "NT-TM": 1.0,
         "NT-TSM": 2.0,
-        "NT-TW": 0.0,
-        "WTH": 1.0,
+        "NT-TW": 1.0,
+        "WTH": 2.0,
         "WTK": 1.0,
         "WTX": 1.0
       },
@@ -261,6 +261,21 @@
             "WTH": 1.0,
             "WTK": 1.0,
             "WTX": 1.0
+          }
+        },
+        "2026-08-17": {
+          "overall": 12.0,
+          "districts": {
+            "ETH": 4.0,
+            "ETK": 4.0,
+            "ETX": 0.0,
+            "NT-ST": 2.0,
+            "NT-TM": 0.0,
+            "NT-TSM": 0.0,
+            "NT-TW": 1.0,
+            "WTH": 1.0,
+            "WTK": 0.0,
+            "WTX": 0.0
           }
         }
       }
