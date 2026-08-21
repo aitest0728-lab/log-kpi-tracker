@@ -516,6 +516,7 @@
             <select id="dailyMatrixSelect">
               <option value="hktvStaff">HKTV Staff Productivity</option>
               <option value="odsRatio">ODS / VAN Productivity</option>
+              <option value="combined">Total (HKTV Staff + ODS)</option>
             </select>
           </div>
           <div class="prod-field">
@@ -1107,7 +1108,20 @@
 
   function dayRecord(dateKey, metricKey, district){
     const day = DATA.dailyProductivity[dateKey];
-    if(!day || !day[metricKey]) return null;
+    if(!day) return null;
+    if(metricKey === 'combined'){
+      // Sums HKTV Staff + ODS Ratio's raw orderCount/manpower for this
+      // district (or the district-Total row) — added so you don't have to
+      // add the two matrices together by hand every time.
+      const a = dayRecord(dateKey, 'hktvStaff', district);
+      const b = dayRecord(dateKey, 'odsRatio', district);
+      if(!a && !b) return null;
+      return {
+        orderCount: (a ? a.orderCount : 0) + (b ? b.orderCount : 0),
+        manpower: (a ? a.manpower : 0) + (b ? b.manpower : 0),
+      };
+    }
+    if(!day[metricKey]) return null;
     const rec = district==='Total' ? day[metricKey].total : day[metricKey].districts[district];
     if(!rec || !rec.manpower) return null;
     return rec;
