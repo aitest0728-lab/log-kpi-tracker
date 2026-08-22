@@ -239,6 +239,21 @@
         "WTK": 45.69,
         "WTX": 41.51
       }
+    },
+    "2026-08-22": {
+      "overall": 50.59,
+      "districts": {
+        "ETH": 43.0,
+        "ETK": 47.02,
+        "ETX": 53.97,
+        "NT-ST": 57.2,
+        "NT-TM": 58.38,
+        "NT-TSM": 57.4,
+        "NT-TW": 55.88,
+        "WTH": 45.66,
+        "WTK": 47.81,
+        "WTX": 44.03
+      }
     }
   },
   "odsRatio": {
@@ -480,6 +495,21 @@
         "WTH": 36.57,
         "WTK": 32.21,
         "WTX": 31.45
+      }
+    },
+    "2026-08-22": {
+      "overall": 33.03,
+      "districts": {
+        "ETH": 28.04,
+        "ETK": 37.2,
+        "ETX": 30.82,
+        "NT-ST": 47.75,
+        "NT-TM": 37.86,
+        "NT-TSM": 31.89,
+        "NT-TW": 31.12,
+        "WTH": 33.79,
+        "WTK": 37.1,
+        "WTX": 27.94
       }
     }
   },
@@ -2173,6 +2203,104 @@
         "total": {
           "orderCount": 6528,
           "manpower": 196
+        }
+      }
+    },
+    "2026-08-22": {
+      "hktvStaff": {
+        "districts": {
+          "ETH": {
+            "orderCount": 2064,
+            "manpower": 48
+          },
+          "ETK": {
+            "orderCount": 2492,
+            "manpower": 53
+          },
+          "ETX": {
+            "orderCount": 1889,
+            "manpower": 35
+          },
+          "NT-ST": {
+            "orderCount": 2002,
+            "manpower": 35
+          },
+          "NT-TM": {
+            "orderCount": 2335,
+            "manpower": 40
+          },
+          "NT-TSM": {
+            "orderCount": 2296,
+            "manpower": 40
+          },
+          "NT-TW": {
+            "orderCount": 1900,
+            "manpower": 34
+          },
+          "WTH": {
+            "orderCount": 1872,
+            "manpower": 41
+          },
+          "WTK": {
+            "orderCount": 1769,
+            "manpower": 37
+          },
+          "WTX": {
+            "orderCount": 1717,
+            "manpower": 39
+          }
+        },
+        "total": {
+          "orderCount": 20336,
+          "manpower": 402
+        }
+      },
+      "odsRatio": {
+        "districts": {
+          "ETH": {
+            "orderCount": 701,
+            "manpower": 25
+          },
+          "ETK": {
+            "orderCount": 186,
+            "manpower": 5
+          },
+          "ETX": {
+            "orderCount": 678,
+            "manpower": 22
+          },
+          "NT-ST": {
+            "orderCount": 573,
+            "manpower": 12
+          },
+          "NT-TM": {
+            "orderCount": 265,
+            "manpower": 7
+          },
+          "NT-TSM": {
+            "orderCount": 287,
+            "manpower": 9
+          },
+          "NT-TW": {
+            "orderCount": 498,
+            "manpower": 16
+          },
+          "WTH": {
+            "orderCount": 1284,
+            "manpower": 38
+          },
+          "WTK": {
+            "orderCount": 371,
+            "manpower": 10
+          },
+          "WTX": {
+            "orderCount": 475,
+            "manpower": 17
+          }
+        },
+        "total": {
+          "orderCount": 5318,
+          "manpower": 161
         }
       }
     }
