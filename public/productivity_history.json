@@ -1959,6 +1959,104 @@
           "manpower": 217
         }
       }
+    },
+    "2026-08-26": {
+      "hktvStaff": {
+        "districts": {
+          "ETH": {
+            "orderCount": 2013,
+            "manpower": 46
+          },
+          "ETK": {
+            "orderCount": 1604,
+            "manpower": 33
+          },
+          "ETX": {
+            "orderCount": 0,
+            "manpower": 0
+          },
+          "NT-ST": {
+            "orderCount": 1929,
+            "manpower": 37
+          },
+          "NT-TM": {
+            "orderCount": 1979,
+            "manpower": 37
+          },
+          "NT-TSM": {
+            "orderCount": 2164,
+            "manpower": 45
+          },
+          "NT-TW": {
+            "orderCount": 1958,
+            "manpower": 39
+          },
+          "WTH": {
+            "orderCount": 223,
+            "manpower": 6
+          },
+          "WTK": {
+            "orderCount": 1888,
+            "manpower": 42
+          },
+          "WTX": {
+            "orderCount": 2056,
+            "manpower": 50
+          }
+        },
+        "total": {
+          "orderCount": 15814,
+          "manpower": 335
+        }
+      },
+      "odsRatio": {
+        "districts": {
+          "ETH": {
+            "orderCount": 624,
+            "manpower": 28
+          },
+          "ETK": {
+            "orderCount": 245,
+            "manpower": 6
+          },
+          "ETX": {
+            "orderCount": 0,
+            "manpower": 0
+          },
+          "NT-ST": {
+            "orderCount": 380,
+            "manpower": 10
+          },
+          "NT-TM": {
+            "orderCount": 312,
+            "manpower": 8
+          },
+          "NT-TSM": {
+            "orderCount": 295,
+            "manpower": 10
+          },
+          "NT-TW": {
+            "orderCount": 226,
+            "manpower": 11
+          },
+          "WTH": {
+            "orderCount": 147,
+            "manpower": 5
+          },
+          "WTK": {
+            "orderCount": 495,
+            "manpower": 16
+          },
+          "WTX": {
+            "orderCount": 508,
+            "manpower": 19
+          }
+        },
+        "total": {
+          "orderCount": 3232,
+          "manpower": 113
+        }
+      }
     }
   }
 }

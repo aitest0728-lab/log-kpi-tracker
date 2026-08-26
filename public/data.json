@@ -1,72 +1,72 @@
 {
   "_readme": "PLACEHOLDER seed data in the new 6-key schema (5 matrices, Matrix 1 split into hktvStaff + odsRatio). This file is overwritten automatically by kpi_pipeline.py via run_productivity_0300.bat (03:00) and run_tableau_1500.bat (15:00) once Task Scheduler is set up. Delete this _readme field or leave it; the page ignores it.",
-  "generatedAt": "2026-08-26T15:08",
+  "generatedAt": "2026-08-27T03:00",
   "matrices": {
     "hktvStaff": {
       "actual": {
-        "overall": 48.26,
+        "overall": 47.21,
         "districts": {
-          "ETH": 43.09,
-          "ETK": 44.33,
-          "ETX": 49.18,
-          "NT-ST": 50.8,
-          "NT-TM": 58.1,
-          "NT-TSM": 51.13,
-          "NT-TW": 54.28,
-          "WTH": 44.25,
-          "WTK": 50.19,
-          "WTX": 41.77
+          "ETH": 43.76,
+          "ETK": 48.61,
+          "ETX": null,
+          "NT-ST": 52.14,
+          "NT-TM": 53.49,
+          "NT-TSM": 48.09,
+          "NT-TW": 50.21,
+          "WTH": 37.17,
+          "WTK": 44.95,
+          "WTX": 41.12
         }
       },
       "forecast": {
-        "overall": 47.89,
+        "overall": 47.95,
         "districts": {
-          "ETH": 43.9,
-          "ETK": 45.74,
-          "ETX": 48.49,
-          "NT-ST": 52.38,
-          "NT-TM": 55.28,
-          "NT-TSM": 53.04,
-          "NT-TW": 53.25,
-          "WTH": 42.61,
-          "WTK": 46.65,
-          "WTX": 41.42
+          "ETH": 43.78,
+          "ETK": 45.78,
+          "ETX": 49.51,
+          "NT-ST": 52.17,
+          "NT-TM": 55.72,
+          "NT-TSM": 52.24,
+          "NT-TW": 52.72,
+          "WTH": 42.18,
+          "WTK": 46.54,
+          "WTX": 41.8
         }
       },
-      "asOf": "2026-08-25"
+      "asOf": "2026-08-26"
     },
     "odsRatio": {
       "actual": {
-        "overall": 35.85,
+        "overall": 28.6,
         "districts": {
-          "ETH": 32.69,
-          "ETK": 45.43,
-          "ETX": 31.15,
-          "NT-ST": 41.88,
-          "NT-TM": 42.25,
-          "NT-TSM": 41.5,
-          "NT-TW": 33.88,
-          "WTH": 34.63,
-          "WTK": 34.21,
-          "WTX": 35.39
+          "ETH": 22.29,
+          "ETK": 40.83,
+          "ETX": null,
+          "NT-ST": 38.0,
+          "NT-TM": 39.0,
+          "NT-TSM": 29.5,
+          "NT-TW": 20.55,
+          "WTH": 29.4,
+          "WTK": 30.94,
+          "WTX": 26.74
         }
       },
       "forecast": {
-        "overall": 31.4,
+        "overall": 31.33,
         "districts": {
-          "ETH": 27.86,
-          "ETK": 39.94,
-          "ETX": 29.84,
-          "NT-ST": 37.78,
-          "NT-TM": 35.8,
-          "NT-TSM": 35.3,
-          "NT-TW": 26.49,
-          "WTH": 33.21,
-          "WTK": 34.03,
-          "WTX": 29.58
+          "ETH": 27.23,
+          "ETK": 37.92,
+          "ETX": 29.85,
+          "NT-ST": 38.22,
+          "NT-TM": 36.13,
+          "NT-TSM": 35.26,
+          "NT-TW": 25.85,
+          "WTH": 33.61,
+          "WTK": 33.46,
+          "WTX": 29.42
         }
       },
-      "asOf": "2026-08-25"
+      "asOf": "2026-08-26"
     },
     "delayRate": {
       "actual": {
