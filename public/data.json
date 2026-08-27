@@ -1,34 +1,34 @@
 {
   "_readme": "PLACEHOLDER seed data in the new 6-key schema (5 matrices, Matrix 1 split into hktvStaff + odsRatio). This file is overwritten automatically by kpi_pipeline.py via run_productivity_0300.bat (03:00) and run_tableau_1500.bat (15:00) once Task Scheduler is set up. Delete this _readme field or leave it; the page ignores it.",
-  "generatedAt": "2026-08-27T15:08",
+  "generatedAt": "2026-08-27T16:29",
   "matrices": {
     "hktvStaff": {
       "actual": {
-        "overall": 47.21,
+        "overall": 46.45,
         "districts": {
           "ETH": 43.76,
           "ETK": 48.61,
-          "ETX": null,
+          "ETX": 46.16,
           "NT-ST": 52.14,
           "NT-TM": 53.49,
           "NT-TSM": 48.09,
           "NT-TW": 50.21,
-          "WTH": 37.17,
+          "WTH": 40.04,
           "WTK": 44.95,
           "WTX": 41.12
         }
       },
       "forecast": {
-        "overall": 47.95,
+        "overall": 47.84,
         "districts": {
           "ETH": 43.78,
           "ETK": 45.78,
-          "ETX": 49.51,
+          "ETX": 49.03,
           "NT-ST": 52.17,
           "NT-TM": 55.72,
           "NT-TSM": 52.24,
           "NT-TW": 52.72,
-          "WTH": 42.18,
+          "WTH": 42.59,
           "WTK": 46.54,
           "WTX": 41.8
         }
@@ -37,7 +37,7 @@
     },
     "odsRatio": {
       "actual": {
-        "overall": 28.6,
+        "overall": 29.68,
         "districts": {
           "ETH": 22.29,
           "ETK": 40.83,
@@ -46,13 +46,13 @@
           "NT-TM": 39.0,
           "NT-TSM": 29.5,
           "NT-TW": 20.55,
-          "WTH": 29.4,
+          "WTH": 33.33,
           "WTK": 30.94,
           "WTX": 26.74
         }
       },
       "forecast": {
-        "overall": 31.33,
+        "overall": 31.48,
         "districts": {
           "ETH": 27.23,
           "ETK": 37.92,
@@ -61,7 +61,7 @@
           "NT-TM": 36.13,
           "NT-TSM": 35.26,
           "NT-TW": 25.85,
-          "WTH": 33.61,
+          "WTH": 34.17,
           "WTK": 33.46,
           "WTX": 29.42
         }
