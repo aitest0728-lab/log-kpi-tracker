@@ -316,18 +316,18 @@
       }
     },
     "2026-08-27": {
-      "overall": 46.86,
+      "overall": 47.46,
       "districts": {
-        "ETH": 43.37,
+        "ETH": 44.22,
         "ETK": 48.23,
-        "ETX": 40.9,
-        "NT-ST": 54.05,
+        "ETX": 41.77,
+        "NT-ST": 55.49,
         "NT-TM": 53.2,
         "NT-TSM": 50.61,
-        "NT-TW": 54.69,
+        "NT-TW": 56.11,
         "WTH": 42.33,
         "WTK": 44.08,
-        "WTX": 42.29
+        "WTX": 43.76
       }
     }
   },
@@ -3030,8 +3030,8 @@
       "hktvStaff": {
         "districts": {
           "ETH": {
-            "orderCount": 2212,
-            "manpower": 51
+            "orderCount": 2211,
+            "manpower": 50
           },
           "ETK": {
             "orderCount": 1688,
@@ -3039,11 +3039,11 @@
           },
           "ETX": {
             "orderCount": 1963,
-            "manpower": 48
+            "manpower": 47
           },
           "NT-ST": {
-            "orderCount": 2054,
-            "manpower": 38
+            "orderCount": 2053,
+            "manpower": 37
           },
           "NT-TM": {
             "orderCount": 2181,
@@ -3054,8 +3054,8 @@
             "manpower": 46
           },
           "NT-TW": {
-            "orderCount": 2133,
-            "manpower": 39
+            "orderCount": 2132,
+            "manpower": 38
           },
           "WTH": {
             "orderCount": 2032,
@@ -3066,13 +3066,13 @@
             "manpower": 51
           },
           "WTX": {
-            "orderCount": 2199,
-            "manpower": 52
+            "orderCount": 2188,
+            "manpower": 50
           }
         },
         "total": {
-          "orderCount": 21038,
-          "manpower": 449
+          "orderCount": 21024,
+          "manpower": 443
         }
       },
       "odsRatio": {
@@ -3122,6 +3122,57 @@
           "orderCount": 6350,
           "manpower": 206
         }
+      }
+    }
+  },
+  "gmv": {
+    "2026-08-27": {
+      "overall": 17937833.0,
+      "districts": {
+        "ETH": 2065362.0,
+        "ETK": 1343477.0,
+        "ETX": 1495216.0,
+        "NT-ST": 1791171.0,
+        "NT-TM": 1508701.0,
+        "NT-TSM": 1789968.0,
+        "NT-TW": 1673104.0,
+        "WTH": 2626275.0,
+        "WTK": 1725763.0,
+        "WTX": 1918796.0
+      }
+    }
+  },
+  "manpowerDistributionLog": {
+    "2026-08-27": {
+      "courier": {
+        "districts": {
+          "ETH": 24,
+          "ETK": 13,
+          "ETX": 24,
+          "NT-ST": 14,
+          "NT-TM": 16,
+          "NT-TSM": 23,
+          "NT-TW": 18,
+          "WTH": 27,
+          "WTK": 21,
+          "WTX": 26
+        },
+        "total": 206
+      },
+      "driver": {
+        "districts": {
+          "ETH": 21,
+          "ETK": 19,
+          "ETX": 23,
+          "NT-ST": 23,
+          "NT-TM": 24,
+          "NT-TSM": 20,
+          "NT-TW": 17,
+          "WTH": 16,
+          "WTK": 22,
+          "WTX": 18
+        },
+        "total": 203
       }
     }
   }

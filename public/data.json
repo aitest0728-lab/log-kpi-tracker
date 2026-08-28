@@ -1,36 +1,36 @@
 {
   "_readme": "PLACEHOLDER seed data in the new 6-key schema (5 matrices, Matrix 1 split into hktvStaff + odsRatio). This file is overwritten automatically by kpi_pipeline.py via run_productivity_0300.bat (03:00) and run_tableau_1500.bat (15:00) once Task Scheduler is set up. Delete this _readme field or leave it; the page ignores it.",
-  "generatedAt": "2026-08-28T15:09",
+  "generatedAt": "2026-08-28T17:24",
   "matrices": {
     "hktvStaff": {
       "actual": {
-        "overall": 46.86,
+        "overall": 47.46,
         "districts": {
-          "ETH": 43.37,
+          "ETH": 44.22,
           "ETK": 48.23,
-          "ETX": 40.9,
-          "NT-ST": 54.05,
+          "ETX": 41.77,
+          "NT-ST": 55.49,
           "NT-TM": 53.2,
           "NT-TSM": 50.61,
-          "NT-TW": 54.69,
+          "NT-TW": 56.11,
           "WTH": 42.33,
           "WTK": 44.08,
-          "WTX": 42.29
+          "WTX": 43.76
         }
       },
       "forecast": {
-        "overall": 47.59,
+        "overall": 47.68,
         "districts": {
-          "ETH": 43.82,
+          "ETH": 43.95,
           "ETK": 45.62,
-          "ETX": 48.28,
-          "NT-ST": 51.96,
+          "ETX": 48.4,
+          "NT-ST": 52.16,
           "NT-TM": 54.79,
           "NT-TSM": 51.62,
-          "NT-TW": 53.2,
+          "NT-TW": 53.4,
           "WTH": 42.6,
           "WTK": 46.0,
-          "WTX": 41.89
+          "WTX": 42.1
         }
       },
       "asOf": "2026-08-27"
@@ -200,6 +200,39 @@
       },
       "asOf": "2026-08-28",
       "monthKey": "2026-08"
+    },
+    "gmv": {
+      "actual": {
+        "overall": 17937833.0,
+        "districts": {
+          "ETH": 2065362.0,
+          "ETK": 1343477.0,
+          "ETX": 1495216.0,
+          "NT-ST": 1791171.0,
+          "NT-TM": 1508701.0,
+          "NT-TSM": 1789968.0,
+          "NT-TW": 1673104.0,
+          "WTH": 2626275.0,
+          "WTK": 1725763.0,
+          "WTX": 1918796.0
+        }
+      },
+      "basketSize": {
+        "overall": 654.95,
+        "districts": {
+          "ETH": 664.74,
+          "ETK": 644.04,
+          "ETX": 626.14,
+          "NT-ST": 668.6,
+          "NT-TM": 611.06,
+          "NT-TSM": 647.83,
+          "NT-TW": 635.92,
+          "WTH": 732.57,
+          "WTK": 628.69,
+          "WTX": 653.76
+        }
+      },
+      "asOf": "2026-08-27"
     }
   },
   "rfidMonthly": {
