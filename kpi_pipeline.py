@@ -146,12 +146,12 @@ def col(letter):
 # SEARCH() is case-insensitive, matched here via .upper().
 TRUCK_NO_RULES = [
     ("ETK", "ETK"), ("將軍澳", "ETK"),
-    ("WH", "WTH"),
+    ("CH", "WTH"), ("CHA", "WTH"),
     ("CTK", "WTK"), ("WK", "WTK"),
     ("WX", "WTX"),
     ("CTW", "NT-TW"),
     ("ENH", "ETH"),
-    ("CTX", "ETX"), ("CX", "ETX"),
+    ("KTX", "ETX"), ("KX", "ETX"),
     ("NST", "NT-ST"),
     ("NTM", "NT-TM"),
     ("ZTS", "NT-TSM"),

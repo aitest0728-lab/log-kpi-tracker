@@ -257,27 +257,29 @@
   .prod-cell .delta-pill.delta-up{background:var(--green-soft);color:var(--green);}
   .prod-cell .delta-pill.delta-down{background:var(--red-soft);color:var(--red);}
   .prod-cell .delta-pill.delta-flat{background:var(--line-soft);color:var(--text-muted);}
+
+  /* 3-row comparison cell — Period A | Period B | Comparison, one row per
+     sub-metric (Order / Manpower / Productivity, or ODS-VAN Orders / HKTV
+     Orders / Order Ratio). Replaces .prod-cell wherever a cell needs to show
+     more than one sub-metric per period, per the v3.0 layout spec. */
+  td.kpi-cell3{cursor:default;min-width:200px;vertical-align:top;}
+  .prod-cell3{display:flex;flex-direction:column;gap:5px;padding:8px 8px;min-height:56px;}
+  .prod-cell3 .pc-row{display:grid;grid-template-columns:64px 1fr 1fr 42px;column-gap:6px;align-items:center;}
+  .prod-cell3 .pc-label{font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;font-weight:600;white-space:nowrap;}
+  .prod-cell3 .pc-a{font-family:'IBM Plex Mono';font-size:11px;color:var(--text-muted);text-align:right;}
+  .prod-cell3 .pc-b{font-family:'IBM Plex Mono';font-size:12.5px;font-weight:700;color:var(--text);text-align:right;}
+  .prod-cell3 .delta-pill{font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:20px;text-align:center;}
+  .prod-cell3 .delta-pill.delta-up{background:var(--green-soft);color:var(--green);}
+  .prod-cell3 .delta-pill.delta-down{background:var(--red-soft);color:var(--red);}
+  .prod-cell3 .delta-pill.delta-flat{background:var(--line-soft);color:var(--text-muted);}
+  .prod-cell3 .pc-row.pc-primary .pc-label,.prod-cell3 .pc-row.pc-primary .pc-b{color:var(--text);}
+  .prod-cell3 .pc-row.pc-primary{border-top:1px dashed var(--line);padding-top:4px;margin-top:1px;}
+  #prodTable thead th,#odsRatioTable thead th{min-width:200px;}
+  #prodTable thead th:first-child,#odsRatioTable thead th:first-child{min-width:auto;}
   .prod-legend{display:flex;gap:16px;align-items:center;margin-bottom:12px;font-size:11.5px;color:var(--text-muted);flex-wrap:wrap;}
   .prod-legend .swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle;}
   .prod-legend .target-note{margin-left:auto;font-family:'IBM Plex Mono';color:var(--text);}
 
-  /* Daily Records table: Date + 10 districts + Total is genuinely a lot of
-     columns, so unlike the other tables this one keeps a horizontal scroll —
-     but the Total column (the number leadership actually scans for) is now
-     pinned to the right edge, same trick as Date pinned left, so it's never
-     the thing that scrolls out of view. The .scroll-hint chip + fade (shared
-     .table-scroll rules above) make the remaining scroll obvious instead of
-     leaving districts silently cut off past the panel edge. */
-  #dailyTable{border-collapse:collapse;width:100%;min-width:920px;}
-  #dailyTable thead th{position:sticky;top:0;background:var(--ink);color:var(--text-inverse-muted);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;text-align:right;padding:10px 12px;font-weight:600;white-space:nowrap;border-left:1px solid rgba(255,255,255,.08);}
-  #dailyTable thead th:first-child{text-align:left;position:sticky;left:0;z-index:3;border-left:none;}
-  #dailyTable tbody td{padding:10px 12px;text-align:right;font-family:'IBM Plex Mono';font-size:12.5px;border-top:1px solid var(--line-soft);border-left:1px solid var(--line-soft);white-space:nowrap;}
-  #dailyTable tbody td:first-child{text-align:left;font-family:'Inter';font-weight:600;font-size:12.5px;position:sticky;left:0;z-index:1;background:var(--panel);border-left:none;}
-  #dailyTable th.total-cell,#dailyTable td.total-cell{font-weight:700;background:#f6f7f9;position:sticky;right:0;z-index:2;box-shadow:-6px 0 8px -6px rgba(16,24,38,.12);}
-  #dailyTable thead th.total-cell{background:var(--ink);z-index:4;}
-  #dailyTable tbody tr:hover td{background:#f9fafb;}
-  #dailyTable tbody tr:hover td:first-child{background:#f2f4f6;}
-  #dailyTable tbody tr:hover td.total-cell{background:#eef0f3;}
 
   /* RFID now renders with the exact same treatment as every other matrix —
      no more masking. Kept slightly tighter row padding across the whole
@@ -313,14 +315,11 @@
       <div class="rail-icon active" title="Dashboard" data-view="overview">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       </div>
-      <div class="rail-icon" title="ODS / VAN Productivity" data-view="ods">
+      <div class="rail-icon" title="ODS / VAN Order Ratio" data-view="ods">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
       </div>
       <div class="rail-icon" title="Productivity Detail" data-view="productivity">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>
-      </div>
-      <div class="rail-icon" title="Daily Records" data-view="daily">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
       </div>
     </div>
     <div class="rail-foot">v2.0</div>
@@ -351,9 +350,8 @@
 
     <nav class="main-tabs" id="mainTabs">
       <button class="main-tab active" data-target="view-overview">Overview</button>
-      <button class="main-tab" data-target="view-ods">ODS / VAN Productivity</button>
+      <button class="main-tab" data-target="view-ods">ODS / VAN Order Ratio</button>
       <button class="main-tab" data-target="view-productivity">Productivity Detail</button>
-      <button class="main-tab" data-target="view-daily">Daily Records</button>
     </nav>
 
     <div class="content">
@@ -407,43 +405,55 @@
 
       </div>
 
-      <!-- ODS / VAN PRODUCTIVITY: its own dedicated tab, mirroring Overview's
-           card + district-breakdown pattern but scoped to odsRatio only. -->
+      <!-- ODS / VAN ORDER RATIO: v3.0 — replaces the old duplicate ODS/VAN
+           Productivity tab. Order Ratio = ODS & VAN Order Count ÷ Total
+           Parent Order (HKTV Staff + ODS/VAN combined), per district and
+           total. Reuses productivity_history.json's already-recorded
+           orderCount fields for both groups — no new pipeline output needed,
+           the ratio is derived client-side in dayOrderRatioRecord(). Layout
+           mirrors Productivity Detail: weekday columns, district rows, each
+           cell a 3-row Period A / Period B / Comparison block so leaders can
+           directly compare ODS/VAN volume against HKTV Staff volume. -->
       <div class="view" id="view-ods">
         <div class="section-head">
           <div>
-            <h2>ODS / VAN Productivity</h2>
-            <div class="sub">Achievement % = (value − target) ÷ target × 100, shown for actual-to-date and forecast alike</div>
-          </div>
-          <div class="view-toggle" id="odsViewToggle">
-            <button data-view="actual" class="on">Rank by Actual</button>
-            <button data-view="forecast">Rank by Forecast</button>
+            <h2>ODS / VAN Order Ratio</h2>
+            <div class="sub">Order Ratio = ODS &amp; VAN Order Count ÷ Total Parent Order (HKTV Staff + ODS/VAN)</div>
           </div>
         </div>
-
-        <div class="kpi-grid" id="odsKpiGrid" style="grid-template-columns:1fr;max-width:420px;"></div>
-
-        <div class="section-head">
-          <div>
-            <h2>District Breakdown</h2>
-            <div class="sub" id="odsTableSub">Click a column to sort · click a row for detail</div>
+        <div class="prod-controls">
+          <div class="prod-field">
+            <label for="odsGranularitySelect">Compare by</label>
+            <select id="odsGranularitySelect">
+              <option value="week">Week to Week</option>
+              <option value="month">Month to Month</option>
+            </select>
+          </div>
+          <div class="prod-field">
+            <label for="odsPeriodASelect">Period A</label>
+            <select id="odsPeriodASelect"></select>
+          </div>
+          <div class="prod-field">
+            <label for="odsPeriodBSelect">Period B</label>
+            <select id="odsPeriodBSelect"></select>
           </div>
         </div>
+        <div class="prod-legend" id="odsLegend"></div>
 
-        <div class="table-wrap fit">
+        <div class="prod-summary" id="odsSummary"></div>
+
+        <h3 class="prod-detail-label">District Breakdown</h3>
+        <div class="table-wrap">
           <div class="table-scroll">
-            <table id="odsDeptTable" class="table-narrow">
-              <thead><tr id="odsTableHead"></tr></thead>
-              <tbody id="odsTableBody"></tbody>
+            <table id="odsRatioTable">
+              <thead id="odsRatioTableHead"></thead>
+              <tbody id="odsRatioTableBody"></tbody>
             </table>
           </div>
+          <div class="scroll-fade"></div>
+          <div class="scroll-hint">scroll →</div>
         </div>
-
-        <div class="legend">
-          <span><i class="dot dot-good"></i> On target</span>
-          <span><i class="dot dot-warn"></i> Within 15% of target</span>
-          <span><i class="dot dot-bad"></i> Off target &gt;15%</span>
-        </div>
+        <div class="prod-note" id="odsRatioNote"></div>
       </div>
 
       <!-- PRODUCTIVITY DETAIL: week-to-week / month-to-month, two periods side-by-side,
@@ -453,7 +463,7 @@
         <div class="section-head">
           <div>
             <h2>Productivity Detail</h2>
-            <div class="sub">Weekday-by-weekday productivity · two periods compared side-by-side</div>
+            <div class="sub">Weekday-by-weekday Order / Manpower / Productivity · two periods compared side-by-side</div>
           </div>
         </div>
         <div class="prod-controls">
@@ -498,44 +508,6 @@
         <div class="prod-note" id="prodNote">
           Month view: each weekday cell is the <em>average</em> of that weekday across the whole month
           (e.g. August's Saturday column averages all 5 Saturdays), matching how it was requested.
-        </div>
-      </div>
-
-      <!-- DAILY RECORDS: raw order count / manpower per district + total, one row per day.
-           Same DATA.dailyProductivity source as Productivity Detail above. -->
-      <div class="view" id="view-daily">
-        <div class="section-head">
-          <div>
-            <h2>Daily Records</h2>
-            <div class="sub">Order count and manpower by district · most recent 30 days, newest first</div>
-          </div>
-        </div>
-        <div class="prod-controls">
-          <div class="prod-field">
-            <label for="dailyMatrixSelect">Matrix</label>
-            <select id="dailyMatrixSelect">
-              <option value="hktvStaff">HKTV Staff Productivity</option>
-              <option value="odsRatio">ODS / VAN Productivity</option>
-              <option value="combined">Total (HKTV Staff + ODS)</option>
-            </select>
-          </div>
-          <div class="prod-field">
-            <label for="dailyMetricSelect">Metric</label>
-            <select id="dailyMetricSelect">
-              <option value="orderCount">Order Count</option>
-              <option value="manpower">Manpower</option>
-            </select>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <div class="table-scroll">
-            <table id="dailyTable">
-              <thead><tr id="dailyTableHead"></tr></thead>
-              <tbody id="dailyTableBody"></tbody>
-            </table>
-          </div>
-          <div class="scroll-fade"></div>
-          <div class="scroll-hint">scroll →</div>
         </div>
       </div>
 
@@ -811,20 +783,10 @@
     OVERVIEW_MATRICES.forEach(m => kpiGrid.appendChild(renderMatrixCard(m)));
   }
 
-  function renderOdsCard(){
-    const odsGrid = document.getElementById('odsKpiGrid');
-    const m = MATRICES.find(x=>x.key==='odsRatio');
-    odsGrid.innerHTML = '';
-    odsGrid.appendChild(renderMatrixCard(m, /*interactive=*/false));
-  }
-
   /* ---------------- RENDER: table ---------------- */
   const tableHead = document.getElementById('tableHead');
   const tableBody = document.getElementById('tableBody');
   const tableSub = document.getElementById('tableSub');
-  const odsTableHead = document.getElementById('odsTableHead');
-  const odsTableBody = document.getElementById('odsTableBody');
-  const odsTableSub = document.getElementById('odsTableSub');
 
   function renderTableHeadInto(headEl, matrices, sortState){
     headEl.innerHTML = `<th data-key="name">District</th>` +
@@ -879,20 +841,6 @@
   const overviewSort = { get key(){return sortKey;}, set key(v){sortKey=v;}, get dir(){return sortDir;}, set dir(v){sortDir=v;}, get searchTerm(){ return searchTerm; } };
   function renderTableHead(){ renderTableHeadInto(tableHead, OVERVIEW_MATRICES, overviewSort); }
   function renderTableBody(){ renderTableBodyInto(tableBody, tableSub, OVERVIEW_MATRICES, overviewSort, currentView); }
-
-  const odsMatrixList = [MATRICES.find(m=>m.key==='odsRatio')];
-  const odsSort = { key:null, dir:1, searchTerm:'' };
-  let odsView = 'actual';
-  function renderOdsTableHead(){ renderTableHeadInto(odsTableHead, odsMatrixList, odsSort); }
-  function renderOdsTableBody(){ renderTableBodyInto(odsTableBody, odsTableSub, odsMatrixList, odsSort, odsView); }
-  function renderOdsTab(){ renderOdsCard(); renderOdsTableHead(); renderOdsTableBody(); }
-
-  document.getElementById('odsViewToggle').addEventListener('click', e=>{
-    const btn = e.target.closest('button'); if(!btn) return;
-    odsView = btn.dataset.view;
-    document.querySelectorAll('#odsViewToggle button').forEach(b=>b.classList.toggle('on', b===btn));
-    renderOdsTab();
-  });
 
   /* ---------------- Hover tooltip: full actual/forecast breakdown per cell ---------------- */
   const cellTooltip = document.getElementById('cellTooltip');
@@ -1130,37 +1078,104 @@
     const rec = dayRecord(dateKey, metricKey, district);
     return rec ? rec.orderCount / rec.manpower : null;
   }
-  function getWeekRow(mondayStr, metricKey, district){
-    const vals = [];
-    for(let i=0;i<7;i++) vals.push(dayProductivity(addDays(mondayStr,i), metricKey, district));
-    return vals;
-  }
-  function getMonthRow(monthStr, metricKey, district){
-    // Averages each weekday name across however many occurred that month —
-    // e.g. August's Saturday column divides by however many Saturdays (5, in
-    // the example given), not by a fixed count.
-    const sums = Array(7).fill(0), counts = Array(7).fill(0);
-    Object.keys(DATA.dailyProductivity).forEach(key=>{
-      if(!key.startsWith(monthStr)) return;
-      const v = dayProductivity(key, metricKey, district);
-      if(v==null) return;
-      const wd = weekdayIndexOf(key);
-      sums[wd]+=v; counts[wd]++;
-    });
-    return sums.map((s,i)=> counts[i] ? s/counts[i] : null);
+
+  /* Order Ratio (v3.0 §2) = ODS & VAN Order Count ÷ Total Parent Order,
+     where Total Parent Order = HKTV Staff (LF/LP) + ODS/VAN orders combined
+     — exactly the two groups process_oix() already restricts to, so this is
+     derived entirely from the existing hktvStaff/odsRatio daily records
+     already in productivity_history.json. No pipeline change needed. */
+  function dayOrderRatioRecord(dateKey, district){
+    const hk = dayRecord(dateKey, 'hktvStaff', district);
+    const od = dayRecord(dateKey, 'odsRatio', district);
+    if(!hk && !od) return null;
+    const hktvOrders = hk ? hk.orderCount : 0;
+    const odsVanOrders = od ? od.orderCount : 0;
+    const totalOrders = hktvOrders + odsVanOrders;
+    return {
+      odsVanOrders, hktvOrders, totalOrders,
+      ratio: totalOrders ? (odsVanOrders / totalOrders) * 100 : null,
+    };
   }
 
-  function populateProdPeriodSelectors(){
-    const granularity = document.getElementById('prodGranularitySelect').value;
-    const aSel = document.getElementById('prodPeriodASelect');
-    const bSel = document.getElementById('prodPeriodBSelect');
+  /* Generic weekday-column getters. `kind` selects what each cell of the
+     returned row carries:
+       'productivity' -> plain number (order/manpower ratio)
+       'record'       -> {orderCount, manpower}
+       'orderRatio'   -> {odsVanOrders, hktvOrders, totalOrders, ratio} */
+  function getWeekRow(mondayStr, metricKey, district, kind){
+    const out = [];
+    for(let i=0;i<7;i++){
+      const dateKey = addDays(mondayStr,i);
+      if(kind==='orderRatio') out.push(dayOrderRatioRecord(dateKey, district));
+      else if(kind==='record') out.push(dayRecord(dateKey, metricKey, district));
+      else out.push(dayProductivity(dateKey, metricKey, district));
+    }
+    return out;
+  }
+  function getMonthRow(monthStr, metricKey, district, kind){
+    // Averages each weekday name across however many occurred that month —
+    // e.g. August's Saturday column divides by however many Saturdays (5, in
+    // the example given), not by a fixed count. For 'record'/'orderRatio'
+    // kinds, the raw counts are averaged first and the ratio/productivity is
+    // derived from those averages afterward (not averaged directly), so a
+    // month's ratio stays internally consistent with its own averaged counts.
+    if(kind==='productivity'){
+      const sums = Array(7).fill(0), counts = Array(7).fill(0);
+      Object.keys(DATA.dailyProductivity).forEach(key=>{
+        if(!key.startsWith(monthStr)) return;
+        const v = dayProductivity(key, metricKey, district);
+        if(v==null) return;
+        const wd = weekdayIndexOf(key);
+        sums[wd]+=v; counts[wd]++;
+      });
+      return sums.map((s,i)=> counts[i] ? s/counts[i] : null);
+    }
+    if(kind==='orderRatio'){
+      const sumsOds = Array(7).fill(0), sumsHktv = Array(7).fill(0), counts = Array(7).fill(0);
+      Object.keys(DATA.dailyProductivity).forEach(key=>{
+        if(!key.startsWith(monthStr)) return;
+        const rec = dayOrderRatioRecord(key, district);
+        if(!rec) return;
+        const wd = weekdayIndexOf(key);
+        sumsOds[wd]+=rec.odsVanOrders; sumsHktv[wd]+=rec.hktvOrders; counts[wd]++;
+      });
+      return sumsOds.map((s,i)=>{
+        if(!counts[i]) return null;
+        const odsVanOrders = s/counts[i], hktvOrders = sumsHktv[i]/counts[i];
+        const totalOrders = odsVanOrders + hktvOrders;
+        return { odsVanOrders, hktvOrders, totalOrders, ratio: totalOrders ? (odsVanOrders/totalOrders)*100 : null };
+      });
+    }
+    // kind==='record'
+    const sumsOrder = Array(7).fill(0), sumsManpower = Array(7).fill(0), counts = Array(7).fill(0);
+    Object.keys(DATA.dailyProductivity).forEach(key=>{
+      if(!key.startsWith(monthStr)) return;
+      const rec = dayRecord(key, metricKey, district);
+      if(!rec) return;
+      const wd = weekdayIndexOf(key);
+      sumsOrder[wd]+=rec.orderCount; sumsManpower[wd]+=rec.manpower; counts[wd]++;
+    });
+    return sumsOrder.map((s,i)=> counts[i] ? { orderCount: s/counts[i], manpower: sumsManpower[i]/counts[i] } : null);
+  }
+
+  /* Generic period-selector population, reused by Productivity Detail
+     (prefix 'prod') and ODS/VAN Order Ratio (prefix 'ods'). Per v3.0 §1:
+     preset Period B = this week/month (most recent), Period A = last
+     week/month (previous) — listAvailableWeeks()/listAvailableMonths() are
+     already sorted newest-first, so periods[0] is "this" and periods[1] is
+     "last". */
+  function populatePeriodSelectors(prefix){
+    const granularity = document.getElementById(`${prefix}GranularitySelect`).value;
+    const aSel = document.getElementById(`${prefix}PeriodASelect`);
+    const bSel = document.getElementById(`${prefix}PeriodBSelect`);
     const periods = granularity==='week' ? listAvailableWeeks() : listAvailableMonths();
     const labelFn = granularity==='week' ? weekLabel : monthLabel;
     const prevA = aSel.value, prevB = bSel.value;
     const opts = periods.map(p=>`<option value="${p}">${labelFn(p)}</option>`).join('');
     aSel.innerHTML = opts; bSel.innerHTML = opts;
-    aSel.value = periods.includes(prevA) ? prevA : (periods[0] || '');
-    bSel.value = periods.includes(prevB) ? prevB : (periods[1] || periods[0] || '');
+    // Preset: A = last period, B = this (most recent) period.
+    aSel.value = periods.includes(prevA) ? prevA : (periods[1] || periods[0] || '');
+    bSel.value = periods.includes(prevB) ? prevB : (periods[0] || '');
   }
 
   function deltaInfo(va, vb){
@@ -1169,6 +1184,29 @@
     const cls = pct > 0.5 ? 'delta-up' : pct < -0.5 ? 'delta-down' : 'delta-flat';
     const arrow = pct > 0.5 ? '▲' : pct < -0.5 ? '▼' : '●';
     return { cls, pct, arrow };
+  }
+  function deltaText(d){ return d.pct==null ? '—' : `${d.arrow}${Math.abs(d.pct).toFixed(0)}%`; }
+
+  const intFmt = v => v==null ? '—' : Math.round(v).toLocaleString();
+  const pctFmt1 = v => v==null ? '—' : v.toFixed(1)+'%';
+
+  /* Renders one 3-row comparison cell — Period A | Period B | Comparison —
+     per v3.0 §1's sample table. `rows` = [{label, a, b, fmt}], in display
+     order; the LAST row is treated as the "primary" metric (Productivity,
+     or Order Ratio) and its delta drives the cell's heat tint. */
+  function comparisonCell(rows){
+    const primaryDelta = deltaInfo(rows[rows.length-1].a, rows[rows.length-1].b);
+    const heatCls = primaryDelta.cls==='delta-up' ? 'heat-up' : primaryDelta.cls==='delta-down' ? 'heat-down' : '';
+    const rowsHtml = rows.map((r,i)=>{
+      const d = deltaInfo(r.a, r.b);
+      return `<div class="pc-row${i===rows.length-1?' pc-primary':''}">
+        <span class="pc-label">${r.label}</span>
+        <span class="pc-a">${r.fmt(r.a)}</span>
+        <span class="pc-b">${r.fmt(r.b)}</span>
+        <span class="delta-pill ${d.cls}">${deltaText(d)}</span>
+      </div>`;
+    }).join('');
+    return { heatCls, html: `<div class="prod-cell3">${rowsHtml}</div>` };
   }
 
   function renderProductivityTab(){
@@ -1185,7 +1223,7 @@
       legend.innerHTML = ''; summary.innerHTML = '';
       return;
     }
-    populateProdPeriodSelectors();
+    populatePeriodSelectors('prod');
     const metricKey = document.getElementById('prodMatrixSelect').value;
     const granularity = document.getElementById('prodGranularitySelect').value;
     const periodA = document.getElementById('prodPeriodASelect').value;
@@ -1197,81 +1235,121 @@
     const targetOverall = getTargetOverall(metricKey);
 
     legend.innerHTML = `
-      <span><i class="swatch" style="background:#8aa2bb"></i>${labelA} (reference)</span>
-      <span><i class="swatch" style="background:var(--ink)"></i>${labelB} — this row's current period</span>
+      <span><i class="swatch" style="background:#8aa2bb"></i>Period A = ${labelA}</span>
+      <span><i class="swatch" style="background:var(--ink)"></i>Period B = ${labelB} (current)</span>
       <span class="target-note">Target: ${m.fmt(targetOverall)}</span>`;
 
-    // ---- Summary strip: Total (all districts), one card per weekday ----
-    const totalA = periodA ? getRow(periodA, metricKey, 'Total') : Array(7).fill(null);
-    const totalB = periodB ? getRow(periodB, metricKey, 'Total') : Array(7).fill(null);
+    // ---- Summary strip: Total (all districts) productivity, one card per weekday ----
+    const totalA = periodA ? getRow(periodA, metricKey, 'Total', 'productivity') : Array(7).fill(null);
+    const totalB = periodB ? getRow(periodB, metricKey, 'Total', 'productivity') : Array(7).fill(null);
     summary.innerHTML = WEEKDAY_LABELS.map((w,i)=>{
       const va = totalA[i], vb = totalB[i];
       const maxV = Math.max(va||0, vb||0, 1);
       const pctA = va==null?0:Math.max(4,(va/maxV)*100), pctB = vb==null?0:Math.max(4,(vb/maxV)*100);
       const d = deltaInfo(va, vb);
-      const deltaTxt = d.pct==null ? '—' : `${d.arrow}${Math.abs(d.pct).toFixed(0)}%`;
       return `<div class="prod-summary-card">
         <div class="wd">${w}</div>
         <div class="bar-row"><span class="tag">A</span><div class="bar-track"><div class="bar-fill a" style="width:${pctA}%"></div></div><span class="v">${m.fmt(va)}</span></div>
         <div class="bar-row"><span class="tag">B</span><div class="bar-track"><div class="bar-fill b" style="width:${pctB}%"></div></div><span class="v">${m.fmt(vb)}</span></div>
-        <span class="delta-pill ${d.cls}">${deltaTxt}</span>
+        <span class="delta-pill ${d.cls}">${deltaText(d)}</span>
       </div>`;
     }).join('');
 
-    // Single header row — one column per weekday, not two side-by-side groups —
-    // so the whole comparison fits without horizontal scrolling.
     head.innerHTML = `<tr><th>District</th>${WEEKDAY_LABELS.map(w=>`<th>${w}</th>`).join('')}</tr>`;
 
     const rowDistricts = [...DISTRICTS, 'Total'];
     body.innerHTML = rowDistricts.map(d=>{
       const target = getTargetForDistrict(metricKey, d);
-      const rowA = periodA ? getRow(periodA, metricKey, d) : Array(7).fill(null);
-      const rowB = periodB ? getRow(periodB, metricKey, d) : Array(7).fill(null);
-      const cells = rowA.map((va, i)=>{
-        const vb = rowB[i];
-        const dl = deltaInfo(va, vb);
-        const deltaTxt = dl.pct==null ? '—' : `${dl.arrow}${Math.abs(dl.pct).toFixed(0)}%`;
-        const heatCls = dl.cls==='delta-up' ? 'heat-up' : dl.cls==='delta-down' ? 'heat-down' : '';
-        return `<td class="kpi-cell ${heatCls}">
-          <div class="prod-cell">
-            <span class="val-a">${m.fmt(va)}</span>
-            <span class="val-b">${m.fmt(vb)}</span>
-            <span class="delta-pill ${dl.cls}">${deltaTxt}</span>
-          </div>
-        </td>`;
+      const rowA = periodA ? getRow(periodA, metricKey, d, 'record') : Array(7).fill(null);
+      const rowB = periodB ? getRow(periodB, metricKey, d, 'record') : Array(7).fill(null);
+      const cells = rowA.map((recA, i)=>{
+        const recB = rowB[i];
+        const oA = recA ? recA.orderCount : null, oB = recB ? recB.orderCount : null;
+        const mA = recA ? recA.manpower : null, mB = recB ? recB.manpower : null;
+        const pA = (recA && recA.manpower) ? recA.orderCount/recA.manpower : null;
+        const pB = (recB && recB.manpower) ? recB.orderCount/recB.manpower : null;
+        const { heatCls, html } = comparisonCell([
+          { label:'Order', a:oA, b:oB, fmt:intFmt },
+          { label:'Manpower', a:mA, b:mB, fmt:intFmt },
+          { label:'Productivity', a:pA, b:pB, fmt:m.fmt },
+        ]);
+        return `<td class="kpi-cell3 ${heatCls}">${html}</td>`;
       }).join('');
       const rowLabel = d==='Total' ? '<strong>Total</strong>' : `${d}<span class="tgt">target ${m.fmt(target)}</span>`;
       return `<tr class="${d==='Total'?'total-row':''}"><td>${rowLabel}</td>${cells}</tr>`;
     }).join('');
 
     note.innerHTML = (granularity==='month'
-      ? 'Month view: each weekday cell is the <em>average</em> of that weekday across the whole month (e.g. August\'s Saturday column averages all 5 Saturdays). '
+      ? 'Month view: each weekday cell averages that weekday across the whole month (e.g. August\'s Saturday column averages all 5 Saturdays) — Order and Manpower are averaged first, then Productivity is derived from those averages. '
       : 'Week view: each weekday cell is that single day\'s value (Monday through Sunday). ')
-      + `Small number = ${labelA}, bold number = ${labelB} (current), pill = % change between them. Cell tint: green = up, red = down.`;
+      + `Each cell shows Order, Manpower and Productivity for ${labelA} vs ${labelB}, with the % change alongside each. Cell tint follows the Productivity change: green = up, red = down.`;
   }
 
-  function renderDailyRecordsTab(){
-    const head = document.getElementById('dailyTableHead');
-    const body = document.getElementById('dailyTableBody');
+  function renderOdsRatioTab(){
+    const head = document.getElementById('odsRatioTableHead');
+    const body = document.getElementById('odsRatioTableBody');
+    const note = document.getElementById('odsRatioNote');
+    const legend = document.getElementById('odsLegend');
+    const summary = document.getElementById('odsSummary');
     if(Object.keys(DATA.dailyProductivity).length === 0){
-      head.innerHTML = '<th>Date</th>';
-      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No productivity_history.json alongside this page yet — same file as the Productivity Detail tab. Once kpi_pipeline.py's 03:00 run appends daily order count + manpower per district, this table populates automatically.</td></tr>`;
+      head.innerHTML = '';
+      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No productivity_history.json alongside this page yet — kpi_pipeline.py's productivity section writes it automatically from tomorrow's 03:00 run. This table will populate on its own once that file exists.</td></tr>`;
+      document.getElementById('odsPeriodASelect').innerHTML = '';
+      document.getElementById('odsPeriodBSelect').innerHTML = '';
+      legend.innerHTML = ''; summary.innerHTML = '';
       return;
     }
-    const metricKey = document.getElementById('dailyMatrixSelect').value;
-    const metric = document.getElementById('dailyMetricSelect').value;
-    const dates = Object.keys(DATA.dailyProductivity).sort().reverse().slice(0,30);
-    head.innerHTML = `<th>Date</th>` + DISTRICTS.map(d=>`<th>${d}</th>`).join('') + `<th class="total-cell">Total</th>`;
-    body.innerHTML = dates.map(dateKey=>{
-      const cells = DISTRICTS.map(d=>{
-        const rec = dayRecord(dateKey, metricKey, d);
-        const val = rec ? rec[metric] : null;
-        return `<td class="kpi-cell">${val==null?'—':val.toLocaleString()}</td>`;
-      }).join('');
-      const totalRec = dayRecord(dateKey, metricKey, 'Total');
-      const totalVal = totalRec ? totalRec[metric] : null;
-      return `<tr><td>${dateKey}</td>${cells}<td class="total-cell">${totalVal==null?'—':totalVal.toLocaleString()}</td></tr>`;
+    populatePeriodSelectors('ods');
+    const granularity = document.getElementById('odsGranularitySelect').value;
+    const periodA = document.getElementById('odsPeriodASelect').value;
+    const periodB = document.getElementById('odsPeriodBSelect').value;
+    const labelFn = granularity==='week' ? weekLabel : monthLabel;
+    const getRow = granularity==='week' ? getWeekRow : getMonthRow;
+    const labelA = periodA ? labelFn(periodA) : 'Period A', labelB = periodB ? labelFn(periodB) : 'Period B';
+
+    legend.innerHTML = `
+      <span><i class="swatch" style="background:#8aa2bb"></i>Period A = ${labelA}</span>
+      <span><i class="swatch" style="background:var(--ink)"></i>Period B = ${labelB} (current)</span>`;
+
+    // ---- Summary strip: Total order ratio, one card per weekday ----
+    const totalA = periodA ? getRow(periodA, null, 'Total', 'orderRatio') : Array(7).fill(null);
+    const totalB = periodB ? getRow(periodB, null, 'Total', 'orderRatio') : Array(7).fill(null);
+    summary.innerHTML = WEEKDAY_LABELS.map((w,i)=>{
+      const va = totalA[i] ? totalA[i].ratio : null, vb = totalB[i] ? totalB[i].ratio : null;
+      const maxV = Math.max(va||0, vb||0, 1);
+      const pctA = va==null?0:Math.max(4,(va/maxV)*100), pctB = vb==null?0:Math.max(4,(vb/maxV)*100);
+      const d = deltaInfo(va, vb);
+      return `<div class="prod-summary-card">
+        <div class="wd">${w}</div>
+        <div class="bar-row"><span class="tag">A</span><div class="bar-track"><div class="bar-fill a" style="width:${pctA}%"></div></div><span class="v">${pctFmt1(va)}</span></div>
+        <div class="bar-row"><span class="tag">B</span><div class="bar-track"><div class="bar-fill b" style="width:${pctB}%"></div></div><span class="v">${pctFmt1(vb)}</span></div>
+        <span class="delta-pill ${d.cls}">${deltaText(d)}</span>
+      </div>`;
     }).join('');
+
+    head.innerHTML = `<tr><th>District</th>${WEEKDAY_LABELS.map(w=>`<th>${w}</th>`).join('')}</tr>`;
+
+    const rowDistricts = [...DISTRICTS, 'Total'];
+    body.innerHTML = rowDistricts.map(d=>{
+      const rowA = periodA ? getRow(periodA, null, d, 'orderRatio') : Array(7).fill(null);
+      const rowB = periodB ? getRow(periodB, null, d, 'orderRatio') : Array(7).fill(null);
+      const cells = rowA.map((recA, i)=>{
+        const recB = rowB[i];
+        const { heatCls, html } = comparisonCell([
+          { label:'ODS/VAN Orders', a: recA?recA.odsVanOrders:null, b: recB?recB.odsVanOrders:null, fmt:intFmt },
+          { label:'HKTV Orders', a: recA?recA.hktvOrders:null, b: recB?recB.hktvOrders:null, fmt:intFmt },
+          { label:'Order Ratio', a: recA?recA.ratio:null, b: recB?recB.ratio:null, fmt:pctFmt1 },
+        ]);
+        return `<td class="kpi-cell3 ${heatCls}">${html}</td>`;
+      }).join('');
+      const rowLabel = d==='Total' ? '<strong>Total</strong>' : d;
+      return `<tr class="${d==='Total'?'total-row':''}"><td>${rowLabel}</td>${cells}</tr>`;
+    }).join('');
+
+    note.innerHTML = (granularity==='month'
+      ? 'Month view: ODS/VAN and HKTV order counts are averaged per weekday across the month first, then Order Ratio is derived from those averages. '
+      : 'Week view: each weekday cell is that single day\'s value. ')
+      + `Order Ratio = ODS &amp; VAN Order Count ÷ Total Parent Order (HKTV Staff + ODS/VAN), for ${labelA} vs ${labelB}. Cell tint follows the Order Ratio change: green = up, red = down.`;
   }
 
   /* ---------------- scroll affordance ----------------
@@ -1291,7 +1369,7 @@
   window.addEventListener('resize', updateScrollHints);
 
   /* ---------------- tab switching ---------------- */
-  const VIEW_ID_BY_RAIL_KEY = { overview:'view-overview', ods:'view-ods', productivity:'view-productivity', daily:'view-daily' };
+  const VIEW_ID_BY_RAIL_KEY = { overview:'view-overview', ods:'view-ods', productivity:'view-productivity' };
 
   function switchToView(viewId){
     document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active', b.dataset.target===viewId));
@@ -1312,8 +1390,8 @@
   ['prodMatrixSelect','prodGranularitySelect','prodPeriodASelect','prodPeriodBSelect'].forEach(id=>{
     document.getElementById(id).addEventListener('change', ()=>{ renderProductivityTab(); updateScrollHints(); });
   });
-  ['dailyMatrixSelect','dailyMetricSelect'].forEach(id=>{
-    document.getElementById(id).addEventListener('change', ()=>{ renderDailyRecordsTab(); updateScrollHints(); });
+  ['odsGranularitySelect','odsPeriodASelect','odsPeriodBSelect'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', ()=>{ renderOdsRatioTab(); updateScrollHints(); });
   });
 
   /* ---------------- root render ---------------- */
@@ -1321,9 +1399,8 @@
     renderKpiCards();
     renderTableHead();
     renderTableBody();
-    renderOdsTab();
+    renderOdsRatioTab();
     renderProductivityTab();
-    renderDailyRecordsTab();
     updateScrollHints();
   }
 
