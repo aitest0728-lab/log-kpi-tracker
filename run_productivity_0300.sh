@@ -11,6 +11,6 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 python3 kpi_pipeline.py --section productivity
 
-git add public/data.json public/productivity_history.json history.json
+git add public/data.json public/productivity_history.json public/manpower_distribution.json history.json
 git commit -m "Auto-update: productivity data $(date '+%Y-%m-%d %H:%M:%S')" || true
 git push

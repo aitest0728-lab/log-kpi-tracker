@@ -10,11 +10,15 @@ reimplemented here.
 
 What it touches:
   - history.json          (durable log — every backfilled date gets appended,
-                            same as append_history()/append_daily_productivity_log()
-                            already do for a normal run)
+                            same as append_history()/append_daily_productivity_log()/
+                            append_manpower_log() already do for a normal run)
   - public/productivity_history.json  (recomputed fresh at the end, same as
                             a normal run — this is always a derived/trimmed
                             window, never hand-edited)
+  - public/manpower_distribution.json (v3.0 §4 — same derived/trimmed-window
+                            treatment, using whatever staff list is
+                            currently on disk for every backfilled date; see
+                            position_map note below)
   - public/data.json's hktvStaff/odsRatio matrices — ONLY refreshed if you
     pass --update-current-forecast (see below). Backfilling the past doesn't
     change what "today's" actual/forecast numbers are by itself; the 7-day
@@ -51,6 +55,19 @@ def backfill(start_date, end_date, force=False):
     history = k.load_history()
     log = history.setdefault("dailyProductivityLog", {})
 
+    # v3.0 §4: same position_map every backfilled day uses, loaded ONCE up
+    # front (not the current-dated staff list re-fetched per day — there's
+    # no historical staff list per past date, so this is the best available
+    # approximation, same as a normal run only ever has "today's" staff
+    # list to work with too). None is handled gracefully by process_oix()/
+    # productivity_for_group() — see kpi_pipeline.py.
+    try:
+        position_map = k.load_staff_position_map()
+    except FileNotFoundError as e:
+        print(f"  ⚠️ {e} — backfilling without Position/Courier/Driver "
+              f"classification (§4.1 leader-exclusion won't apply).")
+        position_map = None
+
     processed, skipped, failed = [], [], []
 
     d = start_date
@@ -70,16 +87,19 @@ def backfill(start_date, end_date, force=False):
 
         try:
             df = k.load_oix(path)
-            df = k.process_oix(df)
+            df = k.process_oix(df, position_map)
 
-            hktv_staff = k.productivity_for_group(df, ("LF", "LP"))
+            hktv_staff = k.productivity_for_group(df, ("LF", "LP"), exclude_positions=k.LEADER_EXCLUDE_POSITIONS)
             ods_ratio = k.productivity_for_group(df, ("ODS", "VAN"))
+            courier_group = k.manpower_distribution_for_group(df, "courier")
+            driver_group = k.manpower_distribution_for_group(df, "driver")
 
             for key, group in (("hktvStaff", hktv_staff), ("odsRatio", ods_ratio)):
                 k.append_history(history, key, date_str, group["overall"],
                                   {dist: group["districts"][dist]["productivity"] for dist in k.DISTRICTS})
 
             k.append_daily_productivity_log(history, date_str, hktv_staff, ods_ratio)
+            k.append_manpower_log(history, date_str, courier_group, driver_group)
             processed.append(date_str)
             print(f"  {date_str}: OK — hktvStaff overall={hktv_staff['overall']}, "
                   f"odsRatio overall={ods_ratio['overall']}")
@@ -91,6 +111,7 @@ def backfill(start_date, end_date, force=False):
 
     k.save_history(history)
     k.save_productivity_history(k.trimmed_daily_productivity(history, k.DAILY_PRODUCTIVITY_KEEP_DAYS))
+    k.save_manpower_history(k.trimmed_manpower_distribution(history, k.DAILY_PRODUCTIVITY_KEEP_DAYS))
 
     print(f"\nDone. Processed: {len(processed)}, skipped (already had data): {len(skipped)}, "
           f"failed: {len(failed)}")

@@ -280,6 +280,21 @@
   .prod-legend .swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle;}
   .prod-legend .target-note{margin-left:auto;font-family:'IBM Plex Mono';color:var(--text);}
 
+  /* GMV / Basket Size summary strip — a couple of headline cards rather than
+     the 7-weekday grid the productivity tabs use (GMV's summary isn't
+     per-weekday), so it gets its own compact flex layout. */
+  .gmv-summary{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;}
+  .gmv-summary-card{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px 16px;box-shadow:var(--shadow);min-width:170px;}
+  .gmv-summary-card .label{font-family:'Oswald';font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+  .gmv-summary-card .row{display:flex;justify-content:space-between;gap:14px;font-size:12px;color:var(--text-muted);padding:2px 0;}
+  .gmv-summary-card .row .v{font-family:'IBM Plex Mono';font-weight:700;color:var(--text);}
+  #gmvTable{border-collapse:collapse;width:100%;}
+  #gmvTable thead th{position:sticky;top:0;background:var(--ink);color:var(--text-inverse-muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;text-align:right;padding:10px 12px;font-weight:600;white-space:nowrap;border-left:1px solid rgba(255,255,255,.08);}
+  #gmvTable thead th:first-child{text-align:left;border-left:none;}
+  #gmvTable tbody td{padding:9px 12px;text-align:right;font-family:'IBM Plex Mono';font-size:12.5px;border-top:1px solid var(--line-soft);white-space:nowrap;}
+  #gmvTable tbody td:first-child{text-align:left;font-family:'Inter';font-weight:600;}
+  #gmvTable tbody tr.total-row td{font-weight:700;background:#f6f7f9;}
+
 
   /* RFID now renders with the exact same treatment as every other matrix —
      no more masking. Kept slightly tighter row padding across the whole
@@ -321,8 +336,14 @@
       <div class="rail-icon" title="Productivity Detail" data-view="productivity">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>
       </div>
+      <div class="rail-icon" title="GMV / Basket Size" data-view="gmv">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 1.1-3 2.5S10.3 12 12 12s3 1.1 3 2.5-1.3 2.5-3 2.5-3-1.1-3-2.5"/><path d="M12 5.5v1M12 17.5v1"/></svg>
+      </div>
+      <div class="rail-icon" title="HKTV Manpower Distribution" data-view="manpower">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3"/><path d="M2 21v-2a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v2"/><circle cx="18" cy="9" r="2.3"/><path d="M15.5 21v-1.6a4 4 0 0 1 4-4h.3a4 4 0 0 1 3.2 1.6"/></svg>
+      </div>
     </div>
-    <div class="rail-foot">v2.0</div>
+    <div class="rail-foot">v3.0</div>
   </nav>
 
   <!-- MAIN -->
@@ -352,6 +373,8 @@
       <button class="main-tab active" data-target="view-overview">Overview</button>
       <button class="main-tab" data-target="view-ods">ODS / VAN Order Ratio</button>
       <button class="main-tab" data-target="view-productivity">Productivity Detail</button>
+      <button class="main-tab" data-target="view-gmv">GMV / Basket Size</button>
+      <button class="main-tab" data-target="view-manpower">HKTV Manpower Distribution</button>
     </nav>
 
     <div class="content">
@@ -511,6 +534,109 @@
         </div>
       </div>
 
+      <!-- GMV / BASKET SIZE: v3.0 §3 — replaces the old Daily Records tab's
+           role for this data. Downloaded from a SEPARATE Tableau account
+           (see fetch_gmv_report()/TABLEAU_GMV_*) into "Sheet 1.csv", one row
+           per T-1 date for the 10 districts. Reads ./gmv_history.json:
+             { "daily": {"YYYY-MM-DD": {gmv:{overall,districts}, basketSize:{...}}, ...},  // current month only
+               "monthly": {"YYYY-MM": {gmv:{...}, basketSize:{...}}, ...} }                // every CLOSED month, kept forever
+           Basket Size = GMV ÷ Total Parent Order (HKTV Staff + ODS/VAN), both computed server-side in kpi_pipeline.py. -->
+      <div class="view" id="view-gmv">
+        <div class="section-head">
+          <div>
+            <h2>GMV / Basket Size</h2>
+            <div class="sub">Daily rows for the current month · one accumulated row per closed month · Basket Size = GMV ÷ Total Parent Order</div>
+          </div>
+        </div>
+        <div class="prod-controls">
+          <div class="prod-field">
+            <label for="gmvMetricSelect">Show</label>
+            <select id="gmvMetricSelect">
+              <option value="gmv">GMV ($)</option>
+              <option value="basketSize">Basket Size ($)</option>
+            </select>
+          </div>
+        </div>
+        <div class="gmv-summary" id="gmvSummary"></div>
+        <h3 class="prod-detail-label">By Date / Month</h3>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table id="gmvTable">
+              <thead id="gmvTableHead"></thead>
+              <tbody id="gmvTableBody"></tbody>
+            </table>
+          </div>
+          <div class="scroll-fade"></div>
+          <div class="scroll-hint">scroll →</div>
+        </div>
+        <div class="prod-note" id="gmvNote">
+          Rows for the current (still-open) month show that day's actual figures. Once a month closes, it collapses
+          into a single accumulated row (labelled "YYYY-MM") — GMV sums every day in that month; Basket Size is that
+          month's total GMV ÷ total Parent Orders. Closed-month rows are never removed.
+        </div>
+      </div>
+
+      <!-- HKTV MANPOWER DISTRIBUTION: v3.0 §4 — daily distinct headcount of
+           HKTV (LF/LP) staff classified as Courier or Driver by joining OIX's
+           User (Column E) against the Staff List's Employee No./Position
+           (Column A/G) — see load_staff_position_map()/process_oix() in
+           kpi_pipeline.py. Layout mirrors Productivity Detail: weekday
+           columns, district rows, Period A/B comparison — but each cell
+           carries one metric (headcount) instead of three. Reads
+           ./manpower_distribution.json ({ "daily": {"YYYY-MM-DD":
+           {courier:{districts,total}, driver:{districts,total}}, ...} }). -->
+      <div class="view" id="view-manpower">
+        <div class="section-head">
+          <div>
+            <h2>HKTV Manpower Distribution</h2>
+            <div class="sub">Distinct HKTV staff headcount by district · Courier vs Driver, from the latest Staff List</div>
+          </div>
+        </div>
+        <div class="prod-controls">
+          <div class="prod-field">
+            <label for="mpGroupSelect">Group</label>
+            <select id="mpGroupSelect">
+              <option value="courier">Courier</option>
+              <option value="driver">Driver</option>
+            </select>
+          </div>
+          <div class="prod-field">
+            <label for="mpGranularitySelect">Compare by</label>
+            <select id="mpGranularitySelect">
+              <option value="week">Week to Week</option>
+              <option value="month">Month to Month</option>
+            </select>
+          </div>
+          <div class="prod-field">
+            <label for="mpPeriodASelect">Period A</label>
+            <select id="mpPeriodASelect"></select>
+          </div>
+          <div class="prod-field">
+            <label for="mpPeriodBSelect">Period B</label>
+            <select id="mpPeriodBSelect"></select>
+          </div>
+        </div>
+        <div class="prod-legend" id="mpLegend"></div>
+
+        <div class="prod-summary" id="mpSummary"></div>
+
+        <h3 class="prod-detail-label">District Breakdown</h3>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table id="mpTable">
+              <thead id="mpTableHead"></thead>
+              <tbody id="mpTableBody"></tbody>
+            </table>
+          </div>
+          <div class="scroll-fade"></div>
+          <div class="scroll-hint">scroll →</div>
+        </div>
+        <div class="prod-note" id="mpNote">
+          Headcount = distinct HKTV (LF/LP) staff active that day whose Position (from the latest Staff List)
+          falls in the selected group. Team leads / supervisors / managers are never counted here.
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -568,6 +694,9 @@
     matrices: Object.fromEntries(MATRICES.map(m=>[m.key, emptyMatrix()])),
     rfidMonthly: {},
     dailyProductivity: {},
+    gmvDaily: {},      // v3.0 §3 — current month's daily GMV/Basket Size rows, from gmv_history.json
+    gmvMonthly: {},     // v3.0 §3 — one accumulated row per closed month, from gmv_history.json
+    dailyManpower: {},  // v3.0 §4 — daily Courier/Driver headcount, from manpower_distribution.json
   };
   let dataSource = { status:'demo', generatedAt:null };
 
@@ -645,6 +774,23 @@
         DATA.dailyProductivity = json2.daily || {};
       }catch(err){
         DATA.dailyProductivity = {};  // real empty state — see the on-page note in each tab
+      }
+      try{
+        const res3 = await fetch('./gmv_history.json', {cache:'no-store'});
+        if(!res3.ok) throw new Error('no gmv_history.json');
+        const json3 = await res3.json();
+        DATA.gmvDaily = json3.daily || {};
+        DATA.gmvMonthly = json3.monthly || {};
+      }catch(err){
+        DATA.gmvDaily = {}; DATA.gmvMonthly = {};
+      }
+      try{
+        const res4 = await fetch('./manpower_distribution.json', {cache:'no-store'});
+        if(!res4.ok) throw new Error('no manpower_distribution.json');
+        const json4 = await res4.json();
+        DATA.dailyManpower = json4.daily || {};
+      }catch(err){
+        DATA.dailyManpower = {};
       }
     }
 
@@ -1158,6 +1304,38 @@
     return sumsOrder.map((s,i)=> counts[i] ? { orderCount: s/counts[i], manpower: sumsManpower[i]/counts[i] } : null);
   }
 
+  /* ---------------- HKTV Manpower Distribution helpers (v3.0 §4) ----------------
+     Headcount-only (single number per cell), unlike the order/manpower/
+     productivity triples above. Reuses listAvailableWeeks()/listAvailableMonths()
+     (built from DATA.dailyProductivity) for the period dropdowns rather than
+     deriving its own — both logs are written by the same daily job off the
+     same OIX file, so their date coverage is always identical in practice. */
+  function mpDayHeadcount(dateKey, groupKey, district){
+    const day = DATA.dailyManpower[dateKey];
+    if(!day || !day[groupKey]) return null;
+    const g = day[groupKey];
+    if(district === 'Total') return g.total ?? null;
+    return (g.districts && g.districts[district] != null) ? g.districts[district] : null;
+  }
+  function mpGetWeekRow(mondayStr, groupKey, district){
+    const out = [];
+    for(let i=0;i<7;i++){ out.push(mpDayHeadcount(addDays(mondayStr,i), groupKey, district)); }
+    return out;
+  }
+  function mpGetMonthRow(monthStr, groupKey, district){
+    // Same "average this weekday across the month" treatment as
+    // getMonthRow(..., 'productivity') above.
+    const sums = Array(7).fill(0), counts = Array(7).fill(0);
+    Object.keys(DATA.dailyManpower).forEach(key=>{
+      if(!key.startsWith(monthStr)) return;
+      const v = mpDayHeadcount(key, groupKey, district);
+      if(v==null) return;
+      const wd = weekdayIndexOf(key);
+      sums[wd]+=v; counts[wd]++;
+    });
+    return sums.map((s,i)=> counts[i] ? s/counts[i] : null);
+  }
+
   /* Generic period-selector population, reused by Productivity Detail
      (prefix 'prod') and ODS/VAN Order Ratio (prefix 'ods'). Per v3.0 §1:
      preset Period B = this week/month (most recent), Period A = last
@@ -1352,6 +1530,122 @@
       + `Order Ratio = ODS &amp; VAN Order Count ÷ Total Parent Order (HKTV Staff + ODS/VAN), for ${labelA} vs ${labelB}. Cell tint follows the Order Ratio change: green = up, red = down.`;
   }
 
+  /* GMV / Basket Size (v3.0 §3). Rows: current month's daily entries
+     (newest first) followed by every CLOSED month's accumulated row
+     (newest first) — closed months are never dropped from DATA.gmvMonthly,
+     since gmv_history.json keeps them all. */
+  function renderGmvTab(){
+    const head = document.getElementById('gmvTableHead');
+    const body = document.getElementById('gmvTableBody');
+    const summary = document.getElementById('gmvSummary');
+    const dailyKeys = Object.keys(DATA.gmvDaily).sort().reverse();
+    const monthlyKeys = Object.keys(DATA.gmvMonthly).sort().reverse();
+    if(dailyKeys.length === 0 && monthlyKeys.length === 0){
+      head.innerHTML = '';
+      summary.innerHTML = '';
+      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No gmv_history.json alongside this page yet — kpi_pipeline.py's Tableau section writes it automatically once the separate GMV Tableau account is configured (TABLEAU_GMV_USER/PASS) and has downloaded at least one day. This table will populate on its own.</td></tr>`;
+      return;
+    }
+    const metric = document.getElementById('gmvMetricSelect').value; // 'gmv' | 'basketSize'
+    const dollarFmt = v => v==null ? '—' : '$'+Math.round(v).toLocaleString();
+    const bsFmt = v => v==null ? '—' : '$'+v.toFixed(2);
+    const fmt = metric==='gmv' ? dollarFmt : bsFmt;
+
+    const latestKey = dailyKeys[0];
+    const latest = latestKey ? DATA.gmvDaily[latestKey] : null;
+    const mtdGmv = dailyKeys.reduce((s,k)=> s + (DATA.gmvDaily[k].gmv.overall||0), 0);
+    summary.innerHTML = `
+      <div class="gmv-summary-card">
+        <div class="label">Latest Day${latestKey?' · '+latestKey:''}</div>
+        <div class="row"><span>GMV</span><span class="v">${dollarFmt(latest?latest.gmv.overall:null)}</span></div>
+        <div class="row"><span>Basket Size</span><span class="v">${bsFmt(latest?latest.basketSize.overall:null)}</span></div>
+      </div>
+      <div class="gmv-summary-card">
+        <div class="label">Month to Date</div>
+        <div class="row"><span>GMV</span><span class="v">${dollarFmt(mtdGmv)}</span></div>
+      </div>`;
+
+    head.innerHTML = `<tr><th>Date</th>${DISTRICTS.map(d=>`<th>${d}</th>`).join('')}<th>Total</th></tr>`;
+
+    const rows = [
+      ...dailyKeys.map(k=>({ label:k, group:DATA.gmvDaily[k][metric], isMonth:false })),
+      ...monthlyKeys.map(k=>({ label:k, group:DATA.gmvMonthly[k][metric], isMonth:true })),
+    ];
+    body.innerHTML = rows.map(r=>{
+      const cells = DISTRICTS.map(d=>`<td>${fmt(r.group.districts[d])}</td>`).join('');
+      const rowLabel = r.isMonth ? `<strong>${r.label}</strong>` : r.label;
+      return `<tr class="${r.isMonth?'total-row':''}"><td>${rowLabel}</td>${cells}<td><strong>${fmt(r.group.overall)}</strong></td></tr>`;
+    }).join('');
+  }
+
+  /* HKTV Manpower Distribution (v3.0 §4). Same period-comparison layout as
+     Productivity Detail, but each cell is a single headcount metric. */
+  function renderManpowerTab(){
+    const head = document.getElementById('mpTableHead');
+    const body = document.getElementById('mpTableBody');
+    const note = document.getElementById('mpNote');
+    const legend = document.getElementById('mpLegend');
+    const summary = document.getElementById('mpSummary');
+    if(Object.keys(DATA.dailyManpower).length === 0){
+      head.innerHTML = '';
+      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No manpower_distribution.json alongside this page yet — kpi_pipeline.py's productivity section writes it automatically once a Staff List file (Logistics_Staff_List_YYYYMMDD.xlsx) is available. This table will populate on its own.</td></tr>`;
+      document.getElementById('mpPeriodASelect').innerHTML = '';
+      document.getElementById('mpPeriodBSelect').innerHTML = '';
+      legend.innerHTML = ''; summary.innerHTML = '';
+      return;
+    }
+    populatePeriodSelectors('mp');
+    const groupKey = document.getElementById('mpGroupSelect').value;
+    const granularity = document.getElementById('mpGranularitySelect').value;
+    const periodA = document.getElementById('mpPeriodASelect').value;
+    const periodB = document.getElementById('mpPeriodBSelect').value;
+    const labelFn = granularity==='week' ? weekLabel : monthLabel;
+    const getRow = granularity==='week' ? mpGetWeekRow : mpGetMonthRow;
+    const labelA = periodA ? labelFn(periodA) : 'Period A', labelB = periodB ? labelFn(periodB) : 'Period B';
+    const groupLabel = groupKey==='courier' ? 'Courier' : 'Driver';
+
+    legend.innerHTML = `
+      <span><i class="swatch" style="background:#8aa2bb"></i>Period A = ${labelA}</span>
+      <span><i class="swatch" style="background:var(--ink)"></i>Period B = ${labelB} (current)</span>`;
+
+    const totalA = periodA ? getRow(periodA, groupKey, 'Total') : Array(7).fill(null);
+    const totalB = periodB ? getRow(periodB, groupKey, 'Total') : Array(7).fill(null);
+    summary.innerHTML = WEEKDAY_LABELS.map((w,i)=>{
+      const va = totalA[i], vb = totalB[i];
+      const maxV = Math.max(va||0, vb||0, 1);
+      const pctA = va==null?0:Math.max(4,(va/maxV)*100), pctB = vb==null?0:Math.max(4,(vb/maxV)*100);
+      const d = deltaInfo(va, vb);
+      return `<div class="prod-summary-card">
+        <div class="wd">${w}</div>
+        <div class="bar-row"><span class="tag">A</span><div class="bar-track"><div class="bar-fill a" style="width:${pctA}%"></div></div><span class="v">${intFmt(va)}</span></div>
+        <div class="bar-row"><span class="tag">B</span><div class="bar-track"><div class="bar-fill b" style="width:${pctB}%"></div></div><span class="v">${intFmt(vb)}</span></div>
+        <span class="delta-pill ${d.cls}">${deltaText(d)}</span>
+      </div>`;
+    }).join('');
+
+    head.innerHTML = `<tr><th>District</th>${WEEKDAY_LABELS.map(w=>`<th>${w}</th>`).join('')}</tr>`;
+
+    const rowDistricts = [...DISTRICTS, 'Total'];
+    body.innerHTML = rowDistricts.map(d=>{
+      const rowA = periodA ? getRow(periodA, groupKey, d) : Array(7).fill(null);
+      const rowB = periodB ? getRow(periodB, groupKey, d) : Array(7).fill(null);
+      const cells = rowA.map((vA,i)=>{
+        const vB = rowB[i];
+        const { heatCls, html } = comparisonCell([
+          { label: groupLabel+' Headcount', a: vA, b: vB, fmt: intFmt },
+        ]);
+        return `<td class="kpi-cell3 ${heatCls}">${html}</td>`;
+      }).join('');
+      const rowLabel = d==='Total' ? '<strong>Total</strong>' : d;
+      return `<tr class="${d==='Total'?'total-row':''}"><td>${rowLabel}</td>${cells}</tr>`;
+    }).join('');
+
+    note.innerHTML = (granularity==='month'
+      ? `Month view: each weekday cell averages that weekday's ${groupLabel} headcount across the whole month. `
+      : `Week view: each weekday cell is that single day's ${groupLabel} headcount. `)
+      + `Team leads / supervisors / managers are never counted here. Cell tint follows the headcount change: green = up, red = down.`;
+  }
+
   /* ---------------- scroll affordance ----------------
      Toggles .has-overflow on each .table-wrap when its inner .table-scroll
      is actually wider than what's visible, so the fade + "scroll →" chip
@@ -1369,7 +1663,7 @@
   window.addEventListener('resize', updateScrollHints);
 
   /* ---------------- tab switching ---------------- */
-  const VIEW_ID_BY_RAIL_KEY = { overview:'view-overview', ods:'view-ods', productivity:'view-productivity' };
+  const VIEW_ID_BY_RAIL_KEY = { overview:'view-overview', ods:'view-ods', productivity:'view-productivity', gmv:'view-gmv', manpower:'view-manpower' };
 
   function switchToView(viewId){
     document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active', b.dataset.target===viewId));
@@ -1393,6 +1687,10 @@
   ['odsGranularitySelect','odsPeriodASelect','odsPeriodBSelect'].forEach(id=>{
     document.getElementById(id).addEventListener('change', ()=>{ renderOdsRatioTab(); updateScrollHints(); });
   });
+  document.getElementById('gmvMetricSelect').addEventListener('change', ()=>{ renderGmvTab(); updateScrollHints(); });
+  ['mpGroupSelect','mpGranularitySelect','mpPeriodASelect','mpPeriodBSelect'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', ()=>{ renderManpowerTab(); updateScrollHints(); });
+  });
 
   /* ---------------- root render ---------------- */
   function renderAll(){
@@ -1401,6 +1699,8 @@
     renderTableBody();
     renderOdsRatioTab();
     renderProductivityTab();
+    renderGmvTab();
+    renderManpowerTab();
     updateScrollHints();
   }
 

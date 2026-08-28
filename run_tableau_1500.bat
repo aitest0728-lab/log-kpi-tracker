@@ -14,6 +14,6 @@ py kpi_pipeline.py --section tableau >> pipeline_log.txt 2>&1
 REM productivity_history.json isn't touched by this section (only the 03:00
 REM productivity job writes it) - included here too just so this commit
 REM doesn't miss it if the morning job's own commit ever failed silently.
-git add public/data.json public/productivity_history.json history.json
+git add public/data.json public/productivity_history.json public/manpower_distribution.json public/gmv_history.json history.json
 git commit -m "Auto-update: Tableau data %date% %time%"
 git push

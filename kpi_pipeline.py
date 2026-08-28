@@ -54,15 +54,39 @@ if not TABLEAU_USER or not TABLEAU_PASS:
         "longer falls back to a hardcoded password."
     )
 
+# --- v3.0 §3: GMV lives on a SEPARATE Tableau account from TABLEAU_USER/PASS
+# above ("LOG GMV for AI Fetching" is only visible under that other login),
+# so it gets its own sign-in URL + credentials. fetch_gmv_report() opens its
+# own browser context and logs in with these, independently of
+# fetch_tableau_reports(). Not required unless you actually run the GMV
+# fetch, so no SystemExit here — run_section_tableau() just skips GMV with a
+# warning if the file never showed up (see there).
+TABLEAU_GMV_URL = os.environ.get("TABLEAU_GMV_URL", "https://inhouse-analytics.hktv.com.hk/#/signin")
+TABLEAU_GMV_DASHBOARD_URL = os.environ.get(
+    "TABLEAU_GMV_DASHBOARD_URL",
+    "https://inhouse-analytics.hktv.com.hk/#/views/LogGMVforAIFetching/Sheet1?:iid=1",
+)
+TABLEAU_GMV_USER = os.environ.get("TABLEAU_GMV_USER", "")
+TABLEAU_GMV_PASS = os.environ.get("TABLEAU_GMV_PASS", "")
+
 # 目錄設定
 OIX_FOLDER = os.environ.get("OIX_FOLDER", r"C:\Users\chipanl\Downloads\Digimobi Report")
 REPORT_FOLDER = os.environ.get("REPORT_FOLDER", r"C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker\Folder for KPI Dashboard")
+# v3.0 §4: where the latest "Logistics_Staff_List_YYYYMMDD.xlsx" lives.
+STAFF_LIST_FOLDER = os.environ.get("STAFF_LIST_FOLDER", r"C:\Users\chipanl\Downloads\Staff List")
 DATA_JSON_PATH = os.environ.get("DATA_JSON_PATH", "./public/data.json")
 HISTORY_PATH = os.environ.get("HISTORY_PATH", "./history.json")
 # The dashboard's Productivity Detail / Daily Records tabs fetch this file
 # directly (not data.json) — see loadDataSource() in the HTML. It lives next
 # to data.json in ./public so both get served by the same static host.
 PRODUCTIVITY_HISTORY_PATH = os.environ.get("PRODUCTIVITY_HISTORY_PATH", "./public/productivity_history.json")
+# v3.0 §3: GMV / Basket Size tab's data file — daily rows for the current
+# (still-open) month, plus one accumulated row per CLOSED month. See
+# build_gmv_monthly().
+GMV_HISTORY_PATH = os.environ.get("GMV_HISTORY_PATH", "./public/gmv_history.json")
+# v3.0 §4: HKTV Manpower Distribution tab's data file — same daily-log /
+# trimmed-window pattern as PRODUCTIVITY_HISTORY_PATH.
+MANPOWER_HISTORY_PATH = os.environ.get("MANPOWER_HISTORY_PATH", "./public/manpower_distribution.json")
 # How many days of raw order-count/manpower history productivity_history.json
 # carries. history.json (not this) is the durable full log, so raising this
 # later doesn't lose anything already run — it just widens the served window.
@@ -78,6 +102,28 @@ REPORT_FILES = {
     "poor_rating": "Delivery Rating.csv",
     "delay_rate": "Rank_On Time.csv",
     "rfid": "RP Breakdown (7days).csv",  # 保持無空格，依據您之前提供的檔名
+    "gmv": "Sheet 1.csv",  # v3.0 §3 — fixed download filename, per spec
+}
+
+# v3.0 §4: the 6 position codes that get classified into Courier / Driver
+# for the HKTV Manpower Distribution tab. Matched case-insensitively /
+# whitespace-trimmed against the Staff List's "Position" column.
+COURIER_POSITIONS = {"COURIER", "SENIOR COURIER"}
+DRIVER_POSITIONS = {"DRIVER", "DRIVER II", "DRIVER AT", "DRIVER C"}
+MANPOWER_GROUP_POSITIONS = {"courier": COURIER_POSITIONS, "driver": DRIVER_POSITIONS}
+
+# v3.0 §4.1: staff in these positions are leads/supervisors/managers, not
+# individual couriers/drivers — excluded from HKTV Staff Productivity's
+# manpower denominator (they still appear in the raw OIX data, just not
+# counted as "manpower" for that calculation).
+LEADER_EXCLUDE_POSITIONS = {
+    "TEAM LEADER ASSISTANT II",
+    "ASSISTANT LOGISTIC OPERATIONS SUPERVISOR",
+    "LOGISTIC OPERATIONS SUPERVISOR",
+    "TEAM LEADER ASSISTANT I",
+    "LOGISTIC OPERATIONS MANAGER",
+    "ASSISTANT LOGISTIC OPERATIONS MANAGER",
+    "SENIOR LOGISTIC OPERATIONS SUPERVISOR",
 }
 
 # 報表在 Tableau 彈出選單中的確切 Sheet 名稱，用於 Playwright 點擊
@@ -511,6 +557,130 @@ def fetch_tableau_reports():
         browser.close()
         print("🎉 Tableau 報表下載完畢！\n")
 
+
+def fetch_gmv_report():
+    """v3.0 §3 — downloads 'Sheet 1.csv' (GMV) from the SEPARATE 'LOG GMV
+    for AI Fetching' Tableau account. Its own browser/login, independent of
+    fetch_tableau_reports() above, since it's a different account entirely.
+
+    Per spec this sheet is "pre-click" — i.e. already sitting on the right
+    view/sheet by default — so this skips the sheet-thumbnail selection step
+    that fetch_tableau_reports() needs for its 6 reports, and just does
+    Download -> Crosstab -> CSV -> confirm.
+    """
+    if not TABLEAU_GMV_USER or not TABLEAU_GMV_PASS:
+        print("  ⚠️ TABLEAU_GMV_USER / TABLEAU_GMV_PASS not set — skipping GMV download. "
+              "Set these in .env (separate account from TABLEAU_USER/PASS) to enable it.")
+        return
+
+    print("🚀 啟動 GMV Tableau 自動化下載程序 (獨立帳號)...")
+    target_filepath = os.path.join(REPORT_FOLDER, REPORT_FILES["gmv"])
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, args=["--disable-popup-blocking"])
+        context = browser.new_context(accept_downloads=True)
+        page = context.new_page()
+        page.set_viewport_size({"width": 1920, "height": 1080})
+
+        print("  🌐 導航至 GMV Tableau 登入頁面...")
+        page.goto(TABLEAU_GMV_URL)
+        page.wait_for_selector("input[type='text'], input[name='username']", timeout=30000)
+        page.locator("input[type='text'], input[name='username']").first.fill(TABLEAU_GMV_USER)
+        page.locator("input[type='password'], input[name='password']").first.fill(TABLEAU_GMV_PASS)
+        page.locator("button:has-text('Sign In'), [aria-label='Sign In']").first.click()
+
+        print("  ⏳ 等待登入後的跳轉完成...")
+        page.wait_for_load_state("networkidle", timeout=60000)
+        try:
+            page.wait_for_url("**/#/user/**", timeout=30000)
+        except Exception:
+            print(f"  ⚠ 未偵測到預期的 /#/user/ 跳轉，目前網址: {page.url}（仍會繼續嘗試導航）")
+        time.sleep(3)
+
+        print(f"\n🌐 Opening GMV Tableau Report: {TABLEAU_GMV_DASHBOARD_URL}")
+        page.goto(TABLEAU_GMV_DASHBOARD_URL)
+        try:
+            page.wait_for_load_state("networkidle", timeout=30000)
+        except Exception:
+            pass
+        time.sleep(10)
+        page.wait_for_timeout(5000)
+        try:
+            page.reload(wait_until="load", timeout=45000)
+        except Exception as e:
+            print(f"  ⚠ reload() 等待逾時或發生問題（{e}），仍繼續嘗試後續步驟...")
+        time.sleep(8)
+        page.wait_for_timeout(3000)
+
+        print("  ⬇️ 正在下載 GMV 報表...")
+        dl_selectors = ["#download", '[aria-label="Download"]', "button:has-text('Download')"]
+        if not fast_click(page, dl_selectors, 4000):
+            if not smart_click(page, dl_selectors, 15):
+                print("  ❌ 找不到 Download 按鈕，GMV 下載中止")
+                context.close(); browser.close()
+                return
+
+        crosstab_selectors = [
+            "#viz-viewer-toolbar-download-menu > div:nth-of-type(3)",
+            "#viz-viewer-toolbar-download-menu div:nth-of-type(3) span",
+            "xpath=//*[@id='viz-viewer-toolbar-download-menu']/div[3]",
+            "xpath=//*[@id='viz-viewer-toolbar-download-menu']/div[3]/div/div/span[2]",
+            '[data-tb-test-id="download-crosstab-Button-MenuItem"]',
+            "span:has-text('Crosstab')",
+            "text='Crosstab'"
+        ]
+        if not fast_click(page, crosstab_selectors, 4000):
+            if not smart_click(page, crosstab_selectors, 10):
+                print("  ❌ 找不到 Crosstab 選項，GMV 下載中止")
+                context.close(); browser.close()
+                return
+        time.sleep(2)
+
+        # Sheet is pre-selected per spec — no thumbnail click needed. If a
+        # future export ever isn't pre-selected, is_sheet_already_selected()
+        # returning False just means we fall through to the CSV step anyway
+        # (same graceful-skip behavior as the 6-report loop).
+        if not is_sheet_already_selected(page, "Sheet1"):
+            sheet_option_selectors = [
+                '[role="option"][title="Sheet1"]',
+                '[data-tb-test-id^="sheet-thumbnail"][title="Sheet1"]',
+                "[role='option']:has-text('Sheet1')",
+            ]
+            fast_click(page, sheet_option_selectors, 2000)
+        time.sleep(1)
+
+        csv_selectors = [
+            "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id label:nth-of-type(2) input",
+            "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id label:nth-of-type(2)",
+            "xpath=//*[@id='export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id']/div/div[2]/div[2]/label[2]",
+            "label:has-text('CSV')",
+            "text='CSV'"
+        ]
+        if not fast_click(page, csv_selectors, 2000):
+            smart_click(page, csv_selectors, 5)
+        time.sleep(1)
+
+        confirm_selectors = [
+            "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id button",
+            "button[aria-label='Download Crosstab']",
+            "button[aria-label='Download']",
+            'button[data-tb-test-id="export-crosstab-export-Button"]'
+        ]
+        try:
+            with page.expect_download(timeout=60000) as download_info:
+                if not fast_click(page, confirm_selectors, 3000):
+                    if not smart_click(page, confirm_selectors, 30):
+                        raise TimeoutError("Unable to click download button for GMV Sheet1")
+            download = download_info.value
+            download.save_as(target_filepath)
+            print(f"  ✅ 成功儲存: {REPORT_FILES['gmv']}")
+        except Exception as e:
+            print(f"  ❌ 下載 GMV 報表失敗: {e}")
+
+        context.close()
+        browser.close()
+        print("🎉 GMV 報表下載完畢！\n")
+
 # =============================================================================
 # 4. 數據處理邏輯 (Tableau CSV 解析)
 # =============================================================================
@@ -613,6 +783,53 @@ def parse_rfid(target_date):
             per_district[code] += parse_number(row[date_col_label])
     return {"overall": round(sum(per_district.values()), 2), "districts": {d: round(v, 2) for d, v in per_district.items()}}
 
+
+def parse_gmv(target_date):
+    """v3.0 §3 — parses REPORT_FILES['gmv'] ("Sheet 1.csv"), downloaded by
+    fetch_gmv_report() from the separate GMV Tableau account.
+
+    Layout (same UTF-16 tab-separated crosstab shape as the other reports):
+      row 0: 'delivery_district' marker row (ignored)
+      row 1: real header — col 0 is the date-pivot label, remaining columns
+             are district codes as exported by Tableau. If a "NT-YT" column
+             is present, its values are merged into "NT-TW" (v3.0 §3: "if
+             the column header has NT-YT, please group ... with NT-TW
+             first") via normalize_district_code(), same helper §1/§2 use.
+      row 2+: one row per date, col 0 = "YYYY年M月D日" (no zero-padding —
+             confirmed against the sample export), remaining columns = GMV
+             amounts (may contain "$"/"," — parsed with parse_money()).
+
+    Returns the row for target_date (T-1) as {"overall", "districts"}.
+    """
+    path = os.path.join(REPORT_FOLDER, REPORT_FILES["gmv"])
+    raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str)
+    header = raw.iloc[1].tolist()
+    data_rows = raw.iloc[2:].reset_index(drop=True)
+
+    col_to_district = {}
+    for idx, label in enumerate(header):
+        if idx == 0:
+            continue
+        norm = normalize_district_code(str(label).strip())
+        if norm in DISTRICTS:
+            col_to_district[idx] = norm
+
+    missing = [d for d in DISTRICTS if d not in col_to_district.values()]
+    if missing:
+        print(f"  ⚠️ GMV export is missing column(s) for district(s): {missing} "
+              f"— those will be treated as $0 for every date.")
+
+    target_label = f"{target_date.year}年{target_date.month}月{target_date.day}日"
+    for _, row in data_rows.iterrows():
+        if str(row.iloc[0]).strip() == target_label:
+            per_district = {d: 0.0 for d in DISTRICTS}
+            for idx, dist in col_to_district.items():
+                per_district[dist] += parse_money(row.iloc[idx])
+            return {"overall": round(sum(per_district.values()), 2),
+                    "districts": {d: round(v, 2) for d, v in per_district.items()}}
+
+    raise ValueError(f"Could not find GMV row for {target_label!r} in {path!r}.")
+
 # =============================================================================
 # 5. OIX Productivity 處理 (03:00 job — Excel/CSV-based, no Tableau involved)
 # =============================================================================
@@ -641,9 +858,58 @@ def load_oix(path):
     return pd.read_excel(path, header=1, dtype=str)
 
 
-def process_oix(df):
+def find_latest_staff_list():
+    """v3.0 §4 — finds the most-recently-dated
+    'Logistics_Staff_List_YYYYMMDD.xlsx' inside STAFF_LIST_FOLDER (YYYYMMDD
+    = the file's own "final update date", per spec — so we sort on that,
+    not on filesystem mtime)."""
+    pattern = re.compile(r"^Logistics_Staff_List_(\d{8})\.xlsx$", re.IGNORECASE)
+    candidates = []
+    if os.path.isdir(STAFF_LIST_FOLDER):
+        for fname in os.listdir(STAFF_LIST_FOLDER):
+            m = pattern.match(fname)
+            if m:
+                candidates.append((m.group(1), fname))
+    if not candidates:
+        raise FileNotFoundError(
+            f"No 'Logistics_Staff_List_YYYYMMDD.xlsx' file found in {STAFF_LIST_FOLDER!r}."
+        )
+    candidates.sort()  # YYYYMMDD sorts correctly as a string
+    _, latest_fname = candidates[-1]
+    return os.path.join(STAFF_LIST_FOLDER, latest_fname)
+
+
+def load_staff_position_map():
+    """v3.0 §4 — Employee No. (Column A) -> Position (Column G), from the
+    latest staff list. Position values are upper-cased/stripped so they
+    compare cleanly against LEADER_EXCLUDE_POSITIONS / COURIER_POSITIONS /
+    DRIVER_POSITIONS (which are already all-caps)."""
+    path = find_latest_staff_list()
+    df = pd.read_excel(path, dtype=str)
+    emp_col = df.columns[col("A")]
+    pos_col = df.columns[col("G")]
+    out = {}
+    for emp, pos in zip(df[emp_col], df[pos_col]):
+        if pd.isna(emp):
+            continue
+        out[str(emp).strip()] = "" if pd.isna(pos) else str(pos).strip().upper()
+    print(f"  📋 Loaded staff position map from {os.path.basename(path)} ({len(out)} employees)")
+    return out
+
+
+def process_oix(df, position_map=None):
     """Cleaning + district tagging steps: drop O2O rows from non-LF/LP/ODS/VAN
-    users, fill blank Parent Order from Order Number, dedupe, tag District."""
+    users, fill blank Parent Order from Order Number, dedupe, tag District.
+
+    v3.0 §4: if position_map (Employee No. -> Position, from
+    load_staff_position_map()) is given, also tags a "Position" column
+    (matching the spec's "Column X [NEW]") by looking up each row's User
+    (Column E) — used downstream for Courier/Driver classification
+    (manpower_distribution_for_group) and the §4.1 leader-exclusion in
+    productivity_for_group(). If position_map is None (e.g. the staff list
+    couldn't be found this run), "Position" is left all-blank and those two
+    features simply have nothing to classify — everything else is
+    unaffected."""
     c_user, c_addr = col("E"), col("R")
     c_order_no, c_parent = col("K"), col("L")
     c_truck = col("P")
@@ -692,12 +958,27 @@ def process_oix(df):
     if unmatched:
         print(f"  ⚠️ {unmatched} row(s) had a truck number matching none of the 14 "
               f"district patterns — excluded from every total. Check df.iloc[:, {c_truck}].")
+
+    if position_map:
+        user_stripped = df.iloc[:, c_user].fillna("").astype(str).str.strip()
+        df["Position"] = user_stripped.map(lambda u: position_map.get(u, "") or None)
+    else:
+        df["Position"] = None
+
     return df
 
 
-def productivity_for_group(df, prefixes):
+def productivity_for_group(df, prefixes, exclude_positions=None):
+    """exclude_positions (v3.0 §4.1): staff whose "Position" column falls in
+    this set are dropped BEFORE computing manpower (unique-user counts) —
+    but their orders still count if the same order also has other couriers
+    attached (excluding a row just means that row's user isn't tallied as
+    manpower). Positions come from process_oix()'s "Position" column, so
+    this only has an effect when that run had a position_map available."""
     c_user, c_parent = col("E"), col("L")
     sub = df[df.iloc[:, c_user].fillna("").str.startswith(prefixes)]
+    if exclude_positions:
+        sub = sub[~sub["Position"].fillna("").isin(exclude_positions)]
     per_district = {}
     for d in DISTRICTS:
         rows = sub[sub["District"] == d]
@@ -714,15 +995,48 @@ def productivity_for_group(df, prefixes):
     return {"overall": overall, "districts": per_district}
 
 
+def manpower_distribution_for_group(df, group_key):
+    """v3.0 §4 — distinct HKTV (LF/LP) staff headcount per district, for
+    group_key 'courier' or 'driver' (see MANPOWER_GROUP_POSITIONS). Feeds
+    the HKTV Manpower Distribution tab, which is pure headcount (not an
+    orders/productivity ratio like the other tabs)."""
+    positions = MANPOWER_GROUP_POSITIONS[group_key]
+    c_user = col("E")
+    sub = df[df.iloc[:, c_user].fillna("").str.startswith(("LF", "LP"))]
+    sub = sub[sub["Position"].fillna("").isin(positions)]
+    per_district = {}
+    for d in DISTRICTS:
+        rows = sub[sub["District"] == d]
+        per_district[d] = int(rows.iloc[:, c_user].nunique())
+    total = sum(per_district.values())
+    return {"districts": per_district, "total": total}
+
+
 def run_productivity_section():
     print("🚀 開始處理 OIX Productivity 數據...")
     target_date = dt.date.today() - dt.timedelta(days=1)  # T-1
     path = find_oix_file(target_date)
     df = load_oix(path)
-    df = process_oix(df)
 
-    hktv_staff = productivity_for_group(df, ("LF", "LP"))
+    # v3.0 §4 / §4.1: without a position_map, process_oix() still runs fine
+    # (Position column just stays blank) — HKTV Staff Productivity falls
+    # back to its pre-v3.0 behavior (no leader exclusion) and the Manpower
+    # Distribution tab simply has nothing new for today, rather than the
+    # whole 03:00 job failing over a missing/late staff list file.
+    try:
+        position_map = load_staff_position_map()
+    except FileNotFoundError as e:
+        print(f"  ⚠️ {e} — skipping Position/Courier/Driver classification for "
+              f"today's run (§4.1 leader-exclusion and HKTV Manpower Distribution "
+              f"won't reflect today until a staff list file is present).")
+        position_map = None
+
+    df = process_oix(df, position_map)
+
+    hktv_staff = productivity_for_group(df, ("LF", "LP"), exclude_positions=LEADER_EXCLUDE_POSITIONS)
     ods_ratio = productivity_for_group(df, ("ODS", "VAN"))
+    courier_group = manpower_distribution_for_group(df, "courier")
+    driver_group = manpower_distribution_for_group(df, "driver")
 
     history = load_history()
     payload = load_data_json()
@@ -750,6 +1064,11 @@ def run_productivity_section():
     # PRODUCTIVITY_HISTORY_PATH comment above.
     append_daily_productivity_log(history, target_date.isoformat(), hktv_staff, ods_ratio)
     save_productivity_history(trimmed_daily_productivity(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
+
+    # v3.0 §4: HKTV Manpower Distribution — same daily-log / trimmed-window
+    # pattern as productivity_history.json above, own file.
+    append_manpower_log(history, target_date.isoformat(), courier_group, driver_group)
+    save_manpower_history(trimmed_manpower_distribution(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
 
     save_history(history)
     save_data_json(payload)
@@ -782,6 +1101,22 @@ def trimmed_daily_productivity(history, keep_days):
     pattern as rfidMonthly below — data.json only ever carries a recent
     window so it doesn't grow unbounded, while history.json keeps everything."""
     log = history.get("dailyProductivityLog", {})
+    recent_dates = sorted(log.keys())[-keep_days:]
+    return {d: log[d] for d in recent_dates}
+
+
+def append_manpower_log(history, date_str, courier_group, driver_group):
+    """v3.0 §4 — durable full log of daily HKTV Courier/Driver headcount,
+    same shape/role as append_daily_productivity_log() above."""
+    log = history.setdefault("manpowerDistributionLog", {})
+    log[date_str] = {"courier": courier_group, "driver": driver_group}
+
+
+def trimmed_manpower_distribution(history, keep_days):
+    """Recent-window slice of manpowerDistributionLog, same pattern as
+    trimmed_daily_productivity() above — history.json keeps everything,
+    manpower_distribution.json only ever serves the last `keep_days`."""
+    log = history.get("manpowerDistributionLog", {})
     recent_dates = sorted(log.keys())[-keep_days:]
     return {d: log[d] for d in recent_dates}
 
@@ -829,6 +1164,16 @@ def save_productivity_history(daily_dict):
     print(f"Wrote {PRODUCTIVITY_HISTORY_PATH}")
 
 
+def save_manpower_history(daily_dict):
+    """Writes ./public/manpower_distribution.json as {"daily": {...}} — the
+    HKTV Manpower Distribution tab's data source. Same disposable/derived
+    pattern as save_productivity_history() above."""
+    os.makedirs(os.path.dirname(MANPOWER_HISTORY_PATH) or ".", exist_ok=True)
+    with open(MANPOWER_HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump({"daily": daily_dict}, f, ensure_ascii=False, indent=2)
+    print(f"Wrote {MANPOWER_HISTORY_PATH}")
+
+
 def append_history(history, metric_key, date_str, overall_value, district_values):
     history.setdefault(metric_key, {})
     history[metric_key][date_str] = {"overall": overall_value, "districts": district_values}
@@ -858,6 +1203,116 @@ def combine_missing_lost(a, b, c):
     per_district = {d: round(a["districts"][d] + b["districts"][d] + c["districts"][d], 2) for d in DISTRICTS}
     overall = round(a["overall"] + b["overall"] + c["overall"], 2)
     return {"overall": overall, "districts": per_district}
+
+
+# =============================================================================
+# 7. GMV / Basket Size (v3.0 §3)
+# =============================================================================
+
+def append_gmv_history(history, date_str, gmv_group):
+    """Durable full daily GMV log, in history.json — same role as
+    append_history() for the other metrics, kept as its own top-level key
+    ("gmv") since GMV also needs month-closing rollups (build_gmv_monthly)
+    that the plain rolling_average()-style metrics don't."""
+    history.setdefault("gmv", {})[date_str] = gmv_group
+
+
+def total_parent_orders_for(history, date_str):
+    """Basket Size's denominator (v3.0 §3: "GMV / Total Parent Order") —
+    HKTV Staff + ODS/VAN order counts combined for date_str, read from the
+    SAME dailyProductivityLog entry the Productivity Detail tab uses (see
+    append_daily_productivity_log() / §1). Returns (overall, {district:count})
+    — any value is None where that day's OIX processing never ran."""
+    log = history.get("dailyProductivityLog", {}).get(date_str)
+    if not log:
+        return None, {d: None for d in DISTRICTS}
+
+    def orders(group_key):
+        g = log.get(group_key, {})
+        return (g.get("total", {}).get("orderCount"),
+                {d: g.get("districts", {}).get(d, {}).get("orderCount") for d in DISTRICTS})
+
+    hk_overall, hk_d = orders("hktvStaff")
+    od_overall, od_d = orders("odsRatio")
+    overall = (hk_overall or 0) + (od_overall or 0)
+    districts = {d: (hk_d.get(d) or 0) + (od_d.get(d) or 0) for d in DISTRICTS}
+    return overall, districts
+
+
+def basket_size(gmv_group, orders_overall, orders_districts):
+    """Basket Size = GMV / Total Parent Order (v3.0 §3), per district and
+    overall. None wherever either side is missing/zero, rather than a
+    misleading 0 or a divide-by-zero."""
+    def bs(gmv_val, orders_val):
+        return round(gmv_val / orders_val, 2) if gmv_val is not None and orders_val else None
+    overall = bs(gmv_group["overall"], orders_overall)
+    districts = {d: bs(gmv_group["districts"][d], orders_districts.get(d)) for d in DISTRICTS}
+    return {"overall": overall, "districts": districts}
+
+
+def build_gmv_monthly(history):
+    """v3.0 §3 — recomputed fresh from history.json's full "gmv" log every
+    run (same disposable-derived-file pattern as productivity_history.json /
+    rfidMonthly):
+      - "daily": one row per date in the CURRENT (still-open) calendar month
+        — the "show it like the Daily Records Tab" requirement.
+      - "monthly": one accumulated row per CLOSED month, keyed "YYYY-MM" —
+        "after each month, the GMV information can be stacked in 1 row ...
+        this is accumulated, please do not remove". Every closed month that
+        has ever been logged stays here permanently (there are only ~12/yr,
+        so this never needs trimming the way daily logs do).
+    Both GMV and Basket Size ($ = GMV, # = GMV ÷ Total Parent Order) are
+    included at every granularity.
+    """
+    gmv_log = history.get("gmv", {})
+    if not gmv_log:
+        return {"daily": {}, "monthly": {}}
+
+    current_month = dt.date.today().strftime("%Y-%m")
+    daily = {}
+    sums = {}  # month -> running totals, used to build the closed-month rollup
+
+    for date_str, gmv_group in sorted(gmv_log.items()):
+        month = date_str[:7]
+        orders_overall, orders_districts = total_parent_orders_for(history, date_str)
+
+        if month == current_month:
+            daily[date_str] = {
+                "gmv": gmv_group,
+                "basketSize": basket_size(gmv_group, orders_overall, orders_districts),
+            }
+
+        bucket = sums.setdefault(month, {
+            "gmv_overall": 0.0, "gmv_districts": {d: 0.0 for d in DISTRICTS},
+            "orders_overall": 0, "orders_districts": {d: 0 for d in DISTRICTS},
+        })
+        bucket["gmv_overall"] += gmv_group["overall"] or 0
+        bucket["orders_overall"] += orders_overall or 0
+        for d in DISTRICTS:
+            bucket["gmv_districts"][d] += gmv_group["districts"].get(d) or 0
+            bucket["orders_districts"][d] += orders_districts.get(d) or 0
+
+    monthly = {}
+    for month, b in sums.items():
+        if month == current_month:
+            continue  # current month stays as daily rows only, per spec
+        gmv_group = {
+            "overall": round(b["gmv_overall"], 2),
+            "districts": {d: round(v, 2) for d, v in b["gmv_districts"].items()},
+        }
+        monthly[month] = {
+            "gmv": gmv_group,
+            "basketSize": basket_size(gmv_group, b["orders_overall"], b["orders_districts"]),
+        }
+
+    return {"daily": daily, "monthly": monthly}
+
+
+def save_gmv_history(payload):
+    os.makedirs(os.path.dirname(GMV_HISTORY_PATH) or ".", exist_ok=True)
+    with open(GMV_HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    print(f"Wrote {GMV_HISTORY_PATH}")
 
 
 def run_section_tableau():
@@ -950,6 +1405,31 @@ def run_section_tableau():
     keep_keys = sorted(rfid_state.keys())[-2:]
     payload["rfidMonthly"] = {k: rfid_state[k] for k in keep_keys}
 
+    # --- v3.0 §3: GMV / Basket Size — separate account/file, so handled as
+    # its own soft-fail block rather than being added to the `missing` check
+    # above: a GMV-account hiccup shouldn't block the other 6 reports that
+    # already downloaded fine. Same T-1 cadence as OIX productivity, since
+    # basket size needs that same day's Total Parent Order to divide by.
+    gmv_path = os.path.join(REPORT_FOLDER, REPORT_FILES["gmv"])
+    if os.path.exists(gmv_path):
+        gmv_date = today - dt.timedelta(days=1)  # T-1
+        try:
+            gmv_group = parse_gmv(gmv_date)
+            append_gmv_history(history, gmv_date.isoformat(), gmv_group)
+            orders_overall, orders_districts = total_parent_orders_for(history, gmv_date.isoformat())
+            matrices["gmv"] = {
+                "actual": gmv_group,
+                "basketSize": basket_size(gmv_group, orders_overall, orders_districts),
+                "asOf": gmv_date.isoformat(),
+            }
+            save_gmv_history(build_gmv_monthly(history))
+        except Exception as e:
+            print(f"  ⚠️ GMV parse failed, skipping this run's GMV update: {e}")
+    else:
+        print(f"  ⚠️ {REPORT_FILES['gmv']!r} not found in {REPORT_FOLDER!r} — skipping GMV/Basket "
+              f"Size update. fetch_gmv_report() should have downloaded it (needs "
+              f"TABLEAU_GMV_USER/PASS set in .env).")
+
     save_history(history)
     save_data_json(payload)
     print("✅ 報表解析完成，已寫入 data.json")
@@ -963,7 +1443,8 @@ def main():
     if args.section in ("productivity", "all"):
         run_productivity_section()
     if args.section in ("tableau", "all"):
-        fetch_tableau_reports()  # 1. 執行 Playwright 下載
+        fetch_tableau_reports()  # 1. 執行 Playwright 下載 (6 份報表，主帳號)
+        fetch_gmv_report()       # 1b. 下載 GMV 報表 (獨立帳號，v3.0 §3)
         run_section_tableau()    # 2. 執行 CSV 解析與寫入
 
 if __name__ == "__main__":
