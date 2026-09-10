@@ -853,9 +853,13 @@ def parse_number(val):
     return float(s) if s and s.lower() != "nan" else 0.0
 
 def parse_percent(val):
+    # v4.0.1 §1 correction — round to 2dp at the source (Tableau exports these
+    # as e.g. "7.3%"), so every Delay/Early/On Time % figure written to
+    # data.json / delay_history.json is consistently 2 decimal places
+    # instead of inheriting whatever precision the source happened to have.
     if pd.isna(val): return None
     s = str(val).replace("%", "").strip()
-    return float(s) if s and s.lower() != "nan" else None
+    return round(float(s), 2) if s and s.lower() != "nan" else None
 
 def load_crosstab(filename, marker_col0_values):
     path = os.path.join(REPORT_FOLDER, filename)
@@ -1188,7 +1192,7 @@ def parse_gmv(target_date):
     raise ValueError(f"Could not find GMV row for {target_label!r} in {path!r}.")
 
 
-def backfill_gmv_history(history):
+def backfill_gmv_history(history, cutoff_date=None):
     """v4.0 §3 — 'Sheet 1.csv' (the GMV crosstab) contains one row per date,
     not just T-1 — so if a day's GMV never made it into history["gmv"] (a
     missed run, a past failure, etc.), we can recover it straight from
@@ -1196,7 +1200,18 @@ def backfill_gmv_history(history):
     instead of leaving a permanent gap. Only fills gaps; never overwrites a
     date that's already recorded (today's own T-1 write from parse_gmv()
     still happens separately/normally after this).
+
+    v4.0.1 §3 correction — never backfills a day AFTER T-1 (cutoff_date,
+    default = today - 1). Tableau's GMV export can include a row for today
+    (or, in theory, later) that's still accumulating and not yet a complete
+    day's GMV — e.g. if today is Sept 10, only Sept 9 and earlier are
+    eligible; a same-day or future row is skipped even if present in the
+    download, so a partial number never gets treated as that day's final
+    GMV.
     """
+    if cutoff_date is None:
+        cutoff_date = dt.date.today() - dt.timedelta(days=1)  # T-1
+
     path = os.path.join(REPORT_FOLDER, REPORT_FILES["gmv"])
     if not os.path.exists(path):
         return
@@ -1211,13 +1226,17 @@ def backfill_gmv_history(history):
             col_to_district[idx] = norm
 
     gmv_log = history.setdefault("gmv", {})
-    filled = []
+    filled, skipped_future = [], []
     for _, row in raw.iloc[2:].iterrows():
         label = str(row.iloc[0]).strip()
         m = re.match(r"^(\d{4})年(\d{1,2})月(\d{1,2})日$", label)
         if not m:
             continue
-        date_str = f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+        row_date = dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        if row_date > cutoff_date:
+            skipped_future.append(row_date.isoformat())
+            continue  # never backfill past T-1, even if the export has the row
+        date_str = row_date.isoformat()
         if date_str in gmv_log:
             continue  # already have this day — don't overwrite
         per_district = {d: 0.0 for d in DISTRICTS}
@@ -1228,6 +1247,9 @@ def backfill_gmv_history(history):
         filled.append(date_str)
     if filled:
         print(f"  🩹 Backfilled {len(filled)} missing GMV day(s) from this run's download: {filled}")
+    if skipped_future:
+        print(f"  ⏭️  Skipped {len(skipped_future)} GMV row(s) newer than T-1 ({cutoff_date.isoformat()}) "
+              f"— not backfilled: {skipped_future}")
 
 # =============================================================================
 # 5. OIX Productivity 處理 (03:00 job — Excel/CSV-based, no Tableau involved)
@@ -1388,6 +1410,85 @@ def manpower_for_group(df, prefixes, exclude_positions=None):
     return {"overall": sum(per_district.values()), "districts": per_district}
 
 
+def order_count_for_group(df, prefixes):
+    """v4.0.1 — restores the ODS/VAN half of the OLD (pre-v4.0)
+    productivity_for_group()'s order-count logic: unique Parent Orders
+    (Column L) per district, counted straight from the OIX extract, for
+    rows whose User (Column E) starts with `prefixes`.
+
+    Per the v4.0.1 correction: ODS order count goes back to being computed
+    this way from OIX (not from the Tableau "Delivery Dashboard" report at
+    all) — HKTV order count is then derived as Tableau's network-wide total
+    MINUS this OIX-derived ODS figure (see finish_productivity_with_orders()),
+    rather than both groups sharing the same raw Tableau total as before.
+    Returns {"overall": int, "districts": {d: int}}."""
+    c_user, c_parent = col("E"), col("L")
+    sub = df[df.iloc[:, c_user].fillna("").str.startswith(prefixes)]
+    per_district = {}
+    for d in DISTRICTS:
+        rows = sub[sub["District"] == d]
+        per_district[d] = int(rows.iloc[:, c_parent].nunique())
+    return {"overall": sum(per_district.values()), "districts": per_district}
+
+
+def waybill_count_for_group(df, prefixes):
+    """v4.0.1 §5 — the ODS/VAN waybill-count counterpart to
+    order_count_for_group() above: IDENTICAL OIX-based logic (same User
+    prefix filter, same per-district grouping), the only difference being
+    the column deduplicated on — unique Waybill Number (Column G) instead
+    of unique Parent Order (Column L). Per spec: ODS waybill count is no
+    longer half of the Tableau network-wide waybill total; it's counted
+    straight from OIX the same way ODS order count is, just deduped on
+    Column G.
+    Returns {"overall": int, "districts": {d: int}}."""
+    c_user, c_waybill = col("E"), col("G")
+    sub = df[df.iloc[:, c_user].fillna("").str.startswith(prefixes)]
+    per_district = {}
+    for d in DISTRICTS:
+        rows = sub[sub["District"] == d]
+        per_district[d] = int(rows.iloc[:, c_waybill].nunique())
+    return {"overall": sum(per_district.values()), "districts": per_district}
+
+
+def split_hktv_ods_totals(tableau_totals, ods_order, ods_waybill):
+    """v4.0.1 §2/§5 — combines the OIX-derived ODS/VAN order count
+    (order_count_for_group) and waybill count (waybill_count_for_group)
+    with the Tableau network-wide order/waybill totals
+    (parse_actual_delivery_timeslot() output) into two group-specific
+    totals, in the same {"overall":{"order","waybill"},
+    "districts":{d:{"order","waybill"}}} shape as tableau_totals itself:
+      - ODS/VAN: the OIX-derived figures, used as-is.
+      - HKTV: Tableau's network-wide total MINUS the OIX-derived ODS
+        figure, per district and overall — restores the pre-v4.0 approach
+        (each group has its own genuine order/waybill count that sums back
+        to the network total) instead of both groups sharing the same raw
+        Tableau total.
+    """
+    ods_districts = {
+        d: {"order": ods_order["districts"][d], "waybill": ods_waybill["districts"][d]}
+        for d in DISTRICTS
+    }
+    hktv_districts = {
+        d: {
+            "order": tableau_totals["districts"][d]["order"] - ods_order["districts"][d],
+            "waybill": tableau_totals["districts"][d]["waybill"] - ods_waybill["districts"][d],
+        }
+        for d in DISTRICTS
+    }
+    ods_totals = {
+        "overall": {"order": ods_order["overall"], "waybill": ods_waybill["overall"]},
+        "districts": ods_districts,
+    }
+    hktv_totals = {
+        "overall": {
+            "order": tableau_totals["overall"]["order"] - ods_order["overall"],
+            "waybill": tableau_totals["overall"]["waybill"] - ods_waybill["overall"],
+        },
+        "districts": hktv_districts,
+    }
+    return hktv_totals, ods_totals
+
+
 def manpower_distribution_for_group(df, group_key):
     """v3.0 §4 — distinct HKTV (LF/LP) staff headcount per district, for
     group_key 'courier' or 'driver' (see MANPOWER_GROUP_POSITIONS). Feeds
@@ -1405,9 +1506,11 @@ def manpower_distribution_for_group(df, group_key):
     return {"districts": per_district, "total": total}
 
 
-def save_manpower_staging(target_date, hktv_staff_manpower, ods_ratio_manpower, courier_group, driver_group):
+def save_manpower_staging(target_date, hktv_staff_manpower, ods_ratio_manpower, courier_group, driver_group,
+                           ods_order_count, ods_waybill_count):
     """v4.0 §1 — 03:00 hand-off to the 14:00 job (see MANPOWER_STAGING_PATH):
-    everything the 03:00 OIX run can produce (manpower headcounts) before
+    everything the 03:00 OIX run can produce (manpower headcounts, plus —
+    v4.0.1 §2/§5 — the OIX-derived ODS/VAN order and waybill counts) before
     the Tableau order counts even exist yet."""
     payload = {
         "date": target_date.isoformat(),
@@ -1415,6 +1518,8 @@ def save_manpower_staging(target_date, hktv_staff_manpower, ods_ratio_manpower, 
         "odsRatioManpower": ods_ratio_manpower,
         "courierGroup": courier_group,
         "driverGroup": driver_group,
+        "odsOrderCount": ods_order_count,
+        "odsWaybillCount": ods_waybill_count,
     }
     with open(MANPOWER_STAGING_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
@@ -1460,7 +1565,16 @@ def run_productivity_section():
     courier_group = manpower_distribution_for_group(df, "courier")
     driver_group = manpower_distribution_for_group(df, "driver")
 
-    save_manpower_staging(target_date, hktv_staff_manpower, ods_ratio_manpower, courier_group, driver_group)
+    # v4.0.1 §2/§5 — ODS/VAN order count AND waybill count go back to being
+    # computed straight from OIX (old-version logic), not derived from
+    # Tableau at all; HKTV's side is backed out of the Tableau total against
+    # this figure later, in finish_productivity_with_orders() (see
+    # split_hktv_ods_totals()).
+    ods_order_count = order_count_for_group(df, ("ODS", "VAN"))
+    ods_waybill_count = waybill_count_for_group(df, ("ODS", "VAN"))
+
+    save_manpower_staging(target_date, hktv_staff_manpower, ods_ratio_manpower, courier_group, driver_group,
+                           ods_order_count, ods_waybill_count)
 
     # v3.0 §4: HKTV Manpower Distribution — independent of order counts,
     # still written straight from the 03:00 run as before.
@@ -1503,13 +1617,17 @@ def _group_to_log_shape(manpower_group, order_totals):
     }
 
 
-def append_daily_productivity_log(history, date_str, hktv_manpower, ods_manpower, order_totals):
-    """v4.0 §1: order_totals is the SAME shared Tableau figure used for both
-    groups — see finish_productivity_with_orders()."""
+def append_daily_productivity_log(history, date_str, hktv_manpower, ods_manpower,
+                                   hktv_order_totals, ods_order_totals):
+    """v4.0.1 §2/§5: each group now gets its OWN order/waybill totals —
+    ods_order_totals is the OIX-derived ODS/VAN figure, hktv_order_totals is
+    the Tableau total minus that figure (see split_hktv_ods_totals() /
+    finish_productivity_with_orders()) — instead of both groups sharing the
+    same raw Tableau total as under v4.0."""
     log = history.setdefault("dailyProductivityLog", {})
     log[date_str] = {
-        "hktvStaff": _group_to_log_shape(hktv_manpower, order_totals),
-        "odsRatio": _group_to_log_shape(ods_manpower, order_totals),
+        "hktvStaff": _group_to_log_shape(hktv_manpower, hktv_order_totals),
+        "odsRatio": _group_to_log_shape(ods_manpower, ods_order_totals),
     }
 
 
@@ -1542,41 +1660,198 @@ def trimmed_manpower_distribution(history, keep_days):
 # 6. data.json 讀寫 + history（滾動平均） + forecast 共用邏輯
 # =============================================================================
 
+def backfill_productivity_log(history, target_date, position_map=None):
+    """v4.0.2 (trial-run adjustment #3) — fills gaps in
+    history["dailyProductivityLog"] for the current month, so a day the
+    03:00 OIX job missed (staff list not ready, box crashed, OIX_Record not
+    downloaded yet, etc. — exactly the 2026-08-31 / 09-01 / 09-02 gap seen in
+    productivity_history.json) doesn't silently under-count this month's
+    MTD accumulation forever.
+
+    Why this only backfills ODS/VAN's figures (order count, waybill count,
+    manpower) and HKTV's manpower — never HKTV's order/waybill count:
+    ODS/VAN's order and waybill counts are entirely OIX-derived
+    (order_count_for_group() / waybill_count_for_group()), so any day whose
+    OIX_Record file is still sitting in OIX_FOLDER can be fully
+    reconstructed after the fact, no Tableau data required. HKTV's order/
+    waybill count, by contrast, is Tableau's network-wide total for that day
+    MINUS the OIX-derived ODS figure (split_hktv_ods_totals()) — and
+    Tableau's Delivery Dashboard reports only ever give us T-1 (one day) or
+    MTD (one pre-summed total), never a re-queryable per-day total for an
+    arbitrary past date. So there is nothing to back that half out of once
+    the day has rolled past T-1. Rather than fabricate a number, backfilled
+    days get manpower filled in (real, from OIX) and orderCount/
+    waybillCount/productivity left as None for the hktvStaff side — honest
+    about what can and can't be recovered.
+
+    This is exactly what the Overview tab's HKTV Staff Productivity actually
+    needs, though: its MTD "actual" is (Tableau's single MTD order total) −
+    (ODS/VAN's MTD order count, SUMMED FROM THIS LOG) ÷ (MTD manpower,
+    ALSO SUMMED FROM THIS LOG) — see finish_productivity_with_orders() below.
+    It was never built by summing daily HKTV order counts, so recovering
+    ODS's per-day figures (which this function does) plus both groups'
+    per-day manpower is exactly enough to fix the MTD accumulation; the
+    unrecoverable HKTV per-day order/waybill figures only affect that one
+    day's own row in the Productivity Detail / Daily Records table (and the
+    7-day rolling forecast, which already tolerates missing days).
+
+    `position_map` is passed through from the caller so a single staff list
+    load can be reused across every date backfilled in one run, instead of
+    re-reading the Excel file per missing day.
+    """
+    log = history.setdefault("dailyProductivityLog", {})
+    manpower_log = history.setdefault("manpowerDistributionLog", {})
+    month_key = target_date.strftime("%Y-%m")
+    first_of_month = target_date.replace(day=1)
+
+    missing_dates = []
+    d = first_of_month
+    while d < target_date:  # target_date itself is filled by the normal T-1 flow right after this
+        date_str = d.isoformat()
+        if date_str.startswith(month_key) and date_str not in log:
+            missing_dates.append(d)
+        d += dt.timedelta(days=1)
+
+    if not missing_dates:
+        return
+
+    if position_map is None:
+        try:
+            position_map = load_staff_position_map()
+        except FileNotFoundError as e:
+            print(f"  ⚠️ Productivity backfill: {e} — leader-exclusion / Courier-Driver "
+                  f"classification will be skipped for any day recovered below.")
+            position_map = None
+
+    filled, unavailable = [], []
+    for missing_date in missing_dates:
+        try:
+            path = find_oix_file(missing_date)
+        except FileNotFoundError:
+            unavailable.append(missing_date.isoformat())
+            continue
+
+        try:
+            df = load_oix(path)
+            df = process_oix(df, position_map)
+            hktv_manpower = manpower_for_group(df, ("LF", "LP"), exclude_positions=LEADER_EXCLUDE_POSITIONS)
+            ods_manpower = manpower_for_group(df, ("ODS", "VAN"))
+            ods_order_count = order_count_for_group(df, ("ODS", "VAN"))
+            ods_waybill_count = waybill_count_for_group(df, ("ODS", "VAN"))
+            courier_group = manpower_distribution_for_group(df, "courier")
+            driver_group = manpower_distribution_for_group(df, "driver")
+        except Exception as e:
+            print(f"  ⚠️ Productivity backfill: found {os.path.basename(path)!r} for "
+                  f"{missing_date.isoformat()} but failed to parse it ({e}) — skipping this date.")
+            unavailable.append(missing_date.isoformat())
+            continue
+
+        # ODS/VAN: fully real, OIX-derived — orderCount/waybillCount/manpower/productivity all populate.
+        ods_entry = _group_to_log_shape(ods_manpower, {
+            "overall": {"order": ods_order_count["overall"], "waybill": ods_waybill_count["overall"]},
+            "districts": {dist: {"order": ods_order_count["districts"][dist],
+                                  "waybill": ods_waybill_count["districts"][dist]} for dist in DISTRICTS},
+        })
+        # HKTV Staff: manpower is real; order/waybill/productivity stay None —
+        # see the docstring above for why those can't be recovered after T-1.
+        hktv_entry = {
+            "districts": {
+                dist: {"orderCount": None, "waybillCount": None,
+                       "manpower": hktv_manpower["districts"].get(dist, 0), "productivity": None}
+                for dist in DISTRICTS
+            },
+            "total": {"orderCount": None, "waybillCount": None,
+                      "manpower": hktv_manpower["overall"], "productivity": None},
+        }
+        log[missing_date.isoformat()] = {"hktvStaff": hktv_entry, "odsRatio": ods_entry}
+
+        # Also backfill the ODS/VAN 7-day rolling-forecast series — this half
+        # is fully computable from OIX alone, same as the entry above.
+        ods_daily_district = {
+            dist: (round(ods_order_count["districts"][dist] / ods_manpower["districts"][dist], 2)
+                   if ods_manpower["districts"].get(dist) else None)
+            for dist in DISTRICTS
+        }
+        ods_daily_overall = (round(ods_order_count["overall"] / ods_manpower["overall"], 2)
+                              if ods_manpower["overall"] else None)
+        append_history(history, "odsRatio", missing_date.isoformat(), ods_daily_overall, ods_daily_district)
+
+        # HKTV Manpower Distribution tab — same gap, same fix, straight from OIX.
+        if missing_date.isoformat() not in manpower_log:
+            manpower_log[missing_date.isoformat()] = {"courier": courier_group, "driver": driver_group}
+
+        filled.append(missing_date.isoformat())
+
+    if filled:
+        print(f"  🩹 Productivity backfill: recovered {len(filled)} missing day(s) from OIX_Record "
+              f"files still in {OIX_FOLDER!r} (ODS/VAN order+waybill+manpower, HKTV manpower "
+              f"only — see backfill_productivity_log() docstring): {filled}")
+    if unavailable:
+        print(f"  ⚠️ Productivity backfill: {len(unavailable)} day(s) this month still have no "
+              f"dailyProductivityLog entry AND no OIX_Record file left in {OIX_FOLDER!r} to "
+              f"recover them from — MTD accumulation for this month is missing these days "
+              f"permanently unless that file resurfaces: {unavailable}")
+
+
 def finish_productivity_with_orders(history, matrices, staging, order_totals_t1, order_totals_mtd, target_date):
-    """v4.0 §1/§4 — runs inside the 14:00 Tableau job, once the new order-count
-    source is available. Picks up staging (manpower from the 03:00 OIX run,
-    for the SAME target_date — see save_manpower_staging()) and combines it
-    with the Tableau-sourced order/waybill counts:
+    """v4.0 §1/§4, corrected by v4.0.1 §2/§5 — runs inside the 14:00 Tableau
+    job, once the new order-count source is available. Picks up staging
+    (manpower AND the OIX-derived ODS/VAN order+waybill counts from the
+    03:00 OIX run, for the SAME target_date — see save_manpower_staging())
+    and combines it with the Tableau-sourced network-wide order/waybill
+    totals:
+      - ODS/VAN's order/waybill counts are the OIX-derived figures, as-is.
+      - HKTV's order/waybill counts are the Tableau total MINUS the
+        OIX-derived ODS figure, per district and overall (split_hktv_ods_totals()) —
+        restores the pre-v4.0 approach where each group carries its own
+        genuine count instead of both sharing the same raw Tableau total.
       - appends today's DAILY order/manpower productivity into history[key]
         (still used for the unchanged 7-day rolling forecast)
       - computes the Overview tab's "actual" as an MTD figure: month-to-date
-        Tableau order count ÷ cumulative month-to-date manpower (sum of each
-        day's headcount logged so far this month in dailyProductivityLog)
+        order count (HKTV: Tableau MTD total minus ODS's OIX-derived MTD
+        sum; ODS: that OIX-derived MTD sum itself, summed from each day's
+        entry already logged this month in dailyProductivityLog) ÷
+        cumulative month-to-date manpower
       - logs the Productivity Detail / Daily Records entry, now including
-        waybillCount alongside orderCount/manpower/productivity (§1's updated
-        4-row cell layout: Order / Waybill / Manpower / Productivity)
+        waybillCount alongside orderCount/manpower/productivity, each
+        group's own figures (§1/§5's updated 4-row cell layout: Order /
+        Waybill / Manpower / Productivity)
     Returns the trimmed productivity_history.json-ready dict.
     """
+    # v4.0.2 — recover any earlier-this-month gap in dailyProductivityLog
+    # BEFORE summing MTD below, so a day the 03:00 job missed doesn't
+    # silently under-count this run's MTD actual (see docstring above).
+    backfill_productivity_log(history, target_date)
+
     hktv_manpower = staging["hktvStaffManpower"]
     ods_manpower = staging["odsRatioManpower"]
+    ods_order_count = staging["odsOrderCount"]
+    ods_waybill_count = staging["odsWaybillCount"]
+
+    # v4.0.1 §2/§5 — split today's Tableau network totals into HKTV's and
+    # ODS/VAN's own order+waybill figures.
+    hktv_order_totals, ods_order_totals = split_hktv_ods_totals(order_totals_t1, ods_order_count, ods_waybill_count)
+    group_order_totals = {"hktvStaff": hktv_order_totals, "odsRatio": ods_order_totals}
 
     # --- Daily append, for the unchanged 7-day rolling forecast ---
     for key, manpower_group in (("hktvStaff", hktv_manpower), ("odsRatio", ods_manpower)):
+        order_totals_for_group = group_order_totals[key]
         daily_district = {}
         for d in DISTRICTS:
             manpower = manpower_group["districts"].get(d)
-            order_count = order_totals_t1["districts"][d]["order"]
+            order_count = order_totals_for_group["districts"][d]["order"]
             daily_district[d] = round(order_count / manpower, 2) if manpower and order_count is not None else None
         overall_manpower = manpower_group["overall"]
-        overall_order = order_totals_t1["overall"]["order"]
+        overall_order = order_totals_for_group["overall"]["order"]
         daily_overall = round(overall_order / overall_manpower, 2) if overall_manpower and overall_order is not None else None
         append_history(history, key, target_date.isoformat(), daily_overall, daily_district)
 
     # --- Productivity Detail / Daily Records (Order / Waybill / Manpower /
     # Productivity) — logged BEFORE the MTD sum below so today's own entry is
-    # included in month-to-date manpower on the very first run of the month
-    # (and on every run thereafter). ---
-    append_daily_productivity_log(history, target_date.isoformat(), hktv_manpower, ods_manpower, order_totals_t1)
+    # included in month-to-date manpower AND month-to-date ODS order/waybill
+    # on the very first run of the month (and on every run thereafter). ---
+    append_daily_productivity_log(history, target_date.isoformat(), hktv_manpower, ods_manpower,
+                                   hktv_order_totals, ods_order_totals)
 
     # --- MTD actual for the Overview tab ---
     month_key = target_date.strftime("%Y-%m")
@@ -1594,16 +1869,48 @@ def finish_productivity_with_orders(history, matrices, staging, order_totals_t1,
             any_data = True
         return (total_overall, total_d) if any_data else (None, {d: None for d in DISTRICTS})
 
-    orders_mtd_overall = order_totals_mtd["overall"]["order"]
-    orders_mtd_district = {d: order_totals_mtd["districts"][d]["order"] for d in DISTRICTS}
+    def orders_mtd_from_log(group_key):
+        """v4.0.1 §2/§5 — sums a group's own per-day orderCount entries from
+        dailyProductivityLog for the current month (same walk pattern as
+        manpower_mtd() above). Used to build ODS/VAN's OIX-derived MTD order
+        count — HKTV's MTD figure is then the Tableau MTD total minus this.
+        Note: only days logged AFTER this fix is deployed carry each group's
+        own genuine order count; older days in the log (logged under the old
+        shared-Tableau-total behavior) will still be off until they roll out
+        of the window naturally."""
+        log = history.get("dailyProductivityLog", {})
+        total_overall, total_d = 0, {d: 0 for d in DISTRICTS}
+        for date_str, entry in log.items():
+            if not date_str.startswith(month_key):
+                continue
+            g = entry.get(group_key, {})
+            total_overall += g.get("total", {}).get("orderCount") or 0
+            for d in DISTRICTS:
+                total_d[d] += g.get("districts", {}).get(d, {}).get("orderCount") or 0
+        return total_overall, total_d
+
+    tableau_orders_mtd_overall = order_totals_mtd["overall"]["order"]
+    tableau_orders_mtd_district = {d: order_totals_mtd["districts"][d]["order"] for d in DISTRICTS}
+    ods_orders_mtd_overall, ods_orders_mtd_district = orders_mtd_from_log("odsRatio")
+
+    group_orders_mtd = {
+        "odsRatio": (ods_orders_mtd_overall, ods_orders_mtd_district),
+        "hktvStaff": (
+            (tableau_orders_mtd_overall - ods_orders_mtd_overall) if tableau_orders_mtd_overall is not None else None,
+            {d: (tableau_orders_mtd_district[d] - ods_orders_mtd_district[d])
+                if tableau_orders_mtd_district[d] is not None else None
+             for d in DISTRICTS},
+        ),
+    }
 
     for key in ("hktvStaff", "odsRatio"):
         mp_overall, mp_district = manpower_mtd(key)
-        actual_overall = (round(orders_mtd_overall / mp_overall, 2)
-                           if mp_overall and orders_mtd_overall is not None else None)
+        orders_overall, orders_district = group_orders_mtd[key]
+        actual_overall = (round(orders_overall / mp_overall, 2)
+                           if mp_overall and orders_overall is not None else None)
         actual_district = {
-            d: (round(orders_mtd_district[d] / mp_district[d], 2)
-                if mp_district.get(d) and orders_mtd_district[d] is not None else None)
+            d: (round(orders_district[d] / mp_district[d], 2)
+                if mp_district.get(d) and orders_district.get(d) is not None else None)
             for d in DISTRICTS
         }
         fc_overall, fc_districts = rolling_average(history, key, 7, dt.date.today())
@@ -1713,21 +2020,29 @@ def total_parent_orders_for(history, date_str):
     read from the SAME dailyProductivityLog entry the Productivity Detail tab
     uses (see append_daily_productivity_log() / §1).
 
-    v4.0: the Tableau-sourced parent-order total is now a single per-district
-    figure shared by BOTH the hktvStaff and odsRatio productivity groups (per
-    the v4.0 decision to use one shared numerator for both) — so it must be
-    read from ONE group only, not summed across both, or it would be double
-    counted. (Pre-v4.0, hktvStaff/odsRatio each had their own OIX-derived
-    order count and summing them was correct; that's no longer the case.)
+    v4.0.1 §2/§5 correction: hktvStaff and odsRatio each carry their own
+    genuine order count again (ODS straight from OIX, HKTV = Tableau's
+    network-wide total minus that OIX figure — see split_hktv_ods_totals()),
+    so the true network total is the SUM of both groups, not either one
+    alone. (This reverts the v4.0-era behavior of reading only "hktvStaff",
+    which was only correct while both groups shared one duplicated Tableau
+    figure — that's no longer the case.)
     Returns (overall, {district: count}) — None wherever that day's
     productivity processing never ran.
     """
     log = history.get("dailyProductivityLog", {}).get(date_str)
     if not log:
         return None, {d: None for d in DISTRICTS}
-    g = log.get("hktvStaff", {})
-    overall = g.get("total", {}).get("orderCount")
-    districts = {d: g.get("districts", {}).get(d, {}).get("orderCount") for d in DISTRICTS}
+
+    def orders(group_key):
+        g = log.get(group_key, {})
+        return (g.get("total", {}).get("orderCount"),
+                {d: g.get("districts", {}).get(d, {}).get("orderCount") for d in DISTRICTS})
+
+    hk_overall, hk_d = orders("hktvStaff")
+    od_overall, od_d = orders("odsRatio")
+    overall = (hk_overall or 0) + (od_overall or 0)
+    districts = {d: (hk_d.get(d) or 0) + (od_d.get(d) or 0) for d in DISTRICTS}
     return overall, districts
 
 
@@ -1760,7 +2075,41 @@ def build_gmv_monthly(history):
     if not gmv_log:
         return {"daily": {}, "monthly": {}}
 
-    current_month = dt.date.today().strftime("%Y-%m")
+    # v4.0.2 fix (trial-run adjustment #2) — "GMV information for dates after
+    # T-1" turned out to be contamination sitting in history["gmv"] itself,
+    # not a bug in *today's* write path: backfill_gmv_history() already
+    # refuses to backfill anything past its cutoff_date (T-1), but it also
+    # only ever FILLS gaps and never removes/overwrites an entry that's
+    # already on record — so any future-dated (or otherwise bogus, e.g. a
+    # garbled crosstab date label parsed into a bad year) row that made it
+    # into history["gmv"] before that cutoff existed, or from any other
+    # source, stays there forever and gets faithfully re-served by this
+    # function on every single run. Guard against that here, at the point
+    # this file is actually built, so a clean gmv_history.json doesn't
+    # depend on history["gmv"] having never been contaminated: any date
+    # later than today, or implausibly far in the past/future (outside a
+    # generous +/-2 year window of "today"), is dropped from the rollup —
+    # and removed from history["gmv"] itself, so it stops being carried
+    # forward and re-checked on every future run too.
+    today = dt.date.today()
+    valid_year_range = (today.year - 2, today.year + 2)
+    bad_dates = []
+    for date_str in list(gmv_log.keys()):
+        try:
+            row_date = dt.date.fromisoformat(date_str)
+        except ValueError:
+            bad_dates.append(date_str)
+            continue
+        if row_date > today or not (valid_year_range[0] <= row_date.year <= valid_year_range[1]):
+            bad_dates.append(date_str)
+    if bad_dates:
+        for date_str in bad_dates:
+            del gmv_log[date_str]
+        print(f"  🧹 Dropped {len(bad_dates)} contaminated/future-dated GMV day(s) "
+              f"found in history[\"gmv\"] (later than today {today.isoformat()!r} or "
+              f"an implausible year): {sorted(bad_dates)}")
+
+    current_month = today.strftime("%Y-%m")
     daily = {}
     sums = {}  # month -> running totals, used to build the closed-month rollup
 

@@ -1,0 +1,92 @@
+{
+  "poorRating": {
+    "daily": {
+      "2026-09-03": {
+        "overall": 6.12,
+        "districts": {
+          "ETH": 9.52,
+          "ETK": 0.0,
+          "ETX": 8.0,
+          "NT-ST": 2.94,
+          "NT-TM": 3.57,
+          "NT-TSM": 2.7,
+          "NT-TW": 3.23,
+          "WTH": 7.69,
+          "WTK": 16.0,
+          "WTX": 13.33
+        }
+      },
+      "2026-09-10": {
+        "overall": 3.32,
+        "districts": {
+          "ETH": 4.55,
+          "ETK": 1.45,
+          "ETX": 6.5,
+          "NT-ST": 2.13,
+          "NT-TM": 2.6,
+          "NT-TSM": 2.01,
+          "NT-TW": 2.91,
+          "WTH": 3.95,
+          "WTK": 2.78,
+          "WTX": 5.64
+        }
+      }
+    },
+    "monthly": {
+      "2026-08": {
+        "overall": 2.58,
+        "districts": {
+          "ETH": 3.22,
+          "ETK": 1.65,
+          "ETX": 3.19,
+          "NT-ST": 1.29,
+          "NT-TM": 2.33,
+          "NT-TSM": 2.88,
+          "NT-TW": 1.88,
+          "WTH": 4.55,
+          "WTK": 3.25,
+          "WTX": 3.32
+        }
+      }
+    }
+  },
+  "missingLostAmount": {
+    "daily": {
+      "2026-09-10": {
+        "overall": 180320.0,
+        "districts": {
+          "ETH": 17446.0,
+          "ETK": 7084.0,
+          "ETX": 16878.0,
+          "NT-ST": 11723.0,
+          "NT-TM": 15205.0,
+          "NT-TSM": 10197.0,
+          "NT-TW": 14820.0,
+          "WTH": 23641.0,
+          "WTK": 15175.0,
+          "WTX": 20777.0
+        }
+      }
+    },
+    "monthly": {}
+  },
+  "rfidMissingTote": {
+    "monthly": {
+      "2026-08": {
+        "overall": 198.0,
+        "districts": {
+          "ETH": 24.0,
+          "ETK": 22.0,
+          "ETX": 23.0,
+          "NT-ST": 13.0,
+          "NT-TM": 10.0,
+          "NT-TSM": 20.0,
+          "NT-TW": 18.0,
+          "WTH": 31.0,
+          "WTK": 20.0,
+          "WTX": 17.0
+        }
+      }
+    }
+  }
+}

@@ -776,7 +776,7 @@
   const MATRICES = [
     { key:'hktvStaff',        section:'productivity', label:'HKTV Staff Productivity',  unit:'#',  target:24,     better:'high', fmt:v=>v==null?'—':v.toFixed(2) },
     { key:'odsRatio',         section:'productivity', label:'ODS / VAN Productivity',   unit:'#',  target:19,     better:'high', fmt:v=>v==null?'—':v.toFixed(2) },
-    { key:'delayRate',        section:'tableau',      label:'Delay Rate',               unit:'%',  target:5,      better:'low',  fmt:v=>v==null?'—':v.toFixed(1)+'%' },
+    { key:'delayRate',        section:'tableau',      label:'Delay Rate',               unit:'%',  target:5,      better:'low',  fmt:v=>v==null?'—':v.toFixed(2)+'%' },
     { key:'poorRating',       section:'tableau',      label:'Poor Rating %',            unit:'%',  target:3,      better:'low',  fmt:v=>v==null?'—':v.toFixed(1)+'%' },
     { key:'missingLostAmount',section:'tableau',      label:'Missing & Lost Amount',    unit:'$',  target:250000, better:'low',  fmt:v=>v==null?'—':'$'+Math.round(v).toLocaleString() },
     { key:'rfidMissingTote',  section:'tableau',      label:'RFID Missing Tote',        unit:'#',  target:500,    better:'low',  fmt:v=>v==null?'—':Math.round(v).toLocaleString() },
@@ -858,7 +858,7 @@
   function delayZoneRows(district){
     const z = DATA.matrices && DATA.matrices.delayRateByZone;
     if(!z) return '';
-    const fmtPct1 = v => v==null ? '—' : v.toFixed(1)+'%';
+    const fmtPct1 = v => v==null ? '—' : v.toFixed(2)+'%';
     const rows = [
       ['Residential', z.residential && z.residential[district]],
       ['Commercial',  z.commercial  && z.commercial[district]],
@@ -871,7 +871,7 @@
   function delayZoneDrawerRows(district){
     const z = DATA.matrices && DATA.matrices.delayRateByZone;
     if(!z) return '';
-    const fmtPct1 = v => v==null ? '—' : v.toFixed(1)+'%';
+    const fmtPct1 = v => v==null ? '—' : v.toFixed(2)+'%';
     const rows = [
       ['Residential (MTD)', z.residential && z.residential[district]],
       ['Commercial (MTD)',  z.commercial  && z.commercial[district]],
@@ -889,7 +889,7 @@
      the forecast series). */
   function delayZoneCellHtml(district, overallVal, st, ach){
     const z = DATA.matrices && DATA.matrices.delayRateByZone;
-    const fmtPct1 = v => v==null ? '—' : v.toFixed(1)+'%';
+    const fmtPct1 = v => v==null ? '—' : v.toFixed(2)+'%';
     if(!z){
       return `<span class="dot dot-${st}"></span>${fmtPct1(overallVal)}<span class="pct pct-${st}">${fmtPct(ach)}</span>`;
     }
@@ -926,52 +926,55 @@
     // Loaded regardless of whether data.json itself was live or demo, so real
     // productivity history can show up even before data.json's own schema
     // changes, or vice versa.
-    if(dataSource.status === 'live'){
-      try{
-        const res2 = await fetch('./productivity_history.json', {cache:'no-store'});
-        if(!res2.ok) throw new Error('no productivity_history.json');
-        const json2 = await res2.json();
-        DATA.dailyProductivity = json2.daily || {};
-      }catch(err){
-        DATA.dailyProductivity = {};  // real empty state — see the on-page note in each tab
-      }
-      try{
-        const res3 = await fetch('./gmv_history.json', {cache:'no-store'});
-        if(!res3.ok) throw new Error('no gmv_history.json');
-        const json3 = await res3.json();
-        DATA.gmvDaily = json3.daily || {};
-        DATA.gmvMonthly = json3.monthly || {};
-      }catch(err){
-        DATA.gmvDaily = {}; DATA.gmvMonthly = {};
-      }
-      try{
-        const res4 = await fetch('./manpower_distribution.json', {cache:'no-store'});
-        if(!res4.ok) throw new Error('no manpower_distribution.json');
-        const json4 = await res4.json();
-        DATA.dailyManpower = json4.daily || {};
-      }catch(err){
-        DATA.dailyManpower = {};
-      }
-      try{
-        const res5 = await fetch('./delay_history.json', {cache:'no-store'});
-        if(!res5.ok) throw new Error('no delay_history.json');
-        const json5 = await res5.json();
-        DATA.delayDaily = json5.daily || {};
-        DATA.delayMonthly = json5.monthly || {};
-        DATA.delayMtd = json5.mtd || null;
-      }catch(err){
-        DATA.delayDaily = {}; DATA.delayMonthly = {}; DATA.delayMtd = null;
-      }
-      try{
-        const res6 = await fetch('./other_aspects_history.json', {cache:'no-store'});
-        if(!res6.ok) throw new Error('no other_aspects_history.json');
-        const json6 = await res6.json();
-        DATA.otherAspects = json6 || {};
-      }catch(err){
-        DATA.otherAspects = {};
-      }
-    }else{
+    //
+    // Fix: these used to be gated behind `if(dataSource.status === 'live')`,
+    // which directly contradicted the paragraph above — if data.json failed
+    // to load (missing, stale, schema mismatch) for ANY reason, every one of
+    // these independent files was skipped too, even when they existed and
+    // were perfectly valid on disk. Each fetch already has its own try/catch
+    // and its own "not found" fallback, so there's no reason to make them
+    // depend on data.json's outcome at all.
+    try{
+      const res2 = await fetch('./productivity_history.json', {cache:'no-store'});
+      if(!res2.ok) throw new Error('no productivity_history.json');
+      const json2 = await res2.json();
+      DATA.dailyProductivity = json2.daily || {};
+    }catch(err){
+      DATA.dailyProductivity = {};  // real empty state — see the on-page note in each tab
+    }
+    try{
+      const res3 = await fetch('./gmv_history.json', {cache:'no-store'});
+      if(!res3.ok) throw new Error('no gmv_history.json');
+      const json3 = await res3.json();
+      DATA.gmvDaily = json3.daily || {};
+      DATA.gmvMonthly = json3.monthly || {};
+    }catch(err){
+      DATA.gmvDaily = {}; DATA.gmvMonthly = {};
+    }
+    try{
+      const res4 = await fetch('./manpower_distribution.json', {cache:'no-store'});
+      if(!res4.ok) throw new Error('no manpower_distribution.json');
+      const json4 = await res4.json();
+      DATA.dailyManpower = json4.daily || {};
+    }catch(err){
+      DATA.dailyManpower = {};
+    }
+    try{
+      const res5 = await fetch('./delay_history.json', {cache:'no-store'});
+      if(!res5.ok) throw new Error('no delay_history.json');
+      const json5 = await res5.json();
+      DATA.delayDaily = json5.daily || {};
+      DATA.delayMonthly = json5.monthly || {};
+      DATA.delayMtd = json5.mtd || null;
+    }catch(err){
       DATA.delayDaily = {}; DATA.delayMonthly = {}; DATA.delayMtd = null;
+    }
+    try{
+      const res6 = await fetch('./other_aspects_history.json', {cache:'no-store'});
+      if(!res6.ok) throw new Error('no other_aspects_history.json');
+      const json6 = await res6.json();
+      DATA.otherAspects = json6 || {};
+    }catch(err){
       DATA.otherAspects = {};
     }
 
@@ -1601,7 +1604,11 @@
     const periodB = document.getElementById('prodPeriodBSelect').value;
     const labelFn = granularity==='week' ? weekLabel : monthLabel;
     const getRow = granularity==='week' ? getWeekRow : getMonthRow;
-    const m = MATRICES.find(x=>x.key===metricKey);
+    // Defensive fallback: if the select's value ever doesn't match a known
+    // matrix (e.g. read before its <option>s are attached), fall back to
+    // HKTV Staff Productivity instead of throwing and taking the rest of
+    // renderAll() down with it (see the note on renderAll() above).
+    const m = MATRICES.find(x=>x.key===metricKey) || MATRICES.find(x=>x.key==='hktvStaff');
     const labelA = periodA ? labelFn(periodA) : 'Period A', labelB = periodB ? labelFn(periodB) : 'Period B';
     const targetOverall = getTargetOverall(metricKey);
 
@@ -1790,7 +1797,7 @@
       return;
     }
     const slot = document.getElementById('delaySlotSelect').value; // 'Overall'|'AM'|'PM'|'EV'|'EV2'
-    const pctFmt = v => v==null ? '—' : v.toFixed(1)+'%';
+    const pctFmt = v => v==null ? '—' : v.toFixed(2)+'%';
 
     const mtd = DATA.delayMtd;
     const mtdOverall = mtd ? (mtd.overall[slot] && mtd.overall[slot].delay) : null;
@@ -1988,16 +1995,29 @@
   document.getElementById('otherMetricSelect').addEventListener('change', ()=>{ renderOtherAspectsTab(); updateScrollHints(); });
 
   /* ---------------- root render ---------------- */
+  /* Fix (trial-run adjustment #1): renderAll() used to call every tab's
+     renderer back-to-back with no error isolation. Delay % and Other Aspects
+     Tracking are the LAST two tabs in this list — so if ANY earlier renderer
+     threw (a bad selector value, an unexpected data shape from a future
+     schema tweak, etc.), the exception propagated straight out of renderAll()
+     and every renderer after the failure point — including these two — never
+     ran at all, even though their own JSON had loaded fine. That's exactly
+     the "tab has the JSON but shows no data" symptom: it was never a Delay %/
+     Other Aspects problem specifically, it was whichever tab happened to be
+     rendered just before them silently taking the rest of the page down with
+     it. Each tab is now rendered independently: one tab's bug now only blanks
+     that one tab (with a console error to diagnose), and never touches the
+     others. */
   function renderAll(){
-    renderKpiCards();
-    renderTableHead();
-    renderTableBody();
-    renderOdsRatioTab();
-    renderProductivityTab();
-    renderGmvTab();
-    renderManpowerTab();
-    renderDelayTab();
-    renderOtherAspectsTab();
+    const renderers = [
+      renderKpiCards, renderTableHead, renderTableBody, renderOdsRatioTab,
+      renderProductivityTab, renderGmvTab, renderManpowerTab,
+      renderDelayTab, renderOtherAspectsTab,
+    ];
+    for(const fn of renderers){
+      try{ fn(); }
+      catch(err){ console.error(`[dashboard] ${fn.name} failed to render:`, err); }
+    }
     updateScrollHints();
   }
 
