@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
 
 # Fires automatically every time main is pushed — including the automated
-# commits run_productivity_0300.bat / run_tableau_1500.bat make — plus you
+# commits run_productivity_0300.bat / run_tableau_1400.bat make — plus you
 # can trigger it by hand from the Actions tab (workflow_dispatch).
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
   pages: write
   id-token: write
 
-# Only one Pages deployment runs at a time; if the 03:00 and 15:00 jobs ever
+# Only one Pages deployment runs at a time; if the 03:00 and 14:00 jobs ever
 # overlap, the second push queues instead of racing the first.
 concurrency:
   group: "pages"

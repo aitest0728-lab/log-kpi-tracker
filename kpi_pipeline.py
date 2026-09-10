@@ -68,6 +68,14 @@ TABLEAU_GMV_DASHBOARD_URL = os.environ.get(
 )
 TABLEAU_GMV_USER = os.environ.get("TABLEAU_GMV_USER", "")
 TABLEAU_GMV_PASS = os.environ.get("TABLEAU_GMV_PASS", "")
+# v3.0 §3 fix: numeric workbook ID for "LOG GMV for AI Fetching", used to log
+# in via a redirect straight to that workbook's views listing — same pattern
+# as oix_returning_waybill.py's TABLEAU_URL ("...?redirect=%2Fworkbooks%2F4896%2Fviews").
+# Find it by opening the GMV workbook itself (not the direct view link) while
+# logged in as the GMV account, and copying the number from the resulting
+# "#/workbooks/<ID>/views" URL. Left blank, fetch_gmv_report() falls back to
+# the old direct-view goto()+reload() approach, which is what was failing.
+TABLEAU_GMV_WORKBOOK_ID = os.environ.get("TABLEAU_GMV_WORKBOOK_ID", "")
 
 # 目錄設定
 OIX_FOLDER = os.environ.get("OIX_FOLDER", r"C:\Users\chipanl\Downloads\Digimobi Report")
@@ -87,10 +95,36 @@ GMV_HISTORY_PATH = os.environ.get("GMV_HISTORY_PATH", "./public/gmv_history.json
 # v3.0 §4: HKTV Manpower Distribution tab's data file — same daily-log /
 # trimmed-window pattern as PRODUCTIVITY_HISTORY_PATH.
 MANPOWER_HISTORY_PATH = os.environ.get("MANPOWER_HISTORY_PATH", "./public/manpower_distribution.json")
+# v4.0 §1: Productivity now needs BOTH manpower (from OIX, available at
+# 03:00) and parent order counts (from the Tableau "Delivery Dashboard"
+# report, only downloaded in the 14:00 Tableau job — see run_tableau_1400.*).
+# The 03:00 job can no longer finish the Productivity matrices on its own, so
+# it stashes yesterday's manpower headcounts here; the 14:00 job picks this
+# up once the Tableau order counts are in and finishes the calculation. Not
+# served to the dashboard — internal handoff file only.
+MANPOWER_STAGING_PATH = os.environ.get("MANPOWER_STAGING_PATH", "./manpower_staging.json")
+# v4.0 §2: new "Delay %" tab's data source — daily (T-1) + MTD, by timeslot
+# and district, same daily/monthly-after-close pattern as gmv_history.json.
+DELAY_HISTORY_PATH = os.environ.get("DELAY_HISTORY_PATH", "./public/delay_history.json")
+# v4.0 §4: new "Other Aspects Tracking" tab — poor rating %, missing & lost
+# amount, RFID missing tote, logged monthly in the same layout as GMV/Basket
+# Size (see build_gmv_monthly()).
+OTHER_ASPECTS_HISTORY_PATH = os.environ.get("OTHER_ASPECTS_HISTORY_PATH", "./public/other_aspects_history.json")
 # How many days of raw order-count/manpower history productivity_history.json
 # carries. history.json (not this) is the durable full log, so raising this
 # later doesn't lose anything already run — it just widens the served window.
 DAILY_PRODUCTIVITY_KEEP_DAYS = int(os.environ.get("DAILY_PRODUCTIVITY_KEEP_DAYS", "60"))
+# v3.0 §3 fix: run_section_tableau()'s file check used to only check
+# existence, not freshness. Since REPORT_FOLDER's CSVs are never deleted
+# between runs, a report whose *download* silently failed this run (Crosstab
+# menu not found, download button not found, etc. — all seen intermittently
+# in pipeline_log.txt) would leave yesterday's leftover CSV sitting there,
+# existence-check would pass, and the pipeline would silently recompute
+# today's dashboard numbers from stale data with no warning. A file older
+# than this many hours is now treated the same as a missing file. 2h is
+# generous slack over how long fetch_tableau_reports()+fetch_gmv_report()
+# actually take to run immediately before run_section_tableau() reads them.
+STALE_REPORT_HOURS = float(os.environ.get("STALE_REPORT_HOURS", "2"))
 
 os.makedirs(REPORT_FOLDER, exist_ok=True)
 
@@ -100,9 +134,31 @@ REPORT_FILES = {
     "report_b": "MTD Summary By RP.csv",
     "report_c": "MTD Summary By RP Group.csv",
     "poor_rating": "Delivery Rating.csv",
-    "delay_rate": "Rank_On Time.csv",
     "rfid": "RP Breakdown (7days).csv",  # 保持無空格，依據您之前提供的檔名
     "gmv": "Sheet 1.csv",  # v3.0 §3 — fixed download filename, per spec
+
+    # v4.0 §1/§2/§4 — "Delivery Dashboard" Tableau report replaces both the
+    # old OIX-based order count AND the old "Rank_On Time" delay-rate source.
+    # Two views feed these 5 files:
+    #   DeliverySummary        (T-1 daily)   -> actual_delivery_timeslot, delay_early
+    #   DeliverySummary-MTD    (month-to-date) -> actual_delivery_timeslot_mtd,
+    #                                             delay_zone_type_mtd, mtd_delay_early_ontime
+    "actual_delivery_timeslot": "Actual Delivery by Timeslot.csv",
+    "delay_early": "Actual Delivery - Delay & Early %.csv",
+    "actual_delivery_timeslot_mtd": "Actual Delivery by Timeslot - MTD - 10 Districts.csv",
+    "delay_zone_type_mtd": "delay rate by zone type.csv",
+    "mtd_delay_early_ontime": "MTD Actual Delivery - Delay, Early & On Time %.csv",
+}
+
+# v4.0 §2 — "Expected Timeslot w/ same day" raw values -> the short codes the
+# dashboard's "Delay %" tab dropdown uses. "Total" (the daily/T-1 file's
+# per-district summary row) maps to "Overall".
+DELAY_TIMESLOT_MAP = {
+    "1000-1400": "AM",
+    "1400-1800": "PM",
+    "1800-2200": "EV",
+    "same day EV": "EV2",
+    "Total": "Overall",
 }
 
 # v3.0 §4: the 6 position codes that get classified into Courier / Driver
@@ -149,15 +205,43 @@ TABLEAU_TARGETS = [
         "url": "https://inhouse-analytics.hktv.com.hk/#/views/LogisticsKPIReport/LogisticsKPI"
     },
     {
-        "file_key": "delay_rate",
-        "sheet_name": "Rank_On Time",
-        "url": "https://inhouse-analytics.hktv.com.hk/#/views/LogisticsKPIReport/LogisticsKPI"
-    },
-    {
         "file_key": "rfid",
         "sheet_name": "RP Breakdown (7days)",
         "url": "https://inhouse-analytics.hktv.com.hk/#/views/RFIDReport_V3/RFIDReport-lastactiondate"
-    }
+    },
+
+    # v4.0 §1/§2 — Tableau Report "Delivery Dashboard" (Delivery Summary tab,
+    # T-1 data). Both sheets live on the same view/URL; "Actual Delivery -
+    # Delay & Early %" is the pre-selected sheet on that view (per spec, no
+    # thumbnail click needed) — is_sheet_already_selected() inside the
+    # download loop already handles that gracefully either way.
+    {
+        "file_key": "actual_delivery_timeslot",
+        "sheet_name": "Actual Delivery by Timeslot",
+        "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary?:iid=1"
+    },
+    {
+        "file_key": "delay_early",
+        "sheet_name": "Actual Delivery - Delay & Early %",
+        "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary?:iid=1"
+    },
+
+    # v4.0 §3/§4 — same Tableau Report, "Delivery Summary - MTD" tab.
+    {
+        "file_key": "delay_zone_type_mtd",
+        "sheet_name": "delay rate by zone type",
+        "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary-MTD?:iid=1"
+    },
+    {
+        "file_key": "actual_delivery_timeslot_mtd",
+        "sheet_name": "Actual Delivery by Timeslot - MTD - 10 Districts",
+        "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary-MTD?:iid=1"
+    },
+    {
+        "file_key": "mtd_delay_early_ontime",
+        "sheet_name": "MTD Actual Delivery - Delay, Early & On Time %",
+        "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary-MTD?:iid=1"
+    },
 ]
 
 DISTRICTS = ["ETH", "ETK", "ETX", "NT-ST", "NT-TM", "NT-TSM", "NT-TW", "WTH", "WTK", "WTX"]
@@ -172,7 +256,11 @@ def today_hkt():
     return dt.date.today()
 
 def normalize_district_code(code):
-    return "NT-TW" if code == "NT-YT" else code
+    # v3.1 (Sept 2026): district grouping changed at the source — NT-YT is
+    # now folded into WTH (it used to be folded into NT-TW). Fires when the
+    # raw code is the standalone string "NT-YT" — e.g. GMV's per-column
+    # headers, or a party name starting with "NT-YT" in report_a/b/c.
+    return "WTH" if code == "NT-YT" else code
 
 def district_from_party_name(name):
     if not isinstance(name, str): return None
@@ -180,6 +268,22 @@ def district_from_party_name(name):
         if name.startswith(code):
             return normalize_district_code(code)
     return None
+
+# v3.1 (Sept 2026): unlike the party-name/column-header case above, the
+# Delivery Rating (and possibly Rank_On Time) crosstab doesn't hand us a bare
+# "NT-YT" row to fold — Tableau's own district dimension now emits the
+# already-merged group as a single combined label, "NT-YT & WTH". Confirmed
+# from the Sept CSV export: row that used to read "WTH" now reads
+# "NT-YT & WTH" outright. normalize_district_code() won't catch this (the
+# code here isn't "NT-YT", it's the whole combined string), so map the
+# display label itself.
+DISTRICT_LABEL_ALIASES = {
+    "NT-YT & WTH": "WTH",
+}
+
+def normalize_district_label(label):
+    label = str(label).strip()
+    return DISTRICT_LABEL_ALIASES.get(label, label)
 
 def col(letter):
     idx = 0
@@ -397,161 +501,186 @@ def fetch_tableau_reports():
             target_filename = REPORT_FILES[target["file_key"]]
             target_filepath = os.path.join(REPORT_FOLDER, target_filename)
 
-            print(f"\n🌐 Opening Tableau Report:")
-            print(f"   {sheet_name}")
-            print(f"   {report_url}")
+            # v3.0 §3 fix: the whole download sequence (Download -> Crosstab ->
+            # sheet select -> CSV -> confirm) is a chain of Tableau UI clicks
+            # that, per the actual pipeline_log.txt from several trial runs,
+            # fails intermittently at basically any step and for any report —
+            # not consistently the same report twice, and not consistently the
+            # same step (Download button not found, Crosstab not found, sheet
+            # toggle silently deselecting, confirm button not found, or the
+            # download event itself never firing). Since none of that points
+            # to one specific selector being wrong, wrap one full retry around
+            # the whole sequence (fresh navigate + reload) instead of giving
+            # up on the first miss — this is the same shape of retry the
+            # "stuck on /#/user/ settings page" case below already uses.
+            def _attempt_download():
+                print(f"\n🌐 Opening Tableau Report:")
+                print(f"   {sheet_name}")
+                print(f"   {report_url}")
 
-            page.goto(report_url)
-            try:
-                page.wait_for_load_state("networkidle", timeout=30000)
-            except Exception:
-                pass  # 同上，Tableau 背景流量常讓 networkidle 逾時，不視為錯誤
-            time.sleep(10)
-            page.wait_for_timeout(5000)
-
-            # 強制整頁重新載入 (reload)，而非只依賴 page.goto() 的 hash 導航。
-            # 原因：這個網址只有 # 後面的部分不同 (同一個 origin/path)，瀏覽器會
-            # 把它當成「同文件」的輕量導航，不會真的重新載入整個頁面 —
-            # 畫面內容看起來雖然正確 (Tableau 用 JS 更新畫面)，但工具列
-            # (包含 Download 按鈕) 的事件綁定經常沒有隨之重新初始化，導致
-            # 按鈕看得到卻點不動/找不到。強制 reload() 讓 Tableau 針對這個
-            # 特定 view 做一次「乾淨」的完整啟動，工具列才會確實可用。
-            #
-            # 注意：用 "load" 而非 "networkidle" —— Tableau 的 view 會持續有
-            # 背景輪詢/websocket 流量，網路幾乎不會真正「idle」，用 networkidle
-            # 當作 reload() 的等待條件很容易 30 秒逾時。改用 "load"（頁面的
-            # load 事件，通常幾秒內就會觸發），實際「畫面真的準備好了沒」
-            # 交給後面自己的 sleep + wait_for_selector 判斷即可。
-            print(f"  🔄 強制重新載入頁面，確保工具列正確初始化...")
-            try:
-                page.reload(wait_until="load", timeout=45000)
-            except Exception as e:
-                print(f"  ⚠ reload() 等待逾時或發生問題（{e}），仍繼續嘗試後續步驟...")
-            time.sleep(8)
-            page.wait_for_timeout(3000)
-
-            # 保護：如果被 Tableau 自己的跳轉蓋回 /#/user/ 設定頁
-            # (目前只在第一個報表看過，但保留重試邏輯以防其他報表也偶發發生)，
-            # 就再導航一次。最多重試 2 次，避免無限迴圈。
-            retry_count = 0
-            while "/#/user/" in page.url and retry_count < 2:
-                print(f"  ⚠ 目前網址被導向設定頁 ({page.url})，重新導航一次...")
-                retry_count += 1
                 page.goto(report_url)
                 try:
                     page.wait_for_load_state("networkidle", timeout=30000)
                 except Exception:
-                    pass
-                time.sleep(8)
-                page.wait_for_timeout(3000)
+                    pass  # 同上，Tableau 背景流量常讓 networkidle 逾時，不視為錯誤
+                time.sleep(10)
+                page.wait_for_timeout(5000)
+
+                # 強制整頁重新載入 (reload)，而非只依賴 page.goto() 的 hash 導航。
+                # 原因：這個網址只有 # 後面的部分不同 (同一個 origin/path)，瀏覽器會
+                # 把它當成「同文件」的輕量導航，不會真的重新載入整個頁面 —
+                # 畫面內容看起來雖然正確 (Tableau 用 JS 更新畫面)，但工具列
+                # (包含 Download 按鈕) 的事件綁定經常沒有隨之重新初始化，導致
+                # 按鈕看得到卻點不動/找不到。強制 reload() 讓 Tableau 針對這個
+                # 特定 view 做一次「乾淨」的完整啟動，工具列才會確實可用。
+                #
+                # 注意：用 "load" 而非 "networkidle" —— Tableau 的 view 會持續有
+                # 背景輪詢/websocket 流量，網路幾乎不會真正「idle」，用 networkidle
+                # 當作 reload() 的等待條件很容易 30 秒逾時。改用 "load"（頁面的
+                # load 事件，通常幾秒內就會觸發），實際「畫面真的準備好了沒」
+                # 交給後面自己的 sleep + wait_for_selector 判斷即可。
+                print(f"  🔄 強制重新載入頁面，確保工具列正確初始化...")
                 try:
                     page.reload(wait_until="load", timeout=45000)
                 except Exception as e:
                     print(f"  ⚠ reload() 等待逾時或發生問題（{e}），仍繼續嘗試後續步驟...")
                 time.sleep(8)
                 page.wait_for_timeout(3000)
-            if "/#/user/" in page.url:
-                shot_path = os.path.join(REPORT_FOLDER, f"_debug_{target['file_key']}_stuck_on_settings.png")
+
+                # 保護：如果被 Tableau 自己的跳轉蓋回 /#/user/ 設定頁
+                # (目前只在第一個報表看過，但保留重試邏輯以防其他報表也偶發發生)，
+                # 就再導航一次。最多重試 2 次，避免無限迴圈。
+                retry_count = 0
+                while "/#/user/" in page.url and retry_count < 2:
+                    print(f"  ⚠ 目前網址被導向設定頁 ({page.url})，重新導航一次...")
+                    retry_count += 1
+                    page.goto(report_url)
+                    try:
+                        page.wait_for_load_state("networkidle", timeout=30000)
+                    except Exception:
+                        pass
+                    time.sleep(8)
+                    page.wait_for_timeout(3000)
+                    try:
+                        page.reload(wait_until="load", timeout=45000)
+                    except Exception as e:
+                        print(f"  ⚠ reload() 等待逾時或發生問題（{e}），仍繼續嘗試後續步驟...")
+                    time.sleep(8)
+                    page.wait_for_timeout(3000)
+                if "/#/user/" in page.url:
+                    shot_path = os.path.join(REPORT_FOLDER, f"_debug_{target['file_key']}_stuck_on_settings.png")
+                    try:
+                        page.screenshot(path=shot_path, full_page=True)
+                    except Exception:
+                        pass
+                    print(f"  ❌ 重試 {retry_count} 次後仍停留在設定頁，跳過 {sheet_name}（截圖: {shot_path}）")
+                    return False
+
+                print(f"  ⬇️ 正在下載報表: {sheet_name} ...")
+
+                # Download 按鈕本身通常撐得住，用一般 smart_click 找就好。
+                # 真正容易「一閃即逝」的是點下去之後彈出的選單/選項，所以那些
+                # 一律改用 fast_click（Playwright 內建 ~100ms 頻率的 auto-wait），
+                # 而不是 smart_click 自訂的 1 秒間隔 polling。
+                dl_selectors = ["#download", '[aria-label="Download"]', "button:has-text('Download')"]
+                if not fast_click(page, dl_selectors, 4000):
+                    if not smart_click(page, dl_selectors, 15):
+                        print(f"  ❌ smart_click 也無法點擊 Download 按鈕，跳過 {sheet_name}")
+                        return False
+
+                # 點擊 Crosstab —— 這是「選單彈出後一閃即逝」的關鍵一步，
+                # 緊接著上一個點擊立刻嘗試，中間不要 sleep，把握選單開啟的短暫視窗。
+                crosstab_selectors = [
+                    "#viz-viewer-toolbar-download-menu > div:nth-of-type(3)",
+                    "#viz-viewer-toolbar-download-menu div:nth-of-type(3) span",
+                    "xpath=//*[@id='viz-viewer-toolbar-download-menu']/div[3]",
+                    "xpath=//*[@id='viz-viewer-toolbar-download-menu']/div[3]/div/div/span[2]",
+                    '[data-tb-test-id="download-crosstab-Button-MenuItem"]',
+                    "span:has-text('Crosstab')",
+                    "text='Crosstab'"
+                ]
+                if not fast_click(page, crosstab_selectors, 4000):
+                    # fast_click 沒抓到 → 選單可能還沒完全跳出來，補一次完整的
+                    # smart_click 當備援（涵蓋選單延遲較久才出現的情況）。
+                    if not smart_click(page, crosstab_selectors, 10):
+                        print(f"  ❌ 找不到 Crosstab 選項，跳過 {sheet_name}")
+                        return False
+                time.sleep(2)
+
+                # 選擇工作表 (Sheet) — Tableau 這個版本用「縮圖卡片」(role="option")
+                # 而非傳統下拉選單，所以直接用 title 屬性比對卡片，不需要先點開下拉選單。
+                # 對應您提供的 HTML：<div role="option" title="Summary By RP Group (MTD)"
+                #   data-tb-test-id="sheet-thumbnail-2" aria-selected="true">
+                #
+                # 注意：這個縮圖清單本身是可捲動的 (role="listbox" ... scroll)，如果目標
+                # 縮圖排在很後面 (例如 RFID 的 "RP Breakdown (7days)" 排在第 11 個)，
+                # 用 smart_click 的 force=True 點擊會跳過 Playwright 內建的
+                # 「自動捲動到可視範圍」機制，導致即使選到正確元素也點不中。
+                # 所以這裡改用專門的 scroll_into_view_if_needed() 再點擊。
+                sheet_option_selectors = [
+                    f'[role="option"][title="{sheet_name}"]',
+                    f'[data-tb-test-id^="sheet-thumbnail"][title="{sheet_name}"]',
+                    f'div[title="{sheet_name}"][aria-selected]',
+                    # 備援：文字比對（含大小寫/多餘空白容錯）
+                    f"[role='option']:has-text('{sheet_name}')",
+                ]
+                if is_sheet_already_selected(page, sheet_name):
+                    print(f"  ℹ️ 工作表縮圖 '{sheet_name}' 已經是選取狀態，跳過點擊（避免切換式選取被點成取消選取）")
+                elif not fast_click(page, sheet_option_selectors, 3000):
+                    if not smart_click_with_scroll(page, sheet_option_selectors, 15):
+                        print(f"⚠ 找不到工作表縮圖 '{sheet_name}'")
+                        print(f"   請確認 sheet_name 拼字是否與縮圖 title 完全一致（含空格/大小寫）。")
+                time.sleep(1)
+
+                # 選擇 CSV 格式 —— 套用與 Download/Crosstab 相同的「成功組合」：
+                # fast_click（Playwright 內建高頻 auto-wait）優先，找不到才退回
+                # smart_click 的完整跨 frame 掃描備援。
+                csv_selectors = [
+                    "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id label:nth-of-type(2) input",
+                    "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id label:nth-of-type(2)",
+                    "xpath=//*[@id='export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id']/div/div[2]/div[2]/label[2]",
+                    "label:has-text('CSV')",
+                    "text='CSV'"
+                ]
+                if not fast_click(page, csv_selectors, 2000):
+                    smart_click(page, csv_selectors, 5)
+                time.sleep(1)
+
+                # 點擊 Download 確認並攔截檔案
+                confirm_selectors = [
+                    "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id button",
+                    "button[aria-label='Download Crosstab']",
+                    "button[aria-label='Download']",
+                    'button[data-tb-test-id="export-crosstab-export-Button"]'
+                ]
+
                 try:
-                    page.screenshot(path=shot_path, full_page=True)
-                except Exception:
-                    pass
-                print(f"  ❌ 重試 {retry_count} 次後仍停留在設定頁，跳過 {sheet_name}（截圖: {shot_path}）")
-                continue
+                    with page.expect_download(timeout=60000) as download_info:
 
-            print(f"  ⬇️ 正在下載報表: {sheet_name} ...")
+                        if not fast_click(page, confirm_selectors, 3000):
+                            if not smart_click(page, confirm_selectors, 30):
+                                raise TimeoutError(
+                                    f"Unable to click download button for {sheet_name}"
+                                )
 
-            # Download 按鈕本身通常撐得住，用一般 smart_click 找就好。
-            # 真正容易「一閃即逝」的是點下去之後彈出的選單/選項，所以那些
-            # 一律改用 fast_click（Playwright 內建 ~100ms 頻率的 auto-wait），
-            # 而不是 smart_click 自訂的 1 秒間隔 polling。
-            dl_selectors = ["#download", '[aria-label="Download"]', "button:has-text('Download')"]
-            if not fast_click(page, dl_selectors, 4000):
-                if not smart_click(page, dl_selectors, 15):
-                    print(f"  ❌ smart_click 也無法點擊 Download 按鈕，跳過 {sheet_name}")
-                    continue
+                    download = download_info.value
+                    download.save_as(target_filepath)
+                    print(f"  ✅ 成功儲存: {target_filename}")
+                    time.sleep(2) # 緩衝時間
+                    return True
+                except Exception as e:
+                    print(f"  ❌ 下載 {sheet_name} 失敗: {e}")
+                    return False
 
-            # 點擊 Crosstab —— 這是「選單彈出後一閃即逝」的關鍵一步，
-            # 緊接著上一個點擊立刻嘗試，中間不要 sleep，把握選單開啟的短暫視窗。
-            crosstab_selectors = [
-                "#viz-viewer-toolbar-download-menu > div:nth-of-type(3)",
-                "#viz-viewer-toolbar-download-menu div:nth-of-type(3) span",
-                "xpath=//*[@id='viz-viewer-toolbar-download-menu']/div[3]",
-                "xpath=//*[@id='viz-viewer-toolbar-download-menu']/div[3]/div/div/span[2]",
-                '[data-tb-test-id="download-crosstab-Button-MenuItem"]',
-                "span:has-text('Crosstab')",
-                "text='Crosstab'"
-            ]
-            if not fast_click(page, crosstab_selectors, 4000):
-                # fast_click 沒抓到 → 選單可能還沒完全跳出來，補一次完整的
-                # smart_click 當備援（涵蓋選單延遲較久才出現的情況）。
-                if not smart_click(page, crosstab_selectors, 10):
-                    print(f"  ❌ 找不到 Crosstab 選項，跳過 {sheet_name}")
-                    continue
-            time.sleep(2)
-
-            # 選擇工作表 (Sheet) — Tableau 這個版本用「縮圖卡片」(role="option")
-            # 而非傳統下拉選單，所以直接用 title 屬性比對卡片，不需要先點開下拉選單。
-            # 對應您提供的 HTML：<div role="option" title="Summary By RP Group (MTD)"
-            #   data-tb-test-id="sheet-thumbnail-2" aria-selected="true">
-            #
-            # 注意：這個縮圖清單本身是可捲動的 (role="listbox" ... scroll)，如果目標
-            # 縮圖排在很後面 (例如 RFID 的 "RP Breakdown (7days)" 排在第 11 個)，
-            # 用 smart_click 的 force=True 點擊會跳過 Playwright 內建的
-            # 「自動捲動到可視範圍」機制，導致即使選到正確元素也點不中。
-            # 所以這裡改用專門的 scroll_into_view_if_needed() 再點擊。
-            sheet_option_selectors = [
-                f'[role="option"][title="{sheet_name}"]',
-                f'[data-tb-test-id^="sheet-thumbnail"][title="{sheet_name}"]',
-                f'div[title="{sheet_name}"][aria-selected]',
-                # 備援：文字比對（含大小寫/多餘空白容錯）
-                f"[role='option']:has-text('{sheet_name}')",
-            ]
-            if is_sheet_already_selected(page, sheet_name):
-                print(f"  ℹ️ 工作表縮圖 '{sheet_name}' 已經是選取狀態，跳過點擊（避免切換式選取被點成取消選取）")
-            elif not fast_click(page, sheet_option_selectors, 3000):
-                if not smart_click_with_scroll(page, sheet_option_selectors, 15):
-                    print(f"⚠ 找不到工作表縮圖 '{sheet_name}'")
-                    print(f"   請確認 sheet_name 拼字是否與縮圖 title 完全一致（含空格/大小寫）。")
-            time.sleep(1)
-
-            # 選擇 CSV 格式 —— 套用與 Download/Crosstab 相同的「成功組合」：
-            # fast_click（Playwright 內建高頻 auto-wait）優先，找不到才退回
-            # smart_click 的完整跨 frame 掃描備援。
-            csv_selectors = [
-                "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id label:nth-of-type(2) input",
-                "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id label:nth-of-type(2)",
-                "xpath=//*[@id='export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id']/div/div[2]/div[2]/label[2]",
-                "label:has-text('CSV')",
-                "text='CSV'"
-            ]
-            if not fast_click(page, csv_selectors, 2000):
-                smart_click(page, csv_selectors, 5)
-            time.sleep(1)
-
-            # 點擊 Download 確認並攔截檔案
-            confirm_selectors = [
-                "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id button",
-                "button[aria-label='Download Crosstab']",
-                "button[aria-label='Download']",
-                'button[data-tb-test-id="export-crosstab-export-Button"]'
-            ]
-            
-            try:
-                with page.expect_download(timeout=60000) as download_info:
-
-                    if not fast_click(page, confirm_selectors, 3000):
-                        if not smart_click(page, confirm_selectors, 30):
-                            raise TimeoutError(
-                                f"Unable to click download button for {sheet_name}"
-                            )
-
-                download = download_info.value
-                download.save_as(target_filepath)
-                print(f"  ✅ 成功儲存: {target_filename}")
-                time.sleep(2) # 緩衝時間
-            except Exception as e:
-                print(f"  ❌ 下載 {sheet_name} 失敗: {e}")
+            succeeded = False
+            for attempt in (1, 2):
+                if attempt == 2:
+                    print(f"  🔁 重試 {sheet_name}（第 2 次嘗試）...")
+                if _attempt_download():
+                    succeeded = True
+                    break
+            if not succeeded:
+                print(f"  ❌ {sheet_name} 兩次嘗試皆失敗，放棄此報表。")
 
         context.close()
         browser.close()
@@ -576,6 +705,19 @@ def fetch_gmv_report():
     print("🚀 啟動 GMV Tableau 自動化下載程序 (獨立帳號)...")
     target_filepath = os.path.join(REPORT_FOLDER, REPORT_FILES["gmv"])
 
+    # v3.0 §3 fix: same "log in via a redirect straight to the workbook's
+    # views listing" approach as oix_returning_waybill.py's download_tableau_raw(),
+    # instead of logging in then goto()-ing the deep view URL directly. The
+    # GMV account doesn't land on /#/user/ after login the way the main
+    # account does (it lands on /#/explore), so jumping straight to a
+    # deep-linked view hash right after login was racing the SPA's own
+    # routing/toolbar init — Download would click something, but the
+    # Crosstab menu item never actually rendered.
+    login_url = TABLEAU_GMV_URL
+    if TABLEAU_GMV_WORKBOOK_ID:
+        login_url = (f"https://inhouse-analytics.hktv.com.hk/#/signin"
+                     f"?redirect=%2Fworkbooks%2F{TABLEAU_GMV_WORKBOOK_ID}%2Fviews")
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--disable-popup-blocking"])
         context = browser.new_context(accept_downloads=True)
@@ -583,34 +725,50 @@ def fetch_gmv_report():
         page.set_viewport_size({"width": 1920, "height": 1080})
 
         print("  🌐 導航至 GMV Tableau 登入頁面...")
-        page.goto(TABLEAU_GMV_URL)
+        page.goto(login_url)
         page.wait_for_selector("input[type='text'], input[name='username']", timeout=30000)
         page.locator("input[type='text'], input[name='username']").first.fill(TABLEAU_GMV_USER)
         page.locator("input[type='password'], input[name='password']").first.fill(TABLEAU_GMV_PASS)
         page.locator("button:has-text('Sign In'), [aria-label='Sign In']").first.click()
 
-        print("  ⏳ 等待登入後的跳轉完成...")
-        page.wait_for_load_state("networkidle", timeout=60000)
-        try:
-            page.wait_for_url("**/#/user/**", timeout=30000)
-        except Exception:
-            print(f"  ⚠ 未偵測到預期的 /#/user/ 跳轉，目前網址: {page.url}（仍會繼續嘗試導航）")
-        time.sleep(3)
+        if TABLEAU_GMV_WORKBOOK_ID:
+            print("  📄 等待並點擊 Sheet1...")
+            loc1 = page.locator('[aria-label="Sheet1"][role="link"]')
+            loc2 = page.get_by_text("Sheet1", exact=True)
+            loc3 = page.get_by_text("Sheet 1", exact=True)
+            sheet_link = loc1.or_(loc2).or_(loc3)
+            sheet_link.first.wait_for(state="visible", timeout=60000)
+            sheet_link.first.click()
+            time.sleep(3)
+        else:
+            # Fallback: old direct-view approach. Kept only for the case
+            # TABLEAU_GMV_WORKBOOK_ID hasn't been set yet — this is the path
+            # that was producing "找不到 Crosstab 選項".
+            print("  ⚠ TABLEAU_GMV_WORKBOOK_ID not set — using the older direct-view "
+                  "navigation, which is the flow that was failing. Set "
+                  "TABLEAU_GMV_WORKBOOK_ID in .env to use the more reliable path.")
+            print("  ⏳ 等待登入後的跳轉完成...")
+            page.wait_for_load_state("networkidle", timeout=60000)
+            try:
+                page.wait_for_url("**/#/user/**", timeout=30000)
+            except Exception:
+                print(f"  ⚠ 未偵測到預期的 /#/user/ 跳轉，目前網址: {page.url}（仍會繼續嘗試導航）")
+            time.sleep(3)
 
-        print(f"\n🌐 Opening GMV Tableau Report: {TABLEAU_GMV_DASHBOARD_URL}")
-        page.goto(TABLEAU_GMV_DASHBOARD_URL)
-        try:
-            page.wait_for_load_state("networkidle", timeout=30000)
-        except Exception:
-            pass
-        time.sleep(10)
-        page.wait_for_timeout(5000)
-        try:
-            page.reload(wait_until="load", timeout=45000)
-        except Exception as e:
-            print(f"  ⚠ reload() 等待逾時或發生問題（{e}），仍繼續嘗試後續步驟...")
-        time.sleep(8)
-        page.wait_for_timeout(3000)
+            print(f"\n🌐 Opening GMV Tableau Report: {TABLEAU_GMV_DASHBOARD_URL}")
+            page.goto(TABLEAU_GMV_DASHBOARD_URL)
+            try:
+                page.wait_for_load_state("networkidle", timeout=30000)
+            except Exception:
+                pass
+            time.sleep(10)
+            page.wait_for_timeout(5000)
+            try:
+                page.reload(wait_until="load", timeout=45000)
+            except Exception as e:
+                print(f"  ⚠ reload() 等待逾時或發生問題（{e}），仍繼續嘗試後續步驟...")
+            time.sleep(8)
+            page.wait_for_timeout(3000)
 
         print("  ⬇️ 正在下載 GMV 報表...")
         dl_selectors = ["#download", '[aria-label="Download"]', "button:has-text('Download')"]
@@ -745,21 +903,215 @@ def parse_report_c():
     per_d, other = split_district_and_other(df, 0, 1, 5, {"Bert (Log)"})
     return {"overall": round(sum(per_d.values()) + other, 2), "districts": {d: round(v, 2) for d, v in per_d.items()}}
 
-def parse_delay_rate():
-    df = load_crosstab(REPORT_FILES["delay_rate"], {"District1"})
-    per_district, overall = {}, None
+def parse_actual_delivery_timeslot(file_key):
+    """v4.0 §1/§4 — parses 'Actual Delivery by Timeslot(.csv)' (T-1 daily) or
+    'Actual Delivery by Timeslot - MTD - 10 Districts.csv' (month-to-date) —
+    both share the exact same 2-row-header crosstab shape:
+      row 0: 'Parent Order #' / 'No. of Waybill' (repeated) / blank
+      row 1: timeslot label ('1000-1400' etc.) or 'Total'
+      row 2+: one row per district (col 0), 'Grand Total' last.
+    We only need the two "Total" columns (overall parent-order count and
+    overall waybill count per district) — per spec: "Row 1 Column Header =
+    'Parent Order' and Row 2 Column Header = 'Total' is the total parent
+    order count in district basis" (and same for 'No. of Waybill').
+    Returns {"overall": {"order":..,"waybill":..}, "districts": {d: {...}}}.
+    """
+    path = os.path.join(REPORT_FOLDER, REPORT_FILES[file_key])
+    raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str)
+    row0 = raw.iloc[0].tolist()
+    row1 = raw.iloc[1].tolist()
+    parent_total_idx = waybill_total_idx = None
+    for idx, (a, b) in enumerate(zip(row0, row1)):
+        a = "" if pd.isna(a) else str(a).strip()
+        b = "" if pd.isna(b) else str(b).strip()
+        if a == "Parent Order #" and b == "Total":
+            parent_total_idx = idx
+        if a == "No. of Waybill" and b == "Total":
+            waybill_total_idx = idx
+    if parent_total_idx is None or waybill_total_idx is None:
+        raise ValueError(f"Could not find 'Parent Order # / Total' or 'No. of "
+                          f"Waybill / Total' columns in {path!r}.")
+
+    per_d_order = {d: 0.0 for d in DISTRICTS}
+    per_d_waybill = {d: 0.0 for d in DISTRICTS}
+    overall_order = overall_waybill = None
+    for _, row in raw.iloc[2:].iterrows():
+        label = normalize_district_label(row.iloc[0])
+        order_val = parse_number(row.iloc[parent_total_idx])
+        waybill_val = parse_number(row.iloc[waybill_total_idx])
+        if label in DISTRICTS:
+            per_d_order[label] += order_val
+            per_d_waybill[label] += waybill_val
+        elif label.lower() == "grand total":
+            overall_order, overall_waybill = order_val, waybill_val
+
+    return {
+        "overall": {"order": overall_order, "waybill": overall_waybill},
+        "districts": {d: {"order": per_d_order[d], "waybill": per_d_waybill[d]} for d in DISTRICTS},
+    }
+
+
+def parse_delay_early_pct(file_key):
+    """v4.0 §2 — parses 'Actual Delivery - Delay & Early %.csv' (T-1) or
+    'MTD Actual Delivery - Delay, Early & On Time %.csv' (month-to-date).
+    Both share the shape: District1 (group) | Expected Timeslot w/ same day |
+    Delay % | Early % | On Time %, with a 'Grand Total'/'Total' row for the
+    whole-network figure and one row per district per timeslot.
+
+    NOTE: unlike the T-1 file, the MTD export does NOT include a per-district
+    'Total' (i.e. per-district "Overall") row — only the network-wide Grand
+    Total, plus each district broken out by timeslot. So districts[d] will
+    have "AM"/"PM"/"EV"/"EV2" keys from the MTD file, but no "Overall" key;
+    the per-district MTD "Overall" delay% instead comes from
+    parse_delay_rate_by_zone_type()'s "overall" (Grand Total row, all zones).
+
+    Returns {"overall": {slot: {"delay","early","onTime"}},
+             "districts": {d: {slot: {...}}}}.
+    """
+    path = os.path.join(REPORT_FOLDER, REPORT_FILES[file_key])
+    df = pd.read_csv(path, encoding="utf-16", sep="\t", dtype=str)
+    df.columns = [str(c).strip() for c in df.columns]
+    overall = {}
+    districts = {d: {} for d in DISTRICTS}
     for _, row in df.iterrows():
-        label = str(row.iloc[0]).strip()
-        val = parse_percent(row.iloc[6])
-        if label in DISTRICTS: per_district[label] = val
-        elif label.lower() == "grand total": overall = val
-    return {"overall": overall, "districts": {d: per_district.get(d) for d in DISTRICTS}}
+        label = normalize_district_label(row.iloc[0])
+        slot_raw = str(row.iloc[1]).strip()
+        slot = DELAY_TIMESLOT_MAP.get(slot_raw, slot_raw)
+        rec = {
+            "delay": parse_percent(row["Delay %"]),
+            "early": parse_percent(row["Early %"]),
+            "onTime": parse_percent(row["On Time %"]),
+        }
+        if label.lower() == "grand total":
+            overall[slot] = rec
+        elif label in DISTRICTS:
+            districts[label][slot] = rec
+    return {"overall": overall, "districts": districts}
+
+
+def parse_delay_rate_by_zone_type():
+    """v4.0 §3/§4 — parses 'delay rate by zone type.csv': commercial_zone
+    (0 = Residential, 1 = Commercial) x date, with a 'Total'/'Total' row per
+    zone giving that zone's MTD delay% per district, and a final
+    'Grand Total' row giving the combined (both zones) MTD delay% per
+    district — this is the per-district "Overall" MTD delay rate used
+    elsewhere as matrices.delayRate.actual.districts.
+    Returns {"residential": {d:..}, "commercial": {d:..}, "overall": {d:..}}.
+    """
+    path = os.path.join(REPORT_FOLDER, REPORT_FILES["delay_zone_type_mtd"])
+    raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str)
+    header = raw.iloc[0].tolist()
+    col_to_dist = {}
+    for idx, label in enumerate(header):
+        if idx < 3:
+            continue  # commercial_zone / date / MAX(DATE(...)) columns
+        norm = normalize_district_label(label)
+        if norm in DISTRICTS:
+            col_to_dist.setdefault(norm, []).append(idx)
+
+    residential, commercial, overall = {}, {}, {}
+    for _, row in raw.iloc[1:].iterrows():
+        zone = str(row.iloc[0]).strip()
+        col1 = str(row.iloc[1]).strip()
+        col2 = str(row.iloc[2]).strip()
+        if not (col1 == "Total" and col2 == "Total"):
+            continue  # only the per-zone/grand MTD "Total" rows, skip daily rows
+        target = {"0": residential, "1": commercial, "Grand Total": overall}.get(zone)
+        if target is None:
+            continue
+        for dist, idxs in col_to_dist.items():
+            for i in idxs:
+                v = parse_percent(row.iloc[i])
+                if v is not None:
+                    target[dist] = v
+    return {"residential": residential, "commercial": commercial, "overall": overall}
+
+
+def backfill_delay_rate_history(history):
+    """v4.0 §3 — 'delay rate by zone type.csv' also carries one row per date
+    per commercial_zone (0/1), so a missing day in history["delayRate"] (used
+    for the 30-day rolling forecast) can be recovered from it.
+
+    Caveat: this file only gives Residential (zone 0) and Commercial (zone 1)
+    rates separately per day — not a true order-volume-weighted "Overall".
+    As a backfill-only approximation (never used for today's normal T-1
+    write, which always comes from parse_delay_early_pct("delay_early")
+    instead), each missing day's per-district "Overall" is taken as the
+    simple average of that day's zone-0 and zone-1 rates. Good enough to
+    keep the 30-day forecast window from having a hole; not a substitute for
+    the real daily figure.
+    """
+    path = os.path.join(REPORT_FOLDER, REPORT_FILES["delay_zone_type_mtd"])
+    if not os.path.exists(path):
+        return
+    raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str)
+    header = raw.iloc[0].tolist()
+    col_to_dist = {}
+    for idx, label in enumerate(header):
+        if idx < 3:
+            continue
+        norm = normalize_district_label(label)
+        if norm in DISTRICTS:
+            col_to_dist.setdefault(norm, []).append(idx)
+
+    daily_zone_vals = {}  # date_str -> {"0": {d: val}, "1": {d: val}}
+    for _, row in raw.iloc[1:].iterrows():
+        zone = str(row.iloc[0]).strip()
+        if zone not in ("0", "1"):
+            continue
+        date_label = str(row.iloc[2]).strip()  # "1/9/2026" — D/M/YYYY
+        m = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})$", date_label)
+        if not m:
+            continue  # skips that zone's own "Total" row, which isn't a real date
+        date_str = f"{int(m.group(3)):04d}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+        bucket = daily_zone_vals.setdefault(date_str, {"0": {}, "1": {}})
+        for dist, idxs in col_to_dist.items():
+            for i in idxs:
+                v = parse_percent(row.iloc[i])
+                if v is not None:
+                    bucket[zone][dist] = v
+
+    delay_log = history.setdefault("delayRate", {})
+    filled = []
+    for date_str, zones in daily_zone_vals.items():
+        if date_str in delay_log:
+            continue  # never overwrite a real T-1 figure already on record
+        per_d = {}
+        for d in DISTRICTS:
+            vals = [zones["0"].get(d), zones["1"].get(d)]
+            vals = [v for v in vals if v is not None]
+            per_d[d] = round(sum(vals) / len(vals), 2) if vals else None
+        present = [v for v in per_d.values() if v is not None]
+        overall = round(sum(present) / len(present), 2) if present else None
+        delay_log[date_str] = {"overall": overall, "districts": per_d}
+        filled.append(date_str)
+    if filled:
+        print(f"  🩹 Backfilled {len(filled)} missing Delay Rate day(s) (zone-average "
+              f"approximation) from this run's download: {filled}")
+
+
+def parse_mtd_overall_delay():
+    """v4.0 §4 — the single Overall MTD Delay % headline figure for the
+    Overview tab's main cell, from 'MTD Actual Delivery - Delay, Early & On
+    Time %.csv' — its 'Grand Total' / 'Total' row's 'Delay %' column."""
+    df = pd.read_csv(os.path.join(REPORT_FOLDER, REPORT_FILES["mtd_delay_early_ontime"]),
+                      encoding="utf-16", sep="\t", dtype=str)
+    df.columns = [str(c).strip() for c in df.columns]
+    for _, row in df.iterrows():
+        if str(row.iloc[0]).strip().lower() == "grand total" and str(row.iloc[1]).strip() == "Total":
+            return parse_percent(row["Delay %"])
+    raise ValueError("Could not find the Grand Total/Total row in "
+                      f"{REPORT_FILES['mtd_delay_early_ontime']!r}.")
 
 def parse_poor_rating():
-    df = load_crosstab(REPORT_FILES["poor_rating"], {"district"})
+    # v3.1 (Sept 2026): the header marker itself changed too — this crosstab's
+    # first column used to be labelled exactly "district"; it now reads
+    # "district (group)". Accept both so a future revert doesn't break this
+    # again silently.
+    df = load_crosstab(REPORT_FILES["poor_rating"], {"district", "district (group)"})
     per_district, overall = {}, None
     for _, row in df.iterrows():
-        label = str(row.iloc[0]).strip()
+        label = normalize_district_label(row.iloc[0])
         val = parse_percent(row.iloc[5])
         if val is None: continue
         if label in DISTRICTS: per_district[label] = val
@@ -778,7 +1130,11 @@ def parse_rfid(target_date):
 
     per_district = {d: 0.0 for d in DISTRICTS}
     for _, row in log_rows.iterrows():
-        code = str(row.iloc[1]).strip()
+        # v3.1: defensively normalized too, in case RFID's district column
+        # ever starts emitting the same combined "NT-YT & WTH" label as
+        # Delivery Rating — unconfirmed for this report as of this fix, but
+        # cheap insurance since the alias table is a no-op for any other value.
+        code = normalize_district_label(row.iloc[1])
         if code in DISTRICTS:
             per_district[code] += parse_number(row[date_col_label])
     return {"overall": round(sum(per_district.values()), 2), "districts": {d: round(v, 2) for d, v in per_district.items()}}
@@ -792,9 +1148,10 @@ def parse_gmv(target_date):
       row 0: 'delivery_district' marker row (ignored)
       row 1: real header — col 0 is the date-pivot label, remaining columns
              are district codes as exported by Tableau. If a "NT-YT" column
-             is present, its values are merged into "NT-TW" (v3.0 §3: "if
-             the column header has NT-YT, please group ... with NT-TW
-             first") via normalize_district_code(), same helper §1/§2 use.
+             is present, its values are merged into "WTH" (v3.1, Sept 2026 —
+             was "NT-TW" under v3.0 §3, changed when the district grouping
+             itself changed at the source) via normalize_district_code(),
+             same helper §1/§2 use.
       row 2+: one row per date, col 0 = "YYYY年M月D日" (no zero-padding —
              confirmed against the sample export), remaining columns = GMV
              amounts (may contain "$"/"," — parsed with parse_money()).
@@ -829,6 +1186,48 @@ def parse_gmv(target_date):
                     "districts": {d: round(v, 2) for d, v in per_district.items()}}
 
     raise ValueError(f"Could not find GMV row for {target_label!r} in {path!r}.")
+
+
+def backfill_gmv_history(history):
+    """v4.0 §3 — 'Sheet 1.csv' (the GMV crosstab) contains one row per date,
+    not just T-1 — so if a day's GMV never made it into history["gmv"] (a
+    missed run, a past failure, etc.), we can recover it straight from
+    whatever date rows happen to still be present in today's download,
+    instead of leaving a permanent gap. Only fills gaps; never overwrites a
+    date that's already recorded (today's own T-1 write from parse_gmv()
+    still happens separately/normally after this).
+    """
+    path = os.path.join(REPORT_FOLDER, REPORT_FILES["gmv"])
+    if not os.path.exists(path):
+        return
+    raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str)
+    header = raw.iloc[1].tolist()
+    col_to_district = {}
+    for idx, label in enumerate(header):
+        if idx == 0:
+            continue
+        norm = normalize_district_code(str(label).strip())
+        if norm in DISTRICTS:
+            col_to_district[idx] = norm
+
+    gmv_log = history.setdefault("gmv", {})
+    filled = []
+    for _, row in raw.iloc[2:].iterrows():
+        label = str(row.iloc[0]).strip()
+        m = re.match(r"^(\d{4})年(\d{1,2})月(\d{1,2})日$", label)
+        if not m:
+            continue
+        date_str = f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+        if date_str in gmv_log:
+            continue  # already have this day — don't overwrite
+        per_district = {d: 0.0 for d in DISTRICTS}
+        for idx, dist in col_to_district.items():
+            per_district[dist] += parse_money(row.iloc[idx])
+        gmv_log[date_str] = {"overall": round(sum(per_district.values()), 2),
+                              "districts": {d: round(v, 2) for d, v in per_district.items()}}
+        filled.append(date_str)
+    if filled:
+        print(f"  🩹 Backfilled {len(filled)} missing GMV day(s) from this run's download: {filled}")
 
 # =============================================================================
 # 5. OIX Productivity 處理 (03:00 job — Excel/CSV-based, no Tableau involved)
@@ -968,31 +1367,25 @@ def process_oix(df, position_map=None):
     return df
 
 
-def productivity_for_group(df, prefixes, exclude_positions=None):
-    """exclude_positions (v3.0 §4.1): staff whose "Position" column falls in
-    this set are dropped BEFORE computing manpower (unique-user counts) —
-    but their orders still count if the same order also has other couriers
-    attached (excluding a row just means that row's user isn't tallied as
-    manpower). Positions come from process_oix()'s "Position" column, so
-    this only has an effect when that run had a position_map available."""
-    c_user, c_parent = col("E"), col("L")
+def manpower_for_group(df, prefixes, exclude_positions=None):
+    """v4.0 §1 — replaces the manpower half of the old productivity_for_group()
+    (order-count is no longer computed from OIX at all; see
+    parse_actual_delivery_timeslot() / finish_productivity_with_orders()).
+    exclude_positions (v3.0 §4.1): staff whose "Position" column falls in
+    this set are dropped from the manpower headcount. Positions come from
+    process_oix()'s "Position" column, so this only has an effect when that
+    run had a position_map available.
+    Returns {"overall": int, "districts": {d: int}} — unique HKTV-user
+    headcount per district for this group (LF/LP, or ODS/VAN)."""
+    c_user = col("E")
     sub = df[df.iloc[:, c_user].fillna("").str.startswith(prefixes)]
     if exclude_positions:
         sub = sub[~sub["Position"].fillna("").isin(exclude_positions)]
     per_district = {}
     for d in DISTRICTS:
         rows = sub[sub["District"] == d]
-        unique_users = rows.iloc[:, c_user].nunique()
-        order_count = rows.iloc[:, c_parent].nunique()
-        per_district[d] = {
-            "orderCount": int(order_count),
-            "userCount": int(unique_users),
-            "productivity": round(order_count / unique_users, 2) if unique_users else None,
-        }
-    total_orders = sum(v["orderCount"] for v in per_district.values())
-    total_users = sum(v["userCount"] for v in per_district.values())
-    overall = round(total_orders / total_users, 2) if total_users else None
-    return {"overall": overall, "districts": per_district}
+        per_district[d] = int(rows.iloc[:, c_user].nunique())
+    return {"overall": sum(per_district.values()), "districts": per_district}
 
 
 def manpower_distribution_for_group(df, group_key):
@@ -1012,8 +1405,37 @@ def manpower_distribution_for_group(df, group_key):
     return {"districts": per_district, "total": total}
 
 
+def save_manpower_staging(target_date, hktv_staff_manpower, ods_ratio_manpower, courier_group, driver_group):
+    """v4.0 §1 — 03:00 hand-off to the 14:00 job (see MANPOWER_STAGING_PATH):
+    everything the 03:00 OIX run can produce (manpower headcounts) before
+    the Tableau order counts even exist yet."""
+    payload = {
+        "date": target_date.isoformat(),
+        "hktvStaffManpower": hktv_staff_manpower,
+        "odsRatioManpower": ods_ratio_manpower,
+        "courierGroup": courier_group,
+        "driverGroup": driver_group,
+    }
+    with open(MANPOWER_STAGING_PATH, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    print(f"Wrote {MANPOWER_STAGING_PATH} (staged for the 14:00 Tableau job)")
+
+
+def load_manpower_staging():
+    if not os.path.exists(MANPOWER_STAGING_PATH):
+        return None
+    with open(MANPOWER_STAGING_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def run_productivity_section():
-    print("🚀 開始處理 OIX Productivity 數據...")
+    """v4.0 §1 — 03:00 job. OIX now only supplies MANPOWER (unique HKTV-user
+    headcounts) — parent order counts moved to the Tableau-based 14:00 job
+    (see finish_productivity_with_orders()). This job stages its manpower
+    output to MANPOWER_STAGING_PATH for the 14:00 job to pick up, and still
+    writes the HKTV Manpower Distribution tab's own file directly (that tab
+    is pure headcount and doesn't depend on order counts at all)."""
+    print("🚀 開始處理 OIX Manpower 數據...")
     target_date = dt.date.today() - dt.timedelta(days=1)  # T-1
     path = find_oix_file(target_date)
     df = load_oix(path)
@@ -1033,66 +1455,61 @@ def run_productivity_section():
 
     df = process_oix(df, position_map)
 
-    hktv_staff = productivity_for_group(df, ("LF", "LP"), exclude_positions=LEADER_EXCLUDE_POSITIONS)
-    ods_ratio = productivity_for_group(df, ("ODS", "VAN"))
+    hktv_staff_manpower = manpower_for_group(df, ("LF", "LP"), exclude_positions=LEADER_EXCLUDE_POSITIONS)
+    ods_ratio_manpower = manpower_for_group(df, ("ODS", "VAN"))
     courier_group = manpower_distribution_for_group(df, "courier")
     driver_group = manpower_distribution_for_group(df, "driver")
 
+    save_manpower_staging(target_date, hktv_staff_manpower, ods_ratio_manpower, courier_group, driver_group)
+
+    # v3.0 §4: HKTV Manpower Distribution — independent of order counts,
+    # still written straight from the 03:00 run as before.
     history = load_history()
-    payload = load_data_json()
-    matrices = payload.setdefault("matrices", {})
-
-    for key, group in (("hktvStaff", hktv_staff), ("odsRatio", ods_ratio)):
-        append_history(history, key, target_date.isoformat(), group["overall"],
-                        {d: group["districts"][d]["productivity"] for d in DISTRICTS})
-        fc_overall, fc_districts = rolling_average(history, key, 7, dt.date.today())
-        matrices[key] = {
-            "actual": {"overall": group["overall"],
-                       "districts": {d: group["districts"][d]["productivity"] for d in DISTRICTS}},
-            "forecast": {"overall": fc_overall, "districts": fc_districts},
-            "asOf": target_date.isoformat(),
-        }
-
-    # Dashboard's Productivity Detail / Daily Records tabs (week-to-week,
-    # month-to-month, and raw order-count-per-manpower history). This is
-    # purely additive on top of the block above — hktv_staff/ods_ratio are
-    # the exact same already-computed groups (LF/LP and ODS/VAN unique-user
-    # counts via productivity_for_group(), untouched), just also persisted
-    # in their raw orderCount/manpower form instead of only as the reduced
-    # productivity ratio the matrices/forecast block above keeps. Written to
-    # its own file (productivity_history.json), not data.json — see the
-    # PRODUCTIVITY_HISTORY_PATH comment above.
-    append_daily_productivity_log(history, target_date.isoformat(), hktv_staff, ods_ratio)
-    save_productivity_history(trimmed_daily_productivity(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
-
-    # v3.0 §4: HKTV Manpower Distribution — same daily-log / trimmed-window
-    # pattern as productivity_history.json above, own file.
     append_manpower_log(history, target_date.isoformat(), courier_group, driver_group)
     save_manpower_history(trimmed_manpower_distribution(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
-
     save_history(history)
-    save_data_json(payload)
-    print("✅ Productivity 數據處理完成，已寫入 data.json")
+    print("✅ Manpower 數據處理完成，已寫入 staging 檔案（Productivity 將於 14:00 Tableau job 完成）")
 
 
-def _group_to_log_shape(group):
-    """productivity_for_group() gives {overall, districts:{d:{orderCount,userCount,productivity}}}.
-    The dashboard's dailyProductivity schema wants {districts:{d:{orderCount,manpower}}, total:{...}}
-    (manpower = the same unique-user count, just under the name the dashboard uses)."""
-    districts = {
-        d: {"orderCount": v["orderCount"], "manpower": v["userCount"]}
-        for d, v in group["districts"].items()
-    }
-    total_orders = sum(v["orderCount"] for v in districts.values())
+def _group_to_log_shape(manpower_group, order_totals):
+    """v4.0 §1 — combines a group's OIX-derived manpower with the SHARED
+    Tableau order+waybill totals (order_totals = parse_actual_delivery_timeslot()
+    output; per the v4.0 decision, HKTV Staff and ODS Ratio both use the same
+    Tableau parent-order figure as numerator) into the dashboard's
+    dailyProductivity schema:
+    {districts:{d:{orderCount, waybillCount, manpower, productivity}}, total:{...}}."""
+    districts = {}
+    for d in DISTRICTS:
+        manpower = manpower_group["districts"].get(d, 0)
+        order_count = order_totals["districts"][d]["order"]
+        waybill_count = order_totals["districts"][d]["waybill"]
+        districts[d] = {
+            "orderCount": order_count,
+            "waybillCount": waybill_count,
+            "manpower": manpower,
+            "productivity": round(order_count / manpower, 2) if manpower and order_count is not None else None,
+        }
+    total_orders = order_totals["overall"]["order"]
+    total_waybill = order_totals["overall"]["waybill"]
     total_manpower = sum(v["manpower"] for v in districts.values())
-    return {"districts": districts, "total": {"orderCount": total_orders, "manpower": total_manpower}}
+    return {
+        "districts": districts,
+        "total": {
+            "orderCount": total_orders,
+            "waybillCount": total_waybill,
+            "manpower": total_manpower,
+            "productivity": round(total_orders / total_manpower, 2) if total_manpower and total_orders is not None else None,
+        },
+    }
 
 
-def append_daily_productivity_log(history, date_str, hktv_group, ods_group):
+def append_daily_productivity_log(history, date_str, hktv_manpower, ods_manpower, order_totals):
+    """v4.0 §1: order_totals is the SAME shared Tableau figure used for both
+    groups — see finish_productivity_with_orders()."""
     log = history.setdefault("dailyProductivityLog", {})
     log[date_str] = {
-        "hktvStaff": _group_to_log_shape(hktv_group),
-        "odsRatio": _group_to_log_shape(ods_group),
+        "hktvStaff": _group_to_log_shape(hktv_manpower, order_totals),
+        "odsRatio": _group_to_log_shape(ods_manpower, order_totals),
     }
 
 
@@ -1124,6 +1541,80 @@ def trimmed_manpower_distribution(history, keep_days):
 # =============================================================================
 # 6. data.json 讀寫 + history（滾動平均） + forecast 共用邏輯
 # =============================================================================
+
+def finish_productivity_with_orders(history, matrices, staging, order_totals_t1, order_totals_mtd, target_date):
+    """v4.0 §1/§4 — runs inside the 14:00 Tableau job, once the new order-count
+    source is available. Picks up staging (manpower from the 03:00 OIX run,
+    for the SAME target_date — see save_manpower_staging()) and combines it
+    with the Tableau-sourced order/waybill counts:
+      - appends today's DAILY order/manpower productivity into history[key]
+        (still used for the unchanged 7-day rolling forecast)
+      - computes the Overview tab's "actual" as an MTD figure: month-to-date
+        Tableau order count ÷ cumulative month-to-date manpower (sum of each
+        day's headcount logged so far this month in dailyProductivityLog)
+      - logs the Productivity Detail / Daily Records entry, now including
+        waybillCount alongside orderCount/manpower/productivity (§1's updated
+        4-row cell layout: Order / Waybill / Manpower / Productivity)
+    Returns the trimmed productivity_history.json-ready dict.
+    """
+    hktv_manpower = staging["hktvStaffManpower"]
+    ods_manpower = staging["odsRatioManpower"]
+
+    # --- Daily append, for the unchanged 7-day rolling forecast ---
+    for key, manpower_group in (("hktvStaff", hktv_manpower), ("odsRatio", ods_manpower)):
+        daily_district = {}
+        for d in DISTRICTS:
+            manpower = manpower_group["districts"].get(d)
+            order_count = order_totals_t1["districts"][d]["order"]
+            daily_district[d] = round(order_count / manpower, 2) if manpower and order_count is not None else None
+        overall_manpower = manpower_group["overall"]
+        overall_order = order_totals_t1["overall"]["order"]
+        daily_overall = round(overall_order / overall_manpower, 2) if overall_manpower and overall_order is not None else None
+        append_history(history, key, target_date.isoformat(), daily_overall, daily_district)
+
+    # --- Productivity Detail / Daily Records (Order / Waybill / Manpower /
+    # Productivity) — logged BEFORE the MTD sum below so today's own entry is
+    # included in month-to-date manpower on the very first run of the month
+    # (and on every run thereafter). ---
+    append_daily_productivity_log(history, target_date.isoformat(), hktv_manpower, ods_manpower, order_totals_t1)
+
+    # --- MTD actual for the Overview tab ---
+    month_key = target_date.strftime("%Y-%m")
+
+    def manpower_mtd(group_key):
+        log = history.get("dailyProductivityLog", {})
+        total_overall, total_d, any_data = 0, {d: 0 for d in DISTRICTS}, False
+        for date_str, entry in log.items():
+            if not date_str.startswith(month_key):
+                continue
+            g = entry.get(group_key, {})
+            total_overall += g.get("total", {}).get("manpower") or 0
+            for d in DISTRICTS:
+                total_d[d] += g.get("districts", {}).get(d, {}).get("manpower") or 0
+            any_data = True
+        return (total_overall, total_d) if any_data else (None, {d: None for d in DISTRICTS})
+
+    orders_mtd_overall = order_totals_mtd["overall"]["order"]
+    orders_mtd_district = {d: order_totals_mtd["districts"][d]["order"] for d in DISTRICTS}
+
+    for key in ("hktvStaff", "odsRatio"):
+        mp_overall, mp_district = manpower_mtd(key)
+        actual_overall = (round(orders_mtd_overall / mp_overall, 2)
+                           if mp_overall and orders_mtd_overall is not None else None)
+        actual_district = {
+            d: (round(orders_mtd_district[d] / mp_district[d], 2)
+                if mp_district.get(d) and orders_mtd_district[d] is not None else None)
+            for d in DISTRICTS
+        }
+        fc_overall, fc_districts = rolling_average(history, key, 7, dt.date.today())
+        matrices[key] = {
+            "actual": {"overall": actual_overall, "districts": actual_district},
+            "forecast": {"overall": fc_overall, "districts": fc_districts},
+            "asOf": target_date.isoformat(),
+        }
+
+    return trimmed_daily_productivity(history, DAILY_PRODUCTIVITY_KEEP_DAYS)
+
 
 def load_data_json():
     if os.path.exists(DATA_JSON_PATH):
@@ -1218,24 +1709,25 @@ def append_gmv_history(history, date_str, gmv_group):
 
 
 def total_parent_orders_for(history, date_str):
-    """Basket Size's denominator (v3.0 §3: "GMV / Total Parent Order") —
-    HKTV Staff + ODS/VAN order counts combined for date_str, read from the
-    SAME dailyProductivityLog entry the Productivity Detail tab uses (see
-    append_daily_productivity_log() / §1). Returns (overall, {district:count})
-    — any value is None where that day's OIX processing never ran."""
+    """Basket Size's denominator ("GMV / Total Parent Order") for date_str,
+    read from the SAME dailyProductivityLog entry the Productivity Detail tab
+    uses (see append_daily_productivity_log() / §1).
+
+    v4.0: the Tableau-sourced parent-order total is now a single per-district
+    figure shared by BOTH the hktvStaff and odsRatio productivity groups (per
+    the v4.0 decision to use one shared numerator for both) — so it must be
+    read from ONE group only, not summed across both, or it would be double
+    counted. (Pre-v4.0, hktvStaff/odsRatio each had their own OIX-derived
+    order count and summing them was correct; that's no longer the case.)
+    Returns (overall, {district: count}) — None wherever that day's
+    productivity processing never ran.
+    """
     log = history.get("dailyProductivityLog", {}).get(date_str)
     if not log:
         return None, {d: None for d in DISTRICTS}
-
-    def orders(group_key):
-        g = log.get(group_key, {})
-        return (g.get("total", {}).get("orderCount"),
-                {d: g.get("districts", {}).get(d, {}).get("orderCount") for d in DISTRICTS})
-
-    hk_overall, hk_d = orders("hktvStaff")
-    od_overall, od_d = orders("odsRatio")
-    overall = (hk_overall or 0) + (od_overall or 0)
-    districts = {d: (hk_d.get(d) or 0) + (od_d.get(d) or 0) for d in DISTRICTS}
+    g = log.get("hktvStaff", {})
+    overall = g.get("total", {}).get("orderCount")
+    districts = {d: g.get("districts", {}).get(d, {}).get("orderCount") for d in DISTRICTS}
     return overall, districts
 
 
@@ -1308,6 +1800,131 @@ def build_gmv_monthly(history):
     return {"daily": daily, "monthly": monthly}
 
 
+def append_delay_history(history, date_str, delay_early_t1):
+    """v4.0 §2 — durable full daily log for the 'Delay %' tab: one row per
+    day, by timeslot (AM/PM/EV/EV2/Overall) and district (+ overall)."""
+    history.setdefault("delayPercentDaily", {})[date_str] = delay_early_t1
+
+
+def build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay):
+    """v4.0 §2 — 'Delay %' tab data:
+      - "daily": delayPercentDaily entries for the CURRENT (still-open) month
+        only — the full log stays in history.json (same disposable/derived
+        pattern as productivity_history.json), but the tab itself only needs
+        this month plus the closed-month rollup below.
+      - "monthly": one accumulated row per CLOSED month (spec: "having the
+        monthly record after the end of the month"), keyed "YYYY-MM" — for
+        each of the 5 slots (AM/PM/EV/EV2/Overall), overall + per-district
+        Delay % is the plain average of that slot's daily values across the
+        month. Never removed once a month closes, same as gmv_history.json /
+        other_aspects_history.json.
+      - "mtd": today's month-to-date snapshot for the dropdown's 5 options
+        (AM/PM/EV/EV2 come straight from the MTD file; "Overall" per district
+        comes from delay_rate_by_zone_type's Grand-Total row, since the MTD
+        delay/early file itself has no per-district Total row — see
+        parse_delay_early_pct()).
+    """
+    current_month = dt.date.today().strftime("%Y-%m")
+    full_log = history.get("delayPercentDaily", {})
+    daily_log = {k: v for k, v in full_log.items() if k[:7] == current_month}
+
+    slots = ["AM", "PM", "EV", "EV2", "Overall"]
+    sums = {}  # month -> slot -> {"overall": [...], "districts": {d: [...]}}
+    for date_str, rec in full_log.items():
+        month = date_str[:7]
+        if month == current_month:
+            continue
+        bucket = sums.setdefault(month, {s: {"overall": [], "districts": {d: [] for d in DISTRICTS}} for s in slots})
+        for s in slots:
+            v = rec.get("overall", {}).get(s, {}).get("delay")
+            if v is not None:
+                bucket[s]["overall"].append(v)
+            for d in DISTRICTS:
+                dv = rec.get("districts", {}).get(d, {}).get(s, {}).get("delay")
+                if dv is not None:
+                    bucket[s]["districts"][d].append(dv)
+    monthly = {}
+    for month, by_slot in sums.items():
+        monthly[month] = {}
+        for s in slots:
+            vals = by_slot[s]
+            overall = round(sum(vals["overall"]) / len(vals["overall"]), 2) if vals["overall"] else None
+            districts = {d: (round(sum(vs) / len(vs), 2) if (vs := vals["districts"][d]) else None) for d in DISTRICTS}
+            monthly[month][s] = {"overall": overall, "districts": districts}
+
+    mtd_districts = {}
+    for d in DISTRICTS:
+        entry = dict(delay_early_mtd["districts"].get(d, {}))
+        entry["Overall"] = {"delay": zone_type["overall"].get(d)}
+        mtd_districts[d] = entry
+    mtd = {
+        "overall": {**delay_early_mtd["overall"], "Overall": {"delay": mtd_overall_delay}},
+        "districts": mtd_districts,
+    }
+    return {"daily": daily_log, "monthly": monthly, "mtd": mtd}
+
+
+def save_delay_history(payload):
+    os.makedirs(os.path.dirname(DELAY_HISTORY_PATH) or ".", exist_ok=True)
+    with open(DELAY_HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    print(f"Wrote {DELAY_HISTORY_PATH}")
+
+
+def build_other_aspects_monthly(history):
+    """v4.0 §4 — 'Other Aspects Tracking' tab: poor rating %, missing & lost
+    amount, RFID missing tote, logged monthly (same daily/closed-month-rollup
+    shape as build_gmv_monthly(), but simple sums/averages — no basket-size-
+    style cross-metric division). Poor Rating and Missing & Lost Amount read
+    from their existing daily history series (history["poorRating"] /
+    history["missingLostAmount"]); RFID reuses the rfidMonthly ledger that's
+    already accumulated elsewhere in data.json.
+    """
+    current_month = dt.date.today().strftime("%Y-%m")
+
+    def rollup(metric_key, average=False):
+        series = history.get(metric_key, {})
+        daily, sums = {}, {}
+        for date_str, val in sorted(series.items()):
+            month = date_str[:7]
+            if month == current_month:
+                daily[date_str] = val
+            bucket = sums.setdefault(month, {"overall": [], "districts": {d: [] for d in DISTRICTS}})
+            if val.get("overall") is not None:
+                bucket["overall"].append(val["overall"])
+            for d in DISTRICTS:
+                v = val.get("districts", {}).get(d)
+                if v is not None:
+                    bucket["districts"][d].append(v)
+        monthly = {}
+        for month, b in sums.items():
+            if month == current_month:
+                continue
+            agg = (lambda vals: round(sum(vals) / len(vals), 2) if vals else None) if average \
+                  else (lambda vals: round(sum(vals), 2) if vals else None)
+            monthly[month] = {
+                "overall": agg(b["overall"]),
+                "districts": {d: agg(b["districts"][d]) for d in DISTRICTS},
+            }
+        return {"daily": daily, "monthly": monthly}
+
+    return {
+        "poorRating": rollup("poorRating", average=True),
+        "missingLostAmount": rollup("missingLostAmount", average=False),
+        "rfidMissingTote": {"monthly": {
+            k: {"overall": v.get("overall"), "districts": v.get("districts", {})}
+            for k, v in history.get("rfidMonthlyClosed", {}).items()
+        }},
+    }
+
+
+def save_other_aspects_history(payload):
+    os.makedirs(os.path.dirname(OTHER_ASPECTS_HISTORY_PATH) or ".", exist_ok=True)
+    with open(OTHER_ASPECTS_HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    print(f"Wrote {OTHER_ASPECTS_HISTORY_PATH}")
+
+
 def save_gmv_history(payload):
     os.makedirs(os.path.dirname(GMV_HISTORY_PATH) or ".", exist_ok=True)
     with open(GMV_HISTORY_PATH, "w", encoding="utf-8") as f:
@@ -1320,10 +1937,30 @@ def run_section_tableau():
     downloaded into REPORT_FOLDER, parses them, computes forecasts, writes
     data.json."""
     print("🚀 開始處理 Tableau 數據...")
-    missing = [f for f in REPORT_FILES.values() if not os.path.exists(os.path.join(REPORT_FOLDER, f))]
-    if missing:
-        raise FileNotFoundError(f"Missing report file(s) in {REPORT_FOLDER!r}: {missing}. "
-                                 f"fetch_tableau_reports() should have downloaded these first.")
+    # v3.0 §3 fix: GMV ("gmv" -> Sheet 1.csv) is handled as its own soft-fail
+    # block further down (see the `if os.path.exists(gmv_path)` block below) —
+    # a GMV-account hiccup should never block the other reports that
+    # already downloaded fine, so it's excluded from this hard check.
+    # Also now checks *freshness*, not just existence — see STALE_REPORT_HOURS.
+    required_files = {k: v for k, v in REPORT_FILES.items() if k != "gmv"}
+    # (v4.0: "delay_rate"/Rank_On Time.csv is retired — replaced by the 5
+    # Delivery Dashboard files above, already included in REPORT_FILES.)
+    cutoff_time = time.time() - STALE_REPORT_HOURS * 3600
+    missing, stale = [], []
+    for f in required_files.values():
+        fpath = os.path.join(REPORT_FOLDER, f)
+        if not os.path.exists(fpath):
+            missing.append(f)
+        elif os.path.getmtime(fpath) < cutoff_time:
+            stale.append(f)
+    if missing or stale:
+        raise FileNotFoundError(
+            f"Report file(s) not freshly downloaded this run in {REPORT_FOLDER!r} — "
+            f"missing: {missing or 'none'}; stale/leftover from an earlier run whose "
+            f"download failed (older than {STALE_REPORT_HOURS}h): {stale or 'none'}. "
+            f"fetch_tableau_reports() should have downloaded these just now — check "
+            f"pipeline_log.txt for which report(s) failed to download this run."
+        )
 
     today = dt.date.today()
     total_days = (dt.date(today.year + (today.month == 12), (today.month % 12) + 1, 1) - dt.timedelta(days=1)).day
@@ -1332,17 +1969,79 @@ def run_section_tableau():
     payload = load_data_json()
     matrices = payload.setdefault("matrices", {})
 
-    # --- Delay Rate & Poor Rating (30-day rolling forecast) ---
-    delay = parse_delay_rate()
+    # --- v4.0 §2/§4: Delay Rate ---
+    # "actual" shown on the dashboard is now the MTD figure (spec §4), but the
+    # 30-day forecast still rolls up genuine T-1 DAILY values (spec: "No
+    # effect on the forecast value calculation") — so we still append today's
+    # single-day delay% into the history series used by rolling_average(),
+    # completely separately from the MTD "actual" we display.
+    delay_early_t1 = parse_delay_early_pct("delay_early")
+    t1_overall_delay = delay_early_t1["overall"].get("Overall", {}).get("delay")
+    t1_district_delay = {d: delay_early_t1["districts"][d].get("Overall", {}).get("delay") for d in DISTRICTS}
+    append_history(history, "delayRate", today.isoformat(), t1_overall_delay, t1_district_delay)
+    delay_fc_overall, delay_fc_districts = rolling_average(history, "delayRate", 30, today)
+
+    zone_type = parse_delay_rate_by_zone_type()          # per-district Residential/Commercial/Overall, MTD
+    mtd_overall_delay = parse_mtd_overall_delay()         # single network-wide MTD headline %
+
+    matrices["delayRate"] = {
+        "actual": {"overall": mtd_overall_delay, "districts": {d: zone_type["overall"].get(d) for d in DISTRICTS}},
+        "forecast": {"overall": delay_fc_overall, "districts": delay_fc_districts},
+        "asOf": today.isoformat(),
+    }
+    # v4.0 §4 — feeds the Overview tab's district-cell Residential:/Commercial:/
+    # Overall: breakdown display.
+    matrices["delayRateByZone"] = {
+        "residential": {d: zone_type["residential"].get(d) for d in DISTRICTS},
+        "commercial": {d: zone_type["commercial"].get(d) for d in DISTRICTS},
+        "overall": {d: zone_type["overall"].get(d) for d in DISTRICTS},
+        "asOf": today.isoformat(),
+    }
+
+    # v4.0 §2 — "Delay %" tab: T-1 daily record (by timeslot + overall, in
+    # district basis and overall) plus a monthly rollup after month-end, same
+    # daily/monthly pattern as gmv_history.json. MTD-to-date timeslot view
+    # (AM/PM/EV/EV2) comes from the MTD file directly; MTD's per-district
+    # "Overall" selection reuses zone_type["overall"] computed above, since
+    # the MTD delay/early file itself has no per-district Total row (see
+    # parse_delay_early_pct docstring).
+    delay_early_mtd = parse_delay_early_pct("mtd_delay_early_ontime")
+    append_delay_history(history, today.isoformat(), delay_early_t1)
+    save_delay_history(build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay))
+
+    # v4.0 §3 — backfill any missing GMV / Delay Rate days from whatever
+    # extra dates happen to still be sitting in this run's own downloads.
+    backfill_delay_rate_history(history)
+
+    # --- v4.0 §1: Productivity (HKTV Staff / ODS Ratio) — now finished here,
+    # in the 14:00 job, using the manpower staged by the 03:00 OIX job plus
+    # the new Tableau-sourced order/waybill counts (T-1 daily + MTD). ---
+    order_totals_t1 = parse_actual_delivery_timeslot("actual_delivery_timeslot")
+    order_totals_mtd = parse_actual_delivery_timeslot("actual_delivery_timeslot_mtd")
+    productivity_target_date = today - dt.timedelta(days=1)  # T-1, matches the OIX staging date
+    staging = load_manpower_staging()
+    if staging is None:
+        print(f"  ⚠️ {MANPOWER_STAGING_PATH!r} not found — the 03:00 Manpower job hasn't run yet "
+              f"(or hasn't run since this file was last cleared). Skipping Productivity update "
+              f"this run; HKTV Staff / ODS Ratio matrices keep their previous values.")
+    elif staging.get("date") != productivity_target_date.isoformat():
+        print(f"  ⚠️ Manpower staging is for {staging.get('date')!r} but today's Tableau order "
+              f"counts are for {productivity_target_date.isoformat()!r} — dates don't match "
+              f"(the 03:00 job may not have run today). Skipping Productivity update this run.")
+    else:
+        trimmed = finish_productivity_with_orders(history, matrices, staging, order_totals_t1,
+                                                    order_totals_mtd, productivity_target_date)
+        save_productivity_history(trimmed)
+
+    # --- Poor Rating (30-day rolling forecast, unchanged) ---
     poor = parse_poor_rating()
-    for key, val in (("delayRate", delay), ("poorRating", poor)):
-        append_history(history, key, today.isoformat(), val["overall"], val["districts"])
-        fc_overall, fc_districts = rolling_average(history, key, 30, today)
-        matrices[key] = {
-            "actual": val,
-            "forecast": {"overall": fc_overall, "districts": fc_districts},
-            "asOf": today.isoformat(),
-        }
+    append_history(history, "poorRating", today.isoformat(), poor["overall"], poor["districts"])
+    poor_fc_overall, poor_fc_districts = rolling_average(history, "poorRating", 30, today)
+    matrices["poorRating"] = {
+        "actual": poor,
+        "forecast": {"overall": poor_fc_overall, "districts": poor_fc_districts},
+        "asOf": today.isoformat(),
+    }
 
     # --- Missing & Lost Amount (prorate forecast) ---
     a = parse_report_a()
@@ -1357,6 +2056,10 @@ def run_section_tableau():
         },
         "asOf": today.isoformat(),
     }
+    # v4.0 §4 — daily log feeding "Other Aspects Tracking"'s monthly rollup
+    # (build_other_aspects_monthly()); purely additive, doesn't touch the
+    # prorated forecast above.
+    append_history(history, "missingLostAmount", today.isoformat(), missing_lost["overall"], missing_lost["districts"])
 
     # --- RFID Missing Tote (accumulates within month; T-4 record; prorate forecast) ---
     # Stored as a per-day ledger keyed by the T-4 date, NOT a running sum —
@@ -1402,6 +2105,15 @@ def run_section_tableau():
         "monthKey": month_key,
     }
 
+    # v4.0 §4 — archive any month that just closed into history.json (the
+    # durable store) before data.json's rfidMonthly window gets trimmed to
+    # the last 2 months below — "Other Aspects Tracking" needs every closed
+    # month kept permanently, the same way build_gmv_monthly() does for GMV.
+    closed_archive = history.setdefault("rfidMonthlyClosed", {})
+    for k, v in rfid_state.items():
+        if k != month_key and k not in closed_archive:
+            closed_archive[k] = {"overall": v.get("overall"), "districts": v.get("districts", {})}
+
     keep_keys = sorted(rfid_state.keys())[-2:]
     payload["rfidMonthly"] = {k: rfid_state[k] for k in keep_keys}
 
@@ -1416,6 +2128,7 @@ def run_section_tableau():
         try:
             gmv_group = parse_gmv(gmv_date)
             append_gmv_history(history, gmv_date.isoformat(), gmv_group)
+            backfill_gmv_history(history)  # v4.0 §3 — fill any other missing days this download still has
             orders_overall, orders_districts = total_parent_orders_for(history, gmv_date.isoformat())
             matrices["gmv"] = {
                 "actual": gmv_group,
@@ -1430,12 +2143,21 @@ def run_section_tableau():
               f"Size update. fetch_gmv_report() should have downloaded it (needs "
               f"TABLEAU_GMV_USER/PASS set in .env).")
 
+    # v4.0 §4 — "Other Aspects Tracking" tab (poor rating %, missing & lost
+    # amount, RFID missing tote), monthly.
+    save_other_aspects_history(build_other_aspects_monthly(history))
+
     save_history(history)
     save_data_json(payload)
     print("✅ 報表解析完成，已寫入 data.json")
 
 
 def main():
+    # v4.0 §1: "productivity" (03:00, OIX) now only stages MANPOWER —
+    # HKTV Manpower Distribution's own file is still written directly, but
+    # the Productivity matrices (HKTV Staff / ODS Ratio) can't be finished
+    # until "tableau" (14:00) supplies the new Tableau-sourced order counts.
+    # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
     parser.add_argument("--section", choices=["productivity", "tableau", "all"], required=True)
     args = parser.parse_args()
@@ -1443,9 +2165,9 @@ def main():
     if args.section in ("productivity", "all"):
         run_productivity_section()
     if args.section in ("tableau", "all"):
-        fetch_tableau_reports()  # 1. 執行 Playwright 下載 (6 份報表，主帳號)
+        fetch_tableau_reports()  # 1. 執行 Playwright 下載 (Delivery Dashboard + Logistics KPI 報表)
         fetch_gmv_report()       # 1b. 下載 GMV 報表 (獨立帳號，v3.0 §3)
-        run_section_tableau()    # 2. 執行 CSV 解析與寫入
+        run_section_tableau()    # 2. 執行 CSV 解析、完成 Productivity 計算並寫入
 
 if __name__ == "__main__":
     main()

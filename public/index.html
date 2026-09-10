@@ -342,6 +342,12 @@
       <div class="rail-icon" title="HKTV Manpower Distribution" data-view="manpower">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3"/><path d="M2 21v-2a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v2"/><circle cx="18" cy="9" r="2.3"/><path d="M15.5 21v-1.6a4 4 0 0 1 4-4h.3a4 4 0 0 1 3.2 1.6"/></svg>
       </div>
+      <div class="rail-icon" title="Delay %" data-view="delay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+      </div>
+      <div class="rail-icon" title="Other Aspects Tracking" data-view="otherAspects">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </div>
     </div>
     <div class="rail-foot">v3.0</div>
   </nav>
@@ -375,6 +381,8 @@
       <button class="main-tab" data-target="view-productivity">Productivity Detail</button>
       <button class="main-tab" data-target="view-gmv">GMV / Basket Size</button>
       <button class="main-tab" data-target="view-manpower">HKTV Manpower Distribution</button>
+      <button class="main-tab" data-target="view-delay">Delay %</button>
+      <button class="main-tab" data-target="view-otherAspects">Other Aspects Tracking</button>
     </nav>
 
     <div class="content">
@@ -637,6 +645,93 @@
         </div>
       </div>
 
+      <!-- DELAY %: v4.0 §2 — timeslot dropdown (AM/PM/EV/EV2/Overall) over the
+           daily log for the current month plus one accumulated row per
+           closed month (same daily/closed-month-rollup pattern as GMV).
+           Reads ./delay_history.json:
+             { "daily": {"YYYY-MM-DD": {overall:{slot:{delay,early,onTime}}, districts:{d:{slot:{...}}}}, ...},  // current month only
+               "monthly": {"YYYY-MM": {slot:{overall,districts}, ...}, ...},                                      // every CLOSED month
+               "mtd": {overall:{slot:{...}}, districts:{d:{slot:{...}}}} }                                        // today's month-to-date snapshot -->
+      <div class="view" id="view-delay">
+        <div class="section-head">
+          <div>
+            <h2>Delay %</h2>
+            <div class="sub">Daily rows for the current month · one accumulated row per closed month · pick a timeslot below</div>
+          </div>
+        </div>
+        <div class="prod-controls">
+          <div class="prod-field">
+            <label for="delaySlotSelect">Timeslot</label>
+            <select id="delaySlotSelect">
+              <option value="Overall">Overall</option>
+              <option value="AM">AM (1000-1400)</option>
+              <option value="PM">PM (1400-1800)</option>
+              <option value="EV">EV (1800-2200)</option>
+              <option value="EV2">EV2 (same day EV)</option>
+            </select>
+          </div>
+        </div>
+        <div class="gmv-summary" id="delaySummary"></div>
+        <h3 class="prod-detail-label">By Date / Month</h3>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table id="delayTable">
+              <thead id="delayTableHead"></thead>
+              <tbody id="delayTableBody"></tbody>
+            </table>
+          </div>
+          <div class="scroll-fade"></div>
+          <div class="scroll-hint">scroll →</div>
+        </div>
+        <div class="prod-note" id="delayNote">
+          Rows for the current (still-open) month show that day's actual Delay % for the selected timeslot. Once a
+          month closes, it collapses into a single accumulated row (labelled "YYYY-MM") — the average of that
+          timeslot's daily values across the month. The MTD summary card always reflects today's month-to-date figure.
+        </div>
+      </div>
+
+      <!-- OTHER ASPECTS TRACKING: v4.0 §4 — Poor Rating %, Missing & Lost
+           Amount, RFID Missing Tote, logged monthly (same daily/closed-month
+           pattern as GMV / Delay %). Reads ./other_aspects_history.json:
+             { "poorRating": {"daily":{...}, "monthly":{...}},
+               "missingLostAmount": {"daily":{...}, "monthly":{...}},
+               "rfidMissingTote": {"monthly":{...}} } -->
+      <div class="view" id="view-otherAspects">
+        <div class="section-head">
+          <div>
+            <h2>Other Aspects Tracking</h2>
+            <div class="sub">Daily rows for the current month · one accumulated row per closed month</div>
+          </div>
+        </div>
+        <div class="prod-controls">
+          <div class="prod-field">
+            <label for="otherMetricSelect">Show</label>
+            <select id="otherMetricSelect">
+              <option value="poorRating">Poor Rating %</option>
+              <option value="missingLostAmount">Missing &amp; Lost Amount</option>
+              <option value="rfidMissingTote">RFID Missing Tote</option>
+            </select>
+          </div>
+        </div>
+        <div class="gmv-summary" id="otherSummary"></div>
+        <h3 class="prod-detail-label">By Date / Month</h3>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table id="otherTable">
+              <thead id="otherTableHead"></thead>
+              <tbody id="otherTableBody"></tbody>
+            </table>
+          </div>
+          <div class="scroll-fade"></div>
+          <div class="scroll-hint">scroll →</div>
+        </div>
+        <div class="prod-note" id="otherNote">
+          Poor Rating % is averaged per closed month; Missing &amp; Lost Amount is summed. RFID Missing Tote has no
+          meaningful daily figure, so it only ever shows closed-month rows (same monthly-only ledger used by the
+          Overview tab's RFID trend).
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -697,6 +792,10 @@
     gmvDaily: {},      // v3.0 §3 — current month's daily GMV/Basket Size rows, from gmv_history.json
     gmvMonthly: {},     // v3.0 §3 — one accumulated row per closed month, from gmv_history.json
     dailyManpower: {},  // v3.0 §4 — daily Courier/Driver headcount, from manpower_distribution.json
+    delayDaily: {},     // v4.0 §2 — current month's daily Delay % rows, from delay_history.json
+    delayMonthly: {},   // v4.0 §2 — one accumulated row per closed month, from delay_history.json
+    delayMtd: null,     // v4.0 §2 — today's month-to-date snapshot, from delay_history.json
+    otherAspects: {},   // v4.0 §4 — poorRating / missingLostAmount / rfidMissingTote, from other_aspects_history.json
   };
   let dataSource = { status:'demo', generatedAt:null };
 
@@ -741,6 +840,36 @@
   /* RFID accumulates monthly and can straddle a month boundary (see spec §5) —
      rfidMonthly holds up to the last 2 month-keys, e.g. {"2026-07":{...},"2026-08":{...}} */
   function rfidMonthKeys(){ return Object.keys(DATA.rfidMonthly || {}).sort(); }
+
+  /* v4.0 §4 — Delay Rate district cells break out by zone type (delayRateByZone,
+     written by kpi_pipeline.py alongside the plain "delayRate" matrix): shown as
+     Residential: / Commercial: / Overall: per the spec's sample format, MTD. */
+  function delayZoneRows(district){
+    const z = DATA.matrices && DATA.matrices.delayRateByZone;
+    if(!z) return '';
+    const fmtPct1 = v => v==null ? '—' : v.toFixed(1)+'%';
+    const rows = [
+      ['Residential', z.residential && z.residential[district]],
+      ['Commercial',  z.commercial  && z.commercial[district]],
+      ['Overall',     z.overall     && z.overall[district]],
+    ];
+    return rows.map(([label,val])=>
+      `<div class="tt-row"><span class="tt-label">${label}</span><span class="tt-val">${fmtPct1(val)}</span></div>`
+    ).join('');
+  }
+  function delayZoneDrawerRows(district){
+    const z = DATA.matrices && DATA.matrices.delayRateByZone;
+    if(!z) return '';
+    const fmtPct1 = v => v==null ? '—' : v.toFixed(1)+'%';
+    const rows = [
+      ['Residential (MTD)', z.residential && z.residential[district]],
+      ['Commercial (MTD)',  z.commercial  && z.commercial[district]],
+      ['Overall (MTD)',     z.overall     && z.overall[district]],
+    ];
+    return rows.map(([label,val])=>
+      `<div class="drawer-row"><div class="name">${label}</div><div class="val">${fmtPct1(val)}</div></div>`
+    ).join('');
+  }
 
   async function loadDataSource(){
     try{
@@ -792,6 +921,27 @@
       }catch(err){
         DATA.dailyManpower = {};
       }
+      try{
+        const res5 = await fetch('./delay_history.json', {cache:'no-store'});
+        if(!res5.ok) throw new Error('no delay_history.json');
+        const json5 = await res5.json();
+        DATA.delayDaily = json5.daily || {};
+        DATA.delayMonthly = json5.monthly || {};
+        DATA.delayMtd = json5.mtd || null;
+      }catch(err){
+        DATA.delayDaily = {}; DATA.delayMonthly = {}; DATA.delayMtd = null;
+      }
+      try{
+        const res6 = await fetch('./other_aspects_history.json', {cache:'no-store'});
+        if(!res6.ok) throw new Error('no other_aspects_history.json');
+        const json6 = await res6.json();
+        DATA.otherAspects = json6 || {};
+      }catch(err){
+        DATA.otherAspects = {};
+      }
+    }else{
+      DATA.delayDaily = {}; DATA.delayMonthly = {}; DATA.delayMtd = null;
+      DATA.otherAspects = {};
     }
 
     syncDateFromData();
@@ -1024,6 +1174,9 @@
           return `<div class="tt-row"><span class="tt-label">${label}</span><span class="tt-val">${m.fmt(val)}</span></div>`;
         }).join('');
       }
+      if(m.key==='delayRate'){
+        extra = delayZoneRows(district);
+      }
       cellTooltip.innerHTML = `
         <div class="tt-title">${district} · ${m.label}</div>
         ${extra}
@@ -1082,7 +1235,11 @@
           return `<div class="drawer-row"><div class="name">${label} actual</div><div class="val">${m.fmt(bucket ? bucket.districts[district] : null)}</div></div>`;
         }).join('');
       }
-      return rfidExtra + `
+      let delayZoneExtra = '';
+      if(m.key==='delayRate'){
+        delayZoneExtra = delayZoneDrawerRows(district);
+      }
+      return rfidExtra + delayZoneExtra + `
         <div class="drawer-row">
           <div class="name">${m.label} <span class="drawer-target-inline">(target: ${m.fmt(targetD)})</span></div>
           <div class="barwrap"><div class="bar" style="width:${barPct}%;background:${color}"></div></div>
@@ -1578,6 +1735,104 @@
     }).join('');
   }
 
+  /* Delay % (v4.0 §2). Same daily+closed-month layout as GMV, but with a
+     Timeslot dropdown (AM/PM/EV/EV2/Overall) selecting which slot's Delay %
+     each cell/summary shows. The MTD summary card always reflects today's
+     month-to-date snapshot regardless of which historical rows are listed. */
+  function renderDelayTab(){
+    const head = document.getElementById('delayTableHead');
+    const body = document.getElementById('delayTableBody');
+    const summary = document.getElementById('delaySummary');
+    const dailyKeys = Object.keys(DATA.delayDaily).sort().reverse();
+    const monthlyKeys = Object.keys(DATA.delayMonthly).sort().reverse();
+    if(dailyKeys.length === 0 && monthlyKeys.length === 0 && !DATA.delayMtd){
+      head.innerHTML = '';
+      summary.innerHTML = '';
+      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No delay_history.json alongside this page yet — kpi_pipeline.py's Tableau section writes it automatically once the Delivery Dashboard reports have downloaded at least one day. This table will populate on its own.</td></tr>`;
+      return;
+    }
+    const slot = document.getElementById('delaySlotSelect').value; // 'Overall'|'AM'|'PM'|'EV'|'EV2'
+    const pctFmt = v => v==null ? '—' : v.toFixed(1)+'%';
+
+    const mtd = DATA.delayMtd;
+    const mtdOverall = mtd ? (mtd.overall[slot] && mtd.overall[slot].delay) : null;
+    const latestKey = dailyKeys[0];
+    const latest = latestKey ? DATA.delayDaily[latestKey] : null;
+    const latestOverall = latest ? (latest.overall[slot] && latest.overall[slot].delay) : null;
+    summary.innerHTML = `
+      <div class="gmv-summary-card">
+        <div class="label">Latest Day${latestKey?' · '+latestKey:''}</div>
+        <div class="row"><span>Delay % (${slot})</span><span class="v">${pctFmt(latestOverall)}</span></div>
+      </div>
+      <div class="gmv-summary-card">
+        <div class="label">Month to Date</div>
+        <div class="row"><span>Delay % (${slot})</span><span class="v">${pctFmt(mtdOverall)}</span></div>
+      </div>`;
+
+    head.innerHTML = `<tr><th>Date</th>${DISTRICTS.map(d=>`<th>${d}</th>`).join('')}<th>Total</th></tr>`;
+
+    const rows = [
+      ...dailyKeys.map(k=>({ label:k, overall:DATA.delayDaily[k].overall, districts:DATA.delayDaily[k].districts, isMonth:false })),
+      ...monthlyKeys.map(k=>({ label:k, overall:{[slot]:{delay:DATA.delayMonthly[k][slot]?.overall}}, districts:Object.fromEntries(DISTRICTS.map(d=>[d,{[slot]:{delay:DATA.delayMonthly[k][slot]?.districts[d]}}])), isMonth:true })),
+    ];
+    body.innerHTML = rows.map(r=>{
+      const cells = DISTRICTS.map(d=>`<td>${pctFmt(r.districts[d] && r.districts[d][slot] && r.districts[d][slot].delay)}</td>`).join('');
+      const rowLabel = r.isMonth ? `<strong>${r.label}</strong>` : r.label;
+      const total = r.overall[slot] && r.overall[slot].delay;
+      return `<tr class="${r.isMonth?'total-row':''}"><td>${rowLabel}</td>${cells}<td><strong>${pctFmt(total)}</strong></td></tr>`;
+    }).join('');
+  }
+
+  /* Other Aspects Tracking (v4.0 §4). Poor Rating % / Missing & Lost Amount
+     share the daily+closed-month layout; RFID Missing Tote only has closed
+     months (reuses the same rfidMonthlyClosed ledger as the Overview tab's
+     RFID trend, so it never has a "current month, still counting up" row). */
+  function renderOtherAspectsTab(){
+    const head = document.getElementById('otherTableHead');
+    const body = document.getElementById('otherTableBody');
+    const summary = document.getElementById('otherSummary');
+    const metric = document.getElementById('otherMetricSelect').value; // 'poorRating'|'missingLostAmount'|'rfidMissingTote'
+    const group = DATA.otherAspects[metric] || {};
+    const dailyKeys = Object.keys(group.daily || {}).sort().reverse();
+    const monthlyKeys = Object.keys(group.monthly || {}).sort().reverse();
+
+    if(dailyKeys.length === 0 && monthlyKeys.length === 0){
+      head.innerHTML = '';
+      summary.innerHTML = '';
+      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No other_aspects_history.json alongside this page yet — kpi_pipeline.py's Tableau section writes it automatically once this metric has at least one recorded day. This table will populate on its own.</td></tr>`;
+      return;
+    }
+    const fmt = metric==='poorRating' ? (v=>v==null?'—':v.toFixed(1)+'%')
+              : metric==='missingLostAmount' ? (v=>v==null?'—':'$'+Math.round(v).toLocaleString())
+              : (v=>v==null?'—':Math.round(v).toLocaleString());
+
+    const latestKey = dailyKeys[0];
+    const latest = latestKey ? group.daily[latestKey] : null;
+    const latestMonthKey = monthlyKeys[0];
+    const latestMonth = latestMonthKey ? group.monthly[latestMonthKey] : null;
+    summary.innerHTML = `
+      <div class="gmv-summary-card">
+        <div class="label">Latest Day${latestKey?' · '+latestKey:''}</div>
+        <div class="row"><span>Overall</span><span class="v">${fmt(latest?latest.overall:null)}</span></div>
+      </div>
+      <div class="gmv-summary-card">
+        <div class="label">Most Recent Closed Month${latestMonthKey?' · '+latestMonthKey:''}</div>
+        <div class="row"><span>Overall</span><span class="v">${fmt(latestMonth?latestMonth.overall:null)}</span></div>
+      </div>`;
+
+    head.innerHTML = `<tr><th>Date</th>${DISTRICTS.map(d=>`<th>${d}</th>`).join('')}<th>Total</th></tr>`;
+
+    const rows = [
+      ...dailyKeys.map(k=>({ label:k, group:group.daily[k], isMonth:false })),
+      ...monthlyKeys.map(k=>({ label:k, group:group.monthly[k], isMonth:true })),
+    ];
+    body.innerHTML = rows.map(r=>{
+      const cells = DISTRICTS.map(d=>`<td>${fmt(r.group.districts ? r.group.districts[d] : null)}</td>`).join('');
+      const rowLabel = r.isMonth ? `<strong>${r.label}</strong>` : r.label;
+      return `<tr class="${r.isMonth?'total-row':''}"><td>${rowLabel}</td>${cells}<td><strong>${fmt(r.group.overall)}</strong></td></tr>`;
+    }).join('');
+  }
+
   /* HKTV Manpower Distribution (v3.0 §4). Same period-comparison layout as
      Productivity Detail, but each cell is a single headcount metric. */
   function renderManpowerTab(){
@@ -1663,7 +1918,7 @@
   window.addEventListener('resize', updateScrollHints);
 
   /* ---------------- tab switching ---------------- */
-  const VIEW_ID_BY_RAIL_KEY = { overview:'view-overview', ods:'view-ods', productivity:'view-productivity', gmv:'view-gmv', manpower:'view-manpower' };
+  const VIEW_ID_BY_RAIL_KEY = { overview:'view-overview', ods:'view-ods', productivity:'view-productivity', gmv:'view-gmv', manpower:'view-manpower', delay:'view-delay', otherAspects:'view-otherAspects' };
 
   function switchToView(viewId){
     document.querySelectorAll('.main-tab').forEach(b=>b.classList.toggle('active', b.dataset.target===viewId));
@@ -1691,6 +1946,8 @@
   ['mpGroupSelect','mpGranularitySelect','mpPeriodASelect','mpPeriodBSelect'].forEach(id=>{
     document.getElementById(id).addEventListener('change', ()=>{ renderManpowerTab(); updateScrollHints(); });
   });
+  document.getElementById('delaySlotSelect').addEventListener('change', ()=>{ renderDelayTab(); updateScrollHints(); });
+  document.getElementById('otherMetricSelect').addEventListener('change', ()=>{ renderOtherAspectsTab(); updateScrollHints(); });
 
   /* ---------------- root render ---------------- */
   function renderAll(){
@@ -1701,6 +1958,8 @@
     renderProductivityTab();
     renderGmvTab();
     renderManpowerTab();
+    renderDelayTab();
+    renderOtherAspectsTab();
     updateScrollHints();
   }
 
