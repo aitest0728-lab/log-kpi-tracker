@@ -145,6 +145,17 @@
   .pct-good{color:var(--green);} .pct-warn{color:#9c6a1c;} .pct-bad{color:var(--red);}
   td.kpi-cell .pct{margin-left:10px;font-size:11px;font-weight:700;display:inline-block;min-width:44px;}
 
+  /* v4.0 §4 — Delay Rate cell breaks out Residential/Commercial/Overall per
+     the spec's sample format, instead of the single dot+value+pct line. */
+  td.kpi-cell-delay{cursor:help;min-width:150px;vertical-align:top;text-align:left;}
+  .delay-cell{display:flex;flex-direction:column;gap:3px;font-family:'IBM Plex Mono';font-size:11.5px;}
+  .delay-row{display:flex;align-items:center;gap:6px;justify-content:space-between;}
+  .delay-row .dl-label{color:var(--text-muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.02em;}
+  .delay-row .dl-val{font-weight:600;}
+  .delay-row-overall{border-top:1px dashed var(--line);padding-top:3px;margin-top:1px;}
+  .delay-row-overall .dl-label,.delay-row-overall .dl-val{font-weight:700;color:var(--text);}
+  .delay-row-overall .pct{margin-left:8px;font-size:10.5px;font-weight:700;}
+
   /* Hover tooltip: full actual/forecast breakdown for a single cell */
   .cell-tooltip{position:fixed;z-index:50;background:var(--ink);color:#fff;border-radius:9px;padding:12px 14px;font-size:11.5px;box-shadow:0 12px 30px -8px rgba(16,24,38,.45);pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .1s ease;min-width:210px;}
   .cell-tooltip.show{opacity:1;}
@@ -263,7 +274,7 @@
      Orders / Order Ratio). Replaces .prod-cell wherever a cell needs to show
      more than one sub-metric per period, per the v3.0 layout spec. */
   td.kpi-cell3{cursor:default;min-width:200px;vertical-align:top;}
-  .prod-cell3{display:flex;flex-direction:column;gap:5px;padding:8px 8px;min-height:56px;}
+  .prod-cell3{display:flex;flex-direction:column;gap:5px;padding:8px 8px;min-height:72px;}
   .prod-cell3 .pc-row{display:grid;grid-template-columns:64px 1fr 1fr 42px;column-gap:6px;align-items:center;}
   .prod-cell3 .pc-label{font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;font-weight:600;white-space:nowrap;}
   .prod-cell3 .pc-a{font-family:'IBM Plex Mono';font-size:11px;color:var(--text-muted);text-align:right;}
@@ -494,7 +505,7 @@
         <div class="section-head">
           <div>
             <h2>Productivity Detail</h2>
-            <div class="sub">Weekday-by-weekday Order / Manpower / Productivity · two periods compared side-by-side</div>
+            <div class="sub">Weekday-by-weekday Order / Waybill / Manpower / Productivity · two periods compared side-by-side</div>
           </div>
         </div>
         <div class="prod-controls">
@@ -870,6 +881,26 @@
       `<div class="drawer-row"><div class="name">${label}</div><div class="val">${fmtPct1(val)}</div></div>`
     ).join('');
   }
+  /* v4.0 §4 — the Department Manifest table's Delay Rate cell itself (not
+     just the hover tooltip / drawer) shows the spec's sample format:
+     Residential: / Commercial: / Overall:, per district, MTD. Falls back to
+     the plain single-value cell (via the caller) when delayRateByZone isn't
+     in data.json yet, or when ranking by forecast (no zone breakdown for
+     the forecast series). */
+  function delayZoneCellHtml(district, overallVal, st, ach){
+    const z = DATA.matrices && DATA.matrices.delayRateByZone;
+    const fmtPct1 = v => v==null ? '—' : v.toFixed(1)+'%';
+    if(!z){
+      return `<span class="dot dot-${st}"></span>${fmtPct1(overallVal)}<span class="pct pct-${st}">${fmtPct(ach)}</span>`;
+    }
+    const res = z.residential && z.residential[district];
+    const com = z.commercial && z.commercial[district];
+    return `<div class="delay-cell">
+      <div class="delay-row"><span class="dl-label">Residential</span><span class="dl-val">${fmtPct1(res)}</span></div>
+      <div class="delay-row"><span class="dl-label">Commercial</span><span class="dl-val">${fmtPct1(com)}</span></div>
+      <div class="delay-row delay-row-overall"><span class="dot dot-${st}"></span><span class="dl-label">Overall</span><span class="dl-val">${fmtPct1(overallVal)}<span class="pct pct-${st}">${fmtPct(ach)}</span></span></div>
+    </div>`;
+  }
 
   async function loadDataSource(){
     try{
@@ -1122,6 +1153,9 @@
         const targetD = getTargetForDistrict(m.key, r.name);
         const st = statusFor(m, primary, targetD);
         const ach = achievementPct(m, primary, targetD);
+        if(m.key==='delayRate' && view==='actual'){
+          return `<td class="kpi-cell kpi-cell-delay" data-kpi="${m.key}">${delayZoneCellHtml(r.name, primary, st, ach)}</td>`;
+        }
         return `<td class="kpi-cell" data-kpi="${m.key}"><span class="dot dot-${st}"></span>${m.fmt(primary)}<span class="pct pct-${st}">${fmtPct(ach)}</span></td>`;
       }).join('');
       return `<tr data-dept="${r.name}"><td><span class="rank-badge">${idx+1}</span>${r.name}</td>${cells}</tr>`;
@@ -1308,14 +1342,15 @@
       const d = new Date(today); d.setDate(d.getDate()-i);
       const key = toDateStr(d);
       const mk = (base)=>{
-        const districts = {}; let totalOrders=0, totalManpower=0;
+        const districts = {}; let totalOrders=0, totalWaybill=0, totalManpower=0;
         DISTRICTS.forEach(dist=>{
           const manpower = 15 + Math.round(Math.random()*12);
           const orderCount = Math.round(manpower * (base + (Math.random()*6-3)));
-          districts[dist] = {orderCount, manpower};
-          totalOrders += orderCount; totalManpower += manpower;
+          const waybillCount = Math.round(orderCount * (1.05 + Math.random()*0.1));
+          districts[dist] = {orderCount, waybillCount, manpower};
+          totalOrders += orderCount; totalWaybill += waybillCount; totalManpower += manpower;
         });
-        return {districts, total:{orderCount: totalOrders, manpower: totalManpower}};
+        return {districts, total:{orderCount: totalOrders, waybillCount: totalWaybill, manpower: totalManpower}};
       };
       out[key] = { hktvStaff: mk(45), odsRatio: mk(38) };
     }
@@ -1369,6 +1404,7 @@
       if(!a && !b) return null;
       return {
         orderCount: (a ? a.orderCount : 0) + (b ? b.orderCount : 0),
+        waybillCount: (a ? (a.waybillCount||0) : 0) + (b ? (b.waybillCount||0) : 0),
         manpower: (a ? a.manpower : 0) + (b ? b.manpower : 0),
       };
     }
@@ -1450,15 +1486,15 @@
       });
     }
     // kind==='record'
-    const sumsOrder = Array(7).fill(0), sumsManpower = Array(7).fill(0), counts = Array(7).fill(0);
+    const sumsOrder = Array(7).fill(0), sumsWaybill = Array(7).fill(0), sumsManpower = Array(7).fill(0), counts = Array(7).fill(0);
     Object.keys(DATA.dailyProductivity).forEach(key=>{
       if(!key.startsWith(monthStr)) return;
       const rec = dayRecord(key, metricKey, district);
       if(!rec) return;
       const wd = weekdayIndexOf(key);
-      sumsOrder[wd]+=rec.orderCount; sumsManpower[wd]+=rec.manpower; counts[wd]++;
+      sumsOrder[wd]+=rec.orderCount; sumsWaybill[wd]+=(rec.waybillCount||0); sumsManpower[wd]+=rec.manpower; counts[wd]++;
     });
-    return sumsOrder.map((s,i)=> counts[i] ? { orderCount: s/counts[i], manpower: sumsManpower[i]/counts[i] } : null);
+    return sumsOrder.map((s,i)=> counts[i] ? { orderCount: s/counts[i], waybillCount: sumsWaybill[i]/counts[i], manpower: sumsManpower[i]/counts[i] } : null);
   }
 
   /* ---------------- HKTV Manpower Distribution helpers (v3.0 §4) ----------------
@@ -1600,11 +1636,13 @@
       const cells = rowA.map((recA, i)=>{
         const recB = rowB[i];
         const oA = recA ? recA.orderCount : null, oB = recB ? recB.orderCount : null;
+        const wA = recA ? recA.waybillCount : null, wB = recB ? recB.waybillCount : null;
         const mA = recA ? recA.manpower : null, mB = recB ? recB.manpower : null;
         const pA = (recA && recA.manpower) ? recA.orderCount/recA.manpower : null;
         const pB = (recB && recB.manpower) ? recB.orderCount/recB.manpower : null;
         const { heatCls, html } = comparisonCell([
           { label:'Order', a:oA, b:oB, fmt:intFmt },
+          { label:'Waybill', a:wA, b:wB, fmt:intFmt },
           { label:'Manpower', a:mA, b:mB, fmt:intFmt },
           { label:'Productivity', a:pA, b:pB, fmt:m.fmt },
         ]);
@@ -1615,9 +1653,9 @@
     }).join('');
 
     note.innerHTML = (granularity==='month'
-      ? 'Month view: each weekday cell averages that weekday across the whole month (e.g. August\'s Saturday column averages all 5 Saturdays) — Order and Manpower are averaged first, then Productivity is derived from those averages. '
+      ? 'Month view: each weekday cell averages that weekday across the whole month (e.g. August\'s Saturday column averages all 5 Saturdays) — Order, Waybill and Manpower are averaged first, then Productivity is derived from those averages. '
       : 'Week view: each weekday cell is that single day\'s value (Monday through Sunday). ')
-      + `Each cell shows Order, Manpower and Productivity for ${labelA} vs ${labelB}, with the % change alongside each. Cell tint follows the Productivity change: green = up, red = down.`;
+      + `Each cell shows Order, Waybill, Manpower and Productivity for ${labelA} vs ${labelB}, with the % change alongside each. Cell tint follows the Productivity change: green = up, red = down.`;
   }
 
   function renderOdsRatioTab(){
