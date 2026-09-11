@@ -38,7 +38,15 @@ echo "  Committing and pushing dashboard data..." >> pipeline_log.txt
 # data.json/gmv_history.json changes were sitting uncommitted locally).
 # Adding files one at a time makes a missing file a loud skip line instead
 # of silently blocking everything else.
-for f in public/data.json public/productivity_history.json public/manpower_distribution.json public/gmv_history.json history.json; do
+# Fix: public/delay_history.json and public/other_aspects_history.json were
+# missing from this list entirely - kpi_pipeline.py has been writing both
+# correctly on every run ("Wrote ./public/delay_history.json" /
+# "Wrote ./public/other_aspects_history.json" in pipeline_log.txt), but
+# since they were never in this pathspec list, `git add` never staged them,
+# so they sat as "Untracked files" forever and never reached the deployed
+# dashboard - the Delay % / Other Aspects tabs had nothing to fetch even
+# though the pipeline was generating their data correctly the whole time.
+for f in public/data.json public/productivity_history.json public/manpower_distribution.json public/gmv_history.json public/delay_history.json public/other_aspects_history.json history.json; do
     if [ -f "$f" ]; then
         git add "$f" >> pipeline_log.txt 2>&1
     else

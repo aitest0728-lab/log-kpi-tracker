@@ -2086,12 +2086,25 @@ def build_gmv_monthly(history):
     # source, stays there forever and gets faithfully re-served by this
     # function on every single run. Guard against that here, at the point
     # this file is actually built, so a clean gmv_history.json doesn't
-    # depend on history["gmv"] having never been contaminated: any date
-    # later than today, or implausibly far in the past/future (outside a
-    # generous +/-2 year window of "today"), is dropped from the rollup —
-    # and removed from history["gmv"] itself, so it stops being carried
-    # forward and re-checked on every future run too.
+    # depend on history["gmv"] having never been contaminated.
+    #
+    # v4.0.3 correction: the first cut of this guard only dropped dates
+    # LATER than today, which still let TODAY ITSELF (T-0) through — and
+    # that's exactly what happened: 2026-09-10 (today, at the time of that
+    # run) was sitting in history["gmv"] with basketSize entirely null (a
+    # dead giveaway of a still-accumulating, not-yet-complete day), because
+    # it had been legitimately backfilled on an earlier run when "today"
+    # was a later date and 09-10 was that run's genuine T-1. GMV is only
+    # ever a FINAL, complete figure as of T-1 — today's own number is still
+    # accumulating intraday and is never valid to show, no matter how it
+    # got into the log. So the cutoff here now matches every other T-1
+    # cutoff in this file (cutoff_date = today - 1 in backfill_gmv_history,
+    # gmv_date = today - 1 in run_section_tableau's normal write): any date
+    # >= today, or implausibly far outside a +/-2 year window, is dropped
+    # from the rollup and removed from history["gmv"] itself, so it stops
+    # being carried forward and re-checked on every future run too.
     today = dt.date.today()
+    cutoff_date = today - dt.timedelta(days=1)  # T-1 — the last date GMV can ever be "final" for
     valid_year_range = (today.year - 2, today.year + 2)
     bad_dates = []
     for date_str in list(gmv_log.keys()):
@@ -2100,14 +2113,14 @@ def build_gmv_monthly(history):
         except ValueError:
             bad_dates.append(date_str)
             continue
-        if row_date > today or not (valid_year_range[0] <= row_date.year <= valid_year_range[1]):
+        if row_date > cutoff_date or not (valid_year_range[0] <= row_date.year <= valid_year_range[1]):
             bad_dates.append(date_str)
     if bad_dates:
         for date_str in bad_dates:
             del gmv_log[date_str]
-        print(f"  🧹 Dropped {len(bad_dates)} contaminated/future-dated GMV day(s) "
-              f"found in history[\"gmv\"] (later than today {today.isoformat()!r} or "
-              f"an implausible year): {sorted(bad_dates)}")
+        print(f"  🧹 Dropped {len(bad_dates)} contaminated/future-or-today-dated GMV day(s) "
+              f"found in history[\"gmv\"] (later than T-1 {cutoff_date.isoformat()!r} — "
+              f"GMV is never final for today itself — or an implausible year): {sorted(bad_dates)}")
 
     current_month = today.strftime("%Y-%m")
     daily = {}
@@ -2220,50 +2233,76 @@ def save_delay_history(payload):
     print(f"Wrote {DELAY_HISTORY_PATH}")
 
 
-def build_other_aspects_monthly(history):
-    """v4.0 §4 — 'Other Aspects Tracking' tab: poor rating %, missing & lost
-    amount, RFID missing tote, logged monthly (same daily/closed-month-rollup
-    shape as build_gmv_monthly(), but simple sums/averages — no basket-size-
-    style cross-metric division). Poor Rating and Missing & Lost Amount read
-    from their existing daily history series (history["poorRating"] /
-    history["missingLostAmount"]); RFID reuses the rfidMonthly ledger that's
-    already accumulated elsewhere in data.json.
+def build_other_aspects_monthly(history, matrices):
+    """'Other Aspects Tracking' tab: Poor Rating %, Missing & Lost Amount,
+    RFID Missing Tote.
+
+    v4.0.3 correction (trial-run adjustment): all three of these figures are
+    MTD-cumulative already at the source — Delivery Rating.csv is itself an
+    MTD report, so is each of the three "Summary By RP" reports that feed
+    Missing & Lost Amount, and RFID's own bucket is a running sum of its
+    per-day ledger. That means history["poorRating"][date] /
+    history["missingLostAmount"][date] were never independent single-day
+    figures — each one is "the month's running total as best known on that
+    date", and the LAST one recorded in a month IS that month's true final
+    total. The previous version of this function didn't know that: it
+    averaged poorRating's daily snapshots and summed missingLostAmount's
+    across a closed month, which diluted the true final percentage in one
+    case and double/triple/quadruple-counted every earlier day's running
+    total in the other. Every closed month now uses its LAST recorded
+    snapshot instead — the same approach rfidMissingTote's rfidMonthlyClosed
+    archive already used correctly, so all three metrics are now consistent
+    with each other.
+
+    Also per the trial-run feedback, this file no longer serves day-by-day
+    rows at all — only ever the MTD figure, and it's read straight from
+    `matrices` (this run's already-computed Overview-tab values) rather than
+    re-derived from history, so the two tabs can never disagree:
+      - "current": the single OPEN (current) month's MTD-to-date snapshot,
+        overwritten in place every run, never accumulated as a per-day log.
+      - "monthly": one permanent row per CLOSED month, keyed "YYYY-MM".
+    The dashboard itself adds "(MTD)" to "current"'s label.
     """
     current_month = dt.date.today().strftime("%Y-%m")
 
-    def rollup(metric_key, average=False):
+    def closed_months_from_last_snapshot(metric_key):
+        """Each closed month's value = its LAST recorded daily snapshot
+        (already a complete MTD total for that month by definition — see
+        docstring above), not a sum or average across the month's entries."""
         series = history.get(metric_key, {})
-        daily, sums = {}, {}
-        for date_str, val in sorted(series.items()):
+        latest_date_for_month = {}
+        for date_str in series:
             month = date_str[:7]
             if month == current_month:
-                daily[date_str] = val
-            bucket = sums.setdefault(month, {"overall": [], "districts": {d: [] for d in DISTRICTS}})
-            if val.get("overall") is not None:
-                bucket["overall"].append(val["overall"])
-            for d in DISTRICTS:
-                v = val.get("districts", {}).get(d)
-                if v is not None:
-                    bucket["districts"][d].append(v)
-        monthly = {}
-        for month, b in sums.items():
-            if month == current_month:
                 continue
-            agg = (lambda vals: round(sum(vals) / len(vals), 2) if vals else None) if average \
-                  else (lambda vals: round(sum(vals), 2) if vals else None)
-            monthly[month] = {
-                "overall": agg(b["overall"]),
-                "districts": {d: agg(b["districts"][d]) for d in DISTRICTS},
-            }
-        return {"daily": daily, "monthly": monthly}
+            if month not in latest_date_for_month or date_str > latest_date_for_month[month]:
+                latest_date_for_month[month] = date_str
+        return {
+            month: {"overall": series[date_str].get("overall"),
+                    "districts": series[date_str].get("districts", {})}
+            for month, date_str in latest_date_for_month.items()
+        }
+
+    def current_from_matrix(metric_key):
+        m = matrices.get(metric_key, {}).get("actual", {})
+        return {"monthKey": current_month, "overall": m.get("overall"), "districts": m.get("districts", {})}
 
     return {
-        "poorRating": rollup("poorRating", average=True),
-        "missingLostAmount": rollup("missingLostAmount", average=False),
-        "rfidMissingTote": {"monthly": {
-            k: {"overall": v.get("overall"), "districts": v.get("districts", {})}
-            for k, v in history.get("rfidMonthlyClosed", {}).items()
-        }},
+        "poorRating": {
+            "current": current_from_matrix("poorRating"),
+            "monthly": closed_months_from_last_snapshot("poorRating"),
+        },
+        "missingLostAmount": {
+            "current": current_from_matrix("missingLostAmount"),
+            "monthly": closed_months_from_last_snapshot("missingLostAmount"),
+        },
+        "rfidMissingTote": {
+            "current": current_from_matrix("rfidMissingTote"),
+            "monthly": {
+                k: {"overall": v.get("overall"), "districts": v.get("districts", {})}
+                for k, v in history.get("rfidMonthlyClosed", {}).items()
+            },
+        },
     }
 
 
@@ -2494,7 +2533,7 @@ def run_section_tableau():
 
     # v4.0 §4 — "Other Aspects Tracking" tab (poor rating %, missing & lost
     # amount, RFID missing tote), monthly.
-    save_other_aspects_history(build_other_aspects_monthly(history))
+    save_other_aspects_history(build_other_aspects_monthly(history, matrices))
 
     save_history(history)
     save_data_json(payload)

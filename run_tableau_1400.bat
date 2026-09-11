@@ -40,7 +40,16 @@ REM nothing to commit, and push then reported "Everything up-to-date" even
 REM though fresh data.json/gmv_history.json changes were sitting
 REM uncommitted locally). Adding files one at a time makes a missing file
 REM a loud skip line instead of silently blocking everything else.
-for %%f in (public\data.json public\productivity_history.json public\manpower_distribution.json public\gmv_history.json history.json) do (
+REM Fix: public\delay_history.json and public\other_aspects_history.json
+REM were missing from this list entirely - kpi_pipeline.py has been writing
+REM both correctly on every run ("Wrote ./public/delay_history.json" /
+REM "Wrote ./public/other_aspects_history.json" in pipeline_log.txt), but
+REM since they were never in this pathspec list, `git add` never staged
+REM them, so they sat as "Untracked files" forever and never reached the
+REM deployed dashboard - the Delay % / Other Aspects tabs had nothing to
+REM fetch even though the pipeline was generating their data correctly the
+REM whole time.
+for %%f in (public\data.json public\productivity_history.json public\manpower_distribution.json public\gmv_history.json public\delay_history.json public\other_aspects_history.json history.json) do (
   if exist "%%f" (
     git add "%%f" >> pipeline_log.txt 2>&1
   ) else (

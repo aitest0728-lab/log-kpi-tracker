@@ -124,7 +124,7 @@
   thead th.sorted{color:var(--amber);}
   thead th .arrow{font-size:9px;margin-left:3px;opacity:.8;}
   tbody td{padding:10px 12px;text-align:right;font-family:'IBM Plex Mono';font-size:13px;border-top:1px solid var(--line-soft);border-left:1px solid var(--line-soft);white-space:nowrap;}
-  tbody td:first-child{text-align:left;font-family:'Inter';font-weight:600;font-size:13px;position:sticky;left:0;background:var(--panel);border-left:none;}
+  tbody td:first-child{text-align:left;font-family:'Inter';font-weight:600;font-size:13px;position:sticky;left:0;z-index:1;background:var(--panel);border-left:none;}
   tbody tr{cursor:pointer;}
   tbody tr:hover td{background:#f9fafb;}
   tbody tr:hover td:first-child{background:#f2f4f6;}
@@ -276,7 +276,7 @@
   td.kpi-cell3{cursor:default;min-width:200px;vertical-align:top;}
   .prod-cell3{display:flex;flex-direction:column;gap:5px;padding:8px 8px;min-height:72px;}
   .prod-cell3 .pc-row{display:grid;grid-template-columns:64px 1fr 1fr 42px;column-gap:6px;align-items:center;}
-  .prod-cell3 .pc-label{font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;font-weight:600;white-space:nowrap;}
+  .prod-cell3 .pc-label{font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .prod-cell3 .pc-a{font-family:'IBM Plex Mono';font-size:11px;color:var(--text-muted);text-align:right;}
   .prod-cell3 .pc-b{font-family:'IBM Plex Mono';font-size:12.5px;font-weight:700;color:var(--text);text-align:right;}
   .prod-cell3 .delta-pill{font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:20px;text-align:center;}
@@ -1838,43 +1838,47 @@
     const summary = document.getElementById('otherSummary');
     const metric = document.getElementById('otherMetricSelect').value; // 'poorRating'|'missingLostAmount'|'rfidMissingTote'
     const group = DATA.otherAspects[metric] || {};
-    const dailyKeys = Object.keys(group.daily || {}).sort().reverse();
-    const monthlyKeys = Object.keys(group.monthly || {}).sort().reverse();
+    const current = group.current || null;               // this month's MTD-to-date snapshot, overwritten in place each run
+    const monthlyKeys = Object.keys(group.monthly || {}).sort().reverse(); // closed months, newest first
 
-    if(dailyKeys.length === 0 && monthlyKeys.length === 0){
+    if(!current && monthlyKeys.length === 0){
       head.innerHTML = '';
       summary.innerHTML = '';
-      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No other_aspects_history.json alongside this page yet — kpi_pipeline.py's Tableau section writes it automatically once this metric has at least one recorded day. This table will populate on its own.</td></tr>`;
+      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No other_aspects_history.json alongside this page yet — kpi_pipeline.py's Tableau section writes it automatically once this metric has been computed at least once. This table will populate on its own.</td></tr>`;
       return;
     }
     const fmt = metric==='poorRating' ? (v=>v==null?'—':v.toFixed(1)+'%')
               : metric==='missingLostAmount' ? (v=>v==null?'—':'$'+Math.round(v).toLocaleString())
               : (v=>v==null?'—':Math.round(v).toLocaleString());
 
-    const latestKey = dailyKeys[0];
-    const latest = latestKey ? group.daily[latestKey] : null;
     const latestMonthKey = monthlyKeys[0];
     const latestMonth = latestMonthKey ? group.monthly[latestMonthKey] : null;
     summary.innerHTML = `
       <div class="gmv-summary-card">
-        <div class="label">Latest Day${latestKey?' · '+latestKey:''}</div>
-        <div class="row"><span>Overall</span><span class="v">${fmt(latest?latest.overall:null)}</span></div>
+        <div class="label">Current Month${current?' · '+current.monthKey+' (MTD)':''}</div>
+        <div class="row"><span>Overall</span><span class="v">${fmt(current?current.overall:null)}</span></div>
       </div>
       <div class="gmv-summary-card">
         <div class="label">Most Recent Closed Month${latestMonthKey?' · '+latestMonthKey:''}</div>
         <div class="row"><span>Overall</span><span class="v">${fmt(latestMonth?latestMonth.overall:null)}</span></div>
       </div>`;
 
-    head.innerHTML = `<tr><th>Date</th>${DISTRICTS.map(d=>`<th>${d}</th>`).join('')}<th>Total</th></tr>`;
+    head.innerHTML = `<tr><th>Month</th>${DISTRICTS.map(d=>`<th>${d}</th>`).join('')}<th>Total</th></tr>`;
 
+    // One row per calendar month only — the current (still-open) month shows
+    // its latest MTD-to-date value labelled "(MTD)"; every closed month
+    // keeps its permanent final row. No day-by-day rows: all three of these
+    // metrics are MTD-cumulative at the source, so a daily row never meant
+    // "that day's amount" anyway — see kpi_pipeline.py's
+    // build_other_aspects_monthly() for the full explanation.
     const rows = [
-      ...dailyKeys.map(k=>({ label:k, group:group.daily[k], isMonth:false })),
-      ...monthlyKeys.map(k=>({ label:k, group:group.monthly[k], isMonth:true })),
+      ...(current ? [{ label: `${current.monthKey} (MTD)`, group: current, isCurrent:true }] : []),
+      ...monthlyKeys.map(k=>({ label:k, group:group.monthly[k], isCurrent:false })),
     ];
     body.innerHTML = rows.map(r=>{
       const cells = DISTRICTS.map(d=>`<td>${fmt(r.group.districts ? r.group.districts[d] : null)}</td>`).join('');
-      const rowLabel = r.isMonth ? `<strong>${r.label}</strong>` : r.label;
-      return `<tr class="${r.isMonth?'total-row':''}"><td>${rowLabel}</td>${cells}<td><strong>${fmt(r.group.overall)}</strong></td></tr>`;
+      const rowLabel = r.isCurrent ? `<strong>${r.label}</strong>` : r.label;
+      return `<tr class="${r.isCurrent?'total-row':''}"><td>${rowLabel}</td>${cells}<td><strong>${fmt(r.group.overall)}</strong></td></tr>`;
     }).join('');
   }
 
@@ -1932,7 +1936,12 @@
       const cells = rowA.map((vA,i)=>{
         const vB = rowB[i];
         const { heatCls, html } = comparisonCell([
-          { label: groupLabel+' Headcount', a: vA, b: vB, fmt: intFmt },
+          // Just "Headcount", not "Courier/Driver Headcount" — the group is
+          // already shown via the Group dropdown/legend above, and the full
+          // "Courier Headcount"/"Driver Headcount" text was wider than this
+          // cell's label column, overflowing straight into the value next to
+          // it (see the reported screenshot: "COURIER HEADCOUNT15").
+          { label: 'Headcount', a: vA, b: vB, fmt: intFmt },
         ]);
         return `<td class="kpi-cell3 ${heatCls}">${html}</td>`;
       }).join('');
