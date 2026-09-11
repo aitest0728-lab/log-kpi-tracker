@@ -341,7 +341,7 @@
       <div class="rail-icon active" title="Dashboard" data-view="overview">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       </div>
-      <div class="rail-icon" title="ODS / VAN Order Ratio" data-view="ods">
+      <div class="rail-icon" title="ODS / HKTV Order Ratio" data-view="ods">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
       </div>
       <div class="rail-icon" title="Productivity Detail" data-view="productivity">
@@ -360,7 +360,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       </div>
     </div>
-    <div class="rail-foot">v4.1.1</div>
+    <div class="rail-foot">v4.1.2</div>
   </nav>
 
   <!-- MAIN -->
@@ -388,7 +388,7 @@
 
     <nav class="main-tabs" id="mainTabs">
       <button class="main-tab active" data-target="view-overview">Overview</button>
-      <button class="main-tab" data-target="view-ods">ODS / VAN Order Ratio</button>
+      <button class="main-tab" data-target="view-ods">ODS / HKTV Order Ratio</button>
       <button class="main-tab" data-target="view-productivity">Productivity Detail</button>
       <button class="main-tab" data-target="view-gmv">GMV / Basket Size</button>
       <button class="main-tab" data-target="view-manpower">HKTV Manpower Distribution</button>
@@ -417,13 +417,13 @@
 
       <div class="section-head">
         <div>
-          <h2>Department Manifest</h2>
+          <h2>Department Manifest (MTD)</h2>
           <div class="sub" id="tableSub">Click a column to sort · click a row for detail</div>
         </div>
         <div class="table-toolbar">
           <div class="search-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-            <input type="text" id="deptSearch" placeholder="Filter department…">
+            <input type="text" id="deptSearch" placeholder="Filter districts, e.g. ETH, ETK…">
           </div>
         </div>
       </div>
@@ -447,7 +447,8 @@
 
       </div>
 
-      <!-- ODS / VAN ORDER RATIO: v3.0 — replaces the old duplicate ODS/VAN
+      <!-- ODS / HKTV ORDER RATIO (tab renamed from "ODS / VAN Order Ratio"
+           in v4.1.2): v3.0 — replaces the old duplicate ODS/VAN
            Productivity tab. Order Ratio = ODS & VAN Order Count ÷ Total
            Parent Order (HKTV Staff + ODS/VAN combined), per district and
            total. Reuses productivity_history.json's already-recorded
@@ -459,7 +460,7 @@
       <div class="view" id="view-ods">
         <div class="section-head">
           <div>
-            <h2>ODS / VAN Order Ratio</h2>
+            <h2>ODS / HKTV Order Ratio</h2>
             <div class="sub">Order Ratio = ODS &amp; VAN Order Count ÷ Total Parent Order (HKTV Staff + ODS/VAN)</div>
           </div>
         </div>
@@ -774,10 +775,10 @@
      good/warn/bad coloring.
   ========================================================================== */
   const MATRICES = [
-    { key:'hktvStaff',        section:'productivity', label:'HKTV Staff Productivity',  unit:'#',  target:24,     better:'high', fmt:v=>v==null?'—':v.toFixed(2) },
+    { key:'hktvStaff',        section:'productivity', label:'HKTV Staff Productivity',  unit:'#',  target:24,     better:'high', fmt:v=>v==null?'—':v.toFixed(2), forecastLabel:'Monthly Average' },
     { key:'odsRatio',         section:'productivity', label:'ODS / VAN Productivity',   unit:'#',  target:19,     better:'high', fmt:v=>v==null?'—':v.toFixed(2) },
-    { key:'delayRate',        section:'tableau',      label:'Delay Rate',               unit:'%',  target:5,      better:'low',  fmt:v=>v==null?'—':v.toFixed(2)+'%' },
-    { key:'poorRating',       section:'tableau',      label:'Poor Rating %',            unit:'%',  target:3,      better:'low',  fmt:v=>v==null?'—':v.toFixed(1)+'%' },
+    { key:'delayRate',        section:'tableau',      label:'Delay Rate',               unit:'%',  target:5,      better:'low',  fmt:v=>v==null?'—':v.toFixed(2)+'%', forecastLabel:'Monthly Average' },
+    { key:'poorRating',       section:'tableau',      label:'Poor Rating %',            unit:'%',  target:3,      better:'low',  fmt:v=>v==null?'—':v.toFixed(1)+'%', forecastLabel:'Monthly Average' },
     { key:'missingLostAmount',section:'tableau',      label:'Missing & Lost Amount',    unit:'$',  target:250000, better:'low',  fmt:v=>v==null?'—':'$'+Math.round(v).toLocaleString() },
     { key:'rfidMissingTote',  section:'tableau',      label:'RFID Missing Tote',        unit:'#',  target:500,    better:'low',  fmt:v=>v==null?'—':Math.round(v).toLocaleString() },
   ];
@@ -1091,7 +1092,7 @@
         <span class="pct pct-${stA}">${fmtPct(achA)}</span>
       </div>
       <div class="kpi-row primary">
-        <span class="kpi-row-label">Forecast (EOM)</span>
+        <span class="kpi-row-label">${m.forecastLabel || 'Forecast (EOM)'}</span>
         <span class="kpi-row-val">${m.fmt(forecastAgg)}</span>
         <span class="pct pct-${st}">${fmtPct(achF)}</span>
       </div>
@@ -1138,7 +1139,15 @@
     });
 
     if(sortState.searchTerm){
-      rows = rows.filter(r=>r.name.toLowerCase().includes(sortState.searchTerm.toLowerCase()));
+      // Split on spaces and/or commas so "ETH, ETK" or "ETH ETK" both filter
+      // to any district whose code contains ETH OR ETK, not just one at a time.
+      const terms = sortState.searchTerm.split(/[\s,]+/).map(t=>t.trim().toLowerCase()).filter(Boolean);
+      if(terms.length){
+        rows = rows.filter(r=>{
+          const name = r.name.toLowerCase();
+          return terms.some(t=>name.includes(t));
+        });
+      }
     }
 
     if(sortState.key){
@@ -1218,7 +1227,7 @@
         <div class="tt-title">${district} · ${m.label}</div>
         ${extra}
         <div class="tt-row"><span class="tt-label">Actual</span><span class="tt-val">${m.fmt(av)}<span class="pct pct-${stA}">${fmtPct(achA)}</span></span></div>
-        <div class="tt-row"><span class="tt-label">Forecast (EOM)</span><span class="tt-val">${m.fmt(fv)}<span class="pct pct-${stF}">${fmtPct(achF)}</span></span></div>
+        <div class="tt-row"><span class="tt-label">${m.forecastLabel || 'Forecast (EOM)'}</span><span class="tt-val">${m.fmt(fv)}<span class="pct pct-${stF}">${fmtPct(achF)}</span></span></div>
         <div class="tt-row tt-target"><span class="tt-label">Target (${district})</span><span class="tt-val">${m.fmt(targetD)}</span></div>
       `;
       cellTooltip.classList.add('show');
@@ -1264,19 +1273,16 @@
       const achF = achievementPct(m, forecast, targetD);
       const color = st==='good' ? 'var(--green)' : st==='warn' ? 'var(--amber)' : 'var(--red)';
       const barPct = forecast==null ? 0 : Math.min(100, m.better==='low' ? (forecast/(targetD*1.4))*100 : (forecast/(targetD*1.1))*100);
-      let rfidExtra = '';
-      if(m.key===RFID_KEY){
-        rfidExtra = rfidMonthKeys().map(k=>{
-          const bucket = DATA.rfidMonthly[k];
-          const label = new Date(k+'-01').toLocaleDateString('en-US',{month:'short',year:'numeric'});
-          return `<div class="drawer-row"><div class="name">${label} actual</div><div class="val">${m.fmt(bucket ? bucket.districts[district] : null)}</div></div>`;
-        }).join('');
-      }
+      // Per the trial-run feedback: the district-detail drawer no longer
+      // lists RFID's historical per-month actuals here (that history is
+      // still on the RFID KPI card itself and its hover tooltip on the
+      // Overview grid) — this drawer just shows the current figure below,
+      // same as every other metric.
       let delayZoneExtra = '';
       if(m.key==='delayRate'){
         delayZoneExtra = delayZoneDrawerRows(district);
       }
-      return rfidExtra + delayZoneExtra + `
+      return delayZoneExtra + `
         <div class="drawer-row">
           <div class="name">${m.label} <span class="drawer-target-inline">(target: ${m.fmt(targetD)})</span></div>
           <div class="barwrap"><div class="bar" style="width:${barPct}%;background:${color}"></div></div>
