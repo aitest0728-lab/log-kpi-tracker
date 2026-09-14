@@ -1802,23 +1802,86 @@
     if(override != null && override !== '' && !isNaN(override)) return +override;
     return Math.max(1, +document.getElementById('fcTargetProd').value || 50);
   }
+  // Split a whole `total` headcount into integer courier/driver counts that
+  // sum EXACTLY to total, in proportion to `ratio` — largest-remainder
+  // method: floor each share, then hand out the few leftover seats to
+  // whichever role's fractional share was largest. This avoids the drift
+  // you'd get from ceiling courier and driver independently (which can add
+  // up to 2 extra people vs. rounding the total once).
+  function fcAllocate(total, ratio){
+    if(total <= 0) return { courier:0, driver:0 };
+    const courierRaw = total * ratio.courier;
+    const driverRaw = total * ratio.driver;
+    let courier = Math.floor(courierRaw);
+    let driver = Math.floor(driverRaw);
+    let remainder = total - courier - driver;
+    const order = [
+      { role:'courier', frac: courierRaw - courier },
+      { role:'driver',  frac: driverRaw - driver },
+    ].sort((a,b)=> b.frac - a.frac);
+    let i = 0;
+    while(remainder > 0){
+      if(order[i % order.length].role === 'courier') courier++; else driver++;
+      remainder--; i++;
+    }
+    return { courier, driver };
+  }
   // Suggested staff (auto) = forecast ÷ target productivity, split by the
   // historical courier/driver ratio — calculate_staff_allocation() in the
-  // script. Manual overrides (either count, independently) replace the
-  // matching auto value; the other one still falls back to auto.
+  // script, generalized as follows:
+  //
+  // 1. Compute the raw (fractional) TOTAL staff needed first — forecast ÷
+  //    target productivity — then round that total UP once (Math.ceil).
+  //    Headcount can't be fractional, and rounding the combined total
+  //    (rather than ceiling courier and driver separately) avoids adding
+  //    up to 2 unnecessary extra people per cell.
+  // 2. Split that whole total into courier/driver via fcAllocate() above,
+  //    matching the historical ratio as closely as an integer split allows.
+  // 3. Rounding the total UP always dilutes achieved productivity
+  //    (forecast ÷ staff) below the leader's target whenever the raw total
+  //    wasn't already a whole number — more heads for the same order
+  //    volume means fewer orders per head. If that drop takes achieved
+  //    productivity below target, pull one seat back out (as long as at
+  //    least one person is still left) and re-split — this always brings
+  //    achieved productivity back above target, since removing a seat from
+  //    a total that was rounded up moves it to exactly the floor of the
+  //    raw requirement.
+  //
+  // Manual overrides (either count, independently) replace the matching
+  // auto value and skip this total-first optimization — a leader typing a
+  // number is taking direct control, so that value is just rounded up on
+  // its own and the achieved-productivity pill shows the real consequence.
   function fcPlanFor(district, weekdayIdx){
     const forecast = fcForecastOrders(district, weekdayIdx);
     const targetProd = fcTargetProdFor(district);
     const ratio = fcCourierDriverRatio(weekdayIdx);
-    const totalAuto = targetProd > 0 ? forecast/targetProd : 0;
-    const autoCourier = totalAuto * ratio.courier;
-    const autoDriver = totalAuto * ratio.driver;
+    const rawTotal = targetProd > 0 ? forecast/targetProd : 0;
+
     const mC = FC_STATE.manualCourier[district], mD = FC_STATE.manualDriver[district];
     const hasManualC = mC != null && mC !== '' && !isNaN(mC);
     const hasManualD = mD != null && mD !== '' && !isNaN(mD);
-    const courier = hasManualC ? +mC : autoCourier;
-    const driver = hasManualD ? +mD : autoDriver;
-    const staffTotal = courier + driver;
+
+    let courier, driver, staffTotal;
+    if(hasManualC || hasManualD){
+      courier = hasManualC ? Math.ceil(+mC) : Math.ceil(rawTotal * ratio.courier);
+      driver = hasManualD ? Math.ceil(+mD) : Math.ceil(rawTotal * ratio.driver);
+      staffTotal = courier + driver;
+    } else {
+      let total = rawTotal > 0 ? Math.ceil(rawTotal) : 0;
+      let alloc = fcAllocate(total, ratio);
+      const achievedAtCeil = total > 0 ? forecast/total : null;
+      if(total > 1 && achievedAtCeil != null && achievedAtCeil < targetProd){
+        const reduced = total - 1;
+        const achievedAtReduced = forecast/reduced;
+        if(achievedAtReduced >= targetProd){
+          total = reduced;
+          alloc = fcAllocate(total, ratio);
+        }
+      }
+      courier = alloc.courier;
+      driver = alloc.driver;
+      staffTotal = total;
+    }
     const achievedProd = staffTotal > 0 ? forecast/staffTotal : null;
     return { forecast, targetProd, courier, driver, staffTotal, achievedProd, isManual: hasManualC || hasManualD };
   }
@@ -1895,8 +1958,8 @@
       const heatCls = !p.isManual ? '' : (d.cls==='delta-up' ? 'heat-up' : d.cls==='delta-down' ? 'heat-down' : '');
       return { heatCls, html: `<div class="fc-cell">
         <div class="fc-row"><span class="fc-label">Forecast Orders</span><span class="fc-val">${intFmt(p.forecast)}</span></div>
-        <div class="fc-row"><span class="fc-label">Courier</span><span class="fc-val">${p.courier.toFixed(1)}</span></div>
-        <div class="fc-row"><span class="fc-label">Driver</span><span class="fc-val">${p.driver.toFixed(1)}</span></div>
+        <div class="fc-row"><span class="fc-label">Courier</span><span class="fc-val">${intFmt(p.courier)}</span></div>
+        <div class="fc-row"><span class="fc-label">Driver</span><span class="fc-val">${intFmt(p.driver)}</span></div>
         <div class="fc-row fc-primary">
           <span class="fc-label">Productivity</span>
           <span class="fc-val">${p.achievedProd==null?'—':p.achievedProd.toFixed(1)}</span>
@@ -1932,7 +1995,8 @@
     body.innerHTML = bodyRows.join('') + `<tr class="total-row"><td><strong>Total</strong></td>${totalCells}</tr>`;
 
     note.innerHTML = `Forecast Orders = weighted average of that weekday's historical order count across T-2/T-1/current month (weights above, auto-renormalized over whichever months have data). `
-      + `Courier/Driver default to the historical split observed in ${monthLbl(cur)}'s manpower data, sized to hit each district's Target Productivity; typing a Manual Courier/Driver count above overrides that district's plan and the Productivity cell shows what your plan actually achieves vs. target (green = above target, red = below). Districts hidden via the chips above are excluded from the Total row.`;
+      + `Courier/Driver default to the historical split observed in ${monthLbl(cur)}'s manpower data, sized to hit each district's Target Productivity; typing a Manual Courier/Driver count above overrides that district's plan and the Productivity cell shows what your plan actually achieves vs. target (green = above target, red = below). Districts hidden via the chips above are excluded from the Total row. `
+      + `Auto staffing rounds the TOTAL headcount up first (never a fractional person), then splits it courier/driver by ratio; if that rounding drops achieved productivity below target, one seat is pulled back out of the total (never below 1 person) so the plan lands at or above target. Manual counts are simply rounded up as typed.`;
   }
 
   function fcSetupListeners(){
