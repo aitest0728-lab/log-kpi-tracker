@@ -99,7 +99,10 @@
           "WTX": 11.28
         }
       },
-      "asOf": "2026-09-15"
+      "asOf": "2026-09-15",
+      "target": {
+        "overall": 4.0
+      }
     },
     "poorRating": {
       "actual": {
@@ -132,7 +135,10 @@
           "WTX": 4.41
         }
       },
-      "asOf": "2026-09-15"
+      "asOf": "2026-09-15",
+      "target": {
+        "overall": 0.07
+      }
     },
     "missingLostAmount": {
       "actual": {
@@ -165,7 +171,22 @@
           "WTX": 60900.0
         }
       },
-      "asOf": "2026-09-15"
+      "asOf": "2026-09-15",
+      "target": {
+        "overall": 400000,
+        "districts": {
+          "ETH": 41543.52,
+          "ETK": 39507.93,
+          "ETX": 36261.54,
+          "NT-ST": 35860.28,
+          "NT-TM": 35457.72,
+          "NT-TSM": 39123.05,
+          "NT-TW": 36312.45,
+          "WTH": 48711.29,
+          "WTK": 31378.04,
+          "WTX": 33844.18
+        }
+      }
     },
     "rfidMissingTote": {
       "actual": {
@@ -199,7 +220,22 @@
         }
       },
       "asOf": "2026-09-15",
-      "monthKey": "2026-09"
+      "monthKey": "2026-09",
+      "target": {
+        "overall": 146,
+        "districts": {
+          "ETH": 16,
+          "ETK": 15,
+          "ETX": 14,
+          "NT-ST": 14,
+          "NT-TM": 14,
+          "NT-TSM": 15,
+          "NT-TW": 14,
+          "WTH": 19,
+          "WTK": 12,
+          "WTX": 13
+        }
+      }
     },
     "gmv": {
       "actual": {

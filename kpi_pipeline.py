@@ -248,6 +248,36 @@ DISTRICTS = ["ETH", "ETK", "ETX", "NT-ST", "NT-TM", "NT-TSM", "NT-TW", "WTH", "W
 DISTRICT_MATCH_ORDER = sorted(DISTRICTS + ["NT-YT"], key=len, reverse=True)
 MONTH_RE = re.compile(r"^\d{4}年\d{1,2}月$")
 
+# =============================================================================
+# Business targets, per Target__Other_Aspects_.xlsx (received 2026-09-15).
+# Each matrix's "target" block is written into data.json alongside "actual"/
+# "forecast" so the dashboard's getTargetOverall()/getTargetForDistrict() pick
+# it up automatically (see index.html) instead of falling back to the
+# placeholder flat number in the page's MATRICES config.
+#
+# NOTE: the source workbook only gave per-district ceilings for Missing &
+# Lost Amount and RFID Missing Tote; Customer Rating (Poor Rating %) and
+# (MTD) Delay Rate were confirmed as flat, network-wide targets (no
+# per-district breakdown) rather than per-district ceilings.
+# =============================================================================
+DELAY_RATE_TARGET = {"overall": 4.0}     # MTD Delay Rate target, confirmed flat (no per-district split)
+POOR_RATING_TARGET = {"overall": 0.07}   # Customer Rating (Poor Rating %) target, confirmed flat (no per-district split)
+MISSING_LOST_TARGETS = {  # "<=" row, Missing & Lost sheet
+    "overall": 400000,
+    "districts": {
+        "ETH": 41543.52, "ETK": 39507.93, "ETX": 36261.54, "NT-ST": 35860.28,
+        "NT-TM": 35457.72, "NT-TSM": 39123.05, "NT-TW": 36312.45, "WTH": 48711.29,
+        "WTK": 31378.04, "WTX": 33844.18,
+    },
+}
+RFID_TOTE_TARGETS = {  # "<=" row, RFID Tote sheet
+    "overall": 146,
+    "districts": {
+        "ETH": 16, "ETK": 15, "ETX": 14, "NT-ST": 14, "NT-TM": 14,
+        "NT-TSM": 15, "NT-TW": 14, "WTH": 19, "WTK": 12, "WTX": 13,
+    },
+}
+
 
 # =============================================================================
 # 2. 共用 Helper 函數
@@ -2375,6 +2405,7 @@ def run_section_tableau():
     matrices["delayRate"] = {
         "actual": {"overall": mtd_overall_delay, "districts": {d: zone_type["overall"].get(d) for d in DISTRICTS}},
         "forecast": {"overall": delay_fc_overall, "districts": delay_fc_districts},
+        "target": DELAY_RATE_TARGET,
         "asOf": today.isoformat(),
     }
     # v4.0 §4 — feeds the Overview tab's district-cell Residential:/Commercial:/
@@ -2428,6 +2459,7 @@ def run_section_tableau():
     matrices["poorRating"] = {
         "actual": poor,
         "forecast": {"overall": poor_fc_overall, "districts": poor_fc_districts},
+        "target": POOR_RATING_TARGET,
         "asOf": today.isoformat(),
     }
 
@@ -2442,6 +2474,7 @@ def run_section_tableau():
             "overall": prorate_forecast(missing_lost["overall"], today.day, total_days),
             "districts": {d: prorate_forecast(missing_lost["districts"][d], today.day, total_days) for d in DISTRICTS},
         },
+        "target": MISSING_LOST_TARGETS,
         "asOf": today.isoformat(),
     }
     # v4.0 §4 — daily log feeding "Other Aspects Tracking"'s monthly rollup
@@ -2489,6 +2522,7 @@ def run_section_tableau():
             "overall": prorate_forecast(bucket["overall"], today.day, total_days),
             "districts": {d: prorate_forecast(bucket["districts"][d], today.day, total_days) for d in DISTRICTS},
         },
+        "target": RFID_TOTE_TARGETS,
         "asOf": today.isoformat(),
         "monthKey": month_key,
     }

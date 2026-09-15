@@ -893,18 +893,24 @@
      (HKTV Staff, ODS Ratio) — so 6 keys total, matching data.json's
      `matrices` object and kpi_pipeline.py's output exactly.
 
-     TODO: none of these `target` values were specified in the brief — they
-     are placeholders so the status chips/bars have something to compare
-     against. Edit them to your real thresholds before relying on the
-     good/warn/bad coloring.
+     TODO: hktvStaff/odsRatio `target` values below are still placeholders —
+     they weren't specified in the brief. delayRate, poorRating,
+     missingLostAmount and rfidMissingTote now use the real thresholds from
+     Target__Other_Aspects_.xlsx as their flat fallback; missingLostAmount
+     and rfidMissingTote additionally get real per-district ceilings from
+     that file via data.json's per-matrix `target.districts` block (written
+     by kpi_pipeline.py's MISSING_LOST_TARGETS / RFID_TOTE_TARGETS), which
+     takes priority over the flat number here — see getTargetForDistrict()
+     below. delayRate/poorRating were confirmed as flat, network-wide targets
+     with no per-district split.
   ========================================================================== */
   const MATRICES = [
     { key:'hktvStaff',        section:'productivity', label:'HKTV Staff Productivity',  unit:'#',  target:24,     better:'high', fmt:v=>v==null?'—':v.toFixed(2), forecastLabel:'Monthly Average' },
     { key:'odsRatio',         section:'productivity', label:'ODS / VAN Productivity',   unit:'#',  target:19,     better:'high', fmt:v=>v==null?'—':v.toFixed(2) },
-    { key:'delayRate',        section:'tableau',      label:'Delay Rate',               unit:'%',  target:5,      better:'low',  fmt:v=>v==null?'—':v.toFixed(2)+'%', forecastLabel:'Monthly Average' },
-    { key:'poorRating',       section:'tableau',      label:'Poor Rating %',            unit:'%',  target:3,      better:'low',  fmt:v=>v==null?'—':v.toFixed(1)+'%', forecastLabel:'Monthly Average' },
-    { key:'missingLostAmount',section:'tableau',      label:'Missing & Lost Amount',    unit:'$',  target:250000, better:'low',  fmt:v=>v==null?'—':'$'+Math.round(v).toLocaleString() },
-    { key:'rfidMissingTote',  section:'tableau',      label:'RFID Missing Tote',        unit:'#',  target:500,    better:'low',  fmt:v=>v==null?'—':Math.round(v).toLocaleString() },
+    { key:'delayRate',        section:'tableau',      label:'Delay Rate',               unit:'%',  target:4.0,    better:'low',  fmt:v=>v==null?'—':v.toFixed(2)+'%', forecastLabel:'Monthly Average' },
+    { key:'poorRating',       section:'tableau',      label:'Poor Rating %',            unit:'%',  target:0.07,   better:'low',  fmt:v=>v==null?'—':v.toFixed(1)+'%', forecastLabel:'Monthly Average' },
+    { key:'missingLostAmount',section:'tableau',      label:'Missing & Lost Amount',    unit:'$',  target:400000, better:'low',  fmt:v=>v==null?'—':'$'+Math.round(v).toLocaleString() },
+    { key:'rfidMissingTote',  section:'tableau',      label:'RFID Missing Tote',        unit:'#',  target:146,    better:'low',  fmt:v=>v==null?'—':Math.round(v).toLocaleString() },
   ];
   const RFID_KEY = 'rfidMissingTote';
   // Overview shows every matrix except ODS/VAN, which has its own dedicated tab.
