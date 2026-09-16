@@ -80,12 +80,16 @@
   .view-toggle button.on{background:var(--ink);color:#fff;}
 
   /* KPI cards */
-  .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:32px;}
-  .kpi-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px 14px;box-shadow:var(--shadow);cursor:pointer;transition:border-color .15s,transform .15s;}
+  /* v5.0 §1 — Overview has exactly 5 KPI cells (OVERVIEW_MATRICES); tightened
+     the gap and per-card padding so all 5 sit in one row on a normal desktop
+     width instead of wrapping to a 3+2 layout. Falls back to narrower grids
+     (below) as the viewport shrinks rather than ever overflowing. */
+  .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:32px;}
+  .kpi-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;box-shadow:var(--shadow);cursor:pointer;transition:border-color .15s,transform .15s;min-width:0;}
   .kpi-card:hover{border-color:#c7d0da;}
   .kpi-card.selected{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink), var(--shadow);}
   .kpi-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
-  .kpi-label{font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:.01em;line-height:1.3;max-width:76%;}
+  .kpi-label{font-size:11.5px;font-weight:600;color:var(--text-muted);letter-spacing:.01em;line-height:1.3;max-width:76%;}
   .status-chip{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap;}
   .status-good{background:var(--green-soft);color:var(--green);}
   .status-warn{background:var(--amber-soft);color:#9c6a1c;}
@@ -117,6 +121,14 @@
   .table-wrap .scroll-hint{position:absolute;top:8px;right:8px;background:var(--amber);color:var(--ink);font-family:'IBM Plex Mono';font-weight:700;font-size:9.5px;letter-spacing:.03em;padding:3px 9px;border-radius:20px;opacity:0;transition:opacity .15s;pointer-events:none;z-index:7;box-shadow:0 2px 6px rgba(16,24,38,.3);}
   .table-wrap.has-overflow .scroll-fade,.table-wrap.has-overflow .scroll-hint{opacity:1;}
   .table-scroll{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto;}
+  /* Delay % — click-to-expand daily row (v5.0 §1) */
+  #delayTable tbody tr.delay-row-expandable{cursor:pointer;}
+  #delayTable tbody tr.delay-row-expandable:hover td{background:#f2f4f7;}
+  #delayTable tbody tr.delay-row-open td{background:#eef0f3;}
+  .delay-caret{display:inline-block;margin-right:6px;font-size:9px;color:var(--text-muted);transition:transform .12s;}
+  .delay-caret.open{transform:rotate(90deg);}
+  #delayTable tbody tr.delay-subrow td{background:#fafbfc;color:var(--text-muted);font-size:12.5px;}
+  #delayTable tbody tr.delay-subrow td.delay-subrow-label{padding-left:28px;font-weight:600;color:var(--text);}
   table{border-collapse:collapse;width:100%;}
   thead th{position:sticky;top:0;background:var(--ink);color:var(--text-inverse-muted);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;text-align:right;padding:10px 12px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;border-left:1px solid rgba(255,255,255,.08);}
   thead th:first-child{text-align:left;position:sticky;left:0;z-index:2;border-left:none;}
@@ -275,7 +287,7 @@
      more than one sub-metric per period, per the v3.0 layout spec. */
   td.kpi-cell3{cursor:default;min-width:200px;vertical-align:top;}
   .prod-cell3{display:flex;flex-direction:column;gap:5px;padding:8px 8px;min-height:72px;}
-  .prod-cell3 .pc-row{display:grid;grid-template-columns:64px 1fr 1fr 42px;column-gap:6px;align-items:center;}
+  .prod-cell3 .pc-row{display:grid;grid-template-columns:76px 1fr 1fr 42px;column-gap:6px;align-items:center;}
   .prod-cell3 .pc-label{font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .prod-cell3 .pc-a{font-family:'IBM Plex Mono';font-size:11px;color:var(--text-muted);text-align:right;}
   .prod-cell3 .pc-b{font-family:'IBM Plex Mono';font-size:12.5px;font-weight:700;color:var(--text);text-align:right;}
@@ -298,10 +310,28 @@
   .fc-weight-sum{font-size:11px;font-family:'IBM Plex Mono';padding:8px 10px;border-radius:8px;align-self:flex-end;}
   .fc-weight-sum.ok{background:var(--green-soft);color:var(--green);}
   .fc-weight-sum.bad{background:var(--red-soft);color:var(--red);}
-  .fc-districts{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 18px;}
-  .fc-chip{font-family:'Inter';font-size:12px;font-weight:600;padding:7px 13px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--text-muted);cursor:pointer;}
-  .fc-chip.on{background:var(--ink);color:var(--text-inverse);border-color:var(--ink);}
-  .fc-chip.all{border-style:dashed;}
+  /* v5.0 §1 — District filter is now a dropdown with checkboxes (replacing
+     the old row of click-toggle chips), so multiple districts can be picked
+     from one compact control instead of a full row of pills. */
+  .fc-districts{position:relative;display:inline-block;margin:4px 0 18px;}
+  .fc-dd-toggle{font-family:'Inter';font-size:12.5px;font-weight:600;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;min-width:220px;justify-content:space-between;}
+  .fc-dd-toggle:hover{border-color:#c7d0da;}
+  .fc-dd-toggle .care{font-size:9px;color:var(--text-muted);transition:transform .12s;}
+  .fc-districts.open .fc-dd-toggle .care{transform:rotate(180deg);}
+  .fc-dd-panel{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,38,.14);padding:6px;min-width:240px;max-height:280px;overflow-y:auto;}
+  .fc-districts.open .fc-dd-panel{display:block;}
+  .fc-dd-option{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;font-size:12.5px;font-weight:500;color:var(--text);cursor:pointer;user-select:none;}
+  .fc-dd-option:hover{background:#f2f4f7;}
+  .fc-dd-option input{margin:0;}
+  .fc-dd-option.fc-dd-all{border-bottom:1px solid var(--line);margin-bottom:4px;padding-bottom:9px;font-weight:700;}
+  /* v5.0 §2 — Cost Planning input portal */
+  .fc-cost-portal{border:1px dashed var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:22px;background:#fbfbfc;}
+  .fc-cost-head{align-items:flex-start;margin-bottom:0;}
+  .cost-portal-toggle{font-family:'Inter';font-size:12px;font-weight:700;padding:7px 14px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;white-space:nowrap;}
+  .cost-portal-toggle:hover{border-color:#c7d0da;}
+  .fc-cost-body{margin-top:16px;}
+  .cost-sub-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);margin:18px 0 8px;}
+  .cost-sub-label:first-child{margin-top:0;}
   .fc-plan-wrap{margin-bottom:20px;}
   #fcPlanTable{border-collapse:collapse;width:100%;}
   #fcPlanTable thead th{background:var(--ink);color:var(--text-inverse-muted);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;text-align:left;padding:9px 10px;font-weight:600;white-space:nowrap;}
@@ -389,13 +419,13 @@
       <div class="rail-icon" title="Productivity Detail" data-view="productivity">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>
       </div>
-      <div class="rail-icon" title="Staff Forecast" data-view="forecast">
+      <div class="rail-icon" title="Full Perspective Forecast" data-view="forecast">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
       </div>
       <div class="rail-icon" title="GMV / Basket Size" data-view="gmv">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 1.1-3 2.5S10.3 12 12 12s3 1.1 3 2.5-1.3 2.5-3 2.5-3-1.1-3-2.5"/><path d="M12 5.5v1M12 17.5v1"/></svg>
       </div>
-      <div class="rail-icon" title="HKTV Manpower Distribution" data-view="manpower">
+      <div class="rail-icon" title="Manpower Distribution" data-view="manpower">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3"/><path d="M2 21v-2a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v2"/><circle cx="18" cy="9" r="2.3"/><path d="M15.5 21v-1.6a4 4 0 0 1 4-4h.3a4 4 0 0 1 3.2 1.6"/></svg>
       </div>
       <div class="rail-icon" title="Delay %" data-view="delay">
@@ -435,9 +465,9 @@
       <button class="main-tab active" data-target="view-overview">Overview</button>
       <button class="main-tab" data-target="view-ods">ODS / HKTV Order Ratio</button>
       <button class="main-tab" data-target="view-productivity">Productivity Detail</button>
-      <button class="main-tab" data-target="view-forecast">Staff Forecast</button>
+      <button class="main-tab" data-target="view-forecast">Full Perspective Forecast</button>
       <button class="main-tab" data-target="view-gmv">GMV / Basket Size</button>
-      <button class="main-tab" data-target="view-manpower">HKTV Manpower Distribution</button>
+      <button class="main-tab" data-target="view-manpower">Manpower Distribution</button>
       <button class="main-tab" data-target="view-delay">Delay %</button>
       <button class="main-tab" data-target="view-otherAspects">Other Aspects Tracking</button>
     </nav>
@@ -624,7 +654,7 @@
       <div class="view" id="view-forecast">
         <div class="section-head">
           <div>
-            <h2>Staff Forecast</h2>
+            <h2>Full Perspective Forecast</h2>
             <div class="sub">Weighted order forecast → suggested Courier/Driver headcount → productivity vs. target, editable per district</div>
           </div>
         </div>
@@ -663,6 +693,84 @@
 
         <div class="prod-legend" id="fcLegend"></div>
         <div class="prod-summary" id="fcSummary"></div>
+
+        <!-- COST PLANNING PORTAL — v5.0 §2. The patch calls for Cost as a
+             major forecast perspective (Fixed Cost per district, Variable
+             Cost from staff salaries/tunnel fee, ODS user/order count inputs,
+             and ODS Blended Cost per Order split first-point/non-first-point).
+             Since the real figures aren't finalized yet, this section is an
+             INPUT-ONLY portal: it captures every figure the full cost
+             calculation will need (into COST_STATE, kept for this session)
+             so Finance/Ops can start entering numbers now, without
+             pretending to already compute Cost/Order from them — that's why
+             Productivity Detail's Cost/Order column still shows "Pending"
+             regardless of what's typed in here. Wiring this portal's numbers
+             into an actual Cost/Order calculation is the next step once the
+             figures below are real. -->
+        <div class="fc-cost-portal">
+          <div class="section-head fc-cost-head">
+            <div>
+              <h3 class="prod-detail-label" style="margin:0;">Cost Planning (input portal — not yet calculated)</h3>
+              <div class="sub">Enter Fixed Cost, Variable Cost and ODS Blended Cost figures here as they're finalized. Nothing below feeds Cost/Order yet — it's a staging area for the numbers the full cost logic will need.</div>
+            </div>
+            <button type="button" class="cost-portal-toggle" id="costPortalToggle">Show ▾</button>
+          </div>
+
+          <div class="fc-cost-body" id="fcCostBody" style="display:none;">
+            <h4 class="cost-sub-label">Fixed Cost — Monthly Plan per District</h4>
+            <div class="fc-plan-wrap table-wrap">
+              <div class="table-scroll">
+                <table id="costFixedTable">
+                  <thead><tr><th>District</th><th>Fixed Cost / Month ($)</th></tr></thead>
+                  <tbody id="costFixedTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <h4 class="cost-sub-label">Variable Cost — Staff Salary &amp; Tunnel Fee</h4>
+            <div class="prod-controls">
+              <div class="prod-field">
+                <label for="costCourierRate">Courier Salary / Day ($)</label>
+                <input type="number" id="costCourierRate" min="0" step="1" placeholder="e.g. 800">
+              </div>
+              <div class="prod-field">
+                <label for="costDriverRate">Driver Salary / Day ($)</label>
+                <input type="number" id="costDriverRate" min="0" step="1" placeholder="e.g. 900">
+              </div>
+              <div class="prod-field">
+                <label for="costTunnelFee">Tunnel Fee / Vehicle / Day ($)</label>
+                <input type="number" id="costTunnelFee" min="0" step="1" placeholder="e.g. 60">
+              </div>
+            </div>
+
+            <h4 class="cost-sub-label">ODS Inputs</h4>
+            <div class="prod-controls">
+              <div class="prod-field">
+                <label for="costOdsUserCount">ODS User Count</label>
+                <input type="number" id="costOdsUserCount" min="0" step="1" placeholder="overall">
+              </div>
+              <div class="prod-field">
+                <label for="costOdsOrderCount">ODS Order Count</label>
+                <input type="number" id="costOdsOrderCount" min="0" step="1" placeholder="overall">
+              </div>
+              <div class="prod-field">
+                <label for="costOdsFirstPointRatio">ODS First-Point Ratio (%)</label>
+                <input type="number" id="costOdsFirstPointRatio" min="0" max="100" step="0.1" placeholder="e.g. 62.5">
+              </div>
+            </div>
+
+            <h4 class="cost-sub-label">ODS Blended Cost per Order — per District</h4>
+            <div class="fc-plan-wrap table-wrap">
+              <div class="table-scroll">
+                <table id="costOdsTable">
+                  <thead><tr><th>District</th><th>First-Point Cost / Order ($)</th><th>Non-First-Point Cost / Order ($)</th></tr></thead>
+                  <tbody id="costOdsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="prod-note">These inputs mirror the "ODS Blended Cost per Order" reference file. Once Finance confirms every figure above, the Full Calculation Logics of Cost (fixed + variable + ODS-blended, per the patch note) can be wired in to replace Productivity Detail's "Pending" Cost/Order cells with real values.</div>
+          </div>
+        </div>
 
         <h3 class="prod-detail-label">Weekly Forecast Plan</h3>
         <div class="table-wrap">
@@ -732,8 +840,8 @@
       <div class="view" id="view-manpower">
         <div class="section-head">
           <div>
-            <h2>HKTV Manpower Distribution</h2>
-            <div class="sub">Distinct HKTV staff headcount by district · Courier vs Driver, from the latest Staff List</div>
+            <h2>Manpower Distribution</h2>
+            <div class="sub">Distinct staff headcount by district · Courier / Driver / ODS / VAN, from the latest Staff List</div>
           </div>
         </div>
         <div class="prod-controls">
@@ -742,6 +850,7 @@
             <select id="mpGroupSelect">
               <option value="courier">Courier</option>
               <option value="driver">Driver</option>
+              <option value="odsVan">ODS / VAN</option>
             </select>
           </div>
           <div class="prod-field">
@@ -776,8 +885,10 @@
           <div class="scroll-hint">scroll →</div>
         </div>
         <div class="prod-note" id="mpNote">
-          Headcount = distinct HKTV (LF/LP) staff active that day whose Position (from the latest Staff List)
-          falls in the selected group. Team leads / supervisors / managers are never counted here.
+          Courier / Driver = distinct HKTV (LF/LP) staff active that day whose Position (from the latest Staff List)
+          falls in the selected group; team leads / supervisors / managers are never counted here. ODS / VAN =
+          distinct staff whose Staff Code starts with ODS or VAN that day, counted per district the same way as
+          the ODS / VAN Productivity tab.
         </div>
       </div>
 
@@ -946,6 +1057,7 @@
   let currentView = 'actual';   // which value (actual|forecast) drives ranking/sort
   let sortKey = null, sortDir = 1;
   let selectedKpi = null;
+  const delayExpandedDates = new Set(); // v5.0 §1 — Delay % dates expanded to show all 4 timeslots
   let searchTerm = '';
 
   /* ---------------- READ HELPERS ----------------
@@ -1704,12 +1816,12 @@
      per v3.0 §1's sample table. `rows` = [{label, a, b, fmt}], in display
      order; the LAST row is treated as the "primary" metric (Productivity,
      or Order Ratio) and its delta drives the cell's heat tint. */
-  function comparisonCell(rows){
-    const primaryDelta = deltaInfo(rows[rows.length-1].a, rows[rows.length-1].b);
+  function comparisonCell(rows, primaryIndex = rows.length-1){
+    const primaryDelta = deltaInfo(rows[primaryIndex].a, rows[primaryIndex].b);
     const heatCls = primaryDelta.cls==='delta-up' ? 'heat-up' : primaryDelta.cls==='delta-down' ? 'heat-down' : '';
     const rowsHtml = rows.map((r,i)=>{
       const d = deltaInfo(r.a, r.b);
-      return `<div class="pc-row${i===rows.length-1?' pc-primary':''}">
+      return `<div class="pc-row${i===primaryIndex?' pc-primary':''}">
         <span class="pc-label">${r.label}</span>
         <span class="pc-a">${r.fmt(r.a)}</span>
         <span class="pc-b">${r.fmt(r.b)}</span>
@@ -1737,6 +1849,65 @@
     manualCourier: {},                                // district -> override number (else auto split)
     manualDriver: {},
   };
+  let fcDistrictDropdownOpen = false; // v5.0 §1 — open/closed state of the district dropdown panel
+
+  // v5.0 §2 — Cost Planning input portal state. Purely a staging area for
+  // figures Finance/Ops will type in as they're finalized; nothing here
+  // feeds a calculation yet (see the portal's note in the markup above).
+  // Kept in-memory for this session only — no persistence layer exists yet.
+  const COST_STATE = {
+    fixedCostByDistrict: {},        // district -> monthly fixed cost ($)
+    courierRate: '', driverRate: '', tunnelFee: '',
+    odsUserCount: '', odsOrderCount: '', odsFirstPointRatio: '',
+    odsFirstPointCostByDistrict: {},     // district -> $/order
+    odsNonFirstPointCostByDistrict: {},  // district -> $/order
+  };
+  function fcRenderCostPortal(){
+    const fixedBody = document.getElementById('costFixedTableBody');
+    const odsBody = document.getElementById('costOdsTableBody');
+    if(!fixedBody || !odsBody) return; // markup not present (shouldn't happen, but stay defensive)
+    fixedBody.innerHTML = DISTRICTS.map(d=>`
+      <tr data-d="${d}">
+        <td>${d}</td>
+        <td><input type="number" min="0" step="1" class="cost-in-fixed" data-d="${d}" placeholder="0" value="${COST_STATE.fixedCostByDistrict[d] ?? ''}"></td>
+      </tr>`).join('');
+    odsBody.innerHTML = DISTRICTS.map(d=>`
+      <tr data-d="${d}">
+        <td>${d}</td>
+        <td><input type="number" min="0" step="0.01" class="cost-in-fp" data-d="${d}" placeholder="0.00" value="${COST_STATE.odsFirstPointCostByDistrict[d] ?? ''}"></td>
+        <td><input type="number" min="0" step="0.01" class="cost-in-nfp" data-d="${d}" placeholder="0.00" value="${COST_STATE.odsNonFirstPointCostByDistrict[d] ?? ''}"></td>
+      </tr>`).join('');
+  }
+  function fcSetupCostPortalListeners(){
+    const toggleBtn = document.getElementById('costPortalToggle');
+    const bodyEl = document.getElementById('fcCostBody');
+    if(toggleBtn && bodyEl){
+      toggleBtn.addEventListener('click', ()=>{
+        const nowOpen = bodyEl.style.display === 'none';
+        bodyEl.style.display = nowOpen ? '' : 'none';
+        toggleBtn.textContent = nowOpen ? 'Hide ▴' : 'Show ▾';
+      });
+    }
+    ['costCourierRate','costDriverRate','costTunnelFee','costOdsUserCount','costOdsOrderCount','costOdsFirstPointRatio'].forEach(id=>{
+      const el = document.getElementById(id); if(!el) return;
+      el.addEventListener('change', ()=>{
+        const map = { costCourierRate:'courierRate', costDriverRate:'driverRate', costTunnelFee:'tunnelFee',
+          costOdsUserCount:'odsUserCount', costOdsOrderCount:'odsOrderCount', costOdsFirstPointRatio:'odsFirstPointRatio' };
+        COST_STATE[map[id]] = el.value;
+      });
+    });
+    const fixedBody = document.getElementById('costFixedTableBody');
+    if(fixedBody) fixedBody.addEventListener('change', e=>{
+      const inp = e.target.closest('.cost-in-fixed'); if(!inp) return;
+      COST_STATE.fixedCostByDistrict[inp.dataset.d] = inp.value;
+    });
+    const odsBody = document.getElementById('costOdsTableBody');
+    if(odsBody) odsBody.addEventListener('change', e=>{
+      const inp = e.target; const d = inp.dataset.d; if(!d) return;
+      if(inp.classList.contains('cost-in-fp')) COST_STATE.odsFirstPointCostByDistrict[d] = inp.value;
+      else if(inp.classList.contains('cost-in-nfp')) COST_STATE.odsNonFirstPointCostByDistrict[d] = inp.value;
+    });
+  }
 
   // Sorted 'YYYY-MM' keys actually present in the productivity log.
   function fcAvailableMonths(){
@@ -1895,8 +2066,21 @@
   function fcRenderChips(){
     const wrap = document.getElementById('fcDistrictChips');
     const allOn = FC_STATE.districts.size === DISTRICTS.length;
-    wrap.innerHTML = `<button class="fc-chip all ${allOn?'on':''}" data-d="__all__">All Districts</button>`
-      + DISTRICTS.map(d=>`<button class="fc-chip ${FC_STATE.districts.has(d)?'on':''}" data-d="${d}">${d}</button>`).join('');
+    const n = FC_STATE.districts.size;
+    const label = allOn ? 'All Districts'
+      : n === 0 ? 'No districts selected'
+      : n <= 2 ? DISTRICTS.filter(d=>FC_STATE.districts.has(d)).join(', ')
+      : `${n} districts selected`;
+    wrap.classList.toggle('open', fcDistrictDropdownOpen);
+    wrap.innerHTML = `
+      <button type="button" class="fc-dd-toggle" id="fcDdToggle">
+        <span id="fcDdLabel">${label}</span>
+        <span class="care">▾</span>
+      </button>
+      <div class="fc-dd-panel" id="fcDdPanel">
+        <label class="fc-dd-option fc-dd-all"><input type="checkbox" data-d="__all__" ${allOn?'checked':''}> All Districts</label>
+        ${DISTRICTS.map(d=>`<label class="fc-dd-option"><input type="checkbox" data-d="${d}" ${FC_STATE.districts.has(d)?'checked':''}> ${d}</label>`).join('')}
+      </div>`;
   }
   function fcRenderPlanTable(){
     const body = document.getElementById('fcPlanTableBody');
@@ -2010,11 +2194,32 @@
       document.getElementById(id).addEventListener('change', ()=>{ renderForecastTab(); updateScrollHints(); });
     });
     document.getElementById('fcDistrictChips').addEventListener('click', e=>{
-      const btn = e.target.closest('.fc-chip'); if(!btn) return;
-      if(btn.dataset.d === '__all__'){ DISTRICTS.forEach(d=>FC_STATE.districts.add(d)); }
-      else if(FC_STATE.districts.has(btn.dataset.d)) FC_STATE.districts.delete(btn.dataset.d);
-      else FC_STATE.districts.add(btn.dataset.d);
+      if(e.target.closest('#fcDdToggle')){
+        // Stop this click from also reaching the document-level "click
+        // outside closes it" listener below — fcRenderChips() replaces this
+        // button's DOM node synchronously, so by the time that listener ran
+        // it would see the (now-detached) original target and wrongly
+        // conclude the click landed outside the dropdown, closing it again
+        // in the same tick.
+        e.stopPropagation();
+        fcDistrictDropdownOpen = !fcDistrictDropdownOpen;
+        fcRenderChips();
+      }
+    });
+    document.getElementById('fcDistrictChips').addEventListener('change', e=>{
+      const cb = e.target.closest('input[type=checkbox]'); if(!cb) return;
+      if(cb.dataset.d === '__all__'){
+        if(cb.checked) DISTRICTS.forEach(d=>FC_STATE.districts.add(d));
+        else FC_STATE.districts.clear();
+      } else if(cb.checked) FC_STATE.districts.add(cb.dataset.d);
+      else FC_STATE.districts.delete(cb.dataset.d);
       renderForecastTab(); updateScrollHints();
+    });
+    // Clicking outside the dropdown closes it without touching the selection.
+    document.addEventListener('click', e=>{
+      if(!fcDistrictDropdownOpen) return;
+      const wrap = document.getElementById('fcDistrictChips');
+      if(wrap && !wrap.contains(e.target)){ fcDistrictDropdownOpen = false; fcRenderChips(); }
     });
     document.getElementById('fcPlanTableBody').addEventListener('change', e=>{
       const inp = e.target; const d = inp.dataset.d; if(!d) return;
@@ -2090,12 +2295,27 @@
         const mA = recA ? recA.manpower : null, mB = recB ? recB.manpower : null;
         const pA = (recA && recA.manpower) ? recA.orderCount/recA.manpower : null;
         const pB = (recB && recB.manpower) ? recB.orderCount/recB.manpower : null;
+        // v5.0 §1 — Waybill / Order = Total Waybill Count ÷ Total Order Count,
+        // computed straight from the same orderCount/waybillCount already in
+        // this record — no new data needed. Guarded with Number.isFinite
+        // because older/backfilled records can omit waybillCount entirely
+        // (undefined, not null), which would otherwise silently divide to
+        // NaN instead of falling back to "—" like every other missing value.
+        const woA = (oA && Number.isFinite(wA)) ? wA/oA : null;
+        const woB = (oB && Number.isFinite(wB)) ? wB/oB : null;
+        // v5.0 §2 — Cost / Order needs the Fixed + Variable cost plan from the
+        // Full Perspective Forecast tab's cost portal, which isn't populated
+        // with real figures yet (see the Cost Planning portal). Left as a
+        // placeholder in the layout until that data exists — never fabricated.
+        const coA = null, coB = null;
         const { heatCls, html } = comparisonCell([
           { label:'Order', a:oA, b:oB, fmt:intFmt },
           { label:'Waybill', a:wA, b:wB, fmt:intFmt },
           { label:'Manpower', a:mA, b:mB, fmt:intFmt },
+          { label:'WB/Order', a:woA, b:woB, fmt:v=>v==null?'—':v.toFixed(2) },
           { label:'Productivity', a:pA, b:pB, fmt:m.fmt },
-        ]);
+          { label:'Cost/Order', a:coA, b:coB, fmt:v=>v==null?'Pending':('$'+v.toFixed(2)) },
+        ], 4);
         return `<td class="kpi-cell3 ${heatCls}">${html}</td>`;
       }).join('');
       const rowLabel = d==='Total' ? '<strong>Total</strong>' : `${d}<span class="tgt">target ${m.fmt(target)}</span>`;
@@ -2103,9 +2323,9 @@
     }).join('');
 
     note.innerHTML = (granularity==='month'
-      ? 'Month view: each weekday cell averages that weekday across the whole month (e.g. August\'s Saturday column averages all 5 Saturdays) — Order, Waybill and Manpower are averaged first, then Productivity is derived from those averages. '
+      ? 'Month view: each weekday cell averages that weekday across the whole month (e.g. August\'s Saturday column averages all 5 Saturdays) — Order, Waybill and Manpower are averaged first, then Waybill/Order, Productivity and Cost/Order are derived from those averages. '
       : 'Week view: each weekday cell is that single day\'s value (Monday through Sunday). ')
-      + `Each cell shows Order, Waybill, Manpower and Productivity for ${labelA} vs ${labelB}, with the % change alongside each. Cell tint follows the Productivity change: green = up, red = down.`;
+      + `Each cell shows Order, Waybill, Manpower, Waybill/Order, Productivity and Cost/Order for ${labelA} vs ${labelB}, with the % change alongside each. Cost/Order shows "Pending" until the Cost Planning portal (Full Perspective Forecast tab) has real Fixed/Variable cost figures to calculate from. Cell tint follows the Productivity change: green = up, red = down.`;
   }
 
   function renderOdsRatioTab(){
@@ -2263,11 +2483,29 @@
       ...dailyKeys.map(k=>({ label:k, overall:DATA.delayDaily[k].overall, districts:DATA.delayDaily[k].districts, isMonth:false })),
       ...monthlyKeys.map(k=>({ label:k, overall:{[slot]:{delay:DATA.delayMonthly[k][slot]?.overall}}, districts:Object.fromEntries(DISTRICTS.map(d=>[d,{[slot]:{delay:DATA.delayMonthly[k][slot]?.districts[d]}}])), isMonth:true })),
     ];
+    // v5.0 §1 — in the Overall timeslot, a daily row can be clicked to expand
+    // into its own AM/PM/EV/EV2 breakdown (the day's data already carries all
+    // 4 slots — see DATA.delayDaily[k] above — this is purely a display
+    // toggle, no new data needed). Closed-month rows aren't clickable: their
+    // per-slot figures are already just a monthly average, not a richer
+    // underlying breakdown worth expanding.
+    const canExpand = slot === 'Overall';
     body.innerHTML = rows.map(r=>{
       const cells = DISTRICTS.map(d=>`<td>${pctFmt(r.districts[d] && r.districts[d][slot] && r.districts[d][slot].delay)}</td>`).join('');
-      const rowLabel = r.isMonth ? `<strong>${r.label}</strong>` : r.label;
       const total = r.overall[slot] && r.overall[slot].delay;
-      return `<tr class="${r.isMonth?'total-row':''}"><td>${rowLabel}</td>${cells}<td><strong>${pctFmt(total)}</strong></td></tr>`;
+      const expandable = canExpand && !r.isMonth;
+      const isOpen = expandable && delayExpandedDates.has(r.label);
+      const caret = expandable ? `<span class="delay-caret ${isOpen?'open':''}">▸</span>` : '';
+      const rowLabel = r.isMonth ? `<strong>${r.label}</strong>` : `${caret}${r.label}`;
+      const rowCls = [r.isMonth?'total-row':'', expandable?'delay-row-expandable':'', isOpen?'delay-row-open':''].filter(Boolean).join(' ');
+      const mainRow = `<tr class="${rowCls}" ${expandable?`data-date="${r.label}"`:''}><td>${rowLabel}</td>${cells}<td><strong>${pctFmt(total)}</strong></td></tr>`;
+      if(!isOpen) return mainRow;
+      const subRows = ['AM','PM','EV','EV2'].map(s=>{
+        const subCells = DISTRICTS.map(d=>`<td>${pctFmt(r.districts[d] && r.districts[d][s] && r.districts[d][s].delay)}</td>`).join('');
+        const subTotal = r.overall[s] && r.overall[s].delay;
+        return `<tr class="delay-subrow"><td class="delay-subrow-label">${s}</td>${subCells}<td>${pctFmt(subTotal)}</td></tr>`;
+      }).join('');
+      return mainRow + subRows;
     }).join('');
   }
 
@@ -2349,7 +2587,7 @@
     const labelFn = granularity==='week' ? weekLabel : monthLabel;
     const getRow = granularity==='week' ? mpGetWeekRow : mpGetMonthRow;
     const labelA = periodA ? labelFn(periodA) : 'Period A', labelB = periodB ? labelFn(periodB) : 'Period B';
-    const groupLabel = groupKey==='courier' ? 'Courier' : 'Driver';
+    const groupLabel = groupKey==='courier' ? 'Courier' : groupKey==='driver' ? 'Driver' : 'ODS / VAN';
 
     legend.innerHTML = `
       <span><i class="swatch" style="background:#8aa2bb"></i>Period A = ${labelA}</span>
@@ -2392,10 +2630,13 @@
       return `<tr class="${d==='Total'?'total-row':''}"><td>${rowLabel}</td>${cells}</tr>`;
     }).join('');
 
+    const exclusionNote = groupKey === 'odsVan'
+      ? 'Counted by Staff Code (ODS/VAN prefix), same classification as the ODS / VAN Productivity tab.'
+      : 'Team leads / supervisors / managers are never counted here.';
     note.innerHTML = (granularity==='month'
       ? `Month view: each weekday cell averages that weekday's ${groupLabel} headcount across the whole month. `
       : `Week view: each weekday cell is that single day's ${groupLabel} headcount. `)
-      + `Team leads / supervisors / managers are never counted here. Cell tint follows the headcount change: green = up, red = down.`;
+      + `${exclusionNote} Cell tint follows the headcount change: green = up, red = down.`;
   }
 
   /* ---------------- scroll affordance ----------------
@@ -2444,7 +2685,15 @@
     document.getElementById(id).addEventListener('change', ()=>{ renderManpowerTab(); updateScrollHints(); });
   });
   fcSetupListeners();
+  fcRenderCostPortal();
+  fcSetupCostPortalListeners();
   document.getElementById('delaySlotSelect').addEventListener('change', ()=>{ renderDelayTab(); updateScrollHints(); });
+  document.getElementById('delayTableBody').addEventListener('click', e=>{
+    const row = e.target.closest('.delay-row-expandable'); if(!row) return;
+    const date = row.dataset.date;
+    if(delayExpandedDates.has(date)) delayExpandedDates.delete(date); else delayExpandedDates.add(date);
+    renderDelayTab(); updateScrollHints();
+  });
   document.getElementById('otherMetricSelect').addEventListener('change', ()=>{ renderOtherAspectsTab(); updateScrollHints(); });
 
   /* ---------------- root render ---------------- */

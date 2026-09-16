@@ -1536,6 +1536,19 @@ def manpower_distribution_for_group(df, group_key):
     return {"districts": per_district, "total": total}
 
 
+def odsvan_manpower_group(ods_ratio_manpower):
+    """v5.0 §1 — reshapes manpower_for_group(df, ("ODS","VAN"))'s output
+    ({"overall","districts"}) into the same {"districts","total"} shape
+    manpower_distribution_for_group() returns for courier/driver, so the
+    HKTV Manpower Distribution tab's ODS/VAN group can be logged and read
+    identically to the Courier/Driver groups. Per the patch spec, this is
+    the SAME unique-Staff-code-starting-with-ODS/VAN count, by the SAME
+    Districts classification, already computed for the ODS / VAN
+    Productivity tab — just relabelled for this tab's log shape, not a
+    second computation."""
+    return {"districts": ods_ratio_manpower["districts"], "total": ods_ratio_manpower["overall"]}
+
+
 def save_manpower_staging(target_date, hktv_staff_manpower, ods_ratio_manpower, courier_group, driver_group,
                            ods_order_count, ods_waybill_count):
     """v4.0 §1 — 03:00 hand-off to the 14:00 job (see MANPOWER_STAGING_PATH):
@@ -1594,6 +1607,7 @@ def run_productivity_section():
     ods_ratio_manpower = manpower_for_group(df, ("ODS", "VAN"))
     courier_group = manpower_distribution_for_group(df, "courier")
     driver_group = manpower_distribution_for_group(df, "driver")
+    ods_van_group = odsvan_manpower_group(ods_ratio_manpower)  # v5.0 §1 — Manpower Distribution tab's 3rd group
 
     # v4.0.1 §2/§5 — ODS/VAN order count AND waybill count go back to being
     # computed straight from OIX (old-version logic), not derived from
@@ -1609,7 +1623,7 @@ def run_productivity_section():
     # v3.0 §4: HKTV Manpower Distribution — independent of order counts,
     # still written straight from the 03:00 run as before.
     history = load_history()
-    append_manpower_log(history, target_date.isoformat(), courier_group, driver_group)
+    append_manpower_log(history, target_date.isoformat(), courier_group, driver_group, ods_van_group)
     save_manpower_history(trimmed_manpower_distribution(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
     save_history(history)
     print("✅ Manpower 數據處理完成，已寫入 staging 檔案（Productivity 將於 14:00 Tableau job 完成）")
@@ -1670,11 +1684,19 @@ def trimmed_daily_productivity(history, keep_days):
     return {d: log[d] for d in recent_dates}
 
 
-def append_manpower_log(history, date_str, courier_group, driver_group):
+def append_manpower_log(history, date_str, courier_group, driver_group, ods_van_group=None):
     """v3.0 §4 — durable full log of daily HKTV Courier/Driver headcount,
-    same shape/role as append_daily_productivity_log() above."""
+    same shape/role as append_daily_productivity_log() above.
+    v5.0 §1 — optionally also logs that day's ODS/VAN headcount group
+    (odsvan_manpower_group()) alongside Courier/Driver, so the Manpower
+    Distribution tab can offer ODS/VAN as a third Group option. Optional
+    (defaults to None / omitted) so old callers and old log entries without
+    an ODS/VAN figure keep working unchanged."""
     log = history.setdefault("manpowerDistributionLog", {})
-    log[date_str] = {"courier": courier_group, "driver": driver_group}
+    entry = {"courier": courier_group, "driver": driver_group}
+    if ods_van_group is not None:
+        entry["odsVan"] = ods_van_group
+    log[date_str] = entry
 
 
 def trimmed_manpower_distribution(history, keep_days):
@@ -1807,8 +1829,13 @@ def backfill_productivity_log(history, target_date, position_map=None):
         append_history(history, "odsRatio", missing_date.isoformat(), ods_daily_overall, ods_daily_district)
 
         # HKTV Manpower Distribution tab — same gap, same fix, straight from OIX.
+        # v5.0 §1 — backfilled days also get the ODS/VAN group, same as the
+        # normal 03:00 run, so a recovered day isn't missing that group later.
         if missing_date.isoformat() not in manpower_log:
-            manpower_log[missing_date.isoformat()] = {"courier": courier_group, "driver": driver_group}
+            manpower_log[missing_date.isoformat()] = {
+                "courier": courier_group, "driver": driver_group,
+                "odsVan": odsvan_manpower_group(ods_manpower),
+            }
 
         filled.append(missing_date.isoformat())
 
