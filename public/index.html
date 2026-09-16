@@ -776,7 +776,7 @@
             <div class="fc-plan-wrap table-wrap">
               <div class="table-scroll">
                 <table id="costUnitTable">
-                  <thead><tr><th>District</th><th>FT Driver ($)</th><th>FT Courier ($)</th><th>PT Driver ($)</th><th>PT Courier ($)</th></tr></thead>
+                  <thead><tr><th>District</th><th>FT Driver ($/day)</th><th>FT Courier ($/day)</th><th>PT Driver ($/day)</th><th>PT Courier ($/day)</th></tr></thead>
                   <tbody id="costUnitTableBody"></tbody>
                 </table>
               </div>
@@ -786,10 +786,11 @@
             <div class="fc-plan-wrap table-wrap">
               <div class="table-scroll">
                 <table id="costOdsTable">
-                  <thead><tr><th>District</th><th>Overall First-Point Ratio (%)</th><th>First-Point Cost / Order ($)</th><th>Non-First-Point Cost / Order ($)</th><th>Blended Cost / Order ($)</th></tr></thead>
+                  <thead><tr><th>District</th><th>Overall First-Point Ratio (%)</th><th>First-Point Cost / Order ($)</th><th>Non-First-Point Cost / Order ($)</th><th>Blended Cost / Order ($)</th><th title="Cost of ONE more order handled in-house: the cheapest per-head Unit Cost for this district, ÷ Target Productivity. Not the same as the district's overall Cost/Order — this is the marginal cost of the NEXT order, i.e. what one more HKTV staff member costs, spread over the orders they're expected to clear at target.">Marginal HKTV Cost / Order ($)</th><th>Cheaper Channel (at the margin)</th></tr></thead>
                   <tbody id="costOdsTableBody"></tbody>
                 </table>
               </div>
+              <div class="prod-note">"Cheaper Channel" compares the cost of ONE more order via ODS (Blended Cost/Order) against ONE more order via HKTV Staff (cheapest per-head Unit Cost ÷ Target Productivity) — the marginal-cost comparison, not the district's overall Cost/Order. This is reference-only for now: it does not change the ODS/HKTV split the forecast uses (still the historical weighted average, see Weekly Forecast Plan) or feed into Suggest Headcount. Shifting the split itself would need an agreed cap on how much extra volume ODS can actually absorb per district — flag if one exists and this can be wired in as an adjustable override.</div>
             </div>
 
             <h4 class="cost-sub-label">Estimated Monthly Cost &amp; Cost/Order per District</h4>
@@ -801,7 +802,7 @@
                 </table>
               </div>
             </div>
-            <div class="prod-note">Fixed Cost is the finance-confirmed Provision Plan's DAILY rate (district totals only — the line-item breakdown isn't shown here) × the number of days in the forecast's current month; Variable — Staff Cost is the FT/PT headcount plan above × the Unit Cost table. Variable — ODS Cost and Est. Order Volume use the ODS Order Count above when entered (split across districts by historical ODS/VAN order share), otherwise fall back to the historical ODS order estimate. Est. Order Volume /mo ≈ the weekday Total Order forecasts (below) summed for one week × 4.345. Cost/Order below target is shaded green, above is red.</div>
+            <div class="prod-note">Fixed Cost is the finance-confirmed Provision Plan's DAILY rate (district totals only — the line-item breakdown isn't shown here) × the number of days in the forecast's current month; Variable — Staff Cost is the FT/PT headcount plan above × the Unit Cost table (also a DAILY per-head rate) × the same number of days. Variable — ODS Cost and Est. Order Volume use the ODS Order Count above when entered (split across districts by historical ODS/VAN order share), otherwise fall back to the historical ODS order estimate. Est. Order Volume /mo ≈ the weekday Total Order forecasts (below) summed for one week × 4.345. Cost/Order below target is shaded green, above is red.</div>
           </div>
         </div>
 
@@ -1915,8 +1916,10 @@
     'ETH':24159.14, 'ETK':24772.14, 'ETX':24847.14, 'NT-ST':23610.14, 'NT-TM':24607.14,
     'NT-TSM':25824.99, 'NT-TW':24152.14, 'WTH':26630.14, 'WTK':25503.34, 'WTX':24856.64
   };
-  // Variable Cost — Unit Cost per head per month, per district, from
+  // Variable Cost — Unit Cost per head per DAY, per district, from
   // Full_Cost_Planning.xlsx "Variable Cost - Unit Cost" (HKTV Staff section).
+  // Same daily-rate pattern as FIXED_COST_PROVISION below — any monthly
+  // total must multiply by fcCurrentMonthDays(), not read this dict raw.
   const UNIT_COST_STAFF = {
     'ETH':   { ftDriver:1639.27, ftCourier:1532.26, ptDriver:1724.37, ptCourier:2921.78 },
     'ETK':   { ftDriver:1567.92, ftCourier:1275.29, ptDriver:1630.42, ptCourier:1930.84 },
@@ -1950,6 +1953,20 @@
     const fpr = ODS_FIRST_POINT_RATIO[district]/100;
     const u = ODS_UNIT_COST[district];
     return fpr*u.firstPoint + (1-fpr)*u.nonFirstPoint;
+  }
+  // v10.0 §3 — marginal cost of ONE more order handled in-house: the
+  // cheapest available per-head Unit Cost for this district (whichever
+  // role/type is cheapest — matches how fcCheapestComboForTotal always
+  // fills the cheapest slot first), spread over the orders one staff
+  // member clears at Target Productivity. This is deliberately NOT the
+  // district's blended Cost/Order (that mixes in sunk Fixed Cost, which
+  // doesn't change with the ODS/HKTV split) — it's the cost of the NEXT
+  // order specifically, the number that should be compared against
+  // odsBlendedCostFor() to decide which channel is cheaper to grow.
+  function hktvMarginalCostFor(district){
+    const u = UNIT_COST_STAFF[district];
+    const cheapestUnitCost = Math.min(u.ftDriver, u.ftCourier, u.ptDriver, u.ptCourier);
+    return cheapestUnitCost / fcTargetProdFor(district);
   }
   // Final targets for both Cost/Order and Productivity (Order per Man-day),
   // per district + network Overall, from Full_Cost_Planning.xlsx "Target"
@@ -2024,9 +2041,13 @@
      "suggest" one person per district. That's not a real staffing plan, so
      the search is bounded to a REASONABLE headcount window instead of
      being left open-ended:
-       - Smax = floor(avg daily HKTV Orders ÷ Target Productivity) — the
-         most staff you can have before Productivity drops below target.
-         This is a hard ceiling; nothing above it can pass.
+       - Smax = floor(WORST-weekday HKTV Orders ÷ Target Productivity) — the
+         most staff you can have before Productivity drops below target on
+         that weekday. Headcount is flat across the week, so this has to be
+         sized off the lowest-volume day (not the weekly average, v10.0 §2)
+         or a below-average day would silently miss target even though the
+         week "passes" on average. This is a hard ceiling; nothing above it
+         can pass.
        - Smin = the fewest staff that keep achieved Productivity from
          overshooting target by more than the "Max Productivity Overdrive"
          input above (default 50%) — i.e. a team small enough to still be
@@ -2104,6 +2125,23 @@
     }
     return sum/7;
   }
+  // v10.0 §2 — the WEAKEST weekday's forecast HKTV volume (not the weekly
+  // average). Headcount is a single flat plan held across all 7 weekdays
+  // (fcHeadcountFor doesn't vary by weekday), so achieved Productivity on
+  // any given day is that day's hktvOrders ÷ the SAME staff total. Sizing
+  // Smax off the average (as fcAvgWeeklyHktvOrders alone did) only
+  // guarantees the target on an average day — a below-average day (a slow
+  // Sunday, say) can still miss target even though the week "passes on
+  // average". Returns {value, weekdayIdx} so callers can name the binding
+  // day in diagnostics.
+  function fcMinWeeklyHktvOrders(district){
+    let min = Infinity, minIdx = 0;
+    for(let i=0;i<7;i++){
+      const v = Math.max(0, fcForecastTotalOrdersAdjusted(district,i) - fcForecastOdsOrders(district,i));
+      if(v < min){ min = v; minIdx = i; }
+    }
+    return { value: min, weekdayIdx: minIdx };
+  }
   // Cheapest total variable-staff cost for a given total headcount S, split
   // Driver/Courier by fcCourierShareFor and FT/PT by whichever unit rate is
   // lower per role — then clamped against the district's Staff Allocation
@@ -2168,13 +2206,24 @@
     const cor = assignRole(courierCount, cap.ftCourier, cap.ptCourier, u.ftCourier, u.ptCourier);
 
     const combo = { ftDriver:drv.ft, ptDriver:drv.pt, ftCourier:cor.ft, ptCourier:cor.pt };
-    const variableStaff = combo.ftDriver*u.ftDriver + combo.ftCourier*u.ftCourier + combo.ptDriver*u.ptDriver + combo.ptCourier*u.ptCourier;
+    // v10.1 — UNIT_COST_STAFF is a per-head-per-DAY rate (matches how
+    // FIXED_COST_PROVISION works), not per-month as earlier assumed. A
+    // headcount held flat all month costs headcount × daily rate × the
+    // number of days in the forecast's current month — same scaling
+    // fcMonthlyFixedCostFor() already applies to Fixed Cost.
+    const days = fcCurrentMonthDays();
+    const variableStaff = (combo.ftDriver*u.ftDriver + combo.ftCourier*u.ftCourier + combo.ptDriver*u.ptDriver + combo.ptCourier*u.ptCourier) * days;
     const total = combo.ftDriver + combo.ptDriver + combo.ftCourier + combo.ptCourier;
     const shortfall = drv.unmet + cor.unmet; // how much of the requested S the bench couldn't cover
     return { ...combo, total, requested:S, shortfall, variableStaff };
   }
   function fcSuggestHeadcountForDistrict(district){
     const avgHktv = fcAvgWeeklyHktvOrders(district);
+    // v10.0 §2 — Smax must hold on the worst weekday, not just on average
+    // (see fcMinWeeklyHktvOrders). avgHktv is kept as-is for the Smin /
+    // overdrive check below, which is about a "normal" day, not the floor.
+    const minWd = fcMinWeeklyHktvOrders(district);
+    const minHktv = minWd.value;
     const targetProd = fcTargetProdFor(district);
     const targetCost = TARGET_COST_PER_ORDER[district] != null ? TARGET_COST_PER_ORDER[district] : TARGET_COST_PER_ORDER.overall;
     const fixed = fcMonthlyFixedCostFor(district); // v5.0 — daily rate × days in month, not the raw daily figure
@@ -2196,10 +2245,10 @@
     if(!(avgHktv > 0)){
       return { feasible:false, district, reason:`No forecast HKTV order volume for ${district} yet — check the order-ratio weights above or the underlying productivity history.` };
     }
-    const Smax = Math.floor(avgHktv / targetProd);
+    const Smax = Math.floor(minHktv / targetProd);
     if(Smax < 1){
-      return { feasible:false, district, avgHktv, targetProd,
-        reason:`Forecast HKTV Orders (~${avgHktv.toFixed(0)}/day) are below the Target Productivity of ${targetProd.toFixed(1)}/staff for ${district} — even a single staff member's implied load falls short, so no headcount can clear the productivity target.` };
+      return { feasible:false, district, avgHktv, minHktv, minWeekday:WEEKDAY_LABELS[minWd.weekdayIdx], targetProd,
+        reason:`${WEEKDAY_LABELS[minWd.weekdayIdx]}'s forecast HKTV Orders (~${minHktv.toFixed(0)}) — the lowest-volume day of the week for ${district} — are below the Target Productivity of ${targetProd.toFixed(1)}/staff. Since headcount is held flat across the week, even a single staff member's implied load on that day falls short, so no flat headcount can clear the productivity target on every weekday.` };
     }
     if(!(benchMax >= 1)){
       return { feasible:false, district, avgHktv, targetProd, staffCap:cap,
@@ -2220,8 +2269,9 @@
       if(combo.total <= 0) continue;
       const costPerOrder = costPerOrderFor(combo.variableStaff);
       const achievedProd = avgHktv/combo.total;
+      const minAchievedProd = minHktv/combo.total; // worst-weekday achieved productivity — guaranteed >= targetProd by construction (S <= Smax)
       if(costPerOrder != null && costPerOrder <= targetCost){
-        return { feasible:true, district, ...combo, achievedProd, targetProd, costPerOrder, targetCost, avgHktv,
+        return { feasible:true, district, ...combo, achievedProd, minAchievedProd, minWeekday:WEEKDAY_LABELS[minWd.weekdayIdx], targetProd, costPerOrder, targetCost, avgHktv, minHktv,
           benchLimited: combo.total < S, staffCap:cap };
       }
     }
@@ -2281,14 +2331,18 @@
 
     odsBody.innerHTML = DISTRICTS.map(d=>{
       const u = ODS_UNIT_COST[d];
-      return `<tr data-d="${d}"><td>${d}</td><td>${ODS_FIRST_POINT_RATIO[d].toFixed(2)}%</td><td>${u.firstPoint.toFixed(2)}</td><td>${u.nonFirstPoint.toFixed(2)}</td><td>${odsBlendedCostFor(d).toFixed(2)}</td></tr>`;
+      const odsMarginal = odsBlendedCostFor(d);
+      const hktvMarginal = hktvMarginalCostFor(d);
+      const cheaper = odsMarginal < hktvMarginal ? 'ODS' : 'HKTV';
+      const cheaperCls = odsMarginal < hktvMarginal ? 'cost-ok' : '';
+      return `<tr data-d="${d}"><td>${d}</td><td>${ODS_FIRST_POINT_RATIO[d].toFixed(2)}%</td><td>${u.firstPoint.toFixed(2)}</td><td>${u.nonFirstPoint.toFixed(2)}</td><td>${odsMarginal.toFixed(2)}</td><td>${hktvMarginal.toFixed(2)}</td><td class="${cheaperCls}" title="Comparing $${odsMarginal.toFixed(2)}/order via ODS vs $${hktvMarginal.toFixed(2)}/order via one more in-house staff member at target productivity.">${cheaper}</td></tr>`;
     }).join('');
 
     totalBody.innerHTML = DISTRICTS.map(d=>{
       const fixed = fcMonthlyFixedCostFor(d); // v5.0 — daily rate × days in month, not the raw daily figure
       const u = UNIT_COST_STAFF[d];
       const hc = fcHeadcountFor(d);
-      const variableStaff = hc.ftDriver*u.ftDriver + hc.ftCourier*u.ftCourier + hc.ptDriver*u.ptDriver + hc.ptCourier*u.ptCourier;
+      const variableStaff = (hc.ftDriver*u.ftDriver + hc.ftCourier*u.ftCourier + hc.ptDriver*u.ptDriver + hc.ptCourier*u.ptCourier) * fcCurrentMonthDays();
       const odsVolume = fcMonthlyOdsOrderEstimate(d);
       const variableOds = odsVolume * odsBlendedCostFor(d);
       const total = fixed + variableStaff + variableOds;
@@ -2519,7 +2573,7 @@
           ? ` Note: capped by the current Staff List bench (FT Driver ${r.staffCap.ftDriver} · PT Driver ${r.staffCap.ptDriver} · FT Courier ${r.staffCap.ftCourier} · PT Courier ${r.staffCap.ptCourier} available) — requested ${r.requested}, fielded ${r.total}.`
           : '';
         const label = r.benchLimited ? `✓ ${r.total} staff (bench-capped)` : `✓ ${r.total} staff`;
-        badge = `<span class="fc-suggest-badge ok" title="${r.total} staff (FT Driver ${r.ftDriver} · FT Courier ${r.ftCourier} · PT Driver ${r.ptDriver} · PT Courier ${r.ptCourier}). Achieved Productivity ${r.achievedProd.toFixed(1)} ≥ target ${r.targetProd.toFixed(1)}; Cost/Order $${r.costPerOrder.toFixed(2)} ≤ target $${r.targetCost.toFixed(2)}.${capNote}">${label} · Prod ${r.achievedProd.toFixed(1)} · $${r.costPerOrder.toFixed(2)}/ord</span>`;
+        badge = `<span class="fc-suggest-badge ok" title="${r.total} staff (FT Driver ${r.ftDriver} · FT Courier ${r.ftCourier} · PT Driver ${r.ptDriver} · PT Courier ${r.ptCourier}). Avg-day Productivity ${r.achievedProd.toFixed(1)}; worst day (${r.minWeekday}) ${r.minAchievedProd.toFixed(1)} ≥ target ${r.targetProd.toFixed(1)} — every weekday clears target. Cost/Order $${r.costPerOrder.toFixed(2)} ≤ target $${r.targetCost.toFixed(2)}.${capNote}">${label} · Prod ${r.achievedProd.toFixed(1)} (min ${r.minAchievedProd.toFixed(1)}) · $${r.costPerOrder.toFixed(2)}/ord</span>`;
       } else {
         badge = `<span class="fc-suggest-badge bad" title="${r.reason.replace(/"/g,'&quot;')}">⚠ no combo clears both targets</span>`;
       }
