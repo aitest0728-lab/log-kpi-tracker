@@ -361,7 +361,25 @@
   .fc-cell .delta-pill.delta-up{background:var(--green-soft);color:var(--green);}
   .fc-cell .delta-pill.delta-down{background:var(--red-soft);color:var(--red);}
   .fc-cell .delta-pill.delta-flat{background:var(--line-soft);color:var(--text-muted);}
+  #costTotalTable td.cost-ok{color:var(--green);font-weight:700;}
+  #costTotalTable td.cost-over{color:var(--red);font-weight:700;}
   @media (max-width:900px){ #fcTable{table-layout:auto;min-width:900px;} }
+
+  /* v8.0 — Suggest Headcount */
+  .fc-suggest-row{align-items:flex-end;margin-bottom:6px;}
+  .fc-suggest-all-btn{background:var(--ink);color:var(--text-inverse-muted);border-color:var(--ink);}
+  .fc-suggest-all-btn:hover{opacity:.9;}
+  .fc-suggest-clear-btn{color:var(--text-muted);}
+  .fc-suggest-banner{margin:10px 0 16px;padding:10px 14px;border-radius:9px;font-size:12px;line-height:1.5;}
+  .fc-suggest-banner.ok{background:var(--green-soft);color:var(--green);}
+  .fc-suggest-banner.warn{background:var(--red-soft);color:var(--red);}
+  .fc-suggest-banner b{font-weight:700;}
+  #fcPlanTable td.fc-suggest-cell{white-space:nowrap;}
+  .fc-suggest-btn{font-family:'Inter';font-size:11px;font-weight:700;padding:5px 10px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;white-space:nowrap;}
+  .fc-suggest-btn:hover{border-color:#c7d0da;}
+  .fc-suggest-badge{display:inline-block;margin-top:5px;font-size:10.5px;line-height:1.4;padding:3px 8px;border-radius:10px;max-width:190px;white-space:normal;cursor:help;}
+  .fc-suggest-badge.ok{background:var(--green-soft);color:var(--green);}
+  .fc-suggest-badge.bad{background:var(--red-soft);color:var(--red);}
 
   /* GMV / Basket Size summary strip — a couple of headline cards rather than
      the 7-weekday grid the productivity tabs use (GMV's summary isn't
@@ -655,7 +673,7 @@
         <div class="section-head">
           <div>
             <h2>Full Perspective Forecast</h2>
-            <div class="sub">Weighted order forecast (adjustable for event/festival effects) ÷ your FT/PT Driver &amp; Courier headcount plan → productivity, editable per district</div>
+            <div class="sub">Weighted Total Order forecast (HKTV Staff + ODS/VAN, from Tableau) minus estimated ODS orders = HKTV Orders ÷ your FT/PT Driver &amp; Courier headcount plan → productivity — checked against both the Target Productivity and Target Cost/Order for each district</div>
           </div>
         </div>
 
@@ -679,13 +697,52 @@
           </div>
         </div>
 
+        <!-- ODS staging inputs — moved up from the Cost Planning portal so
+             they sit with the other forecast-driving inputs instead of being
+             hidden behind "Show ▾". ODS Order Count (network-wide, monthly)
+             overrides the historical-average ODS order estimate used below
+             for the Variable — ODS Cost line and the Cost/Order volume base,
+             split across districts by each district's historical ODS/VAN
+             order share; leave blank to use the historical estimate. -->
+        <div class="prod-controls">
+          <div class="prod-field">
+            <label for="costOdsUserCount">ODS User Count (network-wide)</label>
+            <input type="number" id="costOdsUserCount" min="0" step="1" placeholder="reference only">
+          </div>
+          <div class="prod-field">
+            <label for="costOdsOrderCount">ODS Order Count (network-wide, monthly — blank = historical estimate)</label>
+            <input type="number" id="costOdsOrderCount" min="0" step="1" placeholder="e.g. 12000">
+          </div>
+        </div>
+
         <div class="fc-districts" id="fcDistrictChips"></div>
 
-        <h3 class="prod-detail-label">Per-District Staff Plan (leave blank = 0)</h3>
+        <h3 class="prod-detail-label">Per-District Staff Plan (Target Productivity blank = target from Full_Cost_Planning.xlsx · headcounts blank = 0)</h3>
+
+        <!-- SUGGEST HEADCOUNT — v8.0. For each district, searches reasonable
+             FT/PT Driver/Courier combinations and fills in the plan table
+             with the cheapest one that still clears BOTH the Target
+             Productivity and the Target Cost/Order, or flags the district
+             if the forecast makes that impossible (order volume too low to
+             amortize Fixed+ODS cost, or too low relative to the per-worker
+             productivity target — see fcSuggestHeadcountForDistrict()). -->
+        <div class="prod-controls fc-suggest-row">
+          <div class="prod-field fc-weight">
+            <label for="fcSuggestOverdrive" title="How far above Target Productivity a single reasonable staffing plan is allowed to push the achieved figure. 0% = staff exactly to the productivity ceiling (cheapest, but the actual figure will only just clear the target); higher = leaves more headroom by allowing a slightly larger — costlier — team.">Max Productivity Overdrive (%)</label>
+            <input type="number" id="fcSuggestOverdrive" min="0" max="500" step="5" value="50">
+          </div>
+          <button type="button" class="cost-portal-toggle fc-suggest-all-btn" id="fcSuggestAllBtn">Suggest Headcount — All Districts</button>
+          <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn">Clear Suggestions</button>
+        </div>
+        <div class="prod-note">
+          For each district, searches FT/PT Driver and FT/PT Courier combinations (Driver/Courier split follows that district's latest Manpower Distribution ratio) across a reasonable staffing range — from the productivity ceiling (Target Productivity, using each district's manual override above if set) down to whatever the Overdrive % above still allows — and applies the cheapest combination whose achieved Productivity and Cost/Order both clear target. The search is also capped by the district's Staff Allocation Cap — the current ACTIVE FT/PT Driver/Courier headcount from the latest Logistics_Staff_List file — so a suggestion never proposes more heads in a bucket than are actually on the bench today; a plan that had to be trimmed this way is marked "bench-capped" on its badge. A district is flagged instead of filled in when no staffing level can clear both — genuinely possible when the forecast order volume is too low to amortize Fixed + ODS cost under the Target Cost/Order, too low relative to the Target Productivity for even a single staff member to clear it, or when the current bench itself is too small to reach the Cost/Order target even fully staffed.
+        </div>
+        <div class="fc-suggest-banner" id="fcSuggestBanner" style="display:none;"></div>
+
         <div class="fc-plan-wrap table-wrap">
           <div class="table-scroll">
             <table id="fcPlanTable">
-              <thead><tr><th>District</th><th>FT Driver</th><th>FT Courier</th><th>PT Driver</th><th>PT Courier</th></tr></thead>
+              <thead><tr><th>District</th><th>Target Productivity</th><th>FT Driver</th><th>FT Courier</th><th>PT Driver</th><th>PT Courier</th><th>Suggest Headcount</th></tr></thead>
               <tbody id="fcPlanTableBody"></tbody>
             </table>
           </div>
@@ -694,37 +751,27 @@
         <div class="prod-legend" id="fcLegend"></div>
         <div class="prod-summary" id="fcSummary"></div>
 
-        <!-- COST PLANNING PORTAL — v6.0. Fixed Cost is now the finance-
-             confirmed Provision Plan (embedded from Full_Cost_Planning.xlsx,
-             no more manual entry), and Variable/ODS unit costs + the ODS
-             First-Point Ratio are embedded per-district from the two Cost
-             reference workbooks instead of being typed in by hand. The only
-             things a leader still enters are the FT/PT headcounts above and
-             the ODS User/Order Count below — everything else here is a
-             read-only reference table so the Estimated Cost totals are real.
-             Productivity Detail's Cost/Order column still shows "Pending"
-             until that last piece of wiring (ODS Order Count → $/order) is
-             finalized. -->
+        <!-- COST PLANNING PORTAL — v7.0. Fixed Cost is still the finance-
+             confirmed Provision Plan (embedded from Full_Cost_Planning.xlsx),
+             but the line-item Provision breakdown table itself is no longer
+             shown here — only the district-level Fixed Cost it rolls up to,
+             in the Estimated Monthly Cost table below. Variable/ODS unit
+             costs + the ODS First-Point Ratio (now the all-time "Overall"
+             ratio, not August-only) are still embedded per-district from the
+             two Cost reference workbooks. ODS User/Order Count moved up to
+             the top of the tab with the other forecast inputs. Cost/Order
+             is now computed and checked against each district's Target
+             Cost/Order (Full_Cost_Planning.xlsx "Target" sheet). -->
         <div class="fc-cost-portal">
           <div class="section-head fc-cost-head">
             <div>
               <h3 class="prod-detail-label" style="margin:0;">Cost Planning (auto-calculated from Provision Plan + reference rates)</h3>
-              <div class="sub">Fixed Cost comes straight from the Provision Plan. Variable — Staff Cost = the FT/PT headcounts above × the reference Unit Cost table. ODS Blended Cost/Order is derived from the reference First-Point Ratio + Unit Cost/Job Point. Nothing below needs typing except ODS User/Order Count.</div>
+              <div class="sub">Fixed Cost comes straight from the Provision Plan (not itemized here). Variable — Staff Cost = the FT/PT headcounts above × the reference Unit Cost table. Variable — ODS Cost = estimated ODS order volume × the reference Blended Cost/Order. Cost/Order is checked against each district's Target Cost/Order.</div>
             </div>
             <button type="button" class="cost-portal-toggle" id="costPortalToggle">Show ▾</button>
           </div>
 
           <div class="fc-cost-body" id="fcCostBody" style="display:none;">
-            <h4 class="cost-sub-label">Fixed Cost — Monthly Provision per District (reference, Full_Cost_Planning.xlsx)</h4>
-            <div class="fc-plan-wrap table-wrap">
-              <div class="table-scroll">
-                <table id="costFixedTable">
-                  <thead><tr><th>District</th><th>Fixed Cost / Month ($)</th></tr></thead>
-                  <tbody id="costFixedTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-
             <h4 class="cost-sub-label">Variable Cost — Unit Cost per Head / Month (reference, Full_Cost_Planning.xlsx)</h4>
             <div class="fc-plan-wrap table-wrap">
               <div class="table-scroll">
@@ -735,38 +782,26 @@
               </div>
             </div>
 
-            <h4 class="cost-sub-label">ODS Inputs</h4>
-            <div class="prod-controls">
-              <div class="prod-field">
-                <label for="costOdsUserCount">ODS User Count</label>
-                <input type="number" id="costOdsUserCount" min="0" step="1" placeholder="overall">
-              </div>
-              <div class="prod-field">
-                <label for="costOdsOrderCount">ODS Order Count</label>
-                <input type="number" id="costOdsOrderCount" min="0" step="1" placeholder="overall">
-              </div>
-            </div>
-
-            <h4 class="cost-sub-label">ODS Blended Cost per Order — per District (reference, ODS_Blended_Cost_per_Order.xlsx)</h4>
+            <h4 class="cost-sub-label">ODS Blended Cost per Order — per District (reference, ODS_Blended_Cost_per_Order.xlsx, Overall ratio)</h4>
             <div class="fc-plan-wrap table-wrap">
               <div class="table-scroll">
                 <table id="costOdsTable">
-                  <thead><tr><th>District</th><th>First-Point Ratio (%)</th><th>First-Point Cost / Order ($)</th><th>Non-First-Point Cost / Order ($)</th><th>Blended Cost / Order ($)</th></tr></thead>
+                  <thead><tr><th>District</th><th>Overall First-Point Ratio (%)</th><th>First-Point Cost / Order ($)</th><th>Non-First-Point Cost / Order ($)</th><th>Blended Cost / Order ($)</th></tr></thead>
                   <tbody id="costOdsTableBody"></tbody>
                 </table>
               </div>
             </div>
 
-            <h4 class="cost-sub-label">Estimated Monthly Cost per District</h4>
+            <h4 class="cost-sub-label">Estimated Monthly Cost &amp; Cost/Order per District</h4>
             <div class="fc-plan-wrap table-wrap">
               <div class="table-scroll">
                 <table id="costTotalTable">
-                  <thead><tr><th>District</th><th>Fixed ($)</th><th>Variable — Staff ($)</th><th>Total ($)</th></tr></thead>
+                  <thead><tr><th>District</th><th>Fixed ($)</th><th>Variable — Staff ($)</th><th>Variable — ODS ($)</th><th>Total ($)</th><th>Est. Order Volume /mo</th><th>Cost / Order ($)</th><th>Target Cost / Order ($)</th></tr></thead>
                   <tbody id="costTotalTableBody"></tbody>
                 </table>
               </div>
             </div>
-            <div class="prod-note">Fixed Cost is the finance-confirmed Provision Plan; Variable — Staff Cost is the FT/PT headcount plan above × the Unit Cost table, and updates live as you edit those headcounts. ODS Blended Cost/Order still needs the ODS Order Count to turn into a $ figure, and Productivity Detail's Cost/Order column stays "Pending" until that full wiring is finalized.</div>
+            <div class="prod-note">Fixed Cost is the finance-confirmed Provision Plan (district totals only — the line-item breakdown isn't shown here); Variable — Staff Cost is the FT/PT headcount plan above × the Unit Cost table. Variable — ODS Cost and Est. Order Volume use the ODS Order Count above when entered (split across districts by historical ODS/VAN order share), otherwise fall back to the historical ODS order estimate. Est. Order Volume /mo ≈ the weekday Total Order forecasts (below) summed for one week × 4.345. Cost/Order below target is shaded green, above is red.</div>
           </div>
         </div>
 
@@ -1047,6 +1082,11 @@
     delayMonthly: {},   // v4.0 §2 — one accumulated row per closed month, from delay_history.json
     delayMtd: null,     // v4.0 §2 — today's month-to-date snapshot, from delay_history.json
     otherAspects: {},   // v4.0 §4 — poorRating / missingLostAmount / rfidMissingTote, from other_aspects_history.json
+    staffAllocationCap: {}, // v9.0 — current ACTIVE FT/PT Driver/Courier headcount per district, from
+                            // the latest Logistics_Staff_List_*.xlsx (kpi_pipeline.py's
+                            // compute_staff_allocation_cap()). Used by Suggest Headcount as a hard
+                            // ceiling on top of the productivity-driven one — see fcStaffCapFor().
+                            // Empty object = no cap loaded yet (fcStaffCapFor() treats that as "no cap").
   };
   let dataSource = { status:'demo', generatedAt:null };
 
@@ -1154,11 +1194,13 @@
         matrices: { ...Object.fromEntries(MATRICES.map(m=>[m.key, emptyMatrix()])), ...json.matrices },
         rfidMonthly: json.rfidMonthly || {},
         dailyProductivity: {},  // filled in below, from its own file
+        staffAllocationCap: json.staffAllocationCap || {}, // v9.0 — see fcStaffCapFor()
       };
       dataSource = { status:'live', generatedAt: json.generatedAt || null };
     }catch(err){
       dataSource = { status:'demo', generatedAt:null };
       DATA.dailyProductivity = buildDemoDailyProductivity();
+      DATA.staffAllocationCap = DEMO_STAFF_ALLOCATION_CAP; // v9.0 — see its declaration above
     }
 
     // Daily order-count/manpower history lives in its own file, not data.json —
@@ -1879,12 +1921,14 @@
     'NT-ST':{firstPoint:42,nonFirstPoint:32}, 'NT-TM':{firstPoint:42,nonFirstPoint:32}, 'NT-TSM':{firstPoint:42,nonFirstPoint:32},
     'NT-TW':{firstPoint:42,nonFirstPoint:32}, 'WTH':{firstPoint:50,nonFirstPoint:40}, 'WTK':{firstPoint:42,nonFirstPoint:32}, 'WTX':{firstPoint:42,nonFirstPoint:32},
   };
-  // ODS First-Point Ratio (%) per district, most recent month (Aug 2026) from
-  // ODS_Blended_Cost_per_Order.xlsx "First Point Ratio Table". No longer a
-  // single manual overall %  — each district gets its own real ratio.
+  // ODS First-Point Ratio (%) per district — the all-time "Overall" row from
+  // ODS_Blended_Cost_per_Order.xlsx "First Point Ratio Table" (every month
+  // in the workbook combined), not any single month. Previously this used
+  // August 2026 only; switched per leader request so Blended Cost/Order
+  // reflects the full historical mix instead of one month's snapshot.
   const ODS_FIRST_POINT_RATIO = {
-    'ETH':75.07, 'ETK':61.83, 'ETX':61.68, 'NT-ST':73.36, 'NT-TM':71.12,
-    'NT-TSM':64.84, 'NT-TW':59.15, 'WTH':71.60, 'WTK':69.73, 'WTX':73.21
+    'ETH':69.05, 'ETK':57.00, 'ETX':60.09, 'NT-ST':71.19, 'NT-TM':66.39,
+    'NT-TSM':61.16, 'NT-TW':54.83, 'WTH':70.12, 'WTK':66.02, 'WTX':71.73
   };
   // Blended Cost / Order per district = FPR% × First-Point Cost + (1-FPR%) × Non-First-Point Cost.
   function odsBlendedCostFor(district){
@@ -1892,31 +1936,307 @@
     const u = ODS_UNIT_COST[district];
     return fpr*u.firstPoint + (1-fpr)*u.nonFirstPoint;
   }
+  // Final targets for both Cost/Order and Productivity (Order per Man-day),
+  // per district + network Overall, from Full_Cost_Planning.xlsx "Target"
+  // sheet — the finance/ops-confirmed target, not a placeholder.
+  const TARGET_COST_PER_ORDER = {
+    'ETH':48.1, 'ETK':40.2, 'ETX':44.8, 'NT-ST':43.8, 'NT-TM':42.9,
+    'NT-TSM':41.6, 'NT-TW':41.9, 'WTH':49.9, 'WTK':46.7, 'WTX':44.4, overall:44.3
+  };
+  const TARGET_PRODUCTIVITY = {
+    'ETH':43, 'ETK':48, 'ETX':42, 'NT-ST':50, 'NT-TM':55,
+    'NT-TSM':47, 'NT-TW':48, 'WTH':40, 'WTK':44, 'WTX':42, overall:45.7
+  };
+  // v9.0 — Demo-only fallback for Staff Allocation Cap (fcStaffCapFor()),
+  // used purely so Suggest Headcount has something to bound against while
+  // previewing this file without data.json. A live run always overwrites
+  // this with kpi_pipeline.py's own compute_staff_allocation_cap() output
+  // (data.json's "staffAllocationCap") — see loadDataSource()'s catch branch.
+  const DEMO_STAFF_ALLOCATION_CAP = {
+    'ETH':   { ftDriver:29, ftCourier:31, ptDriver:12, ptCourier:2 },
+    'ETK':   { ftDriver:34, ftCourier:31, ptDriver:0,  ptCourier:0 },
+    'ETX':   { ftDriver:25, ftCourier:28, ptDriver:12, ptCourier:0 },
+    'NT-ST': { ftDriver:30, ftCourier:24, ptDriver:2,  ptCourier:0 },
+    'NT-TM': { ftDriver:34, ftCourier:23, ptDriver:1,  ptCourier:0 },
+    'NT-TSM':{ ftDriver:28, ftCourier:35, ptDriver:6,  ptCourier:0 },
+    'NT-TW': { ftDriver:25, ftCourier:27, ptDriver:8,  ptCourier:4 },
+    'WTH':   { ftDriver:26, ftCourier:36, ptDriver:13, ptCourier:2 },
+    'WTK':   { ftDriver:22, ftCourier:25, ptDriver:11, ptCourier:2 },
+    'WTX':   { ftDriver:21, ftCourier:27, ptDriver:10, ptCourier:0 },
+  };
 
   const FC_STATE = {
     districts: new Set(DISTRICTS),                 // which districts show in the table
     ftDriver: {}, ftCourier: {}, ptDriver: {}, ptCourier: {},   // district -> headcount (blank = 0)
+    targetProd: {},                                 // district -> manual Target Productivity override (blank = TARGET_PRODUCTIVITY[d])
+    suggestions: {},                                // district -> last fcSuggestHeadcountForDistrict() result, for the badge in the plan table
   };
+  function fcTargetProdFor(district){
+    const override = FC_STATE.targetProd[district];
+    if(override != null && override !== '' && !isNaN(override)) return +override;
+    return TARGET_PRODUCTIVITY[district] != null ? TARGET_PRODUCTIVITY[district] : TARGET_PRODUCTIVITY.overall;
+  }
   let fcDistrictDropdownOpen = false; // v5.0 §1 — open/closed state of the district dropdown panel
 
-  // v6.0 §2 — ODS staging inputs. Fixed Cost, Unit Cost and First-Point Ratio
-  // are now all embedded reference data (above) — the only things left for
-  // Finance/Ops to type are the ODS User/Order Count. Kept in-memory for
-  // this session only — no persistence layer exists yet.
+  /* ---------------- Suggest Headcount (v8.0) ----------------
+     For a district, finds the cheapest FT/PT Driver/Courier plan that
+     clears BOTH the Target Productivity (achieved HKTV Orders ÷ headcount
+     ≥ target) and the Target Cost/Order (fcRenderCostPortal's Cost/Order ≤
+     target) — or reports why neither exists.
+
+     Why "cheapest" isn't just "as few people as possible": Productivity
+     here is orders handled per staff, so — taken alone — fewer staff
+     always raises it and always lowers cost too, which would trivially
+     "suggest" one person per district. That's not a real staffing plan, so
+     the search is bounded to a REASONABLE headcount window instead of
+     being left open-ended:
+       - Smax = floor(avg daily HKTV Orders ÷ Target Productivity) — the
+         most staff you can have before Productivity drops below target.
+         This is a hard ceiling; nothing above it can pass.
+       - Smin = the fewest staff that keep achieved Productivity from
+         overshooting target by more than the "Max Productivity Overdrive"
+         input above (default 50%) — i.e. a team small enough to still be
+         cheap, but not so small that one person is implausibly credited
+         with the whole district's volume.
+     Within [Smin, Smax], cost only goes up as headcount grows (every unit
+     cost is positive), so the cheapest feasible team is the smallest S in
+     that window whose Cost/Order also clears target — the search walks S
+     upward from Smin and stops at the first one that works.
+
+     For a given S, the Driver/Courier split follows that district's own
+     latest Manpower Distribution ratio (Driver and Courier aren't
+     interchangeable jobs, so an all-one-role team isn't reasonable
+     either), and FT vs PT is chosen per role by whichever is cheaper per
+     head that district (Full_Cost_Planning.xlsx's Unit Cost table — note
+     PT often costs MORE per head than FT in this data, not less).
+
+     Infeasibility is genuinely possible and is reported with the actual
+     numbers rather than a generic message:
+       - avg HKTV Orders < Target Productivity ⇒ even a single staff
+         member's implied load is below target — no headcount clears
+         Productivity, full stop (order volume too low).
+       - Fixed + ODS cost alone (zero staff) already exceeds the Target
+         Cost/Order ⇒ no amount of staffing can claw Cost/Order back down
+         — happens with low order volume (too little volume to spread
+         Fixed Cost over) or with an ODS-heavy order mix whose Blended
+         Cost/Order is itself high relative to target.
+       - Otherwise, the window [Smin, Smax] is non-empty on Productivity
+         grounds but every S in it still misses the Cost/Order target —
+         reported with the cheapest in-window figure so the gap is visible.
+  */
+  const FC_SUGGEST = { overdrivePct: 50 };
+
+  // v9.0 — Staff Allocation Cap: current ACTIVE FT/PT Driver/Courier
+  // headcount per district, from data.json's staffAllocationCap
+  // (kpi_pipeline.py's compute_staff_allocation_cap(), sourced from the
+  // latest Logistics_Staff_List_*.xlsx). Suggest Headcount treats this as a
+  // second hard ceiling alongside the Target-Productivity-driven one
+  // (Smax below) — it will never suggest more heads in a bucket than are
+  // actually on the bench today. Missing/blank buckets fall back to
+  // Infinity (no cap), so a district or bucket the staff list hasn't
+  // covered yet doesn't silently zero out its suggestion.
+  function fcStaffCapFor(district){
+    const cap = (DATA.staffAllocationCap || {})[district];
+    if(!cap) return { ftDriver:Infinity, ptDriver:Infinity, ftCourier:Infinity, ptCourier:Infinity };
+    return {
+      ftDriver: cap.ftDriver  != null ? cap.ftDriver  : Infinity,
+      ptDriver: cap.ptDriver  != null ? cap.ptDriver  : Infinity,
+      ftCourier: cap.ftCourier != null ? cap.ftCourier : Infinity,
+      ptCourier: cap.ptCourier != null ? cap.ptCourier : Infinity,
+    };
+  }
+
+  // District's latest available Courier share of Courier+Driver headcount,
+  // from manpower_distribution.json (DATA.dailyManpower) — used to keep a
+  // suggested team's Driver/Courier split realistic. Falls back to an even
+  // 50/50 split if no manpower history is loaded yet.
+  function fcCourierShareFor(district){
+    const dates = Object.keys(DATA.dailyManpower || {}).sort();
+    for(let i=dates.length-1; i>=0; i--){
+      const rec = DATA.dailyManpower[dates[i]];
+      const c = rec && rec.courier && rec.courier.districts ? rec.courier.districts[district] : null;
+      const d = rec && rec.driver && rec.driver.districts ? rec.driver.districts[district] : null;
+      if(c!=null && d!=null && (c+d)>0) return c/(c+d);
+    }
+    return 0.5;
+  }
+  // Average forecast HKTV Orders/day across the week (mirrors fcPlanFor's
+  // per-weekday hktvOrders, averaged) — the volume basis for the
+  // Productivity side of the search.
+  function fcAvgWeeklyHktvOrders(district){
+    let sum = 0;
+    for(let i=0;i<7;i++){
+      sum += Math.max(0, fcForecastTotalOrdersAdjusted(district,i) - fcForecastOdsOrders(district,i));
+    }
+    return sum/7;
+  }
+  // Cheapest total variable-staff cost for a given total headcount S, split
+  // Driver/Courier by fcCourierShareFor and FT/PT by whichever unit rate is
+  // lower per role — then clamped against the district's Staff Allocation
+  // Cap (fcStaffCapFor) so the result never exceeds who's actually on the
+  // bench today.
+  //
+  // Capping in two passes:
+  //  1. Role level (Driver vs Courier): if the desired count for one role
+  //     exceeds that role's combined FT+PT cap, the shortfall is offered to
+  //     the OTHER role if it still has room — keeps the team at S total
+  //     staff whenever the district's combined bench can support it, rather
+  //     than shrinking the team the moment one role alone is short.
+  //  2. Type level (FT vs PT), within each role: fills the cheaper type
+  //     first up to ITS OWN cap, then overflows into the other type up to
+  //     its cap. Whatever's still left over the combined cap simply can't
+  //     be staffed today — dropped, not invented, and surfaced as
+  //     `shortfall` on the return value.
+  //
+  // `total` on the return value is the ACTUAL (possibly bench-limited)
+  // headcount assigned — always <= S. Callers use `total`, not S, for
+  // achieved Productivity / Cost so a bench-limited suggestion still
+  // reports its real numbers rather than the numbers of a team that
+  // couldn't actually be fielded.
+  function fcCheapestComboForTotal(district, S, courierShare){
+    const u = UNIT_COST_STAFF[district];
+    const cap = fcStaffCapFor(district);
+    const driverCap = cap.ftDriver + cap.ptDriver;
+    const courierCap = cap.ftCourier + cap.ptCourier;
+
+    let courierCount = Math.round(S*courierShare);
+    let driverCount = S - courierCount;
+    if(S >= 2){ // keep both roles represented once the team is big enough to
+      if(courierCount === 0){ courierCount = 1; driverCount = S-1; }
+      if(driverCount === 0){ driverCount = 1; courierCount = S-1; }
+    }
+
+    const driverShort = Math.max(0, driverCount - driverCap);
+    const courierShort = Math.max(0, courierCount - courierCap);
+    driverCount = Math.min(driverCount, driverCap);
+    courierCount = Math.min(courierCount, courierCap);
+    if(driverShort > 0){
+      const move = Math.min(driverShort, Math.max(0, courierCap - courierCount));
+      courierCount += move;
+    }
+    if(courierShort > 0){
+      const move = Math.min(courierShort, Math.max(0, driverCap - driverCount));
+      driverCount += move;
+    }
+
+    const assignRole = (count, ftCap, ptCap, ftRate, ptRate) => {
+      let ft = 0, pt = 0, remaining = count;
+      if(ftRate <= ptRate){
+        ft = Math.min(remaining, ftCap); remaining -= ft;
+        pt = Math.min(remaining, ptCap); remaining -= pt;
+      } else {
+        pt = Math.min(remaining, ptCap); remaining -= pt;
+        ft = Math.min(remaining, ftCap); remaining -= ft;
+      }
+      return { ft, pt, unmet: remaining };
+    };
+    const drv = assignRole(driverCount, cap.ftDriver, cap.ptDriver, u.ftDriver, u.ptDriver);
+    const cor = assignRole(courierCount, cap.ftCourier, cap.ptCourier, u.ftCourier, u.ptCourier);
+
+    const combo = { ftDriver:drv.ft, ptDriver:drv.pt, ftCourier:cor.ft, ptCourier:cor.pt };
+    const variableStaff = combo.ftDriver*u.ftDriver + combo.ftCourier*u.ftCourier + combo.ptDriver*u.ptDriver + combo.ptCourier*u.ptCourier;
+    const total = combo.ftDriver + combo.ptDriver + combo.ftCourier + combo.ptCourier;
+    const shortfall = drv.unmet + cor.unmet; // how much of the requested S the bench couldn't cover
+    return { ...combo, total, requested:S, shortfall, variableStaff };
+  }
+  function fcSuggestHeadcountForDistrict(district){
+    const avgHktv = fcAvgWeeklyHktvOrders(district);
+    const targetProd = fcTargetProdFor(district);
+    const targetCost = TARGET_COST_PER_ORDER[district] != null ? TARGET_COST_PER_ORDER[district] : TARGET_COST_PER_ORDER.overall;
+    const fixed = FIXED_COST_PROVISION[district];
+    const monthlyOrderVolume = fcMonthlyOrderEstimate(district);
+    const monthlyOdsVolume = fcMonthlyOdsOrderEstimate(district);
+    const variableOds = monthlyOdsVolume * odsBlendedCostFor(district);
+    const courierShare = fcCourierShareFor(district);
+    const overdrive = Math.max(0, +FC_SUGGEST.overdrivePct || 0) / 100;
+    // v9.0 — Staff Allocation Cap: the district's current bench strength is
+    // a second hard ceiling, alongside Smax (the productivity ceiling)
+    // below. isFinite(benchMax) is false only when data.json hasn't
+    // supplied a cap for this district yet (fcStaffCapFor()'s Infinity
+    // fallback) — in that case the cap simply doesn't constrain anything.
+    const cap = fcStaffCapFor(district);
+    const benchMax = cap.ftDriver + cap.ptDriver + cap.ftCourier + cap.ptCourier;
+
+    if(!(avgHktv > 0)){
+      return { feasible:false, district, reason:`No forecast HKTV order volume for ${district} yet — check the order-ratio weights above or the underlying productivity history.` };
+    }
+    const Smax = Math.floor(avgHktv / targetProd);
+    if(Smax < 1){
+      return { feasible:false, district, avgHktv, targetProd,
+        reason:`Forecast HKTV Orders (~${avgHktv.toFixed(0)}/day) are below the Target Productivity of ${targetProd.toFixed(1)}/staff for ${district} — even a single staff member's implied load falls short, so no headcount can clear the productivity target.` };
+    }
+    if(!(benchMax >= 1)){
+      return { feasible:false, district, avgHktv, targetProd, staffCap:cap,
+        reason:`The latest Staff List has no ACTIVE FT/PT Driver or Courier on record for ${district} (Staff Allocation Cap = 0) — there's nobody on the bench here to allocate. Check the latest Logistics_Staff_List file, or STAFF_LIST_FOLDER in kpi_pipeline.py.` };
+    }
+    const Smin = Math.max(1, Math.min(Smax, Math.ceil(avgHktv / (targetProd * (1+overdrive)))));
+    // Scanning past benchMax can't produce a different combo — the bench is
+    // already exhausted by then — so cap the loop there for districts with
+    // a tight bench, purely for efficiency; correctness doesn't depend on it.
+    const scanTo = isFinite(benchMax) ? Math.min(Smax, benchMax) : Smax;
+
+    const costPerOrderFor = (variableStaff) => {
+      const total = fixed + variableStaff + variableOds;
+      return monthlyOrderVolume > 0 ? total/monthlyOrderVolume : null;
+    };
+    for(let S=Smin; S<=scanTo; S++){
+      const combo = fcCheapestComboForTotal(district, S, courierShare);
+      if(combo.total <= 0) continue;
+      const costPerOrder = costPerOrderFor(combo.variableStaff);
+      const achievedProd = avgHktv/combo.total;
+      if(costPerOrder != null && costPerOrder <= targetCost){
+        return { feasible:true, district, ...combo, achievedProd, targetProd, costPerOrder, targetCost, avgHktv,
+          benchLimited: combo.total < S, staffCap:cap };
+      }
+    }
+    // Infeasible within [Smin, scanTo] — diagnose using the cheapest in-window
+    // team (S=Smin, itself already bench-capped) so the reported shortfall
+    // is the best case, not a worst case.
+    const cheapest = fcCheapestComboForTotal(district, Smin, courierShare);
+    const cheapestCostPerOrder = costPerOrderFor(cheapest.variableStaff);
+    const baselineCostPerOrder = monthlyOrderVolume>0 ? (fixed+variableOds)/monthlyOrderVolume : null;
+    let reason;
+    if(baselineCostPerOrder != null && baselineCostPerOrder > targetCost){
+      reason = `Fixed + ODS cost alone for ${district} is already $${baselineCostPerOrder.toFixed(2)}/order — above the $${targetCost.toFixed(2)} target — before any staff cost is added, so no headcount can bring Cost/Order down to target.`;
+    } else if(isFinite(benchMax) && benchMax < Smax){
+      reason = `The latest Staff List only has ${benchMax} ACTIVE Driver/Courier staff on record for ${district} (FT Driver ${cap.ftDriver} · PT Driver ${cap.ptDriver} · FT Courier ${cap.ftCourier} · PT Courier ${cap.ptCourier}) — short of the ${Smax} staff Target Productivity would otherwise allow. Even staffing everyone currently available (${cheapest.total} staff, ~$${cheapestCostPerOrder==null?'—':cheapestCostPerOrder.toFixed(2)}/order) can't clear the $${targetCost.toFixed(2)} Cost/Order target — more headcount would need to be hired or transferred into ${district} to close this.`;
+    } else {
+      reason = `Even the leanest reasonable team for ${district} (${Smin} staff, ~$${cheapestCostPerOrder==null?'—':cheapestCostPerOrder.toFixed(2)}/order) can't clear both targets at once — Target Productivity ${targetProd.toFixed(1)} allows at most ${Smax} staff here, but Target Cost/Order $${targetCost.toFixed(2)} would need fewer than the Overdrive window allows. Try raising Max Productivity Overdrive above.`;
+    }
+    return { feasible:false, district, avgHktv, targetProd, targetCost, achievedProd: cheapest.total>0?avgHktv/cheapest.total:null, costPerOrder:cheapestCostPerOrder, reason, staffCap:cap };
+  }
+  // Runs the suggestion for one district and, if feasible, writes the
+  // resulting headcounts straight into FC_STATE (infeasible districts are
+  // left untouched so an existing manual plan isn't clobbered). Always
+  // records the result in FC_STATE.suggestions for the plan-table badge.
+  function fcApplySuggestionFor(district){
+    const result = fcSuggestHeadcountForDistrict(district);
+    FC_STATE.suggestions[district] = result;
+    if(result.feasible){
+      FC_STATE.ftDriver[district] = result.ftDriver;
+      FC_STATE.ftCourier[district] = result.ftCourier;
+      FC_STATE.ptDriver[district] = result.ptDriver;
+      FC_STATE.ptCourier[district] = result.ptCourier;
+    }
+    return result;
+  }
+
+  // ODS staging inputs — now surfaced at the top of the tab (see the HTML),
+  // not just inside the Cost Planning portal. Fixed Cost, Unit Cost and
+  // First-Point Ratio are all embedded reference data (above); ODS User
+  // Count is reference-only display, ODS Order Count (when entered) drives
+  // Variable — ODS Cost and Est. Order Volume via fcMonthlyOdsOrderEstimate().
+  // Kept in-memory for this session only — no persistence layer exists yet.
   const COST_STATE = {
     odsUserCount: '', odsOrderCount: '',
   };
   function fcRenderCostPortal(){
-    const fixedBody = document.getElementById('costFixedTableBody');
     const unitBody = document.getElementById('costUnitTableBody');
     const odsBody = document.getElementById('costOdsTableBody');
     const totalBody = document.getElementById('costTotalTableBody');
-    if(!fixedBody || !unitBody || !odsBody || !totalBody) return; // markup not present (shouldn't happen, but stay defensive)
+    if(!unitBody || !odsBody || !totalBody) return; // markup not present (shouldn't happen, but stay defensive)
 
     const money = v => v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-
-    fixedBody.innerHTML = DISTRICTS.map(d=>`
-      <tr data-d="${d}"><td>${d}</td><td>${money(FIXED_COST_PROVISION[d])}</td></tr>`).join('');
 
     unitBody.innerHTML = DISTRICTS.map(d=>{
       const u = UNIT_COST_STAFF[d];
@@ -1932,9 +2252,15 @@
       const fixed = FIXED_COST_PROVISION[d];
       const u = UNIT_COST_STAFF[d];
       const hc = fcHeadcountFor(d);
-      const variable = hc.ftDriver*u.ftDriver + hc.ftCourier*u.ftCourier + hc.ptDriver*u.ptDriver + hc.ptCourier*u.ptCourier;
-      const total = fixed + variable;
-      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variable)}</td><td><strong>${money(total)}</strong></td></tr>`;
+      const variableStaff = hc.ftDriver*u.ftDriver + hc.ftCourier*u.ftCourier + hc.ptDriver*u.ptDriver + hc.ptCourier*u.ptCourier;
+      const odsVolume = fcMonthlyOdsOrderEstimate(d);
+      const variableOds = odsVolume * odsBlendedCostFor(d);
+      const total = fixed + variableStaff + variableOds;
+      const orderVolume = fcMonthlyOrderEstimate(d);
+      const costPerOrder = orderVolume > 0 ? total/orderVolume : null;
+      const target = TARGET_COST_PER_ORDER[d];
+      const overCls = costPerOrder==null ? '' : (costPerOrder <= target ? 'cost-ok' : 'cost-over');
+      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td>${money(variableOds)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td></tr>`;
     }).join('');
   }
   function fcSetupCostPortalListeners(){
@@ -1952,6 +2278,7 @@
       el.addEventListener('change', ()=>{
         const map = { costOdsUserCount:'odsUserCount', costOdsOrderCount:'odsOrderCount' };
         COST_STATE[map[id]] = el.value;
+        renderForecastTab(); updateScrollHints();
       });
     });
   }
@@ -1974,15 +2301,18 @@
     return [shift(-2), shift(-1), cur];
   }
   // Average order count for one district+weekday within a given 'YYYY-MM'
-  // month, from the hktvStaff matrix — same averaging as
-  // calculate_august_baseline()/calculate_september_actual() in the script.
-  function fcMonthWeekdayAvg(monthStr, district, weekdayIdx){
+  // month, same averaging as calculate_august_baseline()/
+  // calculate_september_actual() in the script — generalized to a metricKey
+  // so it can average 'combined' (Total Order = HKTV Staff + ODS/VAN, the
+  // Tableau-sourced Total Parent Order) or 'odsRatio' (ODS/VAN orders only)
+  // as well as the original 'hktvStaff'.
+  function fcMonthWeekdayAvg(monthStr, district, weekdayIdx, metricKey){
     if(!monthStr) return null;
     let sum = 0, count = 0;
     Object.keys(DATA.dailyProductivity).forEach(key=>{
       if(!key.startsWith(monthStr)) return;
       if(weekdayIndexOf(key) !== weekdayIdx) return;
-      const rec = dayRecord(key, 'hktvStaff', district);
+      const rec = dayRecord(key, metricKey, district);
       if(rec && rec.orderCount != null && rec.orderCount > 0) { sum += rec.orderCount; count++; }
     });
     return count ? sum/count : null;
@@ -1991,27 +2321,40 @@
   // of 2, and to renormalize weights across whichever of the 3 months
   // actually has data for that weekday (so a T-2 month with no history yet
   // simply drops out instead of forcing a zero into the average).
-  function fcForecastOrders(district, weekdayIdx){
+  function fcWeightedForecast(district, weekdayIdx, metricKey){
     const [t2,t1,cur] = fcMonthTriplet();
     const w2 = Math.max(0, +document.getElementById('fcWeightT2').value || 0);
     const w1 = Math.max(0, +document.getElementById('fcWeightT1').value || 0);
     const wc = Math.max(0, +document.getElementById('fcWeightCur').value || 0);
     const parts = [
-      { avg: fcMonthWeekdayAvg(t2, district, weekdayIdx), w: w2 },
-      { avg: fcMonthWeekdayAvg(t1, district, weekdayIdx), w: w1 },
-      { avg: fcMonthWeekdayAvg(cur, district, weekdayIdx), w: wc },
+      { avg: fcMonthWeekdayAvg(t2, district, weekdayIdx, metricKey), w: w2 },
+      { avg: fcMonthWeekdayAvg(t1, district, weekdayIdx, metricKey), w: w1 },
+      { avg: fcMonthWeekdayAvg(cur, district, weekdayIdx, metricKey), w: wc },
     ].filter(p=>p.avg != null);
     if(parts.length === 0) return 0;
     const wSum = parts.reduce((s,p)=>s+p.w, 0);
     if(wSum <= 0) return parts.reduce((s,p)=>s+p.avg,0) / parts.length; // all weights 0 → plain average
     return parts.reduce((s,p)=> s + p.avg * (p.w/wSum), 0);
   }
-  // v6.0 — each district's share of TOTAL historical order count, across
-  // every day currently loaded in productivity_history.json (hktvStaff
-  // matrix). This is the "Ratio Calculation" from the patch note
-  // (Total Order Count of District ÷ Total Overall Order Count), used to
-  // split the Overall Order % Change adjustment across districts by their
-  // real historical weight instead of evenly.
+  // Total Order forecast (HKTV Staff + ODS/VAN combined) — the Tableau Total
+  // Order basis the forecast now runs on, per leader request, instead of
+  // HKTV Staff orders alone.
+  function fcForecastTotalOrders(district, weekdayIdx){
+    return fcWeightedForecast(district, weekdayIdx, 'combined');
+  }
+  // Estimated ODS Orders forecast — same weighted-average method, run on the
+  // ODS/VAN-only history (odsRatio matrix). Used to derive HKTV Orders =
+  // Total Order − Estimated ODS Orders below.
+  function fcForecastOdsOrders(district, weekdayIdx){
+    return fcWeightedForecast(district, weekdayIdx, 'odsRatio');
+  }
+  // Each district's share of TOTAL historical order count, across every day
+  // currently loaded in productivity_history.json. This is the "Ratio
+  // Calculation" from the patch note (Total Order Count of District ÷ Total
+  // Overall Order Count), used to split the Overall Order % Change
+  // adjustment across districts by their real historical weight instead of
+  // evenly. Runs on 'combined' (Total Order) now that the forecast basis is
+  // Total Order rather than HKTV Staff orders alone.
   let _fcOrderRatioCache = null;
   function fcDistrictOrderRatios(){
     if(_fcOrderRatioCache) return _fcOrderRatioCache;
@@ -2019,7 +2362,7 @@
     let total = 0;
     Object.keys(DATA.dailyProductivity).forEach(key=>{
       DISTRICTS.forEach(d=>{
-        const rec = dayRecord(key, 'hktvStaff', d);
+        const rec = dayRecord(key, 'combined', d);
         if(rec && rec.orderCount != null){ sums[d]+=rec.orderCount; total+=rec.orderCount; }
       });
     });
@@ -2028,18 +2371,37 @@
     _fcOrderRatioCache = ratios;
     return ratios;
   }
-  // Forecast Orders, adjusted for the leader-entered "Overall Order % Change"
-  // (festival/event effect). The % is applied to the NETWORK-WIDE forecast
-  // total for that weekday, and the resulting extra order volume is split
-  // across districts by fcDistrictOrderRatios() — NOT evenly — per the
+  // Each district's share of TOTAL historical ODS/VAN order count only —
+  // used to split the network-wide ODS Order Count input (top of tab)
+  // across districts for the Variable — ODS Cost / Est. Order Volume calcs.
+  let _fcOdsOrderRatioCache = null;
+  function fcDistrictOdsOrderRatios(){
+    if(_fcOdsOrderRatioCache) return _fcOdsOrderRatioCache;
+    const sums = {}; DISTRICTS.forEach(d=>sums[d]=0);
+    let total = 0;
+    Object.keys(DATA.dailyProductivity).forEach(key=>{
+      DISTRICTS.forEach(d=>{
+        const rec = dayRecord(key, 'odsRatio', d);
+        if(rec && rec.orderCount != null){ sums[d]+=rec.orderCount; total+=rec.orderCount; }
+      });
+    });
+    const ratios = {};
+    DISTRICTS.forEach(d=> ratios[d] = total>0 ? sums[d]/total : 1/DISTRICTS.length);
+    _fcOdsOrderRatioCache = ratios;
+    return ratios;
+  }
+  // Total Order forecast, adjusted for the leader-entered "Overall Order %
+  // Change" (festival/event effect). The % is applied to the NETWORK-WIDE
+  // forecast total for that weekday, and the resulting extra order volume is
+  // split across districts by fcDistrictOrderRatios() — NOT evenly — per the
   // patch note's worked example (+1% network-wide, split by historical
   // district share, not divided evenly across the 10 districts).
-  function fcForecastOrdersAdjusted(district, weekdayIdx){
-    const base = fcForecastOrders(district, weekdayIdx);
+  function fcForecastTotalOrdersAdjusted(district, weekdayIdx){
+    const base = fcForecastTotalOrders(district, weekdayIdx);
     const pct = +document.getElementById('fcOrderPctChange').value || 0;
     if(!pct) return base;
     let networkTotal = 0;
-    DISTRICTS.forEach(d=> networkTotal += fcForecastOrders(d, weekdayIdx));
+    DISTRICTS.forEach(d=> networkTotal += fcForecastTotalOrders(d, weekdayIdx));
     const extra = networkTotal * (pct/100);
     return base + extra * fcDistrictOrderRatios()[district];
   }
@@ -2051,15 +2413,42 @@
     const pc = +(FC_STATE.ptCourier[district] || 0);
     return { ftDriver:fd, ftCourier:fc, ptDriver:pd, ptCourier:pc, total: fd+fc+pd+pc };
   }
-  // v6.0 — Plan is now direct: Forecast Orders (adjusted) ÷ the FT/PT
-  // headcount a leader typed for that district (same total every weekday —
-  // headcounts are a district-level plan, not a per-weekday one). No more
-  // target productivity or auto courier/driver split.
+  // v7.0 — HKTV Orders = Total Order forecast (adjusted) − Estimated ODS
+  // Orders forecast, per leader request; Productivity = HKTV Orders ÷ the
+  // FT/PT headcount plan (that headcount is HKTV Staff only — ODS orders
+  // are handled and costed separately). Target Productivity is restored
+  // (fcTargetProdFor, blank = Full_Cost_Planning.xlsx target) so achieved
+  // productivity can be checked against it directly in each cell.
   function fcPlanFor(district, weekdayIdx){
-    const forecast = fcForecastOrdersAdjusted(district, weekdayIdx);
+    const totalOrders = fcForecastTotalOrdersAdjusted(district, weekdayIdx);
+    const odsOrders = fcForecastOdsOrders(district, weekdayIdx);
+    const hktvOrders = Math.max(0, totalOrders - odsOrders);
     const hc = fcHeadcountFor(district);
-    const achievedProd = hc.total > 0 ? forecast/hc.total : null;
-    return { forecast, ...hc, achievedProd };
+    const achievedProd = hc.total > 0 ? hktvOrders/hc.total : null;
+    const targetProd = fcTargetProdFor(district);
+    return { totalOrders, odsOrders, hktvOrders, ...hc, achievedProd, targetProd };
+  }
+  // Est. monthly Total Order volume for a district — the weekday Total
+  // Order forecasts (adjusted) summed across one week, scaled to a month
+  // (52/12 ≈ 4.345 weeks/month). Used as the order-volume base for Cost/Order.
+  function fcMonthlyOrderEstimate(district){
+    let weekTotal = 0;
+    for(let i=0;i<7;i++) weekTotal += fcForecastTotalOrdersAdjusted(district, i);
+    return weekTotal * (52/12);
+  }
+  // Est. monthly ODS order volume for a district, for the Variable — ODS
+  // Cost line: uses the ODS Order Count input (network-wide, monthly) split
+  // by each district's historical ODS/VAN order share when a value is
+  // typed; otherwise falls back to the historical weighted-average ODS
+  // forecast, summed across a week and scaled to a month like above.
+  function fcMonthlyOdsOrderEstimate(district){
+    const manual = COST_STATE.odsOrderCount;
+    if(manual !== '' && manual != null && !isNaN(manual) && +manual > 0){
+      return +manual * fcDistrictOdsOrderRatios()[district];
+    }
+    let weekTotal = 0;
+    for(let i=0;i<7;i++) weekTotal += fcForecastOdsOrders(district, i);
+    return weekTotal * (52/12);
   }
 
   function fcRenderChips(){
@@ -2081,16 +2470,62 @@
         ${DISTRICTS.map(d=>`<label class="fc-dd-option"><input type="checkbox" data-d="${d}" ${FC_STATE.districts.has(d)?'checked':''}> ${d}</label>`).join('')}
       </div>`;
   }
+  // Renders the Suggest Headcount column's cell for one district: a button
+  // plus — once a suggestion has been run for this district in this
+  // session — a badge reporting either the achieved figures (green) or the
+  // infeasibility reason (red, full text in the title tooltip).
+  function fcSuggestCellHtml(d){
+    const r = FC_STATE.suggestions[d];
+    let badge = '';
+    if(r){
+      if(r.feasible){
+        const capNote = r.benchLimited
+          ? ` Note: capped by the current Staff List bench (FT Driver ${r.staffCap.ftDriver} · PT Driver ${r.staffCap.ptDriver} · FT Courier ${r.staffCap.ftCourier} · PT Courier ${r.staffCap.ptCourier} available) — requested ${r.requested}, fielded ${r.total}.`
+          : '';
+        const label = r.benchLimited ? `✓ ${r.total} staff (bench-capped)` : `✓ ${r.total} staff`;
+        badge = `<span class="fc-suggest-badge ok" title="${r.total} staff (FT Driver ${r.ftDriver} · FT Courier ${r.ftCourier} · PT Driver ${r.ptDriver} · PT Courier ${r.ptCourier}). Achieved Productivity ${r.achievedProd.toFixed(1)} ≥ target ${r.targetProd.toFixed(1)}; Cost/Order $${r.costPerOrder.toFixed(2)} ≤ target $${r.targetCost.toFixed(2)}.${capNote}">${label} · Prod ${r.achievedProd.toFixed(1)} · $${r.costPerOrder.toFixed(2)}/ord</span>`;
+      } else {
+        badge = `<span class="fc-suggest-badge bad" title="${r.reason.replace(/"/g,'&quot;')}">⚠ no combo clears both targets</span>`;
+      }
+    }
+    return `<button type="button" class="fc-suggest-btn" data-d="${d}">Suggest</button>${badge}`;
+  }
   function fcRenderPlanTable(){
     const body = document.getElementById('fcPlanTableBody');
     body.innerHTML = DISTRICTS.map(d=>`
       <tr data-d="${d}">
         <td>${d}</td>
+        <td><input type="number" min="0" step="0.1" class="fc-in-targetprod" data-d="${d}" placeholder="${TARGET_PRODUCTIVITY[d]}" value="${FC_STATE.targetProd[d] ?? ''}"></td>
         <td><input type="number" min="0" step="1" class="fc-in-ftdriver" data-d="${d}" placeholder="0" value="${FC_STATE.ftDriver[d] ?? ''}"></td>
         <td><input type="number" min="0" step="1" class="fc-in-ftcourier" data-d="${d}" placeholder="0" value="${FC_STATE.ftCourier[d] ?? ''}"></td>
         <td><input type="number" min="0" step="1" class="fc-in-ptdriver" data-d="${d}" placeholder="0" value="${FC_STATE.ptDriver[d] ?? ''}"></td>
         <td><input type="number" min="0" step="1" class="fc-in-ptcourier" data-d="${d}" placeholder="0" value="${FC_STATE.ptCourier[d] ?? ''}"></td>
+        <td class="fc-suggest-cell">${fcSuggestCellHtml(d)}</td>
       </tr>`).join('');
+  }
+  // Runs Suggest Headcount for every district, applies feasible results
+  // into FC_STATE, then re-renders the whole tab (so the plan table,
+  // Cost Portal and Weekly Forecast Plan all reflect the new headcounts at
+  // once) and shows a summary banner of what happened.
+  function fcSuggestAll(){
+    const results = DISTRICTS.map(d=>fcApplySuggestionFor(d));
+    renderForecastTab();
+    updateScrollHints();
+    const banner = document.getElementById('fcSuggestBanner');
+    const bad = results.filter(r=>!r.feasible);
+    const benchCapped = results.filter(r=>r.feasible && r.benchLimited);
+    const capNote = benchCapped.length
+      ? ` <b>${benchCapped.length}</b> of those were capped by the current Staff List bench: ${benchCapped.map(r=>r.district).join(', ')}.`
+      : '';
+    banner.style.display = '';
+    if(bad.length===0){
+      banner.className = 'fc-suggest-banner ok';
+      banner.innerHTML = `<b>All ${results.length} districts</b> got a headcount plan that clears both the Target Productivity and Target Cost/Order.${capNote}`;
+    } else {
+      banner.className = 'fc-suggest-banner warn';
+      banner.innerHTML = `<b>${results.length-bad.length} of ${results.length} districts</b> got a plan that clears both targets. `
+        + `<b>${bad.length} flagged</b> — no combination hits both (left as-is, hover their badge for the reason): ${bad.map(r=>r.district).join(', ')}.${capNote}`;
+    }
   }
   function renderForecastTab(){
     const head = document.getElementById('fcTableHead');
@@ -2106,6 +2541,7 @@
       return;
     }
     _fcOrderRatioCache = null; // recompute the historical order-ratio split each render, in case data changed
+    _fcOdsOrderRatioCache = null;
 
     const w2 = +document.getElementById('fcWeightT2').value || 0;
     const w1 = +document.getElementById('fcWeightT1').value || 0;
@@ -2129,14 +2565,14 @@
 
     const rowDistricts = DISTRICTS.filter(d=>FC_STATE.districts.has(d));
 
-    // ---- Summary strip: network-wide forecast orders + planned staff + achieved productivity, one card per weekday ----
+    // ---- Summary strip: network-wide HKTV order forecast + planned staff + achieved productivity, one card per weekday ----
     summary.innerHTML = WEEKDAY_LABELS.map((w,i)=>{
-      let fcSum=0, staffSum=0;
-      rowDistricts.forEach(d=>{ const p = fcPlanFor(d,i); fcSum += p.forecast; staffSum += p.total; });
-      const achieved = staffSum>0 ? fcSum/staffSum : null;
+      let hktvSum=0, staffSum=0;
+      rowDistricts.forEach(d=>{ const p = fcPlanFor(d,i); hktvSum += p.hktvOrders; staffSum += p.total; });
+      const achieved = staffSum>0 ? hktvSum/staffSum : null;
       return `<div class="prod-summary-card">
         <div class="wd">${w}</div>
-        <div class="bar-row"><span class="tag">ORD</span><div class="bar-track"><div class="bar-fill b" style="width:100%"></div></div><span class="v">${intFmt(fcSum)}</span></div>
+        <div class="bar-row"><span class="tag">ORD</span><div class="bar-track"><div class="bar-fill b" style="width:100%"></div></div><span class="v">${intFmt(hktvSum)}</span></div>
         <div class="bar-row"><span class="tag">STF</span><div class="bar-track"><div class="bar-fill a" style="width:100%"></div></div><span class="v">${intFmt(staffSum)}</span></div>
         <span class="delta-pill delta-flat">${achieved==null?'—':achieved.toFixed(1)+' / staff'}</span>
       </div>`;
@@ -2145,8 +2581,12 @@
     head.innerHTML = `<tr><th>District</th>${WEEKDAY_LABELS.map(w=>`<th>${w}</th>`).join('')}</tr>`;
 
     function fcCellHtml(p){
+      const meetsTarget = p.achievedProd != null && p.achievedProd >= p.targetProd;
+      const pillCls = p.achievedProd==null ? 'delta-flat' : meetsTarget ? 'delta-up' : 'delta-down';
       return `<div class="fc-cell">
-        <div class="fc-row"><span class="fc-label">Forecast Orders</span><span class="fc-val">${intFmt(p.forecast)}</span></div>
+        <div class="fc-row"><span class="fc-label">Total Order</span><span class="fc-val">${intFmt(p.totalOrders)}</span></div>
+        <div class="fc-row"><span class="fc-label">Est. ODS Orders</span><span class="fc-val">${intFmt(p.odsOrders)}</span></div>
+        <div class="fc-row"><span class="fc-label">HKTV Orders</span><span class="fc-val">${intFmt(p.hktvOrders)}</span></div>
         <div class="fc-row"><span class="fc-label">FT Driver</span><span class="fc-val">${intFmt(p.ftDriver)}</span></div>
         <div class="fc-row"><span class="fc-label">FT Courier</span><span class="fc-val">${intFmt(p.ftCourier)}</span></div>
         <div class="fc-row"><span class="fc-label">PT Driver</span><span class="fc-val">${intFmt(p.ptDriver)}</span></div>
@@ -2154,6 +2594,7 @@
         <div class="fc-row fc-primary">
           <span class="fc-label">Productivity</span>
           <span class="fc-val">${p.achievedProd==null?'—':p.achievedProd.toFixed(1)}</span>
+          <span class="delta-pill ${pillCls}">tgt ${p.targetProd.toFixed(1)}</span>
         </div>
       </div>`;
     }
@@ -2166,18 +2607,18 @@
       return `<tr><td>${d}</td>${cells}</tr>`;
     });
     const totalCells = WEEKDAY_LABELS.map((_,i)=>{
-      let fSum=0, fd=0, fc=0, pd=0, pc=0;
-      rowDistricts.forEach(dist=>{ const p = fcPlanFor(dist,i); fSum+=p.forecast; fd+=p.ftDriver; fc+=p.ftCourier; pd+=p.ptDriver; pc+=p.ptCourier; });
+      let toSum=0, odSum=0, hkSum=0, fd=0, fc=0, pd=0, pc=0;
+      rowDistricts.forEach(dist=>{ const p = fcPlanFor(dist,i); toSum+=p.totalOrders; odSum+=p.odsOrders; hkSum+=p.hktvOrders; fd+=p.ftDriver; fc+=p.ftCourier; pd+=p.ptDriver; pc+=p.ptCourier; });
       const staffTotal = fd+fc+pd+pc;
-      const achieved = staffTotal>0 ? fSum/staffTotal : null;
-      const p = { forecast:fSum, ftDriver:fd, ftCourier:fc, ptDriver:pd, ptCourier:pc, achievedProd:achieved };
+      const achieved = staffTotal>0 ? hkSum/staffTotal : null;
+      const p = { totalOrders:toSum, odsOrders:odSum, hktvOrders:hkSum, ftDriver:fd, ftCourier:fc, ptDriver:pd, ptCourier:pc, achievedProd:achieved, targetProd:TARGET_PRODUCTIVITY.overall };
       return `<td>${fcCellHtml(p)}</td>`;
     }).join('');
     body.innerHTML = bodyRows.join('') + `<tr class="total-row"><td><strong>Total</strong></td>${totalCells}</tr>`;
 
-    note.innerHTML = `Forecast Orders = weighted average of that weekday's historical order count across T-2/T-1/current month (weights above, auto-renormalized over whichever months have data)`
+    note.innerHTML = `Total Order = weighted average of that weekday's historical Total Order count (HKTV Staff + ODS/VAN, the Tableau Total Parent Order) across T-2/T-1/current month (weights above, auto-renormalized over whichever months have data)`
       + (pctChange ? `, then adjusted by the Overall Order % Change (${pctChange>0?'+':''}${pctChange}%) applied network-wide and split across districts by each district's historical order-count share (not evenly). ` : '. ')
-      + `FT Driver/FT Courier/PT Driver/PT Courier come from the Per-District Staff Plan above (blank = 0) and stay the same across every weekday. Productivity = Forecast Orders ÷ total headcount. Districts hidden via the chips above are excluded from the Total row.`;
+      + `Est. ODS Orders uses the same weighted-average method on ODS/VAN-only history. HKTV Orders = Total Order − Est. ODS Orders. FT Driver/FT Courier/PT Driver/PT Courier come from the Per-District Staff Plan above (blank = 0) and stay the same across every weekday. Productivity = HKTV Orders ÷ total HKTV headcount, checked against that district's Target Productivity (Per-District Staff Plan above, blank = Full_Cost_Planning.xlsx target) — green when achieved ≥ target, red when below. Districts hidden via the chips above are excluded from the Total row.`;
   }
 
   function fcSetupListeners(){
@@ -2215,10 +2656,27 @@
     document.getElementById('fcPlanTableBody').addEventListener('change', e=>{
       const inp = e.target; const d = inp.dataset.d; if(!d) return;
       const v = inp.value;
-      if(inp.classList.contains('fc-in-ftdriver')) FC_STATE.ftDriver[d] = v;
+      if(inp.classList.contains('fc-in-targetprod')) FC_STATE.targetProd[d] = v;
+      else if(inp.classList.contains('fc-in-ftdriver')) FC_STATE.ftDriver[d] = v;
       else if(inp.classList.contains('fc-in-ftcourier')) FC_STATE.ftCourier[d] = v;
       else if(inp.classList.contains('fc-in-ptdriver')) FC_STATE.ptDriver[d] = v;
       else if(inp.classList.contains('fc-in-ptcourier')) FC_STATE.ptCourier[d] = v;
+      renderForecastTab(); updateScrollHints();
+    });
+    // Per-row "Suggest" button — event delegation since fcRenderPlanTable
+    // rebuilds the whole tbody on every render.
+    document.getElementById('fcPlanTableBody').addEventListener('click', e=>{
+      const btn = e.target.closest('.fc-suggest-btn'); if(!btn) return;
+      fcApplySuggestionFor(btn.dataset.d);
+      renderForecastTab(); updateScrollHints();
+    });
+    document.getElementById('fcSuggestOverdrive').addEventListener('change', e=>{
+      FC_SUGGEST.overdrivePct = +e.target.value || 0;
+    });
+    document.getElementById('fcSuggestAllBtn').addEventListener('click', fcSuggestAll);
+    document.getElementById('fcSuggestClearBtn').addEventListener('click', ()=>{
+      FC_STATE.suggestions = {};
+      document.getElementById('fcSuggestBanner').style.display = 'none';
       renderForecastTab(); updateScrollHints();
     });
   }

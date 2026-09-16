@@ -168,6 +168,55 @@ COURIER_POSITIONS = {"COURIER", "SENIOR COURIER"}
 DRIVER_POSITIONS = {"DRIVER", "DRIVER II", "DRIVER AT", "DRIVER C"}
 MANPOWER_GROUP_POSITIONS = {"courier": COURIER_POSITIONS, "driver": DRIVER_POSITIONS}
 
+# v9.0 — Staff Allocation Cap (Suggest Headcount, Full Perspective Forecast
+# tab): the same 4 buckets the Per-District Staff Plan table itself has
+# (FT/PT Driver, FT/PT Courier), each mapped from the Staff List's "Position"
+# column. FT_DRIVER/FT_COURIER reuse the existing DRIVER_POSITIONS/
+# COURIER_POSITIONS sets above (same positions, same meaning) rather than
+# duplicating them. Any Position not covered here — team leaders,
+# supervisors, managers, transit-truck drivers, fleet/ops/HQ roles, etc. —
+# is deliberately excluded from every cap: those staff aren't part of the
+# Driver/Courier variable-cost pool Suggest Headcount allocates against, so
+# counting them toward the cap would let a district with lots of
+# supervisory headcount look like it has more allocatable Driver/Courier
+# capacity than it actually does.
+PT_DRIVER_POSITIONS = {"PART-TIME DRIVER"}
+PT_COURIER_POSITIONS = {"PART-TIME COURIER"}
+STAFF_CAP_BUCKET_POSITIONS = {
+    "ftDriver": DRIVER_POSITIONS,
+    "ptDriver": PT_DRIVER_POSITIONS,
+    "ftCourier": COURIER_POSITIONS,
+    "ptCourier": PT_COURIER_POSITIONS,
+}
+# Reverse lookup (Position -> bucket key), built once from the table above
+# rather than kept as a second hand-written mapping that could drift out of
+# sync with it.
+STAFF_CAP_POSITION_TO_BUCKET = {
+    pos: bucket for bucket, positions in STAFF_CAP_BUCKET_POSITIONS.items() for pos in positions
+}
+
+# v9.0 — Staff List "Department Code" (Column D) -> District, for the Staff
+# Allocation Cap. Most districts have two codes: a main one and a "P"-suffixed
+# one (e.g. LOGETH01 / LOGETHP01) — both roll up to the same district; ETK is
+# the only one with a single code in the current staff list. Codes not
+# listed here (LOGCFM, LOGOPR, LOGPD*, LOGTD02, LOGMGT, LOGEXP, LOGPED,
+# LOGMEN06, LOGMTM04, LOGFD02, LOGMET01, LOGMWT02, ...) are HQ / fleet-
+# management / other non-district departments and are excluded from the cap
+# entirely, the same way district_from_truck_no() excludes an unmatched
+# truck number.
+DEPARTMENT_CODE_DISTRICT_MAP = {
+    "LOGETH01": "ETH", "LOGETHP01": "ETH",
+    "LOGETK01": "ETK",
+    "LOGETN08": "NT-TSM", "LOGETNP08": "NT-TSM",
+    "LOGETX06": "ETX", "LOGETXP06": "ETX",
+    "LOGST04": "NT-ST", "LOGSTP04": "NT-ST",
+    "LOGTM04": "NT-TM", "LOGTMP04": "NT-TM",
+    "LOGWTH02": "WTH", "LOGWTHP02": "WTH",
+    "LOGWTK02": "WTK", "LOGWTKP02": "WTK",
+    "LOGWTW02": "NT-TW", "LOGWTWP02": "NT-TW",
+    "LOGWTX02": "WTX", "LOGWTXP02": "WTX",
+}
+
 # v3.0 §4.1: staff in these positions are leads/supervisors/managers, not
 # individual couriers/drivers — excluded from HKTV Staff Productivity's
 # manpower denominator (they still appear in the raw OIX data, just not
@@ -1348,6 +1397,74 @@ def load_staff_position_map():
     return out
 
 
+def compute_staff_allocation_cap():
+    """v9.0 — Reads the latest 'Logistics_Staff_List_YYYYMMDD.xlsx' (via
+    find_latest_staff_list(), same file/lookup already used for the
+    Courier/Driver Position classification above) and reduces it to a
+    maximum-cap table for Suggest Headcount: current ACTIVE headcount per
+    district, split into the same 4 buckets the Per-District Staff Plan
+    table uses (FT Driver, PT Driver, FT Courier, PT Courier).
+
+    - Employment Status: only rows whose status is exactly 'Active' count.
+      'Terminated' / 'Terminated (Black List)' staff are no longer
+      available to allocate, however recently they left.
+    - Position -> bucket via STAFF_CAP_POSITION_TO_BUCKET. A Position not in
+      that map (team leader, supervisor, manager, transit-truck driver,
+      fleet/ops/HQ role, ...) is excluded from every cap on purpose — see
+      the comment on STAFF_CAP_BUCKET_POSITIONS above.
+    - Department Code -> District via DEPARTMENT_CODE_DISTRICT_MAP. A code
+      not in that map (HQ / fleet-management / other non-district
+      departments) is excluded the same way.
+
+    Returns {district: {"ftDriver":n, "ftCourier":n, "ptDriver":n,
+    "ptCourier":n}} for every one of the 10 DISTRICTS (0 where the staff
+    list currently has nobody in that bucket), plus "_asOf" (the staff
+    list's own YYYYMMDD stamp, not today's date — so the dashboard can show
+    what the cap is actually based on) and "_source" (the filename used).
+
+    Raises FileNotFoundError if no staff list is present — same as
+    load_staff_position_map(), left for the caller to soft-fail on so a
+    missing/late staff list doesn't take down the rest of the 14:00 run.
+    """
+    path = find_latest_staff_list()
+    df = pd.read_excel(path, dtype=str)
+
+    cap = {d: {"ftDriver": 0, "ftCourier": 0, "ptDriver": 0, "ptCourier": 0} for d in DISTRICTS}
+
+    status = df["Employment Status"].fillna("").str.strip().str.upper()
+    active = df[status == "ACTIVE"]
+
+    unmapped_depts, unmapped_positions = set(), set()
+    for dept_code, pos in zip(active["Department Code"], active["Position"]):
+        dept_norm = "" if pd.isna(dept_code) else str(dept_code).strip().upper()
+        district = DEPARTMENT_CODE_DISTRICT_MAP.get(dept_norm)
+        if district is None:
+            if dept_norm:
+                unmapped_depts.add(dept_norm)
+            continue
+        pos_norm = "" if pd.isna(pos) else str(pos).strip().upper()
+        bucket = STAFF_CAP_POSITION_TO_BUCKET.get(pos_norm)
+        if bucket is None:
+            if pos_norm:
+                unmapped_positions.add(pos_norm)
+            continue
+        cap[district][bucket] += 1
+
+    if unmapped_positions:
+        print(f"  ℹ️ Staff Allocation Cap: {len(unmapped_positions)} Position title(s) not in "
+              f"STAFF_CAP_BUCKET_POSITIONS, excluded from every district's cap (supervisory/other "
+              f"roles): {sorted(unmapped_positions)}")
+    if unmapped_depts:
+        print(f"  ℹ️ Staff Allocation Cap: {len(unmapped_depts)} Department Code(s) not in "
+              f"DEPARTMENT_CODE_DISTRICT_MAP, excluded (non-district departments): "
+              f"{sorted(unmapped_depts)}")
+
+    m = re.match(r"^Logistics_Staff_List_(\d{8})\.xlsx$", os.path.basename(path), re.IGNORECASE)
+    cap["_asOf"] = m.group(1) if m else None
+    cap["_source"] = os.path.basename(path)
+    return cap
+
+
 def process_oix(df, position_map=None):
     """Cleaning + district tagging steps: drop O2O rows from non-LF/LP/ODS/VAN
     users, fill blank Parent Order from Order Number, dedupe, tag District.
@@ -2413,6 +2530,21 @@ def run_section_tableau():
     history = load_history()
     payload = load_data_json()
     matrices = payload.setdefault("matrices", {})
+
+    # v9.0 — Staff Allocation Cap for Suggest Headcount (Full Perspective
+    # Forecast tab): recomputed fresh every run straight from whatever is
+    # currently the latest staff list file, independently of the 03:00 job's
+    # own position_map load below — so the cap always reflects the most
+    # up-to-date staff list regardless of when it lands during the day.
+    # Soft-fails the same way load_staff_position_map() does elsewhere: a
+    # missing/late staff list just means the dashboard keeps yesterday's cap
+    # (or none, before the first successful run) rather than blocking the
+    # rest of this job.
+    try:
+        payload["staffAllocationCap"] = compute_staff_allocation_cap()
+    except FileNotFoundError as e:
+        print(f"  ⚠️ {e} — skipping Staff Allocation Cap update this run; "
+              f"Suggest Headcount on the dashboard keeps its previous cap (if any).")
 
     # --- v4.0 §2/§4: Delay Rate ---
     # "actual" shown on the dashboard is now the MTD figure (spec §4), but the
