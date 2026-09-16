@@ -754,8 +754,9 @@
         <div class="prod-note">
           <b>Definition.</b> One FT Driver / FT Courier / PT Driver / PT Courier plan per weekday, per district (FTD / FTC / PTD / PTC). Blank = 0. Each column header shows how many times that weekday falls in the forecast month.<br>
           <b>Cell figures.</b> Σ = that day's total headcount. The pill = that day's Productivity (HKTV Orders ÷ Σ) and its achievement rate, (forecast − target) ÷ target.<br>
-          <b>Minimum roster (FT floor).</b> Every day rosters at least 75% of the district's active FT bench (Staff Allocation Cap) — the 25% held back covers rest days and leave. It's a minimum, not a fixed number: the plan can schedule up to 100% on a given day when that's cheaper than covering the same volume with PT or ODS. Cost is priced on whatever is actually scheduled that day, at Unit Cost.<br>
-          <b>Two numbers, not one.</b> The floor is a payroll commitment, so cost, man-days and the headcounts in these cells are all the <i>rostered</i> figures. Productivity and its achievement rate in the Suggest badge are judged on the <i>demand-driven</i> team — the heads the day's volume actually justifies — so a quiet day reads as spare roster capacity rather than as an operational miss. Where a cell's headcount is bigger than demand, the gap is labelled underneath.
+          <b>Default = 0.</b> Every cell starts blank (= 0) and stays that way until you type a number or run Suggest Headcount. With the plan empty the forecast shows the raw picture — no headcount, no staff cost, no minimum-roster charge.<br>
+          <b>These cells are the working plan.</b> What you see here is the team the day's volume justifies, and the pill is the productivity that team is being asked for. Nothing is padded into the numbers.<br>
+          <b>FT roster pool (the 75%).</b> An FT head works about 5–6 days in 7, so the commitment is 75% of the active FT bench × days in the month, held as a <i>pool of FT man-days</i> — not a fixed roster on every date. The plan spends that pool where the volume is: fewer FT on a quiet Wednesday, up to the full bench on a peak Friday, same payroll either way. Each cell shows the FT it rosters against the bench. Any pool man-days the month's volume can't absorb are charged to Variable — Staff at FT Unit Cost as one monthly line, so cost stays whole without parking idle heads on a date that has no work for them.
         </div>
 
         <!-- SUGGEST HEADCOUNT — v8.0. For each district, searches reasonable
@@ -767,8 +768,8 @@
              productivity target — see fcSuggestHeadcountForDistrict()). -->
         <div class="prod-controls fc-suggest-row">
           <div class="prod-field fc-weight">
-            <label for="fcSuggestOverdrive" title="How far above each district's Target Productivity (Full_Cost_Planning.xlsx, or its manual override above) a single reasonable staffing plan is allowed to push the achieved figure. 0% = staff exactly to the productivity ceiling (cheapest, but the actual figure will only just clear the target); higher = leaves more headroom by allowing a slightly larger — costlier — team. Capped at 20%.">Max Productivity Overdrive (%)</label>
-            <input type="number" id="fcSuggestOverdrive" min="0" max="20" step="1" value="20">
+            <label for="fcSuggestOverdrive" title="How far above each district's Target Productivity (Full_Cost_Planning.xlsx, or its manual override above) the suggested plan is allowed to push the achieved figure. Default 0 = staff exactly to the target: the plan is the cheapest team that still clears it, and the figure it promises is one the district can actually be held to. Raising this buys a leaner, cheaper team by demanding productivity above target — only realistic where there is known slack. Capped at 20%.">Max Productivity Overdrive (%)</label>
+            <input type="number" id="fcSuggestOverdrive" min="0" max="20" step="1" value="0">
           </div>
           <div class="prod-field fc-weight">
             <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. The default ±20% is a placeholder: set it to the agreed contractual bound.">Max ODS Volume Flex (±%)</label>
@@ -785,8 +786,9 @@
           <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn" title="Resets the whole plan to defaults: per-weekday headcounts, Target Productivity overrides, the ODS/HKTV shift and the badges all go back to blank.">Clear Suggestions &amp; Reset Plan</button>
         </div>
         <div class="prod-note">
-          <b>Per weekday:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), capped by the Staff Allocation Cap. Courier : Driver = 49 : 51; FT filled before PT, both priced at their Unit Cost for whatever is actually scheduled.<br>
-          <b>Demand vs roster:</b> that team is the <b>demand-driven</b> headcount — the badge headline and the Prod % are measured against it. It is then raised to the 75% FT roster floor (a minimum — can run up to 100% of the active bench when that's the cheaper way to cover the day) to give the <b>rostered</b> headcount, which is what goes into the plan cells and what Cost/Order, man-days and payroll are priced on. The floor appears as a separate <i>min roster</i> annotation under each badge, never folded into the headline.<br>
+          <b>Per weekday:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), capped by the Staff Allocation Cap. With Overdrive at its default 0 that means the cheapest team that still clears target — the plan promises the target, not a stretch above it. Courier : Driver = 49 : 51; already-paid minimum-roster FT heads are used before any PT head is bought, then whichever type is cheaper.<br>
+          <b>Rostering across the week:</b> the FT pool is then spread over the seven weekdays to cover as much of that demand as possible — a first pass learns what each weekday wants, a second re-plans each day inside its slice of the pool. FT inside the pool is already paid, so it is used before any PT head is bought and it is treated as free when the ODS/HKTV split is chosen. PT appears only where the pool is exhausted.<br>
+          <b>What gets written in:</b> the deployed team, and only it — every head in the cells has work, so the Prod % in the badge, the cell pills and the Weekly Forecast Plan are all the same measurement. The undeployed part of the pool is reported under the badge as roster utilisation and charged as a monthly cost line, never as headcount.<br>
           <b>ODS / HKTV split:</b> each weekday's ODS volume is chosen within ±Flex% of its forecast baseline (and under the Max ODS % ceiling, if set) to minimise <i>staff cost (actual roster) + ODS orders × Blended Cost/Order</i>. Total Order volume is unchanged, so cheapest = lowest Cost/Order.<br>
           <b>Cost check:</b> run once on the week — (Fixed + Staff + ODS) ÷ Est. Order Volume vs Target Cost/Order.<br>
           A plan is always applied. The badge reports both achievement rates and, in amber, which target it misses.
@@ -2198,7 +2200,7 @@
          misses Cost/Order — reported with the actual figure and the
          man-day count behind it.
   */
-  const FC_SUGGEST = { overdrivePct: 20 }; // v5.0 — capped at 20%, see fcSetupListeners' fcSuggestOverdrive handler
+  const FC_SUGGEST = { overdrivePct: 0 };  // v14.1 — defaults to 0: staff to the productivity TARGET, not 20% above it, so the suggested plan is one a district can actually be held to // v5.0 — capped at 20%, see fcSetupListeners' fcSuggestOverdrive handler
 
   // v9.0 — Staff Allocation Cap: current ACTIVE FT/PT Driver/Courier
   // headcount per district, from data.json's staffAllocationCap
@@ -2251,59 +2253,76 @@
   // couldn't actually be fielded.
   // v13.0 §1 — FT staff are a FIXED cost, not an optional one: a full-time
   // Driver or Courier is paid whether or not there is volume for them, so a
-  // forecast that leaves them out of the plan understates cost and
-  // overstates productivity. Every daily plan therefore has a FLOOR of
-  // mandatory FT heads, taken from the district's Staff Allocation Cap (the
-  // active FT bench) discounted for rest days and leave.
+  // forecast that leaves them out understates cost and overstates
+  // productivity. 75% is the rest-day and leave discount on the district's
+  // active FT bench (Staff Allocation Cap): an FT head works roughly 5-6 days
+  // of any 7.
   //
-  // 75% is that discount: an FT head works roughly 5-6 of any 7 days, so on
-  // any given weekday about three quarters of the FT bench is actually
-  // rostered. The remaining quarter is off, and — being a headcount cost
-  // rather than a per-day one — the cost table's daily Unit Cost rate
-  // already prices them across the month.
+  // v14.2 §1 — that 75% is owed across the MONTH, not on each day. See
+  // fcFtWeeklyBudgetFor() below, which turns it into a pool of FT man-days
+  // the plan can spend unevenly across the week; fcFtFloorFor() is kept only
+  // as the flat daily-average reading of the same commitment, for reference
+  // in tooltips.
   const FT_ROSTER_SHARE = 0.75;
   function fcFtFloorFor(district){
     const cap = fcStaffCapFor(district);
-    const f = (v)=> isFinite(v) ? Math.round(v*FT_ROSTER_SHARE) : 0; // no bench data = no floor
+    const f = (v)=> isFinite(v) ? Math.round(v*FT_ROSTER_SHARE) : 0; // no bench data = no commitment
     const ftDriver = f(cap.ftDriver), ftCourier = f(cap.ftCourier);
     return { ftDriver, ftCourier, total: ftDriver + ftCourier };
   }
-  // v14.0 §1 — BOTH NUMBERS ARE REPORTED.
-  // The 75% floor answers a payroll question ("how many heads are on the
-  // roster and therefore paid that day"); Productivity answers an operational
-  // one ("how many heads does the day's volume actually need"). Baking the
-  // floor into the productivity denominator mixed the two and made every
-  // low-volume day look like an operational failure when it was really a
-  // bench-utilisation one.
-  //   - Cost / payroll  -> the FLOORED roster (unchanged, still the applied plan)
-  //   - Productivity / achievement -> the DEMAND-DRIVEN team
-  //   - the floor itself -> surfaced as a separate "minimum roster" annotation
-  // Passing FC_NO_FLOOR builds the same cheapest combo with no mandatory FT
-  // heads, i.e. the team the volume alone justifies (still bench-clamped and
-  // still split 49:51), which is what the demand-driven figures are built on.
-  const FC_NO_FLOOR = { ftDriver:0, ftCourier:0, total:0 };
-  function fcCheapestComboForTotal(district, S, courierShare, floorOverride){
+  // v14.2 §1 — THE 75% IS A WEEKLY SHARE, NOT A DAILY ONE.
+  // An FT head works roughly 5-6 days of any 7; WHICH days is a rostering
+  // choice, not a fixed fact about each day. Treating 75% as a daily minimum
+  // forced the same roster onto a quiet Wednesday and a peak Friday, which
+  // simultaneously wasted heads on the quiet day and bought PT on the busy
+  // one. Modelling it as a POOL instead — 75% x active FT bench x days in the
+  // forecast month, spent unevenly across the week — costs exactly the same
+  // payroll but lets the plan clear target EVERY day.
+  //
+  // Constraints on how the pool may be spent:
+  //   - no day may use more FT than the district's actual bench (100% cap)
+  //   - the month's FT man-days may not exceed the pool
+  //   - anything the pool can't cover is PT (to its own bench cap), then ODS
+  // Inside the pool an FT head is a SUNK cost, so the search treats it as
+  // free at the margin and prefers it over buying PT. Payroll is charged on
+  // the whole pool whether the plan deploys it or not (fcMinRosterTopUpFor).
+  function fcFtWeeklyBudgetFor(district){
+    const cap = fcStaffCapFor(district);
+    const occ = fcWeekdayOccurrences();
+    const days = occ.reduce((a,b)=>a+b,0);
+    const f = (v)=> isFinite(v) ? Math.round(v*FT_ROSTER_SHARE*days) : 0; // no bench data = no pool
+    const ftDriver = f(cap.ftDriver), ftCourier = f(cap.ftCourier);
+    return { days, ftDriver, ftCourier, total: ftDriver + ftCourier,
+      benchFtDriver: isFinite(cap.ftDriver) ? cap.ftDriver : 0,
+      benchFtCourier: isFinite(cap.ftCourier) ? cap.ftCourier : 0,
+      hasPool: isFinite(cap.ftDriver) || isFinite(cap.ftCourier) };
+  }
+  // Builds one day's team. opts.ftAvail = {ftDriver, ftCourier} is this day's
+  // slice of the FT pool — how many FT heads of each role may be rostered
+  // today. Omitted = the whole bench (the unconstrained first pass).
+  // FT within the slice is filled FIRST regardless of rates: those heads are
+  // already paid, so a PT head bought while one sits idle is pure waste.
+  function fcCheapestComboForTotal(district, S, courierShare, opts){
     const u = UNIT_COST_STAFF[district];
     const cap = fcStaffCapFor(district);
-    const floor = floorOverride || fcFtFloorFor(district);   // v13.0 §1 — mandatory rostered FT
-    const driverCap = cap.ftDriver + cap.ptDriver;
-    const courierCap = cap.ftCourier + cap.ptCourier;
+    const avail = (opts && opts.ftAvail) || {};
+    const lim = (capV, availV)=>{
+      const c = isFinite(capV) ? capV : Infinity;
+      const a = (availV == null) ? Infinity : Math.max(0, availV);
+      return Math.min(c, a);
+    };
+    const ftDriverAvail = lim(cap.ftDriver, avail.ftDriver);
+    const ftCourierAvail = lim(cap.ftCourier, avail.ftCourier);
+    const driverCap = ftDriverAvail + cap.ptDriver;
+    const courierCap = ftCourierAvail + cap.ptCourier;
 
-    // The team can never be smaller than the rostered FT floor, however
-    // little volume the day has — those people are on the payroll either way.
-    const Seff = Math.max(S, floor.total);
-
+    const Seff = Math.max(0, S);
     let courierCount = Math.round(Seff*courierShare);
     let driverCount = Seff - courierCount;
     if(Seff >= 2){ // keep both roles represented once the team is big enough to
       if(courierCount === 0){ courierCount = 1; driverCount = Seff-1; }
       if(driverCount === 0){ driverCount = 1; courierCount = Seff-1; }
     }
-    // Each role also carries its own FT floor, so the 49:51 split is applied
-    // to whatever sits ABOVE the floors rather than being allowed to cut
-    // into them.
-    courierCount = Math.max(courierCount, floor.ftCourier);
-    driverCount = Math.max(driverCount, floor.ftDriver);
 
     const driverShort = Math.max(0, driverCount - driverCap);
     const courierShort = Math.max(0, courierCount - courierCap);
@@ -2318,40 +2337,28 @@
       driverCount += move;
     }
 
-    // ftFloor is filled FIRST and never traded away for a cheaper PT head —
-    // that's the whole point of the floor. Only the headcount above it is
-    // allocated cheapest-type-first.
-    const assignRole = (count, ftCap, ptCap, ftRate, ptRate, ftFloor) => {
-      let ft = Math.min(ftFloor, ftCap);
-      let remaining = Math.max(0, count - ft);
-      let pt = 0;
-      if(ftRate <= ptRate){
-        const add = Math.min(remaining, Math.max(0, ftCap-ft)); ft += add; remaining -= add;
-        pt = Math.min(remaining, ptCap); remaining -= pt;
-      } else {
-        pt = Math.min(remaining, ptCap); remaining -= pt;
-        const add = Math.min(remaining, Math.max(0, ftCap-ft)); ft += add; remaining -= add;
-      }
-      return { ft, pt, unmet: remaining };
+    const assignRole = (count, ftAvail, ptCap) => {
+      const ft = Math.min(count, ftAvail);
+      const pt = Math.min(Math.max(0, count - ft), ptCap);
+      return { ft, pt, unmet: Math.max(0, count - ft - pt) };
     };
-    const drv = assignRole(driverCount, cap.ftDriver, cap.ptDriver, u.ftDriver, u.ptDriver, floor.ftDriver);
-    const cor = assignRole(courierCount, cap.ftCourier, cap.ptCourier, u.ftCourier, u.ptCourier, floor.ftCourier);
+    const drv = assignRole(driverCount, ftDriverAvail, cap.ptDriver);
+    const cor = assignRole(courierCount, ftCourierAvail, cap.ptCourier);
 
     const combo = { ftDriver:drv.ft, ptDriver:drv.pt, ftCourier:cor.ft, ptCourier:cor.pt };
-    // UNIT_COST_STAFF is a per-head-per-DAY rate — this is the cost of
-    // fielding this combo for ONE occurrence of a day, not yet scaled to a
-    // month (v11.0 §1 sizes headcount per weekday, so the caller multiplies
-    // by fcWeekdayOccurrencesInMonth() for whichever weekday this is).
-    // v13.0 §1 — cost follows the ACTUAL scheduled roster for that day (FT
-    // + PT, both at their Unit Cost rate) — not the full bench. 75% is a
-    // minimum roster, not a fixed one: the search can schedule up to 100%
-    // of the active FT bench when that's the cheaper way to clear a day's
-    // volume (fewer PT heads / less ODS needed), and dailyCost here is what
-    // prices that trade-off.
+    // Two costs, deliberately: dailyCost is PAYROLL for the heads actually
+    // scheduled (what the cost table pays, before the idle-pool top-up);
+    // marginalCost is what one more order of in-house volume really costs
+    // today — PT only, because pool FT is already bought. The ODS/HKTV search
+    // optimises on the marginal figure, which is why free FT capacity pulls
+    // volume back in-house instead of paying a partner for it.
     const dailyCost = combo.ftDriver*u.ftDriver + combo.ftCourier*u.ftCourier + combo.ptDriver*u.ptDriver + combo.ptCourier*u.ptCourier;
+    const marginalCost = combo.ptDriver*u.ptDriver + combo.ptCourier*u.ptCourier;
     const total = combo.ftDriver + combo.ptDriver + combo.ftCourier + combo.ptCourier;
     const shortfall = drv.unmet + cor.unmet; // how much of the requested S the bench couldn't cover
-    return { ...combo, total, requested:S, ftFloored: total > S, floor, shortfall, dailyCost };
+    return { ...combo, total, requested:S, shortfall, dailyCost, marginalCost,
+      ftTotal: combo.ftDriver + combo.ftCourier, ptTotal: combo.ptDriver + combo.ptCourier,
+      ptUsed: (combo.ptDriver + combo.ptCourier) > 0 };
   }
   // This weekday's forecast HKTV Orders = Total Order (adjusted) - Est. ODS
   // Orders, i.e. the volume the in-house FT/PT team actually has to clear.
@@ -2386,7 +2393,7 @@
   // the cheapest way to cover a day's volume (fewer PT heads, or less
   // ODS needed), and each candidate here is costed on whatever it actually
   // schedules — there is no assumption that FT above the floor is free.
-  function fcOptimizeDayPlan(district, weekdayIdx, targetProd, overdrive, courierShare){
+  function fcOptimizeDayPlan(district, weekdayIdx, targetProd, overdrive, courierShare, ftAvail){
     const { lo, hi, base, total } = fcOdsBoundsFor(district, weekdayIdx);
     const blended = odsBlendedCostFor(district);
     const candidates = [];
@@ -2407,40 +2414,50 @@
       const hktv = Math.max(0, total - ods);
       const Smax = Math.floor(hktv/targetProd);            // productivity ceiling
       const Smin = Math.max(1, Math.ceil(hktv/(targetProd*(1+overdrive))));
-      // Target size = the leanest team inside the Overdrive window, capped by
-      // the productivity ceiling — then raised to the FT roster floor, which
-      // outranks both because those heads are paid regardless.
+      // The leanest team inside the Overdrive window, capped by the
+      // productivity ceiling. v14.2 §1 — nothing is added to it afterwards:
+      // this IS the team, and the FT pool decides how much of it is FT.
       const wanted = Smax >= 1 ? Math.max(1, Math.min(Smax, Smin)) : 1;
-      const combo = fcCheapestComboForTotal(district, wanted, courierShare);
-      const staffDailyCost = combo.dailyCost;
-      const dayCost = staffDailyCost + ods*blended;
+      const combo = fcCheapestComboForTotal(district, wanted, courierShare, { ftAvail });
+      // v14.2 §1 — chosen on MARGINAL cost (PT + ODS). Pool FT is sunk, so
+      // including it here would make in-house volume look expensive and push
+      // orders to a partner the district is already paying staff to beat.
+      const dayCost = combo.marginalCost + ods*blended;
       if(!best || dayCost < best.dayCost - 1e-9){
-        const rosteredProd = combo.total > 0 ? hktv/combo.total : null;
+        const achievedProd = combo.total > 0 ? hktv/combo.total : null;
         best = { ...combo, odsOrders:ods, odsBaseline:base, odsShift:ods-base, hktvOrders:hktv,
-          Smin, Smax, wanted, staffDailyCost, odsDailyCost: ods*blended, dayCost,
-          rosteredProd, benchLimited: combo.shortfall > 0 };
+          Smin, Smax, wanted, staffDailyCost: combo.dailyCost, odsDailyCost: ods*blended, dayCost,
+          achievedProd, meetsProd: achievedProd != null && achievedProd >= targetProd,
+          benchLimited: combo.shortfall > 0 };
       }
     });
-    // v14.0 §1 — the winning candidate is chosen on COST, which is priced on
-    // the floored roster (that hasn't changed: those heads are paid either
-    // way). What changes is the productivity lens laid over it. Re-run the
-    // same sizing with no FT floor to get the demand-driven team, and report
-    // the day against that.
-    if(best){
-      const demand = fcCheapestComboForTotal(district, best.wanted, courierShare, FC_NO_FLOOR);
-      best.demandTotal = demand.total;
-      best.demandCombo = { ftDriver:demand.ftDriver, ptDriver:demand.ptDriver, ftCourier:demand.ftCourier, ptCourier:demand.ptCourier };
-      best.demandProd = best.demandTotal > 0 ? best.hktvOrders/best.demandTotal : null;
-      // The headline productivity figure for this day.
-      best.achievedProd = best.demandProd;
-      // Heads rostered purely because of the floor — idle capacity, not an
-      // operational miss. This is the "minimum roster" annotation's substance.
-      best.minRoster = best.floor ? best.floor.total : 0;
-      best.floorGap = Math.max(0, best.total - best.demandTotal);
-      best.ftFloored = best.floorGap > 0;
-      best.meetsProd = best.demandProd != null && best.demandProd >= targetProd;
-    }
     return best;
+  }
+  // v14.2 §1 — spreads the month's FT pool across the seven weekdays.
+  // `need` is each weekday's FT demand for one role, `occ` how often that
+  // weekday falls in the month, `pool` the role's man-day budget. Days are
+  // served in full while the pool lasts; when it doesn't, heads are shaved
+  // one at a time off whichever day can still absorb them with PT, and only
+  // then off the rest — so a shortage shows up as PT cost, not as a day that
+  // quietly misses target.
+  function fcSpreadFtPool(need, occ, pool, benchPerDay, ptCapPerDay){
+    const alloc = need.map(n=>Math.min(n, isFinite(benchPerDay)?benchPerDay:n));
+    if(!isFinite(pool)) return alloc;
+    const used = ()=> alloc.reduce((a,v,i)=>a+v*occ[i], 0);
+    let guard = 0;
+    while(used() > pool && guard++ < 5000){
+      // Prefer shaving where PT can still cover the gap.
+      let pick = -1, pickScore = -Infinity;
+      for(let i=0;i<alloc.length;i++){
+        if(alloc[i] <= 0) continue;
+        const ptRoom = Math.max(0, ptCapPerDay - Math.max(0, need[i] - alloc[i]));
+        const score = (ptRoom > 0 ? 1e6 : 0) + alloc[i];
+        if(score > pickScore){ pickScore = score; pick = i; }
+      }
+      if(pick < 0) break;
+      alloc[pick] -= 1;
+    }
+    return alloc;
   }
   // v11.0 §1 — sizes each weekday independently; v12.0 — and chooses each
   // weekday's ODS/HKTV split with it; v13.0 — always returns a costed plan,
@@ -2455,7 +2472,8 @@
     const courierShare = fcCourierShareFor(district); // v11.0 §2 — fixed 49:51 courier:driver
     const overdrive = Math.min(20, Math.max(0, +FC_SUGGEST.overdrivePct || 0)) / 100;
     const cap = fcStaffCapFor(district);
-    const floor = fcFtFloorFor(district);
+    const u = UNIT_COST_STAFF[district];
+    const pool = fcFtWeeklyBudgetFor(district);   // v14.2 §1 — monthly FT man-day budget
     const occ = fcWeekdayOccurrences();
 
     // Everything below works off the BASELINE split, never off whatever a
@@ -2470,29 +2488,54 @@
         reason:`No forecast order volume for ${district} yet — check the order-ratio weights above or the underlying productivity history.` };
     }
 
+    // v14.2 §1 — TWO PASSES, because the roster and the plan depend on each
+    // other: how many FT heads a day may use depends on what the week needs,
+    // and what the week needs depends on the split each day settles on.
+    //   Pass 1 sizes every day with the whole bench available, to learn the
+    //          week's shape (how much FT each weekday actually wants).
+    //   Pass 2 spreads the FT pool over that shape and re-plans each day
+    //          inside its slice, buying PT only where the pool runs out.
+    const pass1 = WEEKDAY_LABELS.map((label,i)=>
+      fcOptimizeDayPlan(district, i, targetProd, overdrive, courierShare, null));
+    const ftDriverAlloc = fcSpreadFtPool(pass1.map(d=>d.ftDriver + d.ptDriver), occ, pool.ftDriver, cap.ftDriver, cap.ptDriver);
+    const ftCourierAlloc = fcSpreadFtPool(pass1.map(d=>d.ftCourier + d.ptCourier), occ, pool.ftCourier, cap.ftCourier, cap.ptCourier);
+
     const days = WEEKDAY_LABELS.map((label,i)=>{
-      const best = fcOptimizeDayPlan(district, i, targetProd, overdrive, courierShare);
-      return { weekdayIdx:i, label, occurrences:occ[i], ...best };
+      const ftAvail = { ftDriver: ftDriverAlloc[i], ftCourier: ftCourierAlloc[i] };
+      const best = fcOptimizeDayPlan(district, i, targetProd, overdrive, courierShare, ftAvail);
+      return { weekdayIdx:i, label, occurrences:occ[i], ftAvail, ...best };
     });
 
-    const monthlyStaffCost = days.reduce((a,d)=> a + d.staffDailyCost*d.occurrences, 0);
     const monthlyOdsVolume = days.reduce((a,d)=> a + d.odsOrders*d.occurrences, 0);
     const baseOdsVolume = baseOdsByDay.reduce((a,v,i)=> a + v*occ[i], 0);
     const variableOds = monthlyOdsVolume * blended;
-    // v14.0 §1 — manDays stays the ROSTERED figure: it feeds cost, payroll and
-    // the banner's planned total. demandManDays is the parallel demand-driven
-    // figure the productivity numbers are judged on.
-    const manDays = days.reduce((a,d)=> a + d.total*d.occurrences, 0);
-    const demandManDays = days.reduce((a,d)=> a + (d.demandTotal||0)*d.occurrences, 0);
-    const floorManDays = Math.max(0, manDays - demandManDays); // rostered-but-unneeded capacity
+
+    // v14.2 §1 — STAFF COST = the whole FT pool (paid whether deployed or
+    // not) + whatever PT the plan had to buy on top. Deploying pool FT costs
+    // nothing extra; leaving it idle saves nothing. Man-days are reported the
+    // same way: deployed vs paid.
+    const ftManDays = days.reduce((a,d)=> a + (d.ftDriver + d.ftCourier)*d.occurrences, 0);
+    const ptManDays = days.reduce((a,d)=> a + (d.ptDriver + d.ptCourier)*d.occurrences, 0);
+    const ftDriverManDays = days.reduce((a,d)=> a + d.ftDriver*d.occurrences, 0);
+    const ftCourierManDays = days.reduce((a,d)=> a + d.ftCourier*d.occurrences, 0);
+    const idleFtDriver = Math.max(0, pool.ftDriver - ftDriverManDays);
+    const idleFtCourier = Math.max(0, pool.ftCourier - ftCourierManDays);
+    const idleFtManDays = idleFtDriver + idleFtCourier;
+    const ptCost = days.reduce((a,d)=> a + (d.ptDriver*u.ptDriver + d.ptCourier*u.ptCourier)*d.occurrences, 0);
+    const deployedFtCost = ftDriverManDays*u.ftDriver + ftCourierManDays*u.ftCourier;
+    const idleFtCost = idleFtDriver*u.ftDriver + idleFtCourier*u.ftCourier;
+    const monthlyStaffCost = deployedFtCost + idleFtCost + ptCost;
+
+    const manDays = ftManDays + ptManDays;                 // deployed — the plan, and the productivity denominator
+    const paidManDays = manDays + idleFtManDays;           // payroll
+    const poolUtilisation = pool.total > 0 ? Math.min(1, ftManDays/pool.total) : null;
     const costPerOrder = monthlyOrderVolume > 0 ? (fixed + monthlyStaffCost + variableOds)/monthlyOrderVolume : null;
-    const totals = days.map(d=>d.total);                    // rostered (paid)
-    const demandTotals = days.map(d=>d.demandTotal||0);      // demand-driven
+    const totals = days.map(d=>d.total);
     const prods = days.map(d=>d.achievedProd).filter(v=>v!=null);
     const worst = days.reduce((a,b)=> (a.achievedProd ?? Infinity) <= (b.achievedProd ?? Infinity) ? a : b);
     const odsShifted = monthlyOdsVolume - baseOdsVolume;
     const missedDays = days.filter(d=>!d.meetsProd);
-    const ftFlooredDays = days.filter(d=>d.ftFloored);
+    const ptDays = days.filter(d=>d.ptTotal > 0);
 
     const costOk = costPerOrder != null && costPerOrder <= targetCost;
     const prodOk = missedDays.length === 0;
@@ -2500,34 +2543,31 @@
     // Achievement rates, v13.0 §6: (forecast − target) ÷ target. Positive is
     // GOOD for productivity (above target) and BAD for cost (over target).
     const weekHktv = days.reduce((a,d)=> a + d.hktvOrders*d.occurrences, 0);
-    // v14.0 §1 — headline Productivity and its variation are demand-driven:
-    // HKTV volume ÷ the team that volume actually justifies. The rostered
-    // figure (same volume ÷ the floored roster that gets paid) is reported
-    // alongside it rather than replacing it — it's the bench-utilisation
-    // reading, and it's what the cost numbers correspond to.
-    const weightedProd = demandManDays > 0 ? weekHktv/demandManDays : null;
+    // v14.2 §1 — every head in this denominator is a head with work to do:
+    // the plan no longer rosters anyone it can't use, so the headline figure
+    // and the per-day figures are the same measurement. The paid-roster
+    // reading is still reported beside it (that's the utilisation story).
+    const weightedProd = manDays > 0 ? weekHktv/manDays : null;
     const prodAchievement = weightedProd != null ? (weightedProd - targetProd)/targetProd : null;
-    const rosteredProd = manDays > 0 ? weekHktv/manDays : null;
-    const rosteredProdAchievement = rosteredProd != null ? (rosteredProd - targetProd)/targetProd : null;
+    const paidProd = paidManDays > 0 ? weekHktv/paidManDays : null;
+    const paidProdAchievement = paidProd != null ? (paidProd - targetProd)/targetProd : null;
     const costAchievement = costPerOrder != null ? (costPerOrder - targetCost)/targetCost : null;
 
     let reason = null;
     if(!costOk || !prodOk){
       const bits = [];
       if(!prodOk){
-        // v14.0 §1 — a productivity miss is now a genuine demand-side miss:
-        // the day's HKTV volume can't keep even the smallest workable team at
-        // target. The FT floor can no longer cause one (it's judged separately
-        // as minimum roster), so it isn't offered as the excuse here.
-        bits.push(`${missedDays.length === 7 ? 'every weekday' : missedDays.map(d=>`${d.label} (${d.achievedProd==null?'—':d.achievedProd.toFixed(1)})`).join(', ')} below the ${targetProd.toFixed(1)}/staff productivity target on demand-driven headcount — the in-house volume left on those days is too small to keep a whole head busy at target`);
+        bits.push(`${missedDays.length === 7 ? 'every weekday' : missedDays.map(d=>`${d.label} (${d.achievedProd==null?'—':d.achievedProd.toFixed(1)})`).join(', ')} below the ${targetProd.toFixed(1)}/staff productivity target — the in-house volume left on those days is too small to keep even one head busy at target`);
       }
       if(!costOk) bits.push(`Cost/Order $${costPerOrder==null?'—':costPerOrder.toFixed(2)} vs target $${targetCost.toFixed(2)} (${costAchievement==null?'—':(costAchievement>=0?'+':'')+(costAchievement*100).toFixed(1)}%)`);
       const zeroStaffCostPerOrder = monthlyOrderVolume>0 ? (fixed + baseOdsVolume*blended)/monthlyOrderVolume : null;
       let lever;
       if(!costOk && zeroStaffCostPerOrder != null && zeroStaffCostPerOrder > targetCost){
         lever = `Fixed + ODS cost alone is already $${zeroStaffCostPerOrder.toFixed(2)}/order here, before a single staff cost — no staffing plan or channel split can close that.`;
-      } else if(ftFlooredDays.length){
-        lever = `The FT floor is the binding constraint on ${ftFlooredDays.map(d=>d.label).join(', ')}: those heads are paid regardless, so the only real levers are moving volume back in-house (widen Max ODS Volume Flex), redeploying FT staff to another district, or accepting the gap.`;
+      } else if(!costOk && idleFtManDays >= 1){
+        lever = `${intFmt(idleFtManDays)} FT man-days/mo of the ${intFmt(pool.total)}-man-day roster commitment go undeployed — the volume can't absorb them. Widening Max ODS Volume Flex brings work back in-house at no extra staff cost; otherwise the lever is redeploying FT capacity to another district.`;
+      } else if(!costOk && ptManDays >= 1){
+        lever = `The FT pool is fully deployed and the plan still needs ${intFmt(ptManDays)} PT man-days/mo on ${ptDays.map(d=>d.label).join(', ')} — either more FT bench here, or more volume to ODS.`;
       } else {
         lever = `Widen Max ODS Volume Flex if the partner can absorb or return more volume, raise Max Productivity Overdrive to allow leaner days, or revisit this district's targets.`;
       }
@@ -2536,18 +2576,15 @@
 
     return { feasible: costOk && prodOk, applied:true, costOk, prodOk, district, days,
       targetProd, targetCost, costPerOrder, weightedProd, prodAchievement, costAchievement,
-      rosteredProd, rosteredProdAchievement,
+      paidProd, paidProdAchievement,
       monthlyStaffCost, monthlyOdsVolume, baseOdsVolume, odsShifted, variableOds,
-      manDays, demandManDays, floorManDays,
-      // v14.0 §1 — headline range is demand-driven; the rostered range (what
-      // actually gets paid and what's written into the plan table) rides
-      // alongside it as the minimum-roster annotation.
-      minTotal:Math.min(...demandTotals), maxTotal:Math.max(...demandTotals),
-      minRosterTotal:Math.min(...totals), maxRosterTotal:Math.max(...totals),
-      floorBoundDays: ftFlooredDays.map(d=>d.label),
+      manDays, paidManDays, ftManDays, ptManDays, idleFtManDays, poolUtilisation, ftPool:pool,
+      deployedFtCost, idleFtCost, ptCost,
+      minTotal:Math.min(...totals), maxTotal:Math.max(...totals),
+      ptDays: ptDays.map(d=>d.label),
       minAchievedProd: prods.length?Math.min(...prods):null,
       maxAchievedProd: prods.length?Math.max(...prods):null,
-      worstWeekday: worst.label, weekTotal, staffCap:cap, ftFloor:floor,
+      worstWeekday: worst.label, weekTotal, staffCap:cap,
       benchLimited: days.some(d=>d.benchLimited),
       missedDays: missedDays.map(d=>d.label),
       odsOptimized: FC_ODS.optimize && Math.abs(odsShifted) >= 1, reason };
@@ -2567,6 +2604,11 @@
       if(!FC_STATE.odsShift[district]) FC_STATE.odsShift[district] = WEEKDAY_LABELS.map(()=>0);
       result.days.forEach(day=>{
         const slot = fcStaffSlot(district, day.weekdayIdx);
+        // v14.2 §1 — the cells carry the deployed plan: the team that clears
+        // Target Productivity that day, staffed out of the district's FT pool
+        // and topped up with PT only where the pool is spent. Nothing is
+        // padded in; the undeployed part of the pool is a monthly cost line
+        // (fcMinRosterTopUpFor), not headcount on a day that can't use it.
         STAFF_BUCKETS.forEach(k=>{ slot[k] = day[k]; });
         // v12.0 — the chosen split is stored as a DELTA against the forecast
         // baseline, so it survives the baseline moving underneath it (new
@@ -2613,7 +2655,8 @@
       // v11.0 §1 — weighted sum across the week's differing daily
       // headcounts, not one flat count × days-in-month.
       const variableStaff = fcMonthlyStaffCostFor(d);
-      const manDays = fcMonthlyManDaysFor(d);
+      const manDays = fcMonthlyManDaysFor(d);            // paid (plan + idle minimum roster)
+      const workedManDays = fcMonthlyWorkedManDaysFor(d); // planned/worked only
       const avgStaffPerDay = fcCurrentMonthDays() > 0 ? variableStaff/fcCurrentMonthDays() : 0;
       const odsVolume = fcMonthlyOdsOrderEstimate(d);
       const variableOds = odsVolume * odsBlendedCostFor(d);
@@ -2622,7 +2665,7 @@
       const costPerOrder = orderVolume > 0 ? total/orderVolume : null;
       const target = TARGET_COST_PER_ORDER[d];
       const overCls = costPerOrder==null ? '' : (costPerOrder <= target ? 'cost-ok' : 'cost-over');
-      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td>${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td></tr>`;
+      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td title="Paid roster: ${intFmt(workedManDays)} planned man-days + ${intFmt(Math.max(0, manDays-workedManDays))} idle minimum-roster man-days (75% FT bench held whether or not the volume needs them).">${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td></tr>`;
     }).join('');
   }
   function fcSetupCostPortalListeners(){
@@ -2781,30 +2824,68 @@
     const pc = +(slot.ptCourier || 0);
     return { ftDriver:fd, ftCourier:fc, ptDriver:pd, ptCourier:pc, total: fd+fc+pd+pc };
   }
+  // v14.2 §1 — the 75% roster share, priced as a MONTHLY commitment rather
+  // than a daily one. The district owes its FT pool — 75% x active FT bench x
+  // days in the month — whether or not the week's plan deploys all of it, so
+  // any undeployed man-days are charged here at FT Unit Cost. Nothing is
+  // charged per day, because which days an FT head works is the plan's
+  // choice, not a fixed cost of each date.
+  //
+  // Gated on the district actually having a plan: with every cell blank (the
+  // default state) the forecast is a pure "no staffing decision yet" view and
+  // must show no cost impact at all. The commitment follows a plan; it isn't a
+  // charge that exists before one.
+  function fcDistrictHasPlan(district){
+    for(let i=0;i<7;i++) if(fcHeadcountFor(district, i).total > 0) return true;
+    return false;
+  }
+  function fcMinRosterTopUpFor(district){
+    const empty = { idleFtDriver:0, idleFtCourier:0, idle:0, cost:0,
+      pool:{ftDriver:0,ftCourier:0,total:0,days:0}, deployedFtDriver:0, deployedFtCourier:0, deployedFt:0, utilisation:null };
+    if(!fcDistrictHasPlan(district)) return empty;
+    const pool = fcFtWeeklyBudgetFor(district);
+    if(!pool.total) return empty;
+    const occ = fcWeekdayOccurrences();
+    const u = UNIT_COST_STAFF[district];
+    let deployedFtDriver = 0, deployedFtCourier = 0;
+    for(let i=0;i<7;i++){
+      const hc = fcHeadcountFor(district, i);
+      deployedFtDriver += hc.ftDriver * occ[i];
+      deployedFtCourier += hc.ftCourier * occ[i];
+    }
+    const idleFtDriver = Math.max(0, pool.ftDriver - deployedFtDriver);
+    const idleFtCourier = Math.max(0, pool.ftCourier - deployedFtCourier);
+    const deployedFt = deployedFtDriver + deployedFtCourier;
+    return { idleFtDriver, idleFtCourier, idle: idleFtDriver + idleFtCourier,
+      cost: idleFtDriver*u.ftDriver + idleFtCourier*u.ftCourier,
+      pool, deployedFtDriver, deployedFtCourier, deployedFt,
+      utilisation: pool.total > 0 ? Math.min(1, deployedFt/pool.total) : null };
+  }
   // Cost of fielding one weekday's planned team for ONE occurrence of that
-  // day (UNIT_COST_STAFF is a per-head-per-DAY rate).
+  // day (UNIT_COST_STAFF is a per-head-per-DAY rate). Scheduled heads only —
+  // the undeployed part of the FT pool is a monthly line, added once in
+  // fcMonthlyStaffCostFor rather than smeared across days it doesn't belong to.
   function fcDailyStaffCost(district, weekdayIdx){
     const u = UNIT_COST_STAFF[district];
     const hc = fcHeadcountFor(district, weekdayIdx);
     return hc.ftDriver*u.ftDriver + hc.ftCourier*u.ftCourier + hc.ptDriver*u.ptDriver + hc.ptCourier*u.ptCourier;
   }
   // v11.0 §1 — Variable — Staff Cost, as a weighted sum across the week
-  // instead of a single headcount × days-in-month: each weekday's own daily
-  // staff cost (the ACTUAL scheduled FT + PT roster, priced at Unit Cost) ×
-  // how many times that weekday falls in the forecast month. v13.0 §1 — 75%
-  // of the active FT bench is the minimum roster, not a fixed one: the plan
-  // can schedule up to 100% when that's the cheaper way to cover a day's
-  // volume, and this line prices whatever roster is actually scheduled.
+  // instead of a single headcount × days-in-month. v14.2 §1 — plus the
+  // undeployed FT pool, so the line always carries the full 75% commitment
+  // however the plan spreads it.
   function fcMonthlyStaffCostFor(district){
     const occ = fcWeekdayOccurrences();
     let total = 0;
     for(let i=0;i<7;i++) total += fcDailyStaffCost(district, i) * occ[i];
-    return total;
+    return total + fcMinRosterTopUpFor(district).cost;
   }
-  // Same weighted sum counted in heads rather than dollars — the plan's
-  // monthly man-days, which is the figure to compare against a flat plan
-  // (flat headcount × days in month) when justifying the change.
+  // Man-days, both readings. PAID = what the commitment costs; WORKED = the
+  // heads the plan actually deploys, which is the productivity denominator.
   function fcMonthlyManDaysFor(district){
+    return fcMonthlyWorkedManDaysFor(district) + fcMinRosterTopUpFor(district).idle;
+  }
+  function fcMonthlyWorkedManDaysFor(district){
     const occ = fcWeekdayOccurrences();
     let total = 0;
     for(let i=0;i<7;i++) total += fcHeadcountFor(district, i).total * occ[i];
@@ -2976,31 +3057,35 @@
       } else {
         // v14.0 §1 — per day: demand-driven headcount and its productivity
         // first, then the rostered headcount that is actually paid.
-        const perDay = r.days.map(day=>`${day.label} ${day.demandTotal} needed (${day.achievedProd==null?'\u2014':day.achievedProd.toFixed(1)}/staff)`
-          + `, ${day.total} rostered${day.ftFloored?` (+${day.floorGap} min-roster)`:''}${day.benchLimited?', bench-capped':''}`).join(' \u00b7 ');
+        const perDay = r.days.map(day=>`${day.label} ${day.total} (${day.ftDriver+day.ftCourier} FT${day.ptTotal>0?` + ${day.ptTotal} PT`:''}, ${day.achievedProd==null?'\u2014':day.achievedProd.toFixed(1)}/staff${day.benchLimited?', bench-capped':''})`).join(' \u00b7 ');
         const odsNote = Math.abs(r.odsShifted||0) >= 1
           ? ` ODS/HKTV split moved ${r.odsShifted>0?'+':''}${intFmt(r.odsShifted)} orders/mo ${r.odsShifted>0?'onto':'off'} ODS (${intFmt(r.baseOdsVolume)} \u2192 ${intFmt(r.monthlyOdsVolume)} orders/mo).`
           : ' ODS/HKTV split left as forecast.';
-        // v14.0 §1 — the FT floor is reported as a minimum roster sitting
-        // beside the demand-driven plan, not folded into it.
-        const floorNote = r.ftFloor && r.ftFloor.total
-          ? ` Minimum roster: ${r.ftFloor.total} FT/day (${r.ftFloor.ftDriver} FT Driver + ${r.ftFloor.ftCourier} FT Courier, ${Math.round(FT_ROSTER_SHARE*100)}% of the active FT bench) — paid regardless, so cost and payroll are priced on the rostered plan (${r.minRosterTotal}\u2013${r.maxRosterTotal} staff/day, ${intFmt(r.manDays)} man-days/mo).`
-            + (r.floorManDays >= 1 ? ` ${intFmt(r.floorManDays)} of those man-days/mo are roster-minimum capacity above what the volume needs${r.floorBoundDays.length?` (${r.floorBoundDays.join(', ')})`:''}.` : '')
+        // v14.2 §1 — the 75% commitment is reported as a POOL: how many FT
+        // man-days the district owes for the month, and how much of it this
+        // plan actually puts to work.
+        const pool = r.ftPool;
+        const poolNote = pool && pool.total
+          ? ` FT roster pool: ${intFmt(pool.total)} man-days/mo (${Math.round(FT_ROSTER_SHARE*100)}% of a ${pool.benchFtDriver+pool.benchFtCourier}-head FT bench across ${pool.days} days), spread across the week rather than fixed per day.`
+            + ` This plan deploys ${intFmt(r.ftManDays)} of it (${r.poolUtilisation==null?'\u2014':(r.poolUtilisation*100).toFixed(0)}%)`
+            + (r.idleFtManDays >= 1 ? `, leaving ${intFmt(r.idleFtManDays)} man-days/mo paid but undeployed` : '')
+            + (r.ptManDays >= 1 ? ` and buys ${intFmt(r.ptManDays)} PT man-days/mo on ${r.ptDays.join(', ')}` : '')
+            + '.'
           : '';
         const title = `Per-weekday plan: ${perDay}. `
-          + `Productivity (demand-driven) ${r.weightedProd==null?'\u2014':r.weightedProd.toFixed(1)} vs target ${r.targetProd.toFixed(1)} (${fcRatePct(r.prodAchievement)}) on ${intFmt(r.demandManDays)} man-days/mo. `
-          + `On the full rostered headcount it reads ${r.rosteredProd==null?'\u2014':r.rosteredProd.toFixed(1)} (${fcRatePct(r.rosteredProdAchievement)}) — bench utilisation, not an operational miss. `
-          + `Cost/Order $${r.costPerOrder==null?'\u2014':r.costPerOrder.toFixed(2)} vs target $${r.targetCost.toFixed(2)} (${fcRatePct(r.costAchievement)}), priced on the rostered plan.${floorNote}${odsNote}`
+          + `Productivity ${r.weightedProd==null?'\u2014':r.weightedProd.toFixed(1)} vs target ${r.targetProd.toFixed(1)} (${fcRatePct(r.prodAchievement)}) across ${intFmt(r.manDays)} deployed man-days/mo — every head in that figure has work. `
+          + (r.idleFtManDays >= 1 ? `Measured against the full ${intFmt(r.paidManDays)} paid man-days it reads ${r.paidProd==null?'\u2014':r.paidProd.toFixed(1)} (${fcRatePct(r.paidProdAchievement)}) — roster utilisation, not an operational miss. ` : '')
+          + `Cost/Order $${r.costPerOrder==null?'\u2014':r.costPerOrder.toFixed(2)} vs target $${r.targetCost.toFixed(2)} (${fcRatePct(r.costAchievement)}), carrying the full roster commitment.${poolNote}${odsNote}`
           + (r.feasible ? '' : ` \u2014 ${r.reason}`);
         const cls = r.feasible ? 'ok' : 'warn';
         const mark = r.feasible ? '\u2713' : '\u26a0';
         const misses = r.feasible ? '' : ` \u00b7 misses ${[!r.prodOk?'prod':null, !r.costOk?'cost':null].filter(Boolean).join(' + ')}`;
-        const rosterNote = r.ftFloor && r.ftFloor.total
-          ? `<span class="fc-minroster-note" title="The 75% FT roster floor is a payroll minimum, not part of the demand-driven plan. Rostered and paid: ${r.minRosterTotal}\u2013${r.maxRosterTotal} staff/day (${intFmt(r.manDays)} man-days/mo); productivity on that roster reads ${r.rosteredProd==null?'\u2014':r.rosteredProd.toFixed(1)} (${fcRatePct(r.rosteredProdAchievement)}).">`
-            + `min roster ${r.ftFloor.total}/day \u00b7 rostered ${r.minRosterTotal}\u2013${r.maxRosterTotal}/day (${fcRatePct(r.rosteredProdAchievement)})</span>`
+        const rosterNote = pool && pool.total
+          ? `<span class="fc-minroster-note" title="The 75% share is owed across the month, not on each day: ${intFmt(pool.total)} FT man-days/mo. This plan deploys ${intFmt(r.ftManDays)}${r.idleFtManDays>=1?`, leaves ${intFmt(r.idleFtManDays)} paid but undeployed`:''}${r.ptManDays>=1?`, and buys ${intFmt(r.ptManDays)} PT man-days`:''}. Paid total ${intFmt(r.paidManDays)} man-days/mo.">`
+            + `FT pool ${r.poolUtilisation==null?'\u2014':(r.poolUtilisation*100).toFixed(0)}% deployed (${intFmt(r.ftManDays)}/${intFmt(pool.total)} man-days)${r.ptManDays>=1?` \u00b7 +${intFmt(r.ptManDays)} PT`:''}</span>`
           : '';
         badge = `<span class="fc-suggest-badge ${cls}" title="${title.replace(/"/g,'&quot;')}">`
-          + `${mark} ${r.minTotal}\u2013${r.maxTotal} staff/day needed${misses}`
+          + `${mark} ${r.minTotal}\u2013${r.maxTotal} staff/day${misses}`
           + ` \u00b7 Prod ${fcRatePct(r.prodAchievement)} \u00b7 Cost ${fcRatePct(r.costAchievement)}</span>`
           + rosterNote;
       }
@@ -3021,22 +3106,22 @@
     const target = fcTargetProdFor(d);
     const cls = prod == null ? '' : (prod >= target ? 'ok' : 'bad');
     const rate = fcAchievementRate(prod, target);   // v13.0 §6
-    // v14.0 §1 — the pill reads whatever headcount is in the cell, which is
-    // the ROSTERED plan (floor included, because those heads are paid). Where
-    // the floor is what makes the cell bigger than the volume needs, say so
-    // and show the demand-driven reading beside it — otherwise this pill
-    // silently disagrees with the Suggest badge.
-    const sugDay = (FC_STATE.suggestions[d] && FC_STATE.suggestions[d].applied)
-      ? FC_STATE.suggestions[d].days[wd] : null;
-    const minRoster = (sugDay && sugDay.floorGap > 0)
-      ? `<div class="fc-hc-minroster" title="Demand-driven plan for this day: ${sugDay.demandTotal} staff at ${sugDay.demandProd==null?'—':sugDay.demandProd.toFixed(1)}/staff (${fcRatePct(fcAchievementRate(sugDay.demandProd, target))}). The other ${sugDay.floorGap} head(s) are the ${Math.round(FT_ROSTER_SHARE*100)}% minimum FT roster — paid regardless, so they stay in the cell for cost, but productivity is judged on the ${sugDay.demandTotal}.">incl. ${sugDay.floorGap} min-roster \u00b7 demand ${sugDay.demandTotal} @ ${sugDay.demandProd==null?'\u2014':sugDay.demandProd.toFixed(1)}</div>`
+    // v14.2 §1 — the cell is the deployed plan and its pill is the real
+    // productivity, so nothing needs qualifying per day. What's worth showing
+    // is how this day draws on the shared FT roster: FT rostered today out of
+    // the district's bench, and any PT bought on top.
+    const bench = fcFtWeeklyBudgetFor(d);
+    const ftToday = hc.ftDriver + hc.ftCourier;
+    const benchTotal = bench.benchFtDriver + bench.benchFtCourier;
+    const rosterLine = (hc.total > 0 && benchTotal > 0)
+      ? `<div class="fc-hc-minroster" title="${d} rosters ${ftToday} FT today out of a ${benchTotal}-head FT bench${hc.ptDriver+hc.ptCourier>0?`, plus ${hc.ptDriver+hc.ptCourier} PT`:''}. FT days are drawn from a monthly pool of ${intFmt(bench.total)} man-days (${Math.round(FT_ROSTER_SHARE*100)}% of the bench across ${bench.days} days), so a light day here frees FT for a heavy day elsewhere in the week.">FT ${ftToday}/${benchTotal} bench${hc.ptDriver+hc.ptCourier>0?` \u00b7 +${hc.ptDriver+hc.ptCourier} PT`:''}</div>`
       : '';
     const fields = STAFF_BUCKETS.map(k=>
       `<label class="fc-hc-field"><span>${STAFF_BUCKET_LABELS[k]}</span><input type="number" min="0" step="1" class="fc-in-staff" data-d="${d}" data-wd="${wd}" data-k="${k}" placeholder="0" value="${slot[k] ?? ''}"></label>`
     ).join('');
     return `<div class="fc-hc-cell">${fields}
       <div class="fc-hc-total"><span>Σ <span class="v">${intFmt(hc.total)}</span></span><span class="p ${cls}" title="This weekday's forecast Productivity ${prod==null?'—':prod.toFixed(1)} (HKTV Orders ${intFmt(hktv)} ÷ ${intFmt(hc.total)} staff) vs target ${target.toFixed(1)} — achievement rate (forecast − target) ÷ target.">${prod==null?'—':prod.toFixed(1)} <b>${fcRatePct(rate)}</b></span></div>
-      ${minRoster}
+      ${rosterLine}
     </div>`;
   }
   function fcRenderPlanTable(){
@@ -3075,8 +3160,9 @@
     // sizing costs (or saves) in man-days against the old flat rule, summed
     // over the districts that got a plan.
     const ok = results.filter(r=>r.applied);
-    const mdNew = ok.reduce((a,r)=>a+(r.manDays||0), 0);          // rostered / paid
-    const mdDemand = ok.reduce((a,r)=>a+(r.demandManDays||0), 0); // demand-driven
+    const mdNew = ok.reduce((a,r)=>a+(r.paidManDays||0), 0);      // paid (deployed + undeployed pool)
+    const mdDemand = ok.reduce((a,r)=>a+(r.manDays||0), 0);       // deployed
+    const ptMd = ok.reduce((a,r)=>a+(r.ptManDays||0), 0);         // PT bought on top of the pool
     const odsMoved = ok.reduce((a,r)=>a+(r.odsShifted||0), 0);
     const odsNote = ok.length && Math.abs(odsMoved) >= 1
       ? ` The channel split moved <b>${intFmt(Math.abs(odsMoved))} orders/mo ${odsMoved>0?'onto':'off'} ODS</b> — hover a badge for what that was worth per order in each district.`
@@ -3085,8 +3171,8 @@
     // costs. The gap between them is the minimum-roster commitment.
     const mdGap = Math.max(0, mdNew - mdDemand);
     const mdNote = ok.length
-      ? ` Demand-driven total: <b>${intFmt(mdDemand)} man-days/mo</b>; rostered and paid: <b>${intFmt(mdNew)} man-days/mo</b>`
-        + (mdGap >= 1 ? ` — a <b>${intFmt(mdGap)} man-day</b> minimum-roster commitment above demand.` : '.')
+      ? ` Deployed: <b>${intFmt(mdDemand)} man-days/mo</b>${ptMd >= 1 ? ` (incl. <b>${intFmt(ptMd)} PT</b>)` : ''}; paid: <b>${intFmt(mdNew)} man-days/mo</b>`
+        + (mdGap >= 1 ? ` — <b>${intFmt(mdGap)} man-days</b> of the FT roster commitment the forecast volume can't absorb.` : '.')
       : '';
     banner.style.display = '';
     if(bad.length===0){
