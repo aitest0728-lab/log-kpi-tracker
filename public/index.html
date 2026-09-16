@@ -380,6 +380,9 @@
   .fc-suggest-badge{display:inline-block;margin-top:5px;font-size:10.5px;line-height:1.4;padding:3px 8px;border-radius:10px;max-width:190px;white-space:normal;cursor:help;}
   .fc-suggest-badge.ok{background:var(--green-soft);color:var(--green);}
   .fc-suggest-badge.bad{background:var(--red-soft);color:var(--red);}
+  /* v13.0 §5 — a plan that was applied but misses a target: amber, not red.
+     Red is now reserved for "no plan at all". */
+  .fc-suggest-badge.warn{background:#fdf1dc;color:#8a5a12;}
 
   /* v11.0 §1 — Per-weekday staff plan. The Per-District Staff Plan table now
      carries one editable headcount block per weekday instead of a single
@@ -745,7 +748,9 @@
 
         <h3 class="prod-detail-label">Per-District Staff Plan — by Weekday (Target Productivity blank = target from Full_Cost_Planning.xlsx · headcounts blank = 0)</h3>
         <div class="prod-note">
-          v11.0 §1 — headcount is now planned <b>per weekday</b>, not as one flat number per district. Each weekday column holds its own FT Driver / FT Courier / PT Driver / PT Courier plan (FTD / FTC / PTD / PTC), so a heavy Monday can be staffed up and a quiet Sunday staffed down instead of sizing the whole week off its worst day. The Weekly Forecast Plan and the Cost Planning portal both read these per-day numbers directly, and Variable — Staff Cost is now a weighted sum — each weekday's daily staff cost × how many times that weekday actually falls in the forecast month — rather than one headcount × days-in-month. Use <b>Copy Mon → all</b> on a row to go back to a flat week for that district.
+          <b>Definition.</b> One FT Driver / FT Courier / PT Driver / PT Courier plan per weekday, per district (FTD / FTC / PTD / PTC). Blank = 0. Each column header shows how many times that weekday falls in the forecast month.<br>
+          <b>Cell figures.</b> Σ = that day's total headcount. The pill = that day's Productivity (HKTV Orders ÷ Σ) and its achievement rate, (forecast − target) ÷ target.<br>
+          <b>FT floor.</b> Every day rosters at least 75% of the district's active FT bench (Staff Allocation Cap) — the 25% held back covers rest days and leave. It's a minimum, not a fixed number: the plan can schedule up to 100% on a given day when that's cheaper than covering the same volume with PT or ODS. Cost is priced on whatever is actually scheduled that day, at Unit Cost.
         </div>
 
         <!-- SUGGEST HEADCOUNT — v8.0. For each district, searches reasonable
@@ -765,17 +770,20 @@
             <input type="number" id="fcOdsFlex" min="0" max="100" step="1" value="20">
           </div>
           <div class="prod-field fc-weight">
-            <label for="fcOdsMaxShare" title="Optional hard ceiling on ODS's share of a day's Total Orders, for districts where the split is capped by agreement rather than by volume. Blank = no ceiling.">Max ODS Share of Total (%)</label>
+            <label for="fcOdsMaxShare" title="A ceiling on what proportion of a day's Total Orders may be handled by ODS instead of in-house staff. 30 = ODS never gets more than 30 of every 100 orders that day, whatever the flex band would otherwise allow. It only ever caps ODS volume DOWNWARD — it never forces volume onto ODS. Blank = no ceiling (the ±% flex band alone applies).">Max ODS Orders as % of Total Orders</label>
             <input type="number" id="fcOdsMaxShare" min="0" max="100" step="1" placeholder="no ceiling">
           </div>
           <label class="fc-ods-toggle" title="When on, Suggest Headcount also chooses each weekday's ODS/HKTV split — moving orders to whichever channel is cheaper at the margin, within the flex band above and the district's bench. When off, the split stays exactly as forecast (v11.0 behaviour).">
             <input type="checkbox" id="fcOdsOptimize" checked> Optimize ODS / HKTV split
           </label>
           <button type="button" class="cost-portal-toggle fc-suggest-all-btn" id="fcSuggestAllBtn">Suggest Headcount — All Districts</button>
-          <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn">Clear Suggestions</button>
+          <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn" title="Resets the whole plan to defaults: per-weekday headcounts, Target Productivity overrides, the ODS/HKTV shift and the badges all go back to blank.">Clear Suggestions &amp; Reset Plan</button>
         </div>
         <div class="prod-note">
-          For each district, sizes <b>each weekday separately</b> (v11.0 §1): that weekday's own forecast HKTV Orders are divided by the Target Productivity (each district's manual override above if set) to get the most staff that day can carry while still clearing target, and the Overdrive % sets how far above target the day is allowed to land — the suggestion takes the leanest team inside that window, so every weekday sits at or just above target rather than the whole week being sized off its lowest-volume day. Within a day, the Courier : Driver split is fixed at the ops-confirmed real-world <b>49 : 51</b> (v11.0 §2 — no longer derived from Manpower Distribution), and FT vs PT is chosen per role by whichever is cheaper per head in that district. The Cost/Order check is then run once on the whole week: Fixed + ODS + the weighted staff cost (each weekday's cost × its occurrences in the forecast month) ÷ estimated monthly order volume. <b>v12.0</b> — the ODS/HKTV split is now optimized alongside the headcount rather than taken as given: for each weekday the search also picks how many orders go to ODS, within the <b>Max ODS Volume Flex (±%)</b> band around the forecast split (and the optional Max ODS Share ceiling), choosing the combination with the lowest total day cost — staff cost for the team that clears the in-house volume at target, plus ODS orders × that district's Blended Cost/Order. Total Order volume never changes, so the cheapest plan and the lowest Cost/Order are the same plan. Volume the bench can't staff inside the Overdrive window is pushed to ODS automatically. Every day is also capped by the district's Staff Allocation Cap — the current ACTIVE FT/PT Driver/Courier headcount from the latest Logistics_Staff_List file — so no day proposes more heads in a bucket than are actually on the bench; a plan trimmed this way is marked "bench-capped". A district is flagged instead of filled in when no plan clears both — genuinely possible when a weekday's order volume is below the Target Productivity even for one person, when Fixed + ODS cost alone already exceeds the Target Cost/Order, or when the bench is too small to cover the week.
+          <b>Per weekday:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), raised to the 75% FT roster floor (a minimum — can run up to 100% of the active bench when that's the cheaper way to cover the day) and capped by the Staff Allocation Cap. Courier : Driver = 49 : 51; FT filled before PT, both priced at their Unit Cost for whatever is actually scheduled.<br>
+          <b>ODS / HKTV split:</b> each weekday's ODS volume is chosen within ±Flex% of its forecast baseline (and under the Max ODS % ceiling, if set) to minimise <i>staff cost (actual roster) + ODS orders × Blended Cost/Order</i>. Total Order volume is unchanged, so cheapest = lowest Cost/Order.<br>
+          <b>Cost check:</b> run once on the week — (Fixed + Staff + ODS) ÷ Est. Order Volume vs Target Cost/Order.<br>
+          A plan is always applied. The badge reports both achievement rates and, in amber, which target it misses.
         </div>
         <div class="fc-suggest-banner" id="fcSuggestBanner" style="display:none;"></div>
 
@@ -806,7 +814,7 @@
           <div class="section-head fc-cost-head">
             <div>
               <h3 class="prod-detail-label" style="margin:0;">Cost Planning (auto-calculated from Provision Plan + reference rates)</h3>
-              <div class="sub">Fixed Cost = the Provision Plan's DAILY rate (not itemized here) × the number of days in the forecast's current month. Variable — Staff Cost = a weighted sum across the week — each weekday's own FT/PT plan × the reference Unit Cost table × how many times that weekday falls in the month. Variable — ODS Cost = estimated ODS order volume × the reference Blended Cost/Order. Cost/Order is checked against each district's Target Cost/Order.</div>
+              <div class="sub">Fixed + Variable (Staff) + Variable (ODS), per district, checked against Target Cost/Order.</div>
             </div>
             <button type="button" class="cost-portal-toggle" id="costPortalToggle">Show ▾</button>
           </div>
@@ -830,19 +838,21 @@
                   <tbody id="costOdsTableBody"></tbody>
                 </table>
               </div>
-              <div class="prod-note">"Cheaper Channel" compares the cost of ONE more order via ODS (Blended Cost/Order) against ONE more order via HKTV Staff (cheapest per-head Unit Cost ÷ Target Productivity) — the marginal-cost comparison, not the district's overall Cost/Order. <b>v12.0 — this is no longer reference-only.</b> With "Optimize ODS / HKTV split" on, Suggest Headcount now moves each weekday's volume toward the cheaper channel and re-sizes the team around it, so the Est. ODS Orders in the Weekly Forecast Plan below is a chosen split rather than the raw historical average. The cap the earlier note asked for is now the adjustable <b>Max ODS Volume Flex (±%)</b> band (plus an optional Max ODS Share ceiling) at the top of the tab — it defaults to a conservative ±20% and should be set to whatever volume the ODS partner is actually contracted to absorb, in both directions. On the current reference rates, HKTV is the cheaper channel at the margin in all ten districts, so the optimizer generally pulls volume OFF ODS rather than onto it; the search runs both ways, so it will reverse on its own if these rates move.</div>
+              <div class="prod-note"><b>Marginal HKTV Cost/Order</b> = cheapest per-head Unit Cost ÷ Target Productivity — the cost of ONE more order handled in-house, not the district's blended Cost/Order. <b>Cheaper Channel</b> = whichever of that and the ODS Blended Cost/Order is lower. This drives the ODS/HKTV split optimizer above, bounded by the Flex band.</div>
             </div>
 
             <h4 class="cost-sub-label">Estimated Monthly Cost &amp; Cost/Order per District</h4>
             <div class="fc-plan-wrap table-wrap">
               <div class="table-scroll">
                 <table id="costTotalTable">
-                  <thead><tr><th>District</th><th>Fixed ($)</th><th title="Weighted across the week: Σ (that weekday's FT/PT plan × Unit Cost) × that weekday's occurrences in the forecast month.">Variable — Staff ($)</th><th title="Σ (that weekday's total headcount × that weekday's occurrences in the forecast month) — the staffing plan measured in man-days rather than dollars.">Man-days /mo</th><th title="Monthly staff cost ÷ days in the forecast month — what the per-weekday plan averages out to per day.">Staff $/day (avg)</th><th>Variable — ODS ($)</th><th>Total ($)</th><th>Est. Order Volume /mo</th><th>Cost / Order ($)</th><th>Target Cost / Order ($)</th></tr></thead>
+                  <thead><tr><th>District</th><th>Fixed ($)</th><th title="Weighted across the week: Σ (that weekday's FT/PT plan × Unit Cost) × that weekday's occurrences in the forecast month.">Variable — Staff ($)</th><th title="Σ (that weekday's total headcount × that weekday's occurrences in the forecast month) — the staffing plan measured in man-days rather than dollars.">Man-days /mo</th><th title="Monthly staff cost ÷ days in the forecast month — what the per-weekday plan averages out to per day.">Staff $/day (avg)</th><th>Variable — ODS ($)</th><th>Total ($)</th><th>Est. Order Volume /mo</th><th>Cost / Order ($)</th><th>Target Cost / Order ($)</th><th title="(forecast Cost/Order − Target Cost/Order) ÷ Target Cost/Order. Negative is good here — it means the forecast sits under target.">Achievement (%)</th></tr></thead>
                   <tbody id="costTotalTableBody"></tbody>
                 </table>
               </div>
             </div>
-            <div class="prod-note">Fixed Cost is the finance-confirmed Provision Plan's DAILY rate (district totals only — the line-item breakdown isn't shown here) × the number of days in the forecast's current month. <b>Variable — Staff Cost (v11.0 §1)</b> is no longer one headcount × days-in-month: each weekday's own FT/PT plan is costed against the Unit Cost table (a DAILY per-head rate) to get that weekday's daily staff cost, and those seven figures are weighted by how many times each weekday actually falls in the forecast month — so a 5-Monday month costs more than a 4-Monday one, and staffing a heavy Friday up no longer inflates the whole week. The <b>Man-days /mo</b> column is the same weighted sum counted in heads rather than dollars (Σ weekday headcount × that weekday's occurrences), and <b>Staff $/day (avg)</b> is the monthly staff cost spread back over the month's days for comparison against the old flat figure. Variable — ODS Cost uses the ODS volume actually in force per weekday — the ODS Order Count above when entered (split across districts by historical ODS/VAN order share, then spread over weekdays by the historical shape), otherwise the historical ODS order estimate, in both cases <b>after any v12.0 channel-split shift</b> Suggest Headcount applied; Est. Order Volume /mo now uses the same weekday-occurrence weighting as the staff cost rather than a flat × 4.345. Cost/Order below target is shaded green, above is red.</div>
+            <div class="prod-note">
+          <b>Fixed</b> = Provision Plan daily rate × days in the forecast month. <b>Variable — Staff</b> = Σ over weekdays of (that weekday's ACTUAL scheduled FT/PT plan × Unit Cost per head/day) × that weekday's occurrences in the month. <b>Man-days /mo</b> = the same sum in heads. <b>Staff $/day (avg)</b> = Variable — Staff ÷ days in month. <b>Variable — ODS</b> = ODS orders in force (after any split shift) × Blended Cost/Order. <b>Est. Order Volume /mo</b> = Σ weekday Total Order forecast × that weekday's occurrences. <b>Cost/Order</b> = Total ÷ Est. Order Volume. <b>Achievement (%)</b> = (Cost/Order − Target Cost/Order) ÷ Target Cost/Order — negative is under target (green).
+        </div>
           </div>
         </div>
 
@@ -2059,6 +2069,17 @@
     }
     return FC_STATE.staff[district][weekdayIdx];
   }
+  // v13.0 §6 — Achievement rate = (forecast − target) ÷ target, shown as a
+  // percentage. Sign convention differs by metric and is the caller's to
+  // state: ABOVE target is good for productivity, bad for cost.
+  function fcAchievementRate(forecast, target){
+    if(forecast == null || !(Math.abs(target) > 0)) return null;
+    return (forecast - target)/target;
+  }
+  function fcRatePct(rate){
+    if(rate == null) return '—';
+    return (rate >= 0 ? '+' : '') + (rate*100).toFixed(1) + '%';
+  }
   function fcTargetProdFor(district){
     const override = FC_STATE.targetProd[district];
     if(override != null && override !== '' && !isNaN(override)) return +override;
@@ -2222,18 +2243,47 @@
   // achieved Productivity / Cost so a bench-limited suggestion still
   // reports its real numbers rather than the numbers of a team that
   // couldn't actually be fielded.
+  // v13.0 §1 — FT staff are a FIXED cost, not an optional one: a full-time
+  // Driver or Courier is paid whether or not there is volume for them, so a
+  // forecast that leaves them out of the plan understates cost and
+  // overstates productivity. Every daily plan therefore has a FLOOR of
+  // mandatory FT heads, taken from the district's Staff Allocation Cap (the
+  // active FT bench) discounted for rest days and leave.
+  //
+  // 75% is that discount: an FT head works roughly 5-6 of any 7 days, so on
+  // any given weekday about three quarters of the FT bench is actually
+  // rostered. The remaining quarter is off, and — being a headcount cost
+  // rather than a per-day one — the cost table's daily Unit Cost rate
+  // already prices them across the month.
+  const FT_ROSTER_SHARE = 0.75;
+  function fcFtFloorFor(district){
+    const cap = fcStaffCapFor(district);
+    const f = (v)=> isFinite(v) ? Math.round(v*FT_ROSTER_SHARE) : 0; // no bench data = no floor
+    const ftDriver = f(cap.ftDriver), ftCourier = f(cap.ftCourier);
+    return { ftDriver, ftCourier, total: ftDriver + ftCourier };
+  }
   function fcCheapestComboForTotal(district, S, courierShare){
     const u = UNIT_COST_STAFF[district];
     const cap = fcStaffCapFor(district);
+    const floor = fcFtFloorFor(district);   // v13.0 §1 — mandatory rostered FT
     const driverCap = cap.ftDriver + cap.ptDriver;
     const courierCap = cap.ftCourier + cap.ptCourier;
 
-    let courierCount = Math.round(S*courierShare);
-    let driverCount = S - courierCount;
-    if(S >= 2){ // keep both roles represented once the team is big enough to
-      if(courierCount === 0){ courierCount = 1; driverCount = S-1; }
-      if(driverCount === 0){ driverCount = 1; courierCount = S-1; }
+    // The team can never be smaller than the rostered FT floor, however
+    // little volume the day has — those people are on the payroll either way.
+    const Seff = Math.max(S, floor.total);
+
+    let courierCount = Math.round(Seff*courierShare);
+    let driverCount = Seff - courierCount;
+    if(Seff >= 2){ // keep both roles represented once the team is big enough to
+      if(courierCount === 0){ courierCount = 1; driverCount = Seff-1; }
+      if(driverCount === 0){ driverCount = 1; courierCount = Seff-1; }
     }
+    // Each role also carries its own FT floor, so the 49:51 split is applied
+    // to whatever sits ABOVE the floors rather than being allowed to cut
+    // into them.
+    courierCount = Math.max(courierCount, floor.ftCourier);
+    driverCount = Math.max(driverCount, floor.ftDriver);
 
     const driverShort = Math.max(0, driverCount - driverCap);
     const courierShort = Math.max(0, courierCount - courierCap);
@@ -2248,29 +2298,40 @@
       driverCount += move;
     }
 
-    const assignRole = (count, ftCap, ptCap, ftRate, ptRate) => {
-      let ft = 0, pt = 0, remaining = count;
+    // ftFloor is filled FIRST and never traded away for a cheaper PT head —
+    // that's the whole point of the floor. Only the headcount above it is
+    // allocated cheapest-type-first.
+    const assignRole = (count, ftCap, ptCap, ftRate, ptRate, ftFloor) => {
+      let ft = Math.min(ftFloor, ftCap);
+      let remaining = Math.max(0, count - ft);
+      let pt = 0;
       if(ftRate <= ptRate){
-        ft = Math.min(remaining, ftCap); remaining -= ft;
+        const add = Math.min(remaining, Math.max(0, ftCap-ft)); ft += add; remaining -= add;
         pt = Math.min(remaining, ptCap); remaining -= pt;
       } else {
         pt = Math.min(remaining, ptCap); remaining -= pt;
-        ft = Math.min(remaining, ftCap); remaining -= ft;
+        const add = Math.min(remaining, Math.max(0, ftCap-ft)); ft += add; remaining -= add;
       }
       return { ft, pt, unmet: remaining };
     };
-    const drv = assignRole(driverCount, cap.ftDriver, cap.ptDriver, u.ftDriver, u.ptDriver);
-    const cor = assignRole(courierCount, cap.ftCourier, cap.ptCourier, u.ftCourier, u.ptCourier);
+    const drv = assignRole(driverCount, cap.ftDriver, cap.ptDriver, u.ftDriver, u.ptDriver, floor.ftDriver);
+    const cor = assignRole(courierCount, cap.ftCourier, cap.ptCourier, u.ftCourier, u.ptCourier, floor.ftCourier);
 
     const combo = { ftDriver:drv.ft, ptDriver:drv.pt, ftCourier:cor.ft, ptCourier:cor.pt };
     // UNIT_COST_STAFF is a per-head-per-DAY rate — this is the cost of
     // fielding this combo for ONE occurrence of a day, not yet scaled to a
     // month (v11.0 §1 sizes headcount per weekday, so the caller multiplies
     // by fcWeekdayOccurrencesInMonth() for whichever weekday this is).
+    // v13.0 §1 — cost follows the ACTUAL scheduled roster for that day (FT
+    // + PT, both at their Unit Cost rate) — not the full bench. 75% is a
+    // minimum roster, not a fixed one: the search can schedule up to 100%
+    // of the active FT bench when that's the cheaper way to clear a day's
+    // volume (fewer PT heads / less ODS needed), and dailyCost here is what
+    // prices that trade-off.
     const dailyCost = combo.ftDriver*u.ftDriver + combo.ftCourier*u.ftCourier + combo.ptDriver*u.ptDriver + combo.ptCourier*u.ptCourier;
     const total = combo.ftDriver + combo.ptDriver + combo.ftCourier + combo.ptCourier;
     const shortfall = drv.unmet + cor.unmet; // how much of the requested S the bench couldn't cover
-    return { ...combo, total, requested:S, shortfall, dailyCost };
+    return { ...combo, total, requested:S, ftFloored: total > S, floor, shortfall, dailyCost };
   }
   // This weekday's forecast HKTV Orders = Total Order (adjusted) - Est. ODS
   // Orders, i.e. the volume the in-house FT/PT team actually has to clear.
@@ -2282,24 +2343,29 @@
   // v11.0 §1 — sizes each weekday independently (see the block comment
   // above), then runs ONE Cost/Order check over the resulting week.
   // v12.0 — for ONE district+weekday, picks the ODS/HKTV split and the team
-  // that together give the lowest total day cost, subject to: the ODS
-  // capacity band (fcOdsBoundsFor), the Target Productivity, the Overdrive
-  // window, and the district's bench.
+  // that together give the lowest total day cost, within the ODS capacity
+  // band (fcOdsBoundsFor), the Overdrive window, the FT roster floor and the
+  // district's bench.
   //
   // The search is a grid over the allowed ODS band rather than a closed-form
   // pick, because staff cost is a STEP function of HKTV volume (people come
-  // in whole heads, and the FT/PT/bench clamping inside
+  // in whole heads, and the FT floor + FT/PT/bench clamping inside
   // fcCheapestComboForTotal makes the step sizes uneven) while ODS cost is
-  // linear. The optimum is usually at one end of the band, but the last
-  // partial step can make an interior point cheaper — a grid finds that,
-  // a boundary-only rule wouldn't. 40 points × 7 days × 10 districts is
-  // nothing to evaluate, so correctness wins over cleverness here.
+  // linear. 40 points × 7 days × 10 districts is nothing to evaluate, so
+  // correctness wins over cleverness here.
   //
-  // A candidate is REJECTED when the bench can't field the team that volume
-  // needs (combo.shortfall > 0). That's the point of having the lever: the
-  // volume the bench can't cover inside the Overdrive window is exactly what
-  // ODS should be absorbing, so the optimizer is pushed toward ODS
-  // automatically rather than silently returning an under-staffed day.
+  // v13.0 §5 — a day is never rejected any more. Previously a split the
+  // bench couldn't staff was dropped, which could leave a district with no
+  // plan at all and a blank row in the cost table. Now the cheapest workable
+  // team is always returned and the day simply reports whether it cleared
+  // the productivity target, so a district that can't hit target still has
+  // real numbers to look at.
+  //
+  // v13.0 §1 — 75% of the active FT bench is a MINIMUM roster, not a fixed
+  // one: fcCheapestComboForTotal will schedule up to 100% when doing so is
+  // the cheapest way to cover a day's volume (fewer PT heads, or less
+  // ODS needed), and each candidate here is costed on whatever it actually
+  // schedules — there is no assumption that FT above the floor is free.
   function fcOptimizeDayPlan(district, weekdayIdx, targetProd, overdrive, courierShare){
     const { lo, hi, base, total } = fcOdsBoundsFor(district, weekdayIdx);
     const blended = odsBlendedCostFor(district);
@@ -2319,23 +2385,29 @@
     let best = null;
     candidates.forEach(ods=>{
       const hktv = Math.max(0, total - ods);
-      const Smax = Math.floor(hktv/targetProd);
-      if(Smax < 1) return;                                   // day's in-house volume below one person's target
-      const Smin = Math.max(1, Math.min(Smax, Math.ceil(hktv/(targetProd*(1+overdrive)))));
-      const combo = fcCheapestComboForTotal(district, Smin, courierShare);
-      if(combo.shortfall > 0 || combo.total < Smin) return;   // bench can't field it — ODS has to take this volume
+      const Smax = Math.floor(hktv/targetProd);            // productivity ceiling
+      const Smin = Math.max(1, Math.ceil(hktv/(targetProd*(1+overdrive))));
+      // Target size = the leanest team inside the Overdrive window, capped by
+      // the productivity ceiling — then raised to the FT roster floor, which
+      // outranks both because those heads are paid regardless.
+      const wanted = Smax >= 1 ? Math.max(1, Math.min(Smax, Smin)) : 1;
+      const combo = fcCheapestComboForTotal(district, wanted, courierShare);
       const staffDailyCost = combo.dailyCost;
       const dayCost = staffDailyCost + ods*blended;
       if(!best || dayCost < best.dayCost - 1e-9){
+        const achievedProd = combo.total > 0 ? hktv/combo.total : null;
         best = { ...combo, odsOrders:ods, odsBaseline:base, odsShift:ods-base, hktvOrders:hktv,
-          Smin, Smax, staffDailyCost, odsDailyCost: ods*blended, dayCost,
-          achievedProd: combo.total>0 ? hktv/combo.total : null };
+          Smin, Smax, wanted, staffDailyCost, odsDailyCost: ods*blended, dayCost,
+          achievedProd, meetsProd: achievedProd != null && achievedProd >= targetProd,
+          benchLimited: combo.shortfall > 0 };
       }
     });
     return best;
   }
-  // v11.0 §1 — sizes each weekday independently (see the block comment
-  // above); v12.0 — and chooses each weekday's ODS/HKTV split with it.
+  // v11.0 §1 — sizes each weekday independently; v12.0 — and chooses each
+  // weekday's ODS/HKTV split with it; v13.0 — always returns a costed plan,
+  // with `feasible` reporting whether that plan clears both targets rather
+  // than deciding whether a plan exists at all.
   function fcSuggestHeadcountForDistrict(district){
     const targetProd = fcTargetProdFor(district);
     const targetCost = TARGET_COST_PER_ORDER[district] != null ? TARGET_COST_PER_ORDER[district] : TARGET_COST_PER_ORDER.overall;
@@ -2343,11 +2415,9 @@
     const monthlyOrderVolume = fcMonthlyOrderEstimate(district); // Total Order — unchanged by the split
     const blended = odsBlendedCostFor(district);
     const courierShare = fcCourierShareFor(district); // v11.0 §2 — fixed 49:51 courier:driver
-    // v5.0 — hard-capped at 20% here too, in case FC_SUGGEST.overdrivePct
-    // was ever set outside the (already-clamped) input listener.
     const overdrive = Math.min(20, Math.max(0, +FC_SUGGEST.overdrivePct || 0)) / 100;
     const cap = fcStaffCapFor(district);
-    const benchMax = cap.ftDriver + cap.ptDriver + cap.ftCourier + cap.ptCourier;
+    const floor = fcFtFloorFor(district);
     const occ = fcWeekdayOccurrences();
 
     // Everything below works off the BASELINE split, never off whatever a
@@ -2358,36 +2428,14 @@
     const weekTotal = totalByDay.reduce((a,b)=>a+b, 0);
 
     if(!(weekTotal > 0)){
-      return { feasible:false, district, reason:`No forecast order volume for ${district} yet — check the order-ratio weights above or the underlying productivity history.` };
-    }
-    if(!(benchMax >= 1)){
-      return { feasible:false, district, targetProd, staffCap:cap,
-        reason:`The latest Staff List has no ACTIVE FT/PT Driver or Courier on record for ${district} (Staff Allocation Cap = 0) — there's nobody on the bench here to allocate. Check the latest Logistics_Staff_List file, or STAFF_LIST_FOLDER in kpi_pipeline.py.` };
+      return { feasible:false, applied:false, district,
+        reason:`No forecast order volume for ${district} yet — check the order-ratio weights above or the underlying productivity history.` };
     }
 
     const days = WEEKDAY_LABELS.map((label,i)=>{
       const best = fcOptimizeDayPlan(district, i, targetProd, overdrive, courierShare);
-      return best ? { weekdayIdx:i, label, occurrences:occ[i], benchLimited:false, ...best } : { weekdayIdx:i, label, occurrences:occ[i], failed:true };
+      return { weekdayIdx:i, label, occurrences:occ[i], ...best };
     });
-
-    // A day with no workable split at all. Diagnose it against the two ends
-    // of the band so the message names the binding constraint rather than
-    // just saying "no plan".
-    const failed = days.filter(d=>d.failed);
-    if(failed.length){
-      const parts = failed.map(d=>{
-        const { lo, hi, total } = fcOdsBoundsFor(district, d.weekdayIdx);
-        const maxHktv = Math.max(0, total-lo);   // most in-house volume the band allows
-        const minHktv = Math.max(0, total-hi);   // least
-        if(Math.floor(maxHktv/targetProd) < 1){
-          return `${d.label}: even with ODS pulled to the bottom of its band, in-house volume is only ~${maxHktv.toFixed(0)} orders — below the Target Productivity of ${targetProd.toFixed(1)}/staff, so not even one person clears target that day`;
-        }
-        const needed = Math.ceil(minHktv/(targetProd*(1+overdrive)));
-        return `${d.label}: even with ODS pushed to the top of its band (${hi.toFixed(0)} orders), in-house is still left ~${minHktv.toFixed(0)} orders, which needs ~${needed} staff against a bench of ${benchMax}`;
-      });
-      return { feasible:false, district, targetProd, targetCost, days, staffCap:cap,
-        reason:`${district} has ${failed.length} weekday${failed.length===1?'':'s'} with no workable ODS/HKTV split — ${parts.join('; ')}. Widen Max ODS Volume Flex, raise Max Productivity Overdrive, or add bench in this district.` };
-    }
 
     const monthlyStaffCost = days.reduce((a,d)=> a + d.staffDailyCost*d.occurrences, 0);
     const monthlyOdsVolume = days.reduce((a,d)=> a + d.odsOrders*d.occurrences, 0);
@@ -2399,60 +2447,50 @@
     const prods = days.map(d=>d.achievedProd).filter(v=>v!=null);
     const worst = days.reduce((a,b)=> (a.achievedProd ?? Infinity) <= (b.achievedProd ?? Infinity) ? a : b);
     const odsShifted = monthlyOdsVolume - baseOdsVolume;
+    const missedDays = days.filter(d=>!d.meetsProd);
+    const ftFlooredDays = days.filter(d=>d.ftFloored);
 
-    // Reference points, so the two levers can be judged separately rather
-    // than as one opaque number:
-    //  - flat*: what the pre-v11.0 rule would have done (one headcount all
-    //    week, sized off the lowest-volume day) at the UNSHIFTED split.
-    //  - noShift*: the same per-weekday sizing as this plan but with the
-    //    split left alone — isolates what the v12.0 ODS optimizer itself
-    //    is worth.
-    const baseHktvByDay = totalByDay.map((t,i)=> Math.max(0, t - baseOdsByDay[i]));
-    const avgBaseHktv = baseHktvByDay.reduce((a,b)=>a+b,0)/7;
-    const minBaseHktv = Math.min(...baseHktvByDay);
-    const flatSmax = Math.floor(minBaseHktv/targetProd);
-    const flatS = Math.max(1, Math.min(flatSmax, Math.ceil(avgBaseHktv/(targetProd*(1+overdrive)))));
-    const flatCombo = fcCheapestComboForTotal(district, Math.max(1, flatS), courierShare);
-    const flatManDays = flatCombo.total * fcCurrentMonthDays();
-    let noShiftStaffCost = 0, noShiftManDays = 0, noShiftOk = true;
-    baseHktvByDay.forEach((hktv,i)=>{
-      const Smax = Math.floor(hktv/targetProd);
-      if(Smax < 1){ noShiftOk = false; return; }
-      const Smin = Math.max(1, Math.min(Smax, Math.ceil(hktv/(targetProd*(1+overdrive)))));
-      const combo = fcCheapestComboForTotal(district, Smin, courierShare);
-      noShiftStaffCost += combo.dailyCost*occ[i];
-      noShiftManDays += combo.total*occ[i];
-      if(combo.shortfall > 0) noShiftOk = false;
-    });
-    const noShiftCostPerOrder = (noShiftOk && monthlyOrderVolume > 0)
-      ? (fixed + noShiftStaffCost + baseOdsVolume*blended)/monthlyOrderVolume : null;
+    const costOk = costPerOrder != null && costPerOrder <= targetCost;
+    const prodOk = missedDays.length === 0;
 
-    const shared = { district, days, targetProd, targetCost, costPerOrder,
+    // Achievement rates, v13.0 §6: (forecast − target) ÷ target. Positive is
+    // GOOD for productivity (above target) and BAD for cost (over target).
+    const weekHktv = days.reduce((a,d)=> a + d.hktvOrders*d.occurrences, 0);
+    const weightedProd = manDays > 0 ? weekHktv/manDays : null;
+    const prodAchievement = weightedProd != null ? (weightedProd - targetProd)/targetProd : null;
+    const costAchievement = costPerOrder != null ? (costPerOrder - targetCost)/targetCost : null;
+
+    let reason = null;
+    if(!costOk || !prodOk){
+      const bits = [];
+      if(!prodOk){
+        bits.push(`${missedDays.length === 7 ? 'every weekday' : missedDays.map(d=>`${d.label} (${d.achievedProd==null?'—':d.achievedProd.toFixed(1)})`).join(', ')} below the ${targetProd.toFixed(1)}/staff productivity target`
+          + (ftFlooredDays.length ? ` — the rostered FT floor (${floor.ftDriver} FT Driver + ${floor.ftCourier} FT Courier = ${floor.total} heads, ${Math.round(FT_ROSTER_SHARE*100)}% of the active FT bench) is larger than those days' volume can keep busy at target` : '')
+        );
+      }
+      if(!costOk) bits.push(`Cost/Order $${costPerOrder==null?'—':costPerOrder.toFixed(2)} vs target $${targetCost.toFixed(2)} (${costAchievement==null?'—':(costAchievement>=0?'+':'')+(costAchievement*100).toFixed(1)}%)`);
+      const zeroStaffCostPerOrder = monthlyOrderVolume>0 ? (fixed + baseOdsVolume*blended)/monthlyOrderVolume : null;
+      let lever;
+      if(!costOk && zeroStaffCostPerOrder != null && zeroStaffCostPerOrder > targetCost){
+        lever = `Fixed + ODS cost alone is already $${zeroStaffCostPerOrder.toFixed(2)}/order here, before a single staff cost — no staffing plan or channel split can close that.`;
+      } else if(ftFlooredDays.length){
+        lever = `The FT floor is the binding constraint on ${ftFlooredDays.map(d=>d.label).join(', ')}: those heads are paid regardless, so the only real levers are moving volume back in-house (widen Max ODS Volume Flex), redeploying FT staff to another district, or accepting the gap.`;
+      } else {
+        lever = `Widen Max ODS Volume Flex if the partner can absorb or return more volume, raise Max Productivity Overdrive to allow leaner days, or revisit this district's targets.`;
+      }
+      reason = `${district}: ${bits.join('; ')}. ${lever} The plan below is still the cheapest one available and has been applied — it just doesn't clear target.`;
+    }
+
+    return { feasible: costOk && prodOk, applied:true, costOk, prodOk, district, days,
+      targetProd, targetCost, costPerOrder, weightedProd, prodAchievement, costAchievement,
       monthlyStaffCost, monthlyOdsVolume, baseOdsVolume, odsShifted, variableOds, manDays,
-      flatManDays, flatTotal:flatCombo.total, noShiftCostPerOrder, noShiftManDays,
       minTotal:Math.min(...totals), maxTotal:Math.max(...totals),
       minAchievedProd: prods.length?Math.min(...prods):null,
       maxAchievedProd: prods.length?Math.max(...prods):null,
-      worstWeekday: worst.label, weekTotal, staffCap:cap, benchLimited:false,
-      odsOptimized: FC_ODS.optimize && Math.abs(odsShifted) >= 1 };
-
-    if(costPerOrder != null && costPerOrder <= targetCost){
-      return { feasible:true, ...shared };
-    }
-
-    // Infeasible on Cost/Order. Every day is already at its cheapest workable
-    // split AND its leanest allowed team, so there is nothing left to trim
-    // inside the current bands — diagnose rather than keep searching.
-    const zeroStaffCostPerOrder = monthlyOrderVolume>0 ? (fixed + baseOdsVolume*blended)/monthlyOrderVolume : null;
-    let reason;
-    if(zeroStaffCostPerOrder != null && zeroStaffCostPerOrder > targetCost){
-      reason = `Fixed + ODS cost alone for ${district} is already $${zeroStaffCostPerOrder.toFixed(2)}/order — above the $${targetCost.toFixed(2)} target — before any staff cost is added, so no staffing plan and no ODS/HKTV split can bring Cost/Order down to target.`;
-    } else if(!FC_ODS.optimize){
-      reason = `The leanest per-weekday plan for ${district} lands at $${costPerOrder==null?'—':costPerOrder.toFixed(2)}/order against a $${targetCost.toFixed(2)} target, with the ODS/HKTV split left as forecast. "Optimize ODS / HKTV split" is currently switched off — turning it on lets the search move volume to whichever channel is cheaper at the margin here ($${blended.toFixed(2)}/order via ODS vs $${hktvMarginalCostFor(district).toFixed(2)} via one more in-house head at target), which is the only lever left.`;
-    } else {
-      reason = `Even with the ODS/HKTV split optimized (${odsShifted>=0?'+':''}${odsShifted.toFixed(0)} orders/mo vs the forecast split, within the \u00b1${FC_ODS.flexPct}% band) and every weekday sized to its leanest allowed team (${Math.min(...totals)}\u2013${Math.max(...totals)} staff/day), ${district} lands at $${costPerOrder==null?'—':costPerOrder.toFixed(2)}/order against a $${targetCost.toFixed(2)} target. Both levers are at their limits: widen Max ODS Volume Flex if the partner can actually absorb more (or return less), raise Max Productivity Overdrive to allow leaner days, or revisit this district's Fixed Cost \u2014 $${(fixed/monthlyOrderVolume).toFixed(2)}/order of the gap is Provision Plan cost that neither lever touches.`;
-    }
-    return { feasible:false, ...shared, reason };
+      worstWeekday: worst.label, weekTotal, staffCap:cap, ftFloor:floor,
+      benchLimited: days.some(d=>d.benchLimited),
+      missedDays: missedDays.map(d=>d.label),
+      odsOptimized: FC_ODS.optimize && Math.abs(odsShifted) >= 1, reason };
   }
   // Runs the suggestion for one district and, if feasible, writes the
   // resulting PER-WEEKDAY headcounts straight into FC_STATE (infeasible
@@ -2462,7 +2500,10 @@
   function fcApplySuggestionFor(district){
     const result = fcSuggestHeadcountForDistrict(district);
     FC_STATE.suggestions[district] = result;
-    if(result.feasible){
+    // v13.0 §5 — applied whenever a plan could be built at all, not only when
+    // it clears both targets. A district that can't hit target still needs
+    // real headcount and cost figures on screen; the badge says it missed.
+    if(result.applied){
       if(!FC_STATE.odsShift[district]) FC_STATE.odsShift[district] = WEEKDAY_LABELS.map(()=>0);
       result.days.forEach(day=>{
         const slot = fcStaffSlot(district, day.weekdayIdx);
@@ -2521,7 +2562,7 @@
       const costPerOrder = orderVolume > 0 ? total/orderVolume : null;
       const target = TARGET_COST_PER_ORDER[d];
       const overCls = costPerOrder==null ? '' : (costPerOrder <= target ? 'cost-ok' : 'cost-over');
-      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td>${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td></tr>`;
+      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td>${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td></tr>`;
     }).join('');
   }
   function fcSetupCostPortalListeners(){
@@ -2689,7 +2730,11 @@
   }
   // v11.0 §1 — Variable — Staff Cost, as a weighted sum across the week
   // instead of a single headcount × days-in-month: each weekday's own daily
-  // staff cost × how many times that weekday falls in the forecast month.
+  // staff cost (the ACTUAL scheduled FT + PT roster, priced at Unit Cost) ×
+  // how many times that weekday falls in the forecast month. v13.0 §1 — 75%
+  // of the active FT bench is the minimum roster, not a fixed one: the plan
+  // can schedule up to 100% when that's the cheaper way to cover a day's
+  // volume, and this line prices whatever roster is actually scheduled.
   function fcMonthlyStaffCostFor(district){
     const occ = fcWeekdayOccurrences();
     let total = 0;
@@ -2866,28 +2911,28 @@
     const r = FC_STATE.suggestions[d];
     let badge = '';
     if(r){
-      if(r.feasible){
-        const perDay = r.days.map(day=>`${day.label} ${day.total} (${day.achievedProd==null?'—':day.achievedProd.toFixed(1)}/staff${day.benchLimited?', bench-capped':''})`).join(' · ');
-        const capNote = r.benchLimited
-          ? ` Some days were capped by the current Staff List bench (FT Driver ${r.staffCap.ftDriver} · PT Driver ${r.staffCap.ptDriver} · FT Courier ${r.staffCap.ftCourier} · PT Courier ${r.staffCap.ptCourier} available).`
-          : '';
-        const flatNote = r.flatManDays
-          ? ` vs a flat week at ${r.flatTotal} staff/day = ${intFmt(r.flatManDays)} man-days (${r.manDays>=r.flatManDays?'+':''}${intFmt(r.manDays-r.flatManDays)}).`
-          : '';
-        // v12.0 — what the channel-split lever did, and what it was worth.
-        const odsNote = Math.abs(r.odsShifted||0) >= 1
-          ? ` ODS/HKTV split moved ${r.odsShifted>0?'+':''}${intFmt(r.odsShifted)} orders/mo ${r.odsShifted>0?'onto':'off'} ODS (${intFmt(r.baseOdsVolume)} → ${intFmt(r.monthlyOdsVolume)} orders/mo)`
-            + (r.noShiftCostPerOrder!=null ? `, worth $${(r.noShiftCostPerOrder-r.costPerOrder).toFixed(2)}/order vs leaving the split as forecast ($${r.noShiftCostPerOrder.toFixed(2)}).` : '.')
-          : ' ODS/HKTV split left as forecast — moving it either way costs more here.';
-        const label = `✓ ${r.minTotal}–${r.maxTotal} staff/day` + (r.odsOptimized ? ` · ODS ${r.odsShifted>0?'+':''}${intFmt(r.odsShifted)}/mo` : '');
-        const title = `Per-weekday plan: ${perDay}. Every day clears the target of ${r.targetProd.toFixed(1)}/staff (lowest: ${r.worstWeekday} at ${r.minAchievedProd==null?'—':r.minAchievedProd.toFixed(1)}). ${intFmt(r.manDays)} man-days/mo${flatNote}${odsNote} Cost/Order $${r.costPerOrder.toFixed(2)} ≤ target $${r.targetCost.toFixed(2)}.${capNote}`;
-        badge = `<span class="fc-suggest-badge ok" title="${title.replace(/"/g,'&quot;')}">${label} · Prod ${r.minAchievedProd==null?'—':r.minAchievedProd.toFixed(1)}–${r.maxAchievedProd==null?'—':r.maxAchievedProd.toFixed(1)} · $${r.costPerOrder.toFixed(2)}/ord</span>`;
+      if(!r.applied){
+        badge = `<span class="fc-suggest-badge bad" title="${(r.reason||'').replace(/"/g,'&quot;')}">\u26a0 no plan could be built</span>`;
       } else {
-        badge = `<span class="fc-suggest-badge bad" title="${r.reason.replace(/"/g,'&quot;')}">⚠ no per-weekday plan clears both targets</span>`;
+        const perDay = r.days.map(day=>`${day.label} ${day.total} (${day.achievedProd==null?'\u2014':day.achievedProd.toFixed(1)}/staff${day.ftFloored?', at FT floor':''}${day.benchLimited?', bench-capped':''})`).join(' \u00b7 ');
+        const odsNote = Math.abs(r.odsShifted||0) >= 1
+          ? ` ODS/HKTV split moved ${r.odsShifted>0?'+':''}${intFmt(r.odsShifted)} orders/mo ${r.odsShifted>0?'onto':'off'} ODS (${intFmt(r.baseOdsVolume)} \u2192 ${intFmt(r.monthlyOdsVolume)} orders/mo).`
+          : ' ODS/HKTV split left as forecast.';
+        const floorNote = r.ftFloor && r.ftFloor.total
+          ? ` Every day includes the rostered FT floor of ${r.ftFloor.total} (${r.ftFloor.ftDriver} FT Driver + ${r.ftFloor.ftCourier} FT Courier).`
+          : '';
+        const title = `Per-weekday plan: ${perDay}. Productivity ${r.weightedProd==null?'\u2014':r.weightedProd.toFixed(1)} vs target ${r.targetProd.toFixed(1)} (${fcRatePct(r.prodAchievement)}); Cost/Order $${r.costPerOrder==null?'\u2014':r.costPerOrder.toFixed(2)} vs target $${r.targetCost.toFixed(2)} (${fcRatePct(r.costAchievement)}). ${intFmt(r.manDays)} man-days/mo.${floorNote}${odsNote}`
+          + (r.feasible ? '' : ` \u2014 ${r.reason}`);
+        const cls = r.feasible ? 'ok' : 'warn';
+        const mark = r.feasible ? '\u2713' : '\u26a0';
+        const misses = r.feasible ? '' : ` \u00b7 misses ${[!r.prodOk?'prod':null, !r.costOk?'cost':null].filter(Boolean).join(' + ')}`;
+        badge = `<span class="fc-suggest-badge ${cls}" title="${title.replace(/"/g,'&quot;')}">`
+          + `${mark} ${r.minTotal}\u2013${r.maxTotal} staff/day${misses}`
+          + ` \u00b7 Prod ${fcRatePct(r.prodAchievement)} \u00b7 Cost ${fcRatePct(r.costAchievement)}</span>`;
       }
     }
     return `<button type="button" class="fc-suggest-btn" data-d="${d}">Suggest</button>`
-      + `<button type="button" class="fc-copy-btn" data-d="${d}" title="Copy this district's Monday headcounts across Tue–Sun — i.e. go back to a flat week for this district.">Copy Mon → all</button>`
+      + `<button type="button" class="fc-copy-btn" data-d="${d}" title="Copy this district's Monday headcounts across Tue\u2013Sun.">Copy Mon \u2192 all</button>`
       + badge;
   }
   // v11.0 §1 — one editable headcount block per weekday. The four buckets
@@ -2901,11 +2946,12 @@
     const prod = hc.total > 0 ? hktv/hc.total : null;
     const target = fcTargetProdFor(d);
     const cls = prod == null ? '' : (prod >= target ? 'ok' : 'bad');
+    const rate = fcAchievementRate(prod, target);   // v13.0 §6
     const fields = STAFF_BUCKETS.map(k=>
       `<label class="fc-hc-field"><span>${STAFF_BUCKET_LABELS[k]}</span><input type="number" min="0" step="1" class="fc-in-staff" data-d="${d}" data-wd="${wd}" data-k="${k}" placeholder="0" value="${slot[k] ?? ''}"></label>`
     ).join('');
     return `<div class="fc-hc-cell">${fields}
-      <div class="fc-hc-total"><span>Σ <span class="v">${intFmt(hc.total)}</span></span><span class="p ${cls}" title="This weekday's achieved Productivity (forecast HKTV Orders ${intFmt(hktv)} ÷ ${intFmt(hc.total)} staff) against the district target of ${target.toFixed(1)}.">${prod==null?'—':prod.toFixed(1)}</span></div>
+      <div class="fc-hc-total"><span>Σ <span class="v">${intFmt(hc.total)}</span></span><span class="p ${cls}" title="This weekday's forecast Productivity ${prod==null?'—':prod.toFixed(1)} (HKTV Orders ${intFmt(hktv)} ÷ ${intFmt(hc.total)} staff) vs target ${target.toFixed(1)} — achievement rate (forecast − target) ÷ target.">${prod==null?'—':prod.toFixed(1)} <b>${fcRatePct(rate)}</b></span></div>
     </div>`;
   }
   function fcRenderPlanTable(){
@@ -2934,7 +2980,8 @@
     renderForecastTab();
     updateScrollHints();
     const banner = document.getElementById('fcSuggestBanner');
-    const bad = results.filter(r=>!r.feasible);
+    const bad = results.filter(r=>r.applied && !r.feasible);
+    const none = results.filter(r=>!r.applied);
     const benchCapped = results.filter(r=>r.feasible && r.benchLimited);
     const capNote = benchCapped.length
       ? ` <b>${benchCapped.length}</b> of those had at least one weekday capped by the current Staff List bench: ${benchCapped.map(r=>r.district).join(', ')}.`
@@ -2942,25 +2989,23 @@
     // v11.0 §1 — the headline number for this change: what per-weekday
     // sizing costs (or saves) in man-days against the old flat rule, summed
     // over the districts that got a plan.
-    const ok = results.filter(r=>r.feasible);
+    const ok = results.filter(r=>r.applied);
     const mdNew = ok.reduce((a,r)=>a+(r.manDays||0), 0);
-    const mdFlat = ok.reduce((a,r)=>a+(r.flatManDays||0), 0);
-    const mdDelta = mdNew - mdFlat;
     const odsMoved = ok.reduce((a,r)=>a+(r.odsShifted||0), 0);
     const odsNote = ok.length && Math.abs(odsMoved) >= 1
       ? ` The channel split moved <b>${intFmt(Math.abs(odsMoved))} orders/mo ${odsMoved>0?'onto':'off'} ODS</b> — hover a badge for what that was worth per order in each district.`
       : '';
-    const mdNote = ok.length
-      ? ` Across them the per-weekday plan is <b>${intFmt(mdNew)} man-days/mo</b> vs <b>${intFmt(mdFlat)}</b> under the old flat rule (${mdDelta>=0?'+':''}${intFmt(mdDelta)}) — per-weekday sizing puts staff back on the busy days the flat plan under-covered.`
-      : '';
+    const mdNote = ok.length ? ` Planned total: <b>${intFmt(mdNew)} man-days/mo</b>.` : '';
     banner.style.display = '';
     if(bad.length===0){
       banner.className = 'fc-suggest-banner ok';
-      banner.innerHTML = `<b>All ${results.length} districts</b> got a per-weekday headcount plan where <b>every weekday</b> clears the Target Productivity, and the week as a whole clears Target Cost/Order.${mdNote}${odsNote}${capNote}`;
+      banner.innerHTML = `<b>All ${results.length} districts</b> clear Target Productivity on every weekday and Target Cost/Order for the week.${mdNote}${odsNote}${capNote}`;
     } else {
       banner.className = 'fc-suggest-banner warn';
-      banner.innerHTML = `<b>${results.length-bad.length} of ${results.length} districts</b> got a plan that clears both targets. `
-        + `<b>${bad.length} flagged</b> — no per-weekday plan hits both (left as-is, hover their badge for the reason): ${bad.map(r=>r.district).join(', ')}.${mdNote}${odsNote}${capNote}`;
+      banner.innerHTML = `<b>${results.length-bad.length-none.length} of ${results.length} districts</b> clear both targets. `
+        + `<b>${bad.length} miss</b> a target — their cheapest plan is still applied, so the figures below are real; hover the badge for which target and why: ${bad.map(r=>r.district).join(', ')}.`
+        + (none.length ? ` <b>${none.length}</b> had no forecast volume to plan from: ${none.map(r=>r.district).join(', ')}.` : '')
+        + `${mdNote}${odsNote}${capNote}`;
     }
   }
   function renderForecastTab(){
@@ -3020,6 +3065,10 @@
     function fcCellHtml(p){
       const meetsTarget = p.achievedProd != null && p.achievedProd >= p.targetProd;
       const pillCls = p.achievedProd==null ? 'delta-flat' : meetsTarget ? 'delta-up' : 'delta-down';
+      // v13.0 §6 — the pill now carries the achievement rate
+      // (forecast − target) ÷ target instead of restating the target; the
+      // target itself moves into the tooltip.
+      const prodRate = fcAchievementRate(p.achievedProd, p.targetProd);
       return `<div class="fc-cell">
         <div class="fc-row"><span class="fc-label">Total Order</span><span class="fc-val">${intFmt(p.totalOrders)}</span></div>
         <div class="fc-row"><span class="fc-label">Est. ODS Orders</span><span class="fc-val">${intFmt(p.odsOrders)}</span></div>
@@ -3032,7 +3081,7 @@
         <div class="fc-row fc-primary">
           <span class="fc-label">Productivity</span>
           <span class="fc-val">${p.achievedProd==null?'—':p.achievedProd.toFixed(1)}</span>
-          <span class="delta-pill ${pillCls}">tgt ${p.targetProd.toFixed(1)}</span>
+          <span class="delta-pill ${pillCls}" title="Forecast ${p.achievedProd==null?'—':p.achievedProd.toFixed(1)} vs target ${p.targetProd.toFixed(1)} — achievement rate = (forecast − target) ÷ target.">${fcRatePct(prodRate)}</span>
         </div>
       </div>`;
     }
@@ -3054,11 +3103,31 @@
     }).join('');
     body.innerHTML = bodyRows.join('') + `<tr class="total-row"><td><strong>Total</strong></td>${totalCells}</tr>`;
 
-    note.innerHTML = `Total Order = weighted average of that weekday's historical Total Order count (HKTV Staff + ODS/VAN, the Tableau Total Parent Order) across T-2/T-1/current month (weights above, auto-renormalized over whichever months have data)`
-      + (pctChange ? `, then adjusted by the Overall Order % Change (${pctChange>0?'+':''}${pctChange}%) applied network-wide and split across districts by each district's historical order-count share (not evenly). ` : '. ')
-      + `Est. ODS Orders starts from the same weighted-average method on ODS/VAN-only history (or the ODS Order Count override, spread across weekdays by that shape) and is then <b>adjusted by the v12.0 channel-split optimizer</b> when Suggest Headcount has run with it enabled — a ↳ line appears in the cell showing how many orders were moved and which way. HKTV Orders = Total Order − Est. ODS Orders, so shifting volume to ODS shrinks the in-house team and shifting it back grows it. FT Driver/FT Courier/PT Driver/PT Courier come from the Per-District Staff Plan above and are now <b>that weekday's own numbers</b> (v11.0 §1) — they no longer stay flat across the week, so each day can be sized to its own volume (blank = 0). Productivity = HKTV Orders ÷ total HKTV headcount, checked against that district's Target Productivity (Per-District Staff Plan above, blank = Full_Cost_Planning.xlsx target) — green when achieved ≥ target, red when below. Districts hidden via the chips above are excluded from the Total row.`;
+    note.innerHTML = `<b>Total Order</b> = weighted average of that weekday's historical Total Order (HKTV Staff + ODS/VAN) across T-2 / T-1 / current month, weights above (auto-renormalized over whichever months have data)`
+      + (pctChange ? `, then × (1 ${pctChange>0?'+':'−'} ${Math.abs(pctChange)}%) applied network-wide and split across districts by historical order share. ` : '. ')
+      + `<b>Est. ODS Orders</b> = same method on ODS/VAN-only history (or the ODS Order Count override), after any channel-split shift — a ↳ line shows the shift. <b>HKTV Orders</b> = Total Order − Est. ODS Orders. <b>FT/PT rows</b> = that weekday's Per-District Staff Plan. <b>Productivity</b> = HKTV Orders ÷ total headcount; the pill is its achievement rate, (forecast − target) ÷ target — green at or above target, red below. Hidden districts are excluded from the Total row.`;
   }
 
+  /* v13.0 §2 — "Clear Suggestions" used to clear only the badges and the
+     ODS shift, leaving behind the headcounts a previous run had written into
+     the plan table. That's why the numbers never went back to default. It now
+     resets everything the forecast plan owns — per-weekday headcounts, Target
+     Productivity overrides, the ODS/HKTV shift and the badges — back to
+     blank, i.e. the state on a fresh page load. Embedded reference data
+     (targets, unit costs, bench caps) is untouched, as are the weight and
+     order-% inputs at the top of the tab, which are forecast inputs rather
+     than part of the plan.
+     The same reset runs when an ODS band input changes, since a plan chosen
+     under the old band may sit outside the new one. */
+  function fcResetPlan(){
+    FC_STATE.staff = {};
+    FC_STATE.targetProd = {};
+    FC_STATE.odsShift = {};
+    FC_STATE.suggestions = {};
+    const banner = document.getElementById('fcSuggestBanner');
+    if(banner) banner.style.display = 'none';
+    renderForecastTab(); updateScrollHints();
+  }
   function fcSetupListeners(){
     ['fcWeightT2','fcWeightT1','fcWeightCur','fcOrderPctChange'].forEach(id=>{
       document.getElementById(id).addEventListener('change', ()=>{ renderForecastTab(); updateScrollHints(); });
@@ -3131,12 +3200,7 @@
     // re-run the optimizer on its own (that stays an explicit Suggest
     // action), but any shift already applied is cleared, because it was
     // chosen under the OLD band and may now sit outside the new one.
-    const fcOdsBandChanged = ()=>{
-      FC_STATE.odsShift = {};
-      FC_STATE.suggestions = {};
-      document.getElementById('fcSuggestBanner').style.display = 'none';
-      renderForecastTab(); updateScrollHints();
-    };
+    const fcOdsBandChanged = ()=> fcResetPlan();
     document.getElementById('fcOdsOptimize').addEventListener('change', e=>{
       FC_ODS.optimize = !!e.target.checked;
       fcOdsBandChanged();
@@ -3154,12 +3218,7 @@
       fcOdsBandChanged();
     });
     document.getElementById('fcSuggestAllBtn').addEventListener('click', fcSuggestAll);
-    document.getElementById('fcSuggestClearBtn').addEventListener('click', ()=>{
-      FC_STATE.suggestions = {};
-      FC_STATE.odsShift = {};   // v12.0 — clearing suggestions also puts the ODS/HKTV split back to forecast
-      document.getElementById('fcSuggestBanner').style.display = 'none';
-      renderForecastTab(); updateScrollHints();
-    });
+    document.getElementById('fcSuggestClearBtn').addEventListener('click', fcResetPlan);
   }
 
   function renderProductivityTab(){
