@@ -453,7 +453,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       </div>
     </div>
-    <div class="rail-foot">v4.1.2</div>
+    <div class="rail-foot">v5.0</div>
   </nav>
 
   <!-- MAIN -->
@@ -728,8 +728,8 @@
              productivity target — see fcSuggestHeadcountForDistrict()). -->
         <div class="prod-controls fc-suggest-row">
           <div class="prod-field fc-weight">
-            <label for="fcSuggestOverdrive" title="How far above Target Productivity a single reasonable staffing plan is allowed to push the achieved figure. 0% = staff exactly to the productivity ceiling (cheapest, but the actual figure will only just clear the target); higher = leaves more headroom by allowing a slightly larger — costlier — team.">Max Productivity Overdrive (%)</label>
-            <input type="number" id="fcSuggestOverdrive" min="0" max="500" step="5" value="50">
+            <label for="fcSuggestOverdrive" title="How far above each district's Target Productivity (Full_Cost_Planning.xlsx, or its manual override above) a single reasonable staffing plan is allowed to push the achieved figure. 0% = staff exactly to the productivity ceiling (cheapest, but the actual figure will only just clear the target); higher = leaves more headroom by allowing a slightly larger — costlier — team. Capped at 20%.">Max Productivity Overdrive (%)</label>
+            <input type="number" id="fcSuggestOverdrive" min="0" max="20" step="1" value="20">
           </div>
           <button type="button" class="cost-portal-toggle fc-suggest-all-btn" id="fcSuggestAllBtn">Suggest Headcount — All Districts</button>
           <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn">Clear Suggestions</button>
@@ -766,7 +766,7 @@
           <div class="section-head fc-cost-head">
             <div>
               <h3 class="prod-detail-label" style="margin:0;">Cost Planning (auto-calculated from Provision Plan + reference rates)</h3>
-              <div class="sub">Fixed Cost comes straight from the Provision Plan (not itemized here). Variable — Staff Cost = the FT/PT headcounts above × the reference Unit Cost table. Variable — ODS Cost = estimated ODS order volume × the reference Blended Cost/Order. Cost/Order is checked against each district's Target Cost/Order.</div>
+              <div class="sub">Fixed Cost = the Provision Plan's DAILY rate (not itemized here) × the number of days in the forecast's current month. Variable — Staff Cost = the FT/PT headcounts above × the reference Unit Cost table. Variable — ODS Cost = estimated ODS order volume × the reference Blended Cost/Order. Cost/Order is checked against each district's Target Cost/Order.</div>
             </div>
             <button type="button" class="cost-portal-toggle" id="costPortalToggle">Show ▾</button>
           </div>
@@ -801,7 +801,7 @@
                 </table>
               </div>
             </div>
-            <div class="prod-note">Fixed Cost is the finance-confirmed Provision Plan (district totals only — the line-item breakdown isn't shown here); Variable — Staff Cost is the FT/PT headcount plan above × the Unit Cost table. Variable — ODS Cost and Est. Order Volume use the ODS Order Count above when entered (split across districts by historical ODS/VAN order share), otherwise fall back to the historical ODS order estimate. Est. Order Volume /mo ≈ the weekday Total Order forecasts (below) summed for one week × 4.345. Cost/Order below target is shaded green, above is red.</div>
+            <div class="prod-note">Fixed Cost is the finance-confirmed Provision Plan's DAILY rate (district totals only — the line-item breakdown isn't shown here) × the number of days in the forecast's current month; Variable — Staff Cost is the FT/PT headcount plan above × the Unit Cost table. Variable — ODS Cost and Est. Order Volume use the ODS Order Count above when entered (split across districts by historical ODS/VAN order share), otherwise fall back to the historical ODS order estimate. Est. Order Volume /mo ≈ the weekday Total Order forecasts (below) summed for one week × 4.345. Cost/Order below target is shaded green, above is red.</div>
           </div>
         </div>
 
@@ -1037,8 +1037,12 @@
      (HKTV Staff, ODS Ratio) — so 6 keys total, matching data.json's
      `matrices` object and kpi_pipeline.py's output exactly.
 
-     TODO: hktvStaff/odsRatio `target` values below are still placeholders —
-     they weren't specified in the brief. delayRate, poorRating,
+     v5.0 — hktvStaff's `target:24` below is now only a last-resort fallback:
+     getTargetOverall()/getTargetForDistrict() use the real, finance-confirmed
+     TARGET_PRODUCTIVITY table (per district + overall) instead whenever
+     data.json hasn't supplied its own target for this matrix. odsRatio's
+     `target` below is still a placeholder — no confirmed figure was provided
+     for it. delayRate, poorRating,
      missingLostAmount and rfidMissingTote now use the real thresholds from
      Target__Other_Aspects_.xlsx as their flat fallback; missingLostAmount
      and rfidMissingTote additionally get real per-district ceilings from
@@ -1120,12 +1124,19 @@
   function getTargetOverall(key){
     const t = matrixOf(key).target;
     if(t && t.overall != null) return t.overall;
+    // v5.0 — HKTV Staff Productivity's real target (finance/ops-confirmed,
+    // Full_Cost_Planning.xlsx "Target" sheet) is now known — TARGET_PRODUCTIVITY
+    // below — so use it ahead of the old flat MATRICES placeholder whenever
+    // data.json hasn't supplied its own target for this matrix yet.
+    if(key === 'hktvStaff') return TARGET_PRODUCTIVITY.overall;
     const m = MATRICES.find(x=>x.key===key);
     return m ? m.target : null;
   }
   function getTargetForDistrict(key, district){
     const t = matrixOf(key).target;
     if(t && t.districts && t.districts[district] != null) return t.districts[district];
+    // v5.0 — same real per-district targets as above, keyed by district.
+    if(key === 'hktvStaff' && TARGET_PRODUCTIVITY[district] != null) return TARGET_PRODUCTIVITY[district];
     return getTargetOverall(key);
   }
 
@@ -1892,10 +1903,14 @@
          the patch note's Ratio Calculation. */
 
   // ---- Reference data embedded from the two Finance workbooks (v6.0 §1/§2) ----
-  // Fixed Cost — Monthly Provision per District, from Full_Cost_Planning.xlsx
+  // Fixed Cost — DAILY Provision per District, from Full_Cost_Planning.xlsx
   // "Fixed Cost - Provision": the "Same for 10 Districts" controllable +
   // non-controllable line items (identical for every district) plus each
   // district's own Transit & Ice costs. No longer a user input — see §2.
+  // v5.0 — corrected: this is a DAILY figure, not monthly as previously
+  // assumed. Any monthly total must go through fcMonthlyFixedCostFor()
+  // below, which multiplies by the number of days in the forecast's
+  // current month, rather than reading this dict directly.
   const FIXED_COST_PROVISION = {
     'ETH':24159.14, 'ETK':24772.14, 'ETX':24847.14, 'NT-ST':23610.14, 'NT-TM':24607.14,
     'NT-TSM':25824.99, 'NT-TW':24152.14, 'WTH':26630.14, 'WTK':25503.34, 'WTX':24856.64
@@ -1978,6 +1993,25 @@
   }
   let fcDistrictDropdownOpen = false; // v5.0 §1 — open/closed state of the district dropdown panel
 
+  // v5.0 — Fixed Cost - Provision (FIXED_COST_PROVISION) is a DAILY rate per
+  // district, not monthly. Every place that rolls it into a monthly total
+  // (Suggest Headcount's Cost/Order search, the Cost Planning portal's Total
+  // ($) column) must scale it by the number of days in the forecast's
+  // current month first — this is that scaling, done in one place so both
+  // call sites stay in sync.
+  function fcCurrentMonthDays(){
+    const [, , cur] = fcMonthTriplet();
+    if(cur){
+      const [y,m] = cur.split('-').map(Number);
+      return new Date(y, m, 0).getDate(); // day 0 of next month = last day of `cur`
+    }
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  }
+  function fcMonthlyFixedCostFor(district){
+    return FIXED_COST_PROVISION[district] * fcCurrentMonthDays();
+  }
+
   /* ---------------- Suggest Headcount (v8.0) ----------------
      For a district, finds the cheapest FT/PT Driver/Courier plan that
      clears BOTH the Target Productivity (achieved HKTV Orders ÷ headcount
@@ -2024,7 +2058,7 @@
          grounds but every S in it still misses the Cost/Order target —
          reported with the cheapest in-window figure so the gap is visible.
   */
-  const FC_SUGGEST = { overdrivePct: 50 };
+  const FC_SUGGEST = { overdrivePct: 20 }; // v5.0 — capped at 20%, see fcSetupListeners' fcSuggestOverdrive handler
 
   // v9.0 — Staff Allocation Cap: current ACTIVE FT/PT Driver/Courier
   // headcount per district, from data.json's staffAllocationCap
@@ -2143,12 +2177,14 @@
     const avgHktv = fcAvgWeeklyHktvOrders(district);
     const targetProd = fcTargetProdFor(district);
     const targetCost = TARGET_COST_PER_ORDER[district] != null ? TARGET_COST_PER_ORDER[district] : TARGET_COST_PER_ORDER.overall;
-    const fixed = FIXED_COST_PROVISION[district];
+    const fixed = fcMonthlyFixedCostFor(district); // v5.0 — daily rate × days in month, not the raw daily figure
     const monthlyOrderVolume = fcMonthlyOrderEstimate(district);
     const monthlyOdsVolume = fcMonthlyOdsOrderEstimate(district);
     const variableOds = monthlyOdsVolume * odsBlendedCostFor(district);
     const courierShare = fcCourierShareFor(district);
-    const overdrive = Math.max(0, +FC_SUGGEST.overdrivePct || 0) / 100;
+    // v5.0 — hard-capped at 20% here too, in case FC_SUGGEST.overdrivePct
+    // was ever set outside the (already-clamped) input listener.
+    const overdrive = Math.min(20, Math.max(0, +FC_SUGGEST.overdrivePct || 0)) / 100;
     // v9.0 — Staff Allocation Cap: the district's current bench strength is
     // a second hard ceiling, alongside Smax (the productivity ceiling)
     // below. isFinite(benchMax) is false only when data.json hasn't
@@ -2249,7 +2285,7 @@
     }).join('');
 
     totalBody.innerHTML = DISTRICTS.map(d=>{
-      const fixed = FIXED_COST_PROVISION[d];
+      const fixed = fcMonthlyFixedCostFor(d); // v5.0 — daily rate × days in month, not the raw daily figure
       const u = UNIT_COST_STAFF[d];
       const hc = fcHeadcountFor(d);
       const variableStaff = hc.ftDriver*u.ftDriver + hc.ftCourier*u.ftCourier + hc.ptDriver*u.ptDriver + hc.ptCourier*u.ptCourier;
@@ -2671,7 +2707,12 @@
       renderForecastTab(); updateScrollHints();
     });
     document.getElementById('fcSuggestOverdrive').addEventListener('change', e=>{
-      FC_SUGGEST.overdrivePct = +e.target.value || 0;
+      // v5.0 — hard-capped at 20% regardless of what's typed; also clamps
+      // the field itself back to a valid value so it can't be left showing
+      // something out of range.
+      const clamped = Math.min(20, Math.max(0, +e.target.value || 0));
+      e.target.value = clamped;
+      FC_SUGGEST.overdrivePct = clamped;
     });
     document.getElementById('fcSuggestAllBtn').addEventListener('click', fcSuggestAll);
     document.getElementById('fcSuggestClearBtn').addEventListener('click', ()=>{
