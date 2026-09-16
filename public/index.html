@@ -383,6 +383,10 @@
   /* v13.0 §5 — a plan that was applied but misses a target: amber, not red.
      Red is now reserved for "no plan at all". */
   .fc-suggest-badge.warn{background:#fdf1dc;color:#8a5a12;}
+  /* v14.0 — minimum roster annotation: payroll-side figure, deliberately
+     quieter than the demand-driven headline it sits under. */
+  .fc-minroster-note{display:block;margin-top:4px;font-size:10px;line-height:1.4;color:var(--text-muted);max-width:190px;white-space:normal;cursor:help;}
+  .fc-hc-minroster{font-size:9.5px;color:var(--text-muted);white-space:nowrap;cursor:help;}
 
   /* v11.0 §1 — Per-weekday staff plan. The Per-District Staff Plan table now
      carries one editable headcount block per weekday instead of a single
@@ -750,7 +754,8 @@
         <div class="prod-note">
           <b>Definition.</b> One FT Driver / FT Courier / PT Driver / PT Courier plan per weekday, per district (FTD / FTC / PTD / PTC). Blank = 0. Each column header shows how many times that weekday falls in the forecast month.<br>
           <b>Cell figures.</b> Σ = that day's total headcount. The pill = that day's Productivity (HKTV Orders ÷ Σ) and its achievement rate, (forecast − target) ÷ target.<br>
-          <b>FT floor.</b> Every day rosters at least 75% of the district's active FT bench (Staff Allocation Cap) — the 25% held back covers rest days and leave. It's a minimum, not a fixed number: the plan can schedule up to 100% on a given day when that's cheaper than covering the same volume with PT or ODS. Cost is priced on whatever is actually scheduled that day, at Unit Cost.
+          <b>Minimum roster (FT floor).</b> Every day rosters at least 75% of the district's active FT bench (Staff Allocation Cap) — the 25% held back covers rest days and leave. It's a minimum, not a fixed number: the plan can schedule up to 100% on a given day when that's cheaper than covering the same volume with PT or ODS. Cost is priced on whatever is actually scheduled that day, at Unit Cost.<br>
+          <b>Two numbers, not one.</b> The floor is a payroll commitment, so cost, man-days and the headcounts in these cells are all the <i>rostered</i> figures. Productivity and its achievement rate in the Suggest badge are judged on the <i>demand-driven</i> team — the heads the day's volume actually justifies — so a quiet day reads as spare roster capacity rather than as an operational miss. Where a cell's headcount is bigger than demand, the gap is labelled underneath.
         </div>
 
         <!-- SUGGEST HEADCOUNT — v8.0. For each district, searches reasonable
@@ -780,7 +785,8 @@
           <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn" title="Resets the whole plan to defaults: per-weekday headcounts, Target Productivity overrides, the ODS/HKTV shift and the badges all go back to blank.">Clear Suggestions &amp; Reset Plan</button>
         </div>
         <div class="prod-note">
-          <b>Per weekday:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), raised to the 75% FT roster floor (a minimum — can run up to 100% of the active bench when that's the cheaper way to cover the day) and capped by the Staff Allocation Cap. Courier : Driver = 49 : 51; FT filled before PT, both priced at their Unit Cost for whatever is actually scheduled.<br>
+          <b>Per weekday:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), capped by the Staff Allocation Cap. Courier : Driver = 49 : 51; FT filled before PT, both priced at their Unit Cost for whatever is actually scheduled.<br>
+          <b>Demand vs roster:</b> that team is the <b>demand-driven</b> headcount — the badge headline and the Prod % are measured against it. It is then raised to the 75% FT roster floor (a minimum — can run up to 100% of the active bench when that's the cheaper way to cover the day) to give the <b>rostered</b> headcount, which is what goes into the plan cells and what Cost/Order, man-days and payroll are priced on. The floor appears as a separate <i>min roster</i> annotation under each badge, never folded into the headline.<br>
           <b>ODS / HKTV split:</b> each weekday's ODS volume is chosen within ±Flex% of its forecast baseline (and under the Max ODS % ceiling, if set) to minimise <i>staff cost (actual roster) + ODS orders × Blended Cost/Order</i>. Total Order volume is unchanged, so cheapest = lowest Cost/Order.<br>
           <b>Cost check:</b> run once on the week — (Fixed + Staff + ODS) ÷ Est. Order Volume vs Target Cost/Order.<br>
           A plan is always applied. The badge reports both achievement rates and, in amber, which target it misses.
@@ -2262,10 +2268,24 @@
     const ftDriver = f(cap.ftDriver), ftCourier = f(cap.ftCourier);
     return { ftDriver, ftCourier, total: ftDriver + ftCourier };
   }
-  function fcCheapestComboForTotal(district, S, courierShare){
+  // v14.0 §1 — BOTH NUMBERS ARE REPORTED.
+  // The 75% floor answers a payroll question ("how many heads are on the
+  // roster and therefore paid that day"); Productivity answers an operational
+  // one ("how many heads does the day's volume actually need"). Baking the
+  // floor into the productivity denominator mixed the two and made every
+  // low-volume day look like an operational failure when it was really a
+  // bench-utilisation one.
+  //   - Cost / payroll  -> the FLOORED roster (unchanged, still the applied plan)
+  //   - Productivity / achievement -> the DEMAND-DRIVEN team
+  //   - the floor itself -> surfaced as a separate "minimum roster" annotation
+  // Passing FC_NO_FLOOR builds the same cheapest combo with no mandatory FT
+  // heads, i.e. the team the volume alone justifies (still bench-clamped and
+  // still split 49:51), which is what the demand-driven figures are built on.
+  const FC_NO_FLOOR = { ftDriver:0, ftCourier:0, total:0 };
+  function fcCheapestComboForTotal(district, S, courierShare, floorOverride){
     const u = UNIT_COST_STAFF[district];
     const cap = fcStaffCapFor(district);
-    const floor = fcFtFloorFor(district);   // v13.0 §1 — mandatory rostered FT
+    const floor = floorOverride || fcFtFloorFor(district);   // v13.0 §1 — mandatory rostered FT
     const driverCap = cap.ftDriver + cap.ptDriver;
     const courierCap = cap.ftCourier + cap.ptCourier;
 
@@ -2395,13 +2415,31 @@
       const staffDailyCost = combo.dailyCost;
       const dayCost = staffDailyCost + ods*blended;
       if(!best || dayCost < best.dayCost - 1e-9){
-        const achievedProd = combo.total > 0 ? hktv/combo.total : null;
+        const rosteredProd = combo.total > 0 ? hktv/combo.total : null;
         best = { ...combo, odsOrders:ods, odsBaseline:base, odsShift:ods-base, hktvOrders:hktv,
           Smin, Smax, wanted, staffDailyCost, odsDailyCost: ods*blended, dayCost,
-          achievedProd, meetsProd: achievedProd != null && achievedProd >= targetProd,
-          benchLimited: combo.shortfall > 0 };
+          rosteredProd, benchLimited: combo.shortfall > 0 };
       }
     });
+    // v14.0 §1 — the winning candidate is chosen on COST, which is priced on
+    // the floored roster (that hasn't changed: those heads are paid either
+    // way). What changes is the productivity lens laid over it. Re-run the
+    // same sizing with no FT floor to get the demand-driven team, and report
+    // the day against that.
+    if(best){
+      const demand = fcCheapestComboForTotal(district, best.wanted, courierShare, FC_NO_FLOOR);
+      best.demandTotal = demand.total;
+      best.demandCombo = { ftDriver:demand.ftDriver, ptDriver:demand.ptDriver, ftCourier:demand.ftCourier, ptCourier:demand.ptCourier };
+      best.demandProd = best.demandTotal > 0 ? best.hktvOrders/best.demandTotal : null;
+      // The headline productivity figure for this day.
+      best.achievedProd = best.demandProd;
+      // Heads rostered purely because of the floor — idle capacity, not an
+      // operational miss. This is the "minimum roster" annotation's substance.
+      best.minRoster = best.floor ? best.floor.total : 0;
+      best.floorGap = Math.max(0, best.total - best.demandTotal);
+      best.ftFloored = best.floorGap > 0;
+      best.meetsProd = best.demandProd != null && best.demandProd >= targetProd;
+    }
     return best;
   }
   // v11.0 §1 — sizes each weekday independently; v12.0 — and chooses each
@@ -2441,9 +2479,15 @@
     const monthlyOdsVolume = days.reduce((a,d)=> a + d.odsOrders*d.occurrences, 0);
     const baseOdsVolume = baseOdsByDay.reduce((a,v,i)=> a + v*occ[i], 0);
     const variableOds = monthlyOdsVolume * blended;
+    // v14.0 §1 — manDays stays the ROSTERED figure: it feeds cost, payroll and
+    // the banner's planned total. demandManDays is the parallel demand-driven
+    // figure the productivity numbers are judged on.
     const manDays = days.reduce((a,d)=> a + d.total*d.occurrences, 0);
+    const demandManDays = days.reduce((a,d)=> a + (d.demandTotal||0)*d.occurrences, 0);
+    const floorManDays = Math.max(0, manDays - demandManDays); // rostered-but-unneeded capacity
     const costPerOrder = monthlyOrderVolume > 0 ? (fixed + monthlyStaffCost + variableOds)/monthlyOrderVolume : null;
-    const totals = days.map(d=>d.total);
+    const totals = days.map(d=>d.total);                    // rostered (paid)
+    const demandTotals = days.map(d=>d.demandTotal||0);      // demand-driven
     const prods = days.map(d=>d.achievedProd).filter(v=>v!=null);
     const worst = days.reduce((a,b)=> (a.achievedProd ?? Infinity) <= (b.achievedProd ?? Infinity) ? a : b);
     const odsShifted = monthlyOdsVolume - baseOdsVolume;
@@ -2456,17 +2500,26 @@
     // Achievement rates, v13.0 §6: (forecast − target) ÷ target. Positive is
     // GOOD for productivity (above target) and BAD for cost (over target).
     const weekHktv = days.reduce((a,d)=> a + d.hktvOrders*d.occurrences, 0);
-    const weightedProd = manDays > 0 ? weekHktv/manDays : null;
+    // v14.0 §1 — headline Productivity and its variation are demand-driven:
+    // HKTV volume ÷ the team that volume actually justifies. The rostered
+    // figure (same volume ÷ the floored roster that gets paid) is reported
+    // alongside it rather than replacing it — it's the bench-utilisation
+    // reading, and it's what the cost numbers correspond to.
+    const weightedProd = demandManDays > 0 ? weekHktv/demandManDays : null;
     const prodAchievement = weightedProd != null ? (weightedProd - targetProd)/targetProd : null;
+    const rosteredProd = manDays > 0 ? weekHktv/manDays : null;
+    const rosteredProdAchievement = rosteredProd != null ? (rosteredProd - targetProd)/targetProd : null;
     const costAchievement = costPerOrder != null ? (costPerOrder - targetCost)/targetCost : null;
 
     let reason = null;
     if(!costOk || !prodOk){
       const bits = [];
       if(!prodOk){
-        bits.push(`${missedDays.length === 7 ? 'every weekday' : missedDays.map(d=>`${d.label} (${d.achievedProd==null?'—':d.achievedProd.toFixed(1)})`).join(', ')} below the ${targetProd.toFixed(1)}/staff productivity target`
-          + (ftFlooredDays.length ? ` — the rostered FT floor (${floor.ftDriver} FT Driver + ${floor.ftCourier} FT Courier = ${floor.total} heads, ${Math.round(FT_ROSTER_SHARE*100)}% of the active FT bench) is larger than those days' volume can keep busy at target` : '')
-        );
+        // v14.0 §1 — a productivity miss is now a genuine demand-side miss:
+        // the day's HKTV volume can't keep even the smallest workable team at
+        // target. The FT floor can no longer cause one (it's judged separately
+        // as minimum roster), so it isn't offered as the excuse here.
+        bits.push(`${missedDays.length === 7 ? 'every weekday' : missedDays.map(d=>`${d.label} (${d.achievedProd==null?'—':d.achievedProd.toFixed(1)})`).join(', ')} below the ${targetProd.toFixed(1)}/staff productivity target on demand-driven headcount — the in-house volume left on those days is too small to keep a whole head busy at target`);
       }
       if(!costOk) bits.push(`Cost/Order $${costPerOrder==null?'—':costPerOrder.toFixed(2)} vs target $${targetCost.toFixed(2)} (${costAchievement==null?'—':(costAchievement>=0?'+':'')+(costAchievement*100).toFixed(1)}%)`);
       const zeroStaffCostPerOrder = monthlyOrderVolume>0 ? (fixed + baseOdsVolume*blended)/monthlyOrderVolume : null;
@@ -2483,8 +2536,15 @@
 
     return { feasible: costOk && prodOk, applied:true, costOk, prodOk, district, days,
       targetProd, targetCost, costPerOrder, weightedProd, prodAchievement, costAchievement,
-      monthlyStaffCost, monthlyOdsVolume, baseOdsVolume, odsShifted, variableOds, manDays,
-      minTotal:Math.min(...totals), maxTotal:Math.max(...totals),
+      rosteredProd, rosteredProdAchievement,
+      monthlyStaffCost, monthlyOdsVolume, baseOdsVolume, odsShifted, variableOds,
+      manDays, demandManDays, floorManDays,
+      // v14.0 §1 — headline range is demand-driven; the rostered range (what
+      // actually gets paid and what's written into the plan table) rides
+      // alongside it as the minimum-roster annotation.
+      minTotal:Math.min(...demandTotals), maxTotal:Math.max(...demandTotals),
+      minRosterTotal:Math.min(...totals), maxRosterTotal:Math.max(...totals),
+      floorBoundDays: ftFlooredDays.map(d=>d.label),
       minAchievedProd: prods.length?Math.min(...prods):null,
       maxAchievedProd: prods.length?Math.max(...prods):null,
       worstWeekday: worst.label, weekTotal, staffCap:cap, ftFloor:floor,
@@ -2914,21 +2974,35 @@
       if(!r.applied){
         badge = `<span class="fc-suggest-badge bad" title="${(r.reason||'').replace(/"/g,'&quot;')}">\u26a0 no plan could be built</span>`;
       } else {
-        const perDay = r.days.map(day=>`${day.label} ${day.total} (${day.achievedProd==null?'\u2014':day.achievedProd.toFixed(1)}/staff${day.ftFloored?', at FT floor':''}${day.benchLimited?', bench-capped':''})`).join(' \u00b7 ');
+        // v14.0 §1 — per day: demand-driven headcount and its productivity
+        // first, then the rostered headcount that is actually paid.
+        const perDay = r.days.map(day=>`${day.label} ${day.demandTotal} needed (${day.achievedProd==null?'\u2014':day.achievedProd.toFixed(1)}/staff)`
+          + `, ${day.total} rostered${day.ftFloored?` (+${day.floorGap} min-roster)`:''}${day.benchLimited?', bench-capped':''}`).join(' \u00b7 ');
         const odsNote = Math.abs(r.odsShifted||0) >= 1
           ? ` ODS/HKTV split moved ${r.odsShifted>0?'+':''}${intFmt(r.odsShifted)} orders/mo ${r.odsShifted>0?'onto':'off'} ODS (${intFmt(r.baseOdsVolume)} \u2192 ${intFmt(r.monthlyOdsVolume)} orders/mo).`
           : ' ODS/HKTV split left as forecast.';
+        // v14.0 §1 — the FT floor is reported as a minimum roster sitting
+        // beside the demand-driven plan, not folded into it.
         const floorNote = r.ftFloor && r.ftFloor.total
-          ? ` Every day includes the rostered FT floor of ${r.ftFloor.total} (${r.ftFloor.ftDriver} FT Driver + ${r.ftFloor.ftCourier} FT Courier).`
+          ? ` Minimum roster: ${r.ftFloor.total} FT/day (${r.ftFloor.ftDriver} FT Driver + ${r.ftFloor.ftCourier} FT Courier, ${Math.round(FT_ROSTER_SHARE*100)}% of the active FT bench) — paid regardless, so cost and payroll are priced on the rostered plan (${r.minRosterTotal}\u2013${r.maxRosterTotal} staff/day, ${intFmt(r.manDays)} man-days/mo).`
+            + (r.floorManDays >= 1 ? ` ${intFmt(r.floorManDays)} of those man-days/mo are roster-minimum capacity above what the volume needs${r.floorBoundDays.length?` (${r.floorBoundDays.join(', ')})`:''}.` : '')
           : '';
-        const title = `Per-weekday plan: ${perDay}. Productivity ${r.weightedProd==null?'\u2014':r.weightedProd.toFixed(1)} vs target ${r.targetProd.toFixed(1)} (${fcRatePct(r.prodAchievement)}); Cost/Order $${r.costPerOrder==null?'\u2014':r.costPerOrder.toFixed(2)} vs target $${r.targetCost.toFixed(2)} (${fcRatePct(r.costAchievement)}). ${intFmt(r.manDays)} man-days/mo.${floorNote}${odsNote}`
+        const title = `Per-weekday plan: ${perDay}. `
+          + `Productivity (demand-driven) ${r.weightedProd==null?'\u2014':r.weightedProd.toFixed(1)} vs target ${r.targetProd.toFixed(1)} (${fcRatePct(r.prodAchievement)}) on ${intFmt(r.demandManDays)} man-days/mo. `
+          + `On the full rostered headcount it reads ${r.rosteredProd==null?'\u2014':r.rosteredProd.toFixed(1)} (${fcRatePct(r.rosteredProdAchievement)}) — bench utilisation, not an operational miss. `
+          + `Cost/Order $${r.costPerOrder==null?'\u2014':r.costPerOrder.toFixed(2)} vs target $${r.targetCost.toFixed(2)} (${fcRatePct(r.costAchievement)}), priced on the rostered plan.${floorNote}${odsNote}`
           + (r.feasible ? '' : ` \u2014 ${r.reason}`);
         const cls = r.feasible ? 'ok' : 'warn';
         const mark = r.feasible ? '\u2713' : '\u26a0';
         const misses = r.feasible ? '' : ` \u00b7 misses ${[!r.prodOk?'prod':null, !r.costOk?'cost':null].filter(Boolean).join(' + ')}`;
+        const rosterNote = r.ftFloor && r.ftFloor.total
+          ? `<span class="fc-minroster-note" title="The 75% FT roster floor is a payroll minimum, not part of the demand-driven plan. Rostered and paid: ${r.minRosterTotal}\u2013${r.maxRosterTotal} staff/day (${intFmt(r.manDays)} man-days/mo); productivity on that roster reads ${r.rosteredProd==null?'\u2014':r.rosteredProd.toFixed(1)} (${fcRatePct(r.rosteredProdAchievement)}).">`
+            + `min roster ${r.ftFloor.total}/day \u00b7 rostered ${r.minRosterTotal}\u2013${r.maxRosterTotal}/day (${fcRatePct(r.rosteredProdAchievement)})</span>`
+          : '';
         badge = `<span class="fc-suggest-badge ${cls}" title="${title.replace(/"/g,'&quot;')}">`
-          + `${mark} ${r.minTotal}\u2013${r.maxTotal} staff/day${misses}`
-          + ` \u00b7 Prod ${fcRatePct(r.prodAchievement)} \u00b7 Cost ${fcRatePct(r.costAchievement)}</span>`;
+          + `${mark} ${r.minTotal}\u2013${r.maxTotal} staff/day needed${misses}`
+          + ` \u00b7 Prod ${fcRatePct(r.prodAchievement)} \u00b7 Cost ${fcRatePct(r.costAchievement)}</span>`
+          + rosterNote;
       }
     }
     return `<button type="button" class="fc-suggest-btn" data-d="${d}">Suggest</button>`
@@ -2947,11 +3021,22 @@
     const target = fcTargetProdFor(d);
     const cls = prod == null ? '' : (prod >= target ? 'ok' : 'bad');
     const rate = fcAchievementRate(prod, target);   // v13.0 §6
+    // v14.0 §1 — the pill reads whatever headcount is in the cell, which is
+    // the ROSTERED plan (floor included, because those heads are paid). Where
+    // the floor is what makes the cell bigger than the volume needs, say so
+    // and show the demand-driven reading beside it — otherwise this pill
+    // silently disagrees with the Suggest badge.
+    const sugDay = (FC_STATE.suggestions[d] && FC_STATE.suggestions[d].applied)
+      ? FC_STATE.suggestions[d].days[wd] : null;
+    const minRoster = (sugDay && sugDay.floorGap > 0)
+      ? `<div class="fc-hc-minroster" title="Demand-driven plan for this day: ${sugDay.demandTotal} staff at ${sugDay.demandProd==null?'—':sugDay.demandProd.toFixed(1)}/staff (${fcRatePct(fcAchievementRate(sugDay.demandProd, target))}). The other ${sugDay.floorGap} head(s) are the ${Math.round(FT_ROSTER_SHARE*100)}% minimum FT roster — paid regardless, so they stay in the cell for cost, but productivity is judged on the ${sugDay.demandTotal}.">incl. ${sugDay.floorGap} min-roster \u00b7 demand ${sugDay.demandTotal} @ ${sugDay.demandProd==null?'\u2014':sugDay.demandProd.toFixed(1)}</div>`
+      : '';
     const fields = STAFF_BUCKETS.map(k=>
       `<label class="fc-hc-field"><span>${STAFF_BUCKET_LABELS[k]}</span><input type="number" min="0" step="1" class="fc-in-staff" data-d="${d}" data-wd="${wd}" data-k="${k}" placeholder="0" value="${slot[k] ?? ''}"></label>`
     ).join('');
     return `<div class="fc-hc-cell">${fields}
       <div class="fc-hc-total"><span>Σ <span class="v">${intFmt(hc.total)}</span></span><span class="p ${cls}" title="This weekday's forecast Productivity ${prod==null?'—':prod.toFixed(1)} (HKTV Orders ${intFmt(hktv)} ÷ ${intFmt(hc.total)} staff) vs target ${target.toFixed(1)} — achievement rate (forecast − target) ÷ target.">${prod==null?'—':prod.toFixed(1)} <b>${fcRatePct(rate)}</b></span></div>
+      ${minRoster}
     </div>`;
   }
   function fcRenderPlanTable(){
@@ -2990,12 +3075,19 @@
     // sizing costs (or saves) in man-days against the old flat rule, summed
     // over the districts that got a plan.
     const ok = results.filter(r=>r.applied);
-    const mdNew = ok.reduce((a,r)=>a+(r.manDays||0), 0);
+    const mdNew = ok.reduce((a,r)=>a+(r.manDays||0), 0);          // rostered / paid
+    const mdDemand = ok.reduce((a,r)=>a+(r.demandManDays||0), 0); // demand-driven
     const odsMoved = ok.reduce((a,r)=>a+(r.odsShifted||0), 0);
     const odsNote = ok.length && Math.abs(odsMoved) >= 1
       ? ` The channel split moved <b>${intFmt(Math.abs(odsMoved))} orders/mo ${odsMoved>0?'onto':'off'} ODS</b> — hover a badge for what that was worth per order in each district.`
       : '';
-    const mdNote = ok.length ? ` Planned total: <b>${intFmt(mdNew)} man-days/mo</b>.` : '';
+    // v14.0 §1 — both numbers: what the volume needs, and what the roster
+    // costs. The gap between them is the minimum-roster commitment.
+    const mdGap = Math.max(0, mdNew - mdDemand);
+    const mdNote = ok.length
+      ? ` Demand-driven total: <b>${intFmt(mdDemand)} man-days/mo</b>; rostered and paid: <b>${intFmt(mdNew)} man-days/mo</b>`
+        + (mdGap >= 1 ? ` — a <b>${intFmt(mdGap)} man-day</b> minimum-roster commitment above demand.` : '.')
+      : '';
     banner.style.display = '';
     if(bad.length===0){
       banner.className = 'fc-suggest-banner ok';
