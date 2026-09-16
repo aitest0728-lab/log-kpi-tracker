@@ -768,8 +768,8 @@
              productivity target — see fcSuggestHeadcountForDistrict()). -->
         <div class="prod-controls fc-suggest-row">
           <div class="prod-field fc-weight">
-            <label for="fcSuggestOverdrive" title="A CEILING, not a fixed setting: Suggest Headcount searches Overdrive values from 0% up to this one and applies the smallest that clears both Target Productivity and Target Cost/Order together. 0% stays untouched only if that already clears both; if Cost/Order is over target, the search leans the team out (which also lifts Productivity above target) until it isn't, or gives up at this ceiling and reports the shortfall. Raise it to give the search more room; capped at 20%.">Max Productivity Overdrive (%)</label>
-            <input type="number" id="fcSuggestOverdrive" min="0" max="20" step="1" value="0">
+            <label for="fcSuggestOverdrive" title="A CEILING, not a fixed setting, and only the DEFAULT one: Suggest Headcount searches Overdrive values from 0% up to a district's ceiling and applies the smallest that clears both Target Productivity and Target Cost/Order together. Any district with its own 'Max OD %' in the plan table below uses that instead of this. 0% stays untouched only if that already clears both; if Cost/Order is over target, the search leans the team out (which also lifts Productivity above target) until it isn't, or gives up at the ceiling and reports how much more it would have needed. Capped at 50%.">Max Productivity Overdrive (%) — default</label>
+            <input type="number" id="fcSuggestOverdrive" min="0" max="50" step="1" value="0">
           </div>
           <div class="prod-field fc-weight">
             <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. The default ±20% is a placeholder: set it to the agreed contractual bound.">Max ODS Volume Flex (±%)</label>
@@ -783,9 +783,11 @@
             <input type="checkbox" id="fcOdsOptimize" checked> Optimize ODS / HKTV split
           </label>
           <button type="button" class="cost-portal-toggle fc-suggest-all-btn" id="fcSuggestAllBtn">Suggest Headcount — All Districts</button>
+          <button type="button" class="cost-portal-toggle fc-autotune-btn" id="fcAutoTuneBtn" title="For each district separately, finds the SMALLEST Max Productivity Overdrive that clears both its cost and its productivity target, writes just that value into that district's Max OD %, and re-runs the suggestion. Districts that already clear both are left where they are; districts Overdrive provably can't fix (their team already fits inside the paid FT pool, so leaning it further changes no cost) are left alone and reported with the lever that would actually move them.">Auto-Tune Overdrive — Per District</button>
           <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn" title="Resets the whole plan to defaults: per-weekday headcounts, Target Productivity overrides, the ODS/HKTV shift and the badges all go back to blank.">Clear Suggestions &amp; Reset Plan</button>
         </div>
         <div class="prod-note">
+          <b>One Overdrive ceiling per district, not one for the network.</b> The field above is only the <i>default</i>; the <b>Max OD %</b> column in the table below overrides it for a single district. How much Overdrive a district needs depends on its own bench, volume and unit rates, so a district that needs 27% can have 27% without leaning out the nine that already clear both targets at 0%. <b>Auto-Tune Overdrive</b> does this for you: it probes each district for the <i>smallest</i> ceiling that clears both of its targets, writes just that value into just that district, and leaves alone both the districts that already pass and the districts Overdrive cannot fix. When a district misses, its badge now says which — <b>needs OD n%</b> (raise its ceiling to n and it clears) or <b>OD won't help</b> (Cost/Order is flat all the way to the 50% hard limit, because the team already fits inside the paid FT roster pool, so a leaner team only idles heads the district still pays for — the lever there is ODS flex, the bench, or the target).<br>
           <b>Both targets drive the search, not just one.</b> A district is built at Overdrive 0% first — the leanest team that clears Target Productivity, capped by the Staff Allocation Cap. If that plan's Cost/Order already clears target too, it's used as-is. If not, Suggest re-builds the whole week at 1%, 2%, 3%… up to the Max Productivity Overdrive ceiling, and applies the <i>smallest</i> Overdrive that clears both — a leaner team both costs less and reads a higher Productivity, so the two targets pull the same way. The badge shows an <b>OD n%</b> pill whenever the search had to raise it above 0%. If nothing in the range clears both, the cheapest candidate found is applied and the badge explains why, in amber.<br>
           <b>Per weekday, at whichever Overdrive the search is trying:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), capped by the Staff Allocation Cap. Courier : Driver = 49 : 51; already-paid FT-pool heads are used before any PT head is bought, then whichever type is cheaper.<br>
           <b>Rostering across the week:</b> the FT pool is then spread over the seven weekdays to cover as much of that demand as possible — a first pass learns what each weekday wants, a second re-plans each day inside its slice of the pool. FT inside the pool is already paid, so it is used before any PT head is bought and it is treated as free when the ODS/HKTV split is chosen. PT appears only where the pool is exhausted.<br>
@@ -1770,6 +1772,10 @@
       // "total" built from the other side alone — silently understating
       // that date in every weekday/month average built on it, this
       // forecast included, rather than being skipped like a no-data day.
+      // v14.5 §1 — "both channels present" now correctly includes a channel
+      // that really ran zero that day (0 orders / 0 staff): that IS a known
+      // value, so HKTV + 0 is a complete Total Order, not a partial one. Only
+      // a genuinely unknown side (Tableau gap) still nulls the day out.
       const a = dayRecord(dateKey, 'hktvStaff', district);
       const b = dayRecord(dateKey, 'odsRatio', district);
       if(!a || !b) return null;
@@ -1789,12 +1795,38 @@
     // null orderCount as "no data" (like the existing !rec.manpower check
     // already does) keeps every average — this function's callers included —
     // from silently coercing that null to 0 and understating the day.
-    if(!rec || !rec.manpower || rec.orderCount == null) return null;
+    if(!rec) return null;
+    // v14.5 §1 — A REAL ZERO IS NOT MISSING DATA.
+    // Two different things both used to arrive here looking alike, and the
+    // v14.4 check above collapsed them:
+    //   (a) {orderCount: null, manpower: <real>} — the Tableau gap. The
+    //       order figure genuinely isn't known for this date, so the day
+    //       must be skipped (see the v14.4 note above).
+    //   (b) {orderCount: 0, manpower: 0} — a district that simply ran NO
+    //       ODS/VAN operation that day. NT-TSM and WTK do this every Monday;
+    //       ETX and others do it occasionally. Nothing is missing: zero
+    //       orders were handled by zero staff, which is the true value.
+    // `!rec.manpower` rejected (b) along with (a), and because
+    // metricKey='combined' needs BOTH channels to be present, one channel's
+    // legitimate zero took the whole day down with it — which is why NT-TSM
+    // and WTK showed Total Order 0 in the Monday forecast column while their
+    // (perfectly real) 1,700-odd HKTV orders sat in the history file.
+    // So: a null orderCount is still no data, but a zero one is data.
+    if(rec.orderCount == null) return null;
+    // Zero staff is only meaningful alongside zero orders. Orders with no
+    // manpower behind them is a broken record, not a quiet day, and stays
+    // excluded.
+    if(!rec.manpower) return rec.orderCount === 0 ? rec : null;
     return rec;
   }
   function dayProductivity(dateKey, metricKey, district){
     const rec = dayRecord(dateKey, metricKey, district);
-    return rec ? rec.orderCount / rec.manpower : null;
+    // v14.5 §1 — a real zero day (0 orders / 0 staff) has a valid RECORD but
+    // no defined productivity: 0/0 is not 0, it's undefined, and letting it
+    // through as NaN would poison every average built on it. Callers that
+    // want the counts use dayRecord(); this one reports "no ratio".
+    if(!rec || !rec.manpower) return null;
+    return rec.orderCount / rec.manpower;
   }
 
   /* Order Ratio (v3.0 §2) = ODS & VAN Order Count ÷ Total Parent Order,
@@ -2227,7 +2259,26 @@
          misses Cost/Order — reported with the actual figure and the
          man-day count behind it.
   */
-  const FC_SUGGEST = { overdrivePct: 0 };  // v14.1 — defaults to 0: staff to the productivity TARGET, not 20% above it, so the suggested plan is one a district can actually be held to // v5.0 — capped at 20%, see fcSetupListeners' fcSuggestOverdrive handler
+  // v14.5 §2 — ONE CEILING FOR TEN DISTRICTS WAS THE WRONG SHAPE.
+  // Overdrive is the search's only real cost lever, and how much of it a
+  // district needs is a property of THAT district: its bench size against
+  // its volume, its unit rates, its fixed provision. With a single
+  // network-wide ceiling, letting NT-TM reach the 27% it needs meant
+  // authorising 27% everywhere — including districts that clear both
+  // targets at 0% and would now be leaned out for no reason. So the ceiling
+  // is now per district: `overdrivePct` is the default applied to any
+  // district without its own value, and `byDistrict` holds the overrides.
+  // The hard limit is also raised from 20% to 50%, because 20% was
+  // discovered to be below what several districts need — a ceiling that
+  // can't reach a feasible plan just hides the answer.
+  const FC_OVERDRIVE_HARD_MAX = 50;
+  const FC_SUGGEST = { overdrivePct: 0, byDistrict: {} };  // v14.1 — default stays 0: staff to the productivity TARGET, not above it, so the suggested plan is one a district can actually be held to
+  function fcClampOverdrive(v){ return Math.min(FC_OVERDRIVE_HARD_MAX, Math.max(0, +v || 0)); }
+  function fcMaxOverdriveFor(district){
+    const o = FC_SUGGEST.byDistrict[district];
+    if(o != null && o !== '' && !isNaN(o)) return fcClampOverdrive(o);
+    return fcClampOverdrive(FC_SUGGEST.overdrivePct);
+  }
 
   // v9.0 — Staff Allocation Cap: current ACTIVE FT/PT Driver/Courier
   // headcount per district, from data.json's staffAllocationCap
@@ -2607,8 +2658,92 @@
       missedDays: missedDays.map(d=>d.label),
       odsOptimized: FC_ODS.optimize && Math.abs(odsShifted) >= 1 };
   }
+  /* v14.5 §2 — WHAT LIES ABOVE THIS DISTRICT'S CEILING.
+     When the sweep reaches the ceiling without a plan that clears both
+     targets, the question a leader actually has is "would more Overdrive fix
+     THIS district, and how much?" — and the old code couldn't answer it: it
+     reported the shortfall and left the person to raise the slider by hand,
+     re-run, and guess again.
+
+     This continues the same sweep above the ceiling, up to
+     FC_OVERDRIVE_HARD_MAX, and APPLIES NOTHING. The plan on screen stays the
+     one the person's own ceiling authorises; this only reports what a higher
+     ceiling would buy, so Auto-Tune (and the badge) can say a number instead
+     of "try raising it".
+
+     It searches coarse-then-fine (5% scan, then 1% inside the winning
+     bracket) rather than every integer: a district's week is rebuilt ~10
+     times instead of ~50, and the answer is identical to the 1% resolution
+     the ceiling itself uses.
+
+     Three outcomes, and the difference between them matters more than the
+     number:
+       requiredPct — the smallest Overdrive that WOULD clear both targets.
+                     Raising this district's ceiling to it is the whole fix.
+       saturated   — Cost/Order does not move at all as Overdrive rises. This
+                     is the common case and it is NOT a bug: once a day's
+                     team fits inside the FT roster pool, that payroll is
+                     sunk (fcMinRosterTopUpFor charges the pool whether it is
+                     deployed or not), so leaning the team further just moves
+                     FT man-days from "deployed" to "idle" at identical cost.
+                     No ceiling, however high, closes a gap of this kind —
+                     the levers are ODS flex, bench size, or the target.
+       floorCost   — the cheapest Cost/Order Overdrive can reach at all, and
+                     at what percentage, so the residual gap is quantified.  */
+  function fcProbeOverdriveHeadroom(district, ceilingPct, ceilingPlan){
+    const baseCost = ceilingPlan && ceilingPlan.costPerOrder != null ? ceilingPlan.costPerOrder : Infinity;
+    if(ceilingPct >= FC_OVERDRIVE_HARD_MAX){
+      return { exhausted:true, requiredPct:null, saturated:false, floorCost:isFinite(baseCost)?baseCost:null, floorPct:ceilingPct };
+    }
+    const evaluated = new Map();
+    const at = (pct)=>{
+      if(evaluated.has(pct)) return evaluated.get(pct);
+      const cand = fcBuildDistrictPlan(district, pct/100);
+      evaluated.set(pct, cand);
+      return cand;
+    };
+    let floorCost = baseCost, floorPct = ceilingPct, moved = false;
+    let hitPct = null, prevPct = ceilingPct;
+    // Coarse scan upward in 5-point steps, always including the hard max.
+    const coarse = [];
+    for(let pct = ceilingPct + 5; pct < FC_OVERDRIVE_HARD_MAX; pct += 5) coarse.push(pct);
+    coarse.push(FC_OVERDRIVE_HARD_MAX);
+    for(const pct of coarse){
+      const cand = at(pct);
+      if(!cand.applied) break;
+      const c = cand.costPerOrder == null ? Infinity : cand.costPerOrder;
+      if(c < floorCost - 1e-9){ floorCost = c; floorPct = pct; moved = true; }
+      if(cand.feasible){ hitPct = pct; break; }
+      prevPct = pct;
+    }
+    // Fine scan inside (prevPct, hitPct] for the smallest value that works.
+    let requiredPct = hitPct;
+    if(hitPct != null){
+      for(let pct = prevPct + 1; pct < hitPct; pct++){
+        const cand = at(pct);
+        if(!cand.applied) break;
+        const c = cand.costPerOrder == null ? Infinity : cand.costPerOrder;
+        if(c < floorCost - 1e-9){ floorCost = c; floorPct = pct; moved = true; }
+        if(cand.feasible){ requiredPct = pct; break; }
+      }
+    }
+    // Nothing in range clears both, so the reported figure becomes "the best
+    // Overdrive can do" — and that number is quoted at the person, so refine
+    // it off the 5-point grid to the same 1% resolution as everything else.
+    if(requiredPct == null && moved){
+      for(let pct = Math.max(ceilingPct+1, floorPct-4); pct <= Math.min(FC_OVERDRIVE_HARD_MAX, floorPct+4); pct++){
+        const cand = at(pct);
+        if(!cand.applied) continue;
+        const c = cand.costPerOrder == null ? Infinity : cand.costPerOrder;
+        if(c < floorCost - 1e-9){ floorCost = c; floorPct = pct; }
+      }
+    }
+    return { exhausted:false, requiredPct, saturated: requiredPct == null && !moved,
+      floorCost: isFinite(floorCost) ? floorCost : null, floorPct };
+  }
   function fcSuggestHeadcountForDistrict(district){
-    const maxOverdrivePct = Math.min(20, Math.max(0, +FC_SUGGEST.overdrivePct || 0));
+    // v14.5 §2 — this district's own ceiling, falling back to the default.
+    const maxOverdrivePct = fcMaxOverdriveFor(district);
     // Candidate Overdrive values, low to high, always including both ends.
     // Integer-percent steps are plenty of resolution here (team size moves in
     // whole heads), and at most 21 of them — building a whole district's week
@@ -2627,6 +2762,15 @@
     const best = chosen || cheapest;
     const searched = chosen ? steps.indexOf(chosen.overdrive*100) + 1 : steps.length;
 
+    // v14.5 §2 — only probe above the ceiling when the ceiling failed, and
+    // only for a cost miss. A productivity miss means a weekday's in-house
+    // volume can't keep even one head at target, and Overdrive only makes
+    // teams SMALLER — it can't conjure volume, so there is nothing above the
+    // ceiling to find.
+    const headroom = (!best.feasible && best.costOk === false)
+      ? fcProbeOverdriveHeadroom(district, maxOverdrivePct, best)
+      : null;
+
     let reason = null;
     if(!best.feasible){
       const bits = [];
@@ -2636,7 +2780,15 @@
       if(!best.costOk) bits.push(`Cost/Order $${best.costPerOrder==null?'—':best.costPerOrder.toFixed(2)} vs target $${best.targetCost.toFixed(2)} (${best.costAchievement==null?'—':(best.costAchievement>=0?'+':'')+(best.costAchievement*100).toFixed(1)}%)`);
       const zeroStaffCostPerOrder = best.monthlyOrderVolume>0 ? (best.fixed + best.baseOdsVolume*odsBlendedCostFor(district))/best.monthlyOrderVolume : null;
       let lever;
-      if(!best.costOk && zeroStaffCostPerOrder != null && zeroStaffCostPerOrder > best.targetCost){
+      // v14.5 §2 — the probe's answer comes FIRST, because it is the only
+      // one of these that tells the person a number to act on.
+      if(headroom && headroom.requiredPct != null){
+        lever = `Raising THIS district's Max Productivity Overdrive to ${headroom.requiredPct}% clears both targets (its ceiling is ${maxOverdrivePct}%). "Auto-Tune Overdrive" sets exactly that, per district, and leaves districts that already pass at their current ceiling.`;
+      } else if(headroom && headroom.saturated){
+        lever = `Overdrive is spent here: Cost/Order does not move between ${maxOverdrivePct}% and ${FC_OVERDRIVE_HARD_MAX}%, because this district's team already fits inside its ${intFmt(best.ftPool.total)}-man-day FT roster pool — that payroll is owed whether the plan deploys it or not, so a leaner team only idles heads it still pays for. A higher ceiling cannot close this gap; the levers are Max ODS Volume Flex, the FT bench itself, or this district's Target Cost/Order.`;
+      } else if(headroom && headroom.floorCost != null && headroom.floorCost < (best.costPerOrder ?? Infinity) - 1e-9){
+        lever = `Overdrive helps but not enough: the cheapest it reaches is $${headroom.floorCost.toFixed(2)}/order at ${headroom.floorPct}% (still over the $${best.targetCost.toFixed(2)} target), searched all the way to the ${FC_OVERDRIVE_HARD_MAX}% hard limit. The remaining gap has to come from Max ODS Volume Flex, the FT bench, or the target.`;
+      } else if(!best.costOk && zeroStaffCostPerOrder != null && zeroStaffCostPerOrder > best.targetCost){
         lever = `Fixed + ODS cost alone is already $${zeroStaffCostPerOrder.toFixed(2)}/order here, before a single staff cost — no staffing plan or channel split can close that.`;
       } else if(!best.costOk && best.idleFtManDays >= 1){
         lever = `${intFmt(best.idleFtManDays)} FT man-days/mo of the ${intFmt(best.ftPool.total)}-man-day roster commitment go undeployed even after searching Overdrive up to ${maxOverdrivePct}% — the volume can't absorb them. Widening Max ODS Volume Flex brings work back in-house at no extra staff cost; otherwise the lever is redeploying FT capacity to another district.`;
@@ -2651,6 +2803,14 @@
     return { ...best, reason,
       overdrivePct: Math.round(best.overdrive*100),
       overdriveSearched: maxOverdrivePct,
+      overdriveCeiling: maxOverdrivePct,
+      // v14.5 §2 — whether this ceiling came from the district's own override
+      // or the network default, so the badge can say which one to move.
+      overdriveIsOverride: FC_SUGGEST.byDistrict[district] != null && FC_SUGGEST.byDistrict[district] !== '',
+      overdriveRequiredPct: headroom ? headroom.requiredPct : null,
+      overdriveSaturated: !!(headroom && headroom.saturated),
+      overdriveFloorCost: headroom ? headroom.floorCost : null,
+      overdriveFloorPct: headroom ? headroom.floorPct : null,
       overdriveAutoRaised: best.overdrive*100 > 0 };
   }
   // Runs the suggestion for one district and, if feasible, writes the
@@ -2775,16 +2935,32 @@
   // so it can average 'combined' (Total Order = HKTV Staff + ODS/VAN, the
   // Tableau-sourced Total Parent Order) or 'odsRatio' (ODS/VAN orders only)
   // as well as the original 'hktvStaff'.
+  // v14.5 §2 — memoized. This is pure over (DATA, month, district, weekday,
+  // metric) — no DOM, no state — but it scans every key in the history on
+  // every call, and the Overdrive search below now rebuilds a district's week
+  // many more times than it used to. The cache is cleared at the top of each
+  // render alongside the order-ratio caches, so it can never outlive a data
+  // change.
+  let _fcWeekdayAvgCache = {};
   function fcMonthWeekdayAvg(monthStr, district, weekdayIdx, metricKey){
     if(!monthStr) return null;
+    const ck = `${monthStr}|${district}|${weekdayIdx}|${metricKey}`;
+    if(ck in _fcWeekdayAvgCache) return _fcWeekdayAvgCache[ck];
     let sum = 0, count = 0;
     Object.keys(DATA.dailyProductivity).forEach(key=>{
       if(!key.startsWith(monthStr)) return;
       if(weekdayIndexOf(key) !== weekdayIdx) return;
       const rec = dayRecord(key, metricKey, district);
-      if(rec && rec.orderCount != null && rec.orderCount > 0) { sum += rec.orderCount; count++; }
+      // v14.5 §1 — was `rec.orderCount > 0`, which silently dropped a real
+      // zero from the average. dayRecord() is now the single place that
+      // decides whether a date has data, and it only returns a zero when
+      // that zero is the true value (0 orders handled by 0 staff), so a
+      // district that runs ODS on three Mondays out of four now averages
+      // (a+b+c+0)/4 — its actual expected Monday — instead of (a+b+c)/3,
+      // which over-forecast ODS volume on the days it doesn't operate.
+      if(rec && rec.orderCount != null) { sum += rec.orderCount; count++; }
     });
-    return count ? sum/count : null;
+    return (_fcWeekdayAvgCache[ck] = count ? sum/count : null);
   }
   // Weighted forecast = calculate_forecast() generalized to 3 months instead
   // of 2, and to renormalize weights across whichever of the 3 months
@@ -3140,12 +3316,22 @@
         // that still clears both targets, so the badge says which value it
         // landed on when that wasn't the default 0%.
         const overdriveNote = r.overdriveAutoRaised
-          ? ` Overdrive auto-set to ${r.overdrivePct}% (searched 0–${r.overdriveSearched}%) to bring Cost/Order under target.`
+          ? ` Overdrive auto-set to ${r.overdrivePct}% (searched 0–${r.overdriveSearched}%, ${r.overdriveIsOverride?'this district’s own ceiling':'the network default ceiling'}) to bring Cost/Order under target.`
           : '';
+        // v14.5 §2 — what a HIGHER ceiling for THIS district would buy,
+        // measured (fcProbeOverdriveHeadroom) rather than left to the person
+        // to find by raising a slider and re-running.
+        const headroomNote = r.overdriveRequiredPct != null
+          ? ` Overdrive headroom: ${r.overdriveRequiredPct}% clears BOTH targets here, against a ceiling of ${r.overdriveCeiling}% — Auto-Tune Overdrive sets exactly that for this district and leaves the rest alone.`
+          : r.overdriveSaturated
+            ? ` Overdrive headroom: none. Cost/Order is flat from ${r.overdriveCeiling}% all the way to ${FC_OVERDRIVE_HARD_MAX}%, because the team already fits inside the paid FT pool — raising the ceiling would change nothing here.`
+            : (r.overdriveFloorCost != null
+              ? ` Overdrive headroom: $${r.overdriveFloorCost.toFixed(2)}/order at ${r.overdriveFloorPct}% is the best it reaches, still over the $${r.targetCost.toFixed(2)} target even at the ${FC_OVERDRIVE_HARD_MAX}% hard limit.`
+              : '');
         const title = `Per-weekday plan: ${perDay}. `
           + `Productivity ${r.weightedProd==null?'\u2014':r.weightedProd.toFixed(1)} vs target ${r.targetProd.toFixed(1)} (${fcRatePct(r.prodAchievement)}) across ${intFmt(r.manDays)} deployed man-days/mo — every head in that figure has work.${overdriveNote} `
           + (r.idleFtManDays >= 1 ? `Measured against the full ${intFmt(r.paidManDays)} paid man-days it reads ${r.paidProd==null?'\u2014':r.paidProd.toFixed(1)} (${fcRatePct(r.paidProdAchievement)}) — roster utilisation, not an operational miss. ` : '')
-          + `Cost/Order $${r.costPerOrder==null?'\u2014':r.costPerOrder.toFixed(2)} vs target $${r.targetCost.toFixed(2)} (${fcRatePct(r.costAchievement)}), carrying the full roster commitment.${poolNote}${odsNote}`
+          + `Cost/Order $${r.costPerOrder==null?'\u2014':r.costPerOrder.toFixed(2)} vs target $${r.targetCost.toFixed(2)} (${fcRatePct(r.costAchievement)}), carrying the full roster commitment.${headroomNote}${poolNote}${odsNote}`
           + (r.feasible ? '' : ` \u2014 ${r.reason}`);
         const cls = r.feasible ? 'ok' : 'warn';
         const mark = r.feasible ? '\u2713' : '\u26a0';
@@ -3154,7 +3340,11 @@
           ? `<span class="fc-minroster-note" title="The 75% share is owed across the month, not on each day: ${intFmt(pool.total)} FT man-days/mo. This plan deploys ${intFmt(r.ftManDays)}${r.idleFtManDays>=1?`, leaves ${intFmt(r.idleFtManDays)} paid but undeployed`:''}${r.ptManDays>=1?`, and buys ${intFmt(r.ptManDays)} PT man-days`:''}. Paid total ${intFmt(r.paidManDays)} man-days/mo.">`
             + `FT pool ${r.poolUtilisation==null?'\u2014':(r.poolUtilisation*100).toFixed(0)}% deployed (${intFmt(r.ftManDays)}/${intFmt(pool.total)} man-days)${r.ptManDays>=1?` \u00b7 +${intFmt(r.ptManDays)} PT`:''}</span>`
           : '';
-        const odPill = r.overdriveAutoRaised ? ` \u00b7 OD ${r.overdrivePct}%` : '';
+        // v14.5 §2 — the pill now carries the ACTIONABLE case too: what
+        // ceiling this district needs, or that no ceiling will help it.
+        const odPill = r.overdriveRequiredPct != null ? ` \u00b7 needs OD ${r.overdriveRequiredPct}%`
+          : r.overdriveSaturated ? ` \u00b7 OD won\u2019t help`
+          : r.overdriveAutoRaised ? ` \u00b7 OD ${r.overdrivePct}%` : '';
         badge = `<span class="fc-suggest-badge ${cls}" title="${title.replace(/"/g,'&quot;')}">`
           + `${mark} ${r.minTotal}\u2013${r.maxTotal} staff/day${misses}`
           + ` \u00b7 Prod ${fcRatePct(r.prodAchievement)} \u00b7 Cost ${fcRatePct(r.costAchievement)}${odPill}</span>`
@@ -3200,7 +3390,10 @@
     const body = document.getElementById('fcPlanTableBody');
     const occ = fcWeekdayOccurrences();
     if(head){
-      head.innerHTML = `<tr><th>District</th><th>Target Productivity</th>`
+      // v14.5 §2 — "Max OD %" is this district's OWN Overdrive ceiling.
+      // Blank = use the network default from the field above; the
+      // placeholder shows what that default currently is.
+      head.innerHTML = `<tr><th>District</th><th>Target Productivity</th><th title="This district's own Max Productivity Overdrive ceiling for Suggest Headcount. Blank = the network default above. Suggest still applies the SMALLEST Overdrive that clears both targets — this only sets how far it may look.">Max OD %</th>`
         + WEEKDAY_LABELS.map((w,i)=>`<th title="${occ[i]}× in the forecast month — this weekday's plan is weighted by that in the Cost Portal's Variable — Staff line.">${w} <span style="opacity:.6;font-weight:400;">×${occ[i]}</span></th>`).join('')
         + `<th>Suggest Headcount</th></tr>`;
     }
@@ -3208,6 +3401,7 @@
       <tr data-d="${d}">
         <td>${d}</td>
         <td><input type="number" min="0" step="0.1" class="fc-in-targetprod" data-d="${d}" placeholder="${TARGET_PRODUCTIVITY[d]}" value="${FC_STATE.targetProd[d] ?? ''}"></td>
+        <td><input type="number" min="0" max="${FC_OVERDRIVE_HARD_MAX}" step="1" class="fc-in-overdrive" data-d="${d}" placeholder="${fcClampOverdrive(FC_SUGGEST.overdrivePct)}" value="${FC_SUGGEST.byDistrict[d] ?? ''}"></td>
         ${WEEKDAY_LABELS.map((_,i)=>`<td>${fcPlanCellHtml(d, i)}</td>`).join('')}
         <td class="fc-suggest-cell">${fcSuggestCellHtml(d)}</td>
       </tr>`).join('');
@@ -3264,6 +3458,62 @@
         + `${mdNote}${odsNote}${capNote}`;
     }
   }
+  /* v14.5 §2 — AUTO-TUNE OVERDRIVE, ONE CEILING PER DISTRICT.
+     The complaint this exists to answer: the suggestion could not find a
+     plan that cleared BOTH the cost and the productivity target, and the
+     only way forward was to raise one network-wide Overdrive slider and
+     re-run, over and over, on feel.
+
+     This does that search per district instead, and asymmetrically — which
+     is the point. Each district is probed for the SMALLEST Overdrive that
+     clears both of its own targets (fcProbeOverdriveHeadroom), and only that
+     district's ceiling is moved, only to that value:
+       - a district already clearing both is left exactly where it is, at
+         whatever ceiling it has. It is never leaned out to match a
+         struggling neighbour, because doing so would cost real productivity
+         headroom for nothing.
+       - a district that needs 27% gets 27%, not the 50% hard limit — the
+         least aggressive plan that works is still the one applied.
+       - a district where Overdrive provably cannot help (saturated: the team
+         already fits inside a sunk-cost FT pool, so leaning it further only
+         idles paid heads) is deliberately NOT raised. Writing a big number
+         into its ceiling would look like a fix while changing nothing; it is
+         reported as needing a different lever instead.
+     Then the whole suggestion re-runs with the tuned ceilings in force, so
+     every figure on screen comes from the applied plan rather than a probe. */
+  function fcAutoTuneOverdrive(){
+    const raised = [], already = [], stuck = [], noVolume = [];
+    DISTRICTS.forEach(d=>{
+      const probe = fcSuggestHeadcountForDistrict(d);
+      if(!probe.applied){ noVolume.push(d); return; }
+      if(probe.feasible){ already.push(d); return; }
+      if(probe.overdriveRequiredPct != null){
+        FC_SUGGEST.byDistrict[d] = probe.overdriveRequiredPct;
+        raised.push({ d, pct: probe.overdriveRequiredPct, from: probe.overdriveCeiling });
+      } else {
+        stuck.push({ d, saturated: probe.overdriveSaturated, prodOk: probe.prodOk,
+          floorCost: probe.overdriveFloorCost, floorPct: probe.overdriveFloorPct, targetCost: probe.targetCost });
+      }
+    });
+    fcSuggestAll(); // re-plans, re-renders, and writes its own banner
+    const banner = document.getElementById('fcSuggestBanner');
+    if(!banner) return;
+    const bits = [];
+    if(raised.length) bits.push(`Raised the ceiling on <b>${raised.length}</b>: ${raised.map(r=>`${r.d} ${r.from}% → ${r.pct}%`).join(', ')}.`);
+    if(already.length) bits.push(`<b>${already.length}</b> already cleared both and were left untouched: ${already.join(', ')}.`);
+    if(stuck.length){
+      bits.push(`<b>${stuck.length}</b> cannot be fixed by Overdrive at any ceiling and were left alone: `
+        + stuck.map(s=>{
+            if(!s.prodOk) return `${s.d} (volume too low for even one head at target on some weekday — Overdrive only shrinks teams)`;
+            if(s.saturated) return `${s.d} (Cost/Order flat all the way to ${FC_OVERDRIVE_HARD_MAX}% — its team already fits inside the paid FT pool)`;
+            if(s.floorCost != null) return `${s.d} (best Overdrive can reach is $${s.floorCost.toFixed(2)}/order at ${s.floorPct}%, target $${s.targetCost.toFixed(2)})`;
+            return `${s.d}`;
+          }).join('; ')
+        + `. For these the lever is Max ODS Volume Flex, the FT bench, or the target itself — hover the badge for the district's own numbers.`);
+    }
+    if(noVolume.length) bits.push(`<b>${noVolume.length}</b> had no forecast volume: ${noVolume.join(', ')}.`);
+    banner.innerHTML += `<div class="fc-autotune-note" style="margin-top:.5em;"><b>Auto-Tune Overdrive.</b> ${bits.join(' ')}</div>`;
+  }
   function renderForecastTab(){
     const head = document.getElementById('fcTableHead');
     const body = document.getElementById('fcTableBody');
@@ -3280,6 +3530,7 @@
     _fcOrderRatioCache = null; // recompute the historical order-ratio split each render, in case data changed
     _fcOdsOrderRatioCache = null;
     _fcWeekdayOccCache = null; // v11.0 §1 — weekday weights depend on which month is 'current'
+    _fcWeekdayAvgCache = {};   // v14.5 §2 — same reason: recompute from the data every render
 
     const w2 = +document.getElementById('fcWeightT2').value || 0;
     const w1 = +document.getElementById('fcWeightT1').value || 0;
@@ -3378,6 +3629,7 @@
   function fcResetPlan(){
     FC_STATE.staff = {};
     FC_STATE.targetProd = {};
+    FC_SUGGEST.byDistrict = {};   // v14.5 §2 — per-district Overdrive ceilings are part of the plan, so a reset clears them back to the network default
     FC_STATE.odsShift = {};
     FC_STATE.suggestions = {};
     const banner = document.getElementById('fcSuggestBanner');
@@ -3420,6 +3672,13 @@
       const inp = e.target; const d = inp.dataset.d; if(!d) return;
       const v = inp.value;
       if(inp.classList.contains('fc-in-targetprod')) FC_STATE.targetProd[d] = v;
+      // v14.5 §2 — per-district Overdrive ceiling. Blank clears the override
+      // (back to the network default) rather than storing 0, which would be
+      // a different instruction entirely.
+      else if(inp.classList.contains('fc-in-overdrive')){
+        if(v === '') delete FC_SUGGEST.byDistrict[d];
+        else { const c = fcClampOverdrive(v); inp.value = c; FC_SUGGEST.byDistrict[d] = c; }
+      }
       // v11.0 §1 — staff inputs carry the weekday (data-wd) and bucket
       // (data-k) they belong to, so one handler covers all 28 cells per row.
       else if(inp.classList.contains('fc-in-staff')){
@@ -3445,12 +3704,15 @@
       renderForecastTab(); updateScrollHints();
     });
     document.getElementById('fcSuggestOverdrive').addEventListener('change', e=>{
-      // v5.0 — hard-capped at 20% regardless of what's typed; also clamps
-      // the field itself back to a valid value so it can't be left showing
-      // something out of range.
-      const clamped = Math.min(20, Math.max(0, +e.target.value || 0));
+      // v5.0 — hard-capped regardless of what's typed; also clamps the field
+      // itself back to a valid value so it can't be left showing something
+      // out of range. v14.5 §2 — the cap is now FC_OVERDRIVE_HARD_MAX (50%,
+      // up from 20%), and this field is the DEFAULT ceiling: districts with
+      // their own "Max OD %" in the plan table ignore it.
+      const clamped = fcClampOverdrive(e.target.value);
       e.target.value = clamped;
       FC_SUGGEST.overdrivePct = clamped;
+      fcRenderPlanTable();   // the per-district placeholders show this value
     });
     // v12.0 — ODS/HKTV split optimizer controls. Changing a band doesn't
     // re-run the optimizer on its own (that stays an explicit Suggest
@@ -3475,6 +3737,7 @@
     });
     document.getElementById('fcSuggestAllBtn').addEventListener('click', fcSuggestAll);
     document.getElementById('fcSuggestClearBtn').addEventListener('click', fcResetPlan);
+    document.getElementById('fcAutoTuneBtn').addEventListener('click', fcAutoTuneOverdrive);
   }
 
   function renderProductivityTab(){
