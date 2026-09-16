@@ -768,7 +768,7 @@
              productivity target — see fcSuggestHeadcountForDistrict()). -->
         <div class="prod-controls fc-suggest-row">
           <div class="prod-field fc-weight">
-            <label for="fcSuggestOverdrive" title="How far above each district's Target Productivity (Full_Cost_Planning.xlsx, or its manual override above) the suggested plan is allowed to push the achieved figure. Default 0 = staff exactly to the target: the plan is the cheapest team that still clears it, and the figure it promises is one the district can actually be held to. Raising this buys a leaner, cheaper team by demanding productivity above target — only realistic where there is known slack. Capped at 20%.">Max Productivity Overdrive (%)</label>
+            <label for="fcSuggestOverdrive" title="A CEILING, not a fixed setting: Suggest Headcount searches Overdrive values from 0% up to this one and applies the smallest that clears both Target Productivity and Target Cost/Order together. 0% stays untouched only if that already clears both; if Cost/Order is over target, the search leans the team out (which also lifts Productivity above target) until it isn't, or gives up at this ceiling and reports the shortfall. Raise it to give the search more room; capped at 20%.">Max Productivity Overdrive (%)</label>
             <input type="number" id="fcSuggestOverdrive" min="0" max="20" step="1" value="0">
           </div>
           <div class="prod-field fc-weight">
@@ -786,11 +786,12 @@
           <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn" title="Resets the whole plan to defaults: per-weekday headcounts, Target Productivity overrides, the ODS/HKTV shift and the badges all go back to blank.">Clear Suggestions &amp; Reset Plan</button>
         </div>
         <div class="prod-note">
-          <b>Per weekday:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), capped by the Staff Allocation Cap. With Overdrive at its default 0 that means the cheapest team that still clears target — the plan promises the target, not a stretch above it. Courier : Driver = 49 : 51; already-paid minimum-roster FT heads are used before any PT head is bought, then whichever type is cheaper.<br>
+          <b>Both targets drive the search, not just one.</b> A district is built at Overdrive 0% first — the leanest team that clears Target Productivity, capped by the Staff Allocation Cap. If that plan's Cost/Order already clears target too, it's used as-is. If not, Suggest re-builds the whole week at 1%, 2%, 3%… up to the Max Productivity Overdrive ceiling, and applies the <i>smallest</i> Overdrive that clears both — a leaner team both costs less and reads a higher Productivity, so the two targets pull the same way. The badge shows an <b>OD n%</b> pill whenever the search had to raise it above 0%. If nothing in the range clears both, the cheapest candidate found is applied and the badge explains why, in amber.<br>
+          <b>Per weekday, at whichever Overdrive the search is trying:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), capped by the Staff Allocation Cap. Courier : Driver = 49 : 51; already-paid FT-pool heads are used before any PT head is bought, then whichever type is cheaper.<br>
           <b>Rostering across the week:</b> the FT pool is then spread over the seven weekdays to cover as much of that demand as possible — a first pass learns what each weekday wants, a second re-plans each day inside its slice of the pool. FT inside the pool is already paid, so it is used before any PT head is bought and it is treated as free when the ODS/HKTV split is chosen. PT appears only where the pool is exhausted.<br>
-          <b>What gets written in:</b> the deployed team, and only it — every head in the cells has work, so the Prod % in the badge, the cell pills and the Weekly Forecast Plan are all the same measurement. The undeployed part of the pool is reported under the badge as roster utilisation and charged as a monthly cost line, never as headcount.<br>
+          <b>What gets written in:</b> the deployed team from the chosen Overdrive, and only it — every head in the cells has work, so the Prod % in the badge, the cell pills and the Weekly Forecast Plan are all the same measurement. The undeployed part of the pool is reported under the badge as roster utilisation and charged as a monthly cost line, never as headcount.<br>
           <b>ODS / HKTV split:</b> each weekday's ODS volume is chosen within ±Flex% of its forecast baseline (and under the Max ODS % ceiling, if set) to minimise <i>staff cost (actual roster) + ODS orders × Blended Cost/Order</i>. Total Order volume is unchanged, so cheapest = lowest Cost/Order.<br>
-          <b>Cost check:</b> run once on the week — (Fixed + Staff + ODS) ÷ Est. Order Volume vs Target Cost/Order.<br>
+          <b>Cost check:</b> run once per Overdrive candidate on the week — (Fixed + Staff + ODS) ÷ Est. Order Volume vs Target Cost/Order — as part of the same search, not as a separate pass afterward.<br>
           A plan is always applied. The badge reports both achievement rates and, in amber, which target it misses.
         </div>
         <div class="fc-suggest-banner" id="fcSuggestBanner" style="display:none;"></div>
@@ -1759,19 +1760,36 @@
     if(metricKey === 'combined'){
       // Sums HKTV Staff + ODS Ratio's raw orderCount/manpower for this
       // district (or the district-Total row) — added so you don't have to
-      // add the two matrices together by hand every time.
+      // add the two matrices together by hand every time. This is the path
+      // fcForecastTotalOrders() actually runs the Suggest Headcount forecast
+      // on (metricKey='combined'), so it carries the same requirement as
+      // dayOrderRatioRecord below: Total Order only means something when
+      // BOTH channels have real data for this date. A day where one side is
+      // missing (most often hktvStaff's Tableau-sourced figure, on a gap
+      // date) used to fall back to 0 for that side and still return a
+      // "total" built from the other side alone — silently understating
+      // that date in every weekday/month average built on it, this
+      // forecast included, rather than being skipped like a no-data day.
       const a = dayRecord(dateKey, 'hktvStaff', district);
       const b = dayRecord(dateKey, 'odsRatio', district);
-      if(!a && !b) return null;
+      if(!a || !b) return null;
       return {
-        orderCount: (a ? a.orderCount : 0) + (b ? b.orderCount : 0),
-        waybillCount: (a ? (a.waybillCount||0) : 0) + (b ? (b.waybillCount||0) : 0),
-        manpower: (a ? a.manpower : 0) + (b ? b.manpower : 0),
+        orderCount: a.orderCount + b.orderCount,
+        waybillCount: (a.waybillCount||0) + (b.waybillCount||0),
+        manpower: a.manpower + b.manpower,
       };
     }
     if(!day[metricKey]) return null;
     const rec = district==='Total' ? day[metricKey].total : day[metricKey].districts[district];
-    if(!rec || !rec.manpower) return null;
+    // v14.4 §1 — orderCount can be null on a date the Tableau "Delivery
+    // Dashboard" report didn't cover (a gap during cutover, or any date
+    // before that connection existed) even though OIX manpower still logged
+    // for it that day — see kpi_pipeline.py's backfill path, which writes
+    // exactly {orderCount: None, manpower: <real>} for that case. Treating a
+    // null orderCount as "no data" (like the existing !rec.manpower check
+    // already does) keeps every average — this function's callers included —
+    // from silently coercing that null to 0 and understating the day.
+    if(!rec || !rec.manpower || rec.orderCount == null) return null;
     return rec;
   }
   function dayProductivity(dateKey, metricKey, district){
@@ -1787,9 +1805,18 @@
   function dayOrderRatioRecord(dateKey, district){
     const hk = dayRecord(dateKey, 'hktvStaff', district);
     const od = dayRecord(dateKey, 'odsRatio', district);
-    if(!hk && !od) return null;
-    const hktvOrders = hk ? hk.orderCount : 0;
-    const odsVanOrders = od ? od.orderCount : 0;
+    // v14.4 §1 — Total Order Count = HKTV order count + ODS order count,
+    // added back together. That reconstruction only means something when
+    // BOTH sides are real for this date; a day missing one side (most often
+    // hktvStaff's Tableau-sourced figure, on a gap date) used to fall back to
+    // treating the missing side as 0 and still return a "total" built from
+    // the other side alone — silently understating that date rather than
+    // reporting it as having no data. A partial total is worse than no
+    // total: it looks like a real (very low) day everywhere this feeds —
+    // the weekday/month averages behind the forecast included — instead of
+    // being skipped the way a day with no data already is everywhere else.
+    if(!hk || !od) return null;
+    const hktvOrders = hk.orderCount, odsVanOrders = od.orderCount;
     const totalOrders = hktvOrders + odsVanOrders;
     return {
       odsVanOrders, hktvOrders, totalOrders,
@@ -2463,14 +2490,26 @@
   // weekday's ODS/HKTV split with it; v13.0 — always returns a costed plan,
   // with `feasible` reporting whether that plan clears both targets rather
   // than deciding whether a plan exists at all.
-  function fcSuggestHeadcountForDistrict(district){
+  // v14.3 §1 — COST WAS ONLY EVER CHECKED, NEVER SEARCHED FOR.
+  // Everything below the Overdrive line built exactly one plan at exactly
+  // one Overdrive value and then asked "did that clear Cost/Order too?" —
+  // if not, the district was flagged and the person had to raise the
+  // Overdrive slider by hand and press Suggest again. Overdrive is the real
+  // cost lever (a smaller team both costs less AND reads a higher
+  // Productivity), so this now searches it automatically: fcBuildDistrictPlan
+  // builds one candidate at a given Overdrive; fcSuggestHeadcountForDistrict
+  // sweeps candidates from 0% up to the Max Productivity Overdrive slider
+  // (still the ceiling — this never proposes more overdrive than the person
+  // allowed) and applies the LEAST aggressive one that clears BOTH targets at
+  // once. If none in that range clears both, the cheapest candidate found is
+  // applied and reported as still short, exactly as before.
+  function fcBuildDistrictPlan(district, overdrive){
     const targetProd = fcTargetProdFor(district);
     const targetCost = TARGET_COST_PER_ORDER[district] != null ? TARGET_COST_PER_ORDER[district] : TARGET_COST_PER_ORDER.overall;
     const fixed = fcMonthlyFixedCostFor(district); // v5.0 — daily rate × days in month, not the raw daily figure
     const monthlyOrderVolume = fcMonthlyOrderEstimate(district); // Total Order — unchanged by the split
     const blended = odsBlendedCostFor(district);
     const courierShare = fcCourierShareFor(district); // v11.0 §2 — fixed 49:51 courier:driver
-    const overdrive = Math.min(20, Math.max(0, +FC_SUGGEST.overdrivePct || 0)) / 100;
     const cap = fcStaffCapFor(district);
     const u = UNIT_COST_STAFF[district];
     const pool = fcFtWeeklyBudgetFor(district);   // v14.2 §1 — monthly FT man-day budget
@@ -2553,33 +2592,12 @@
     const paidProdAchievement = paidProd != null ? (paidProd - targetProd)/targetProd : null;
     const costAchievement = costPerOrder != null ? (costPerOrder - targetCost)/targetCost : null;
 
-    let reason = null;
-    if(!costOk || !prodOk){
-      const bits = [];
-      if(!prodOk){
-        bits.push(`${missedDays.length === 7 ? 'every weekday' : missedDays.map(d=>`${d.label} (${d.achievedProd==null?'—':d.achievedProd.toFixed(1)})`).join(', ')} below the ${targetProd.toFixed(1)}/staff productivity target — the in-house volume left on those days is too small to keep even one head busy at target`);
-      }
-      if(!costOk) bits.push(`Cost/Order $${costPerOrder==null?'—':costPerOrder.toFixed(2)} vs target $${targetCost.toFixed(2)} (${costAchievement==null?'—':(costAchievement>=0?'+':'')+(costAchievement*100).toFixed(1)}%)`);
-      const zeroStaffCostPerOrder = monthlyOrderVolume>0 ? (fixed + baseOdsVolume*blended)/monthlyOrderVolume : null;
-      let lever;
-      if(!costOk && zeroStaffCostPerOrder != null && zeroStaffCostPerOrder > targetCost){
-        lever = `Fixed + ODS cost alone is already $${zeroStaffCostPerOrder.toFixed(2)}/order here, before a single staff cost — no staffing plan or channel split can close that.`;
-      } else if(!costOk && idleFtManDays >= 1){
-        lever = `${intFmt(idleFtManDays)} FT man-days/mo of the ${intFmt(pool.total)}-man-day roster commitment go undeployed — the volume can't absorb them. Widening Max ODS Volume Flex brings work back in-house at no extra staff cost; otherwise the lever is redeploying FT capacity to another district.`;
-      } else if(!costOk && ptManDays >= 1){
-        lever = `The FT pool is fully deployed and the plan still needs ${intFmt(ptManDays)} PT man-days/mo on ${ptDays.map(d=>d.label).join(', ')} — either more FT bench here, or more volume to ODS.`;
-      } else {
-        lever = `Widen Max ODS Volume Flex if the partner can absorb or return more volume, raise Max Productivity Overdrive to allow leaner days, or revisit this district's targets.`;
-      }
-      reason = `${district}: ${bits.join('; ')}. ${lever} The plan below is still the cheapest one available and has been applied — it just doesn't clear target.`;
-    }
-
-    return { feasible: costOk && prodOk, applied:true, costOk, prodOk, district, days,
+    return { feasible: costOk && prodOk, applied:true, costOk, prodOk, district, days, overdrive,
       targetProd, targetCost, costPerOrder, weightedProd, prodAchievement, costAchievement,
       paidProd, paidProdAchievement,
       monthlyStaffCost, monthlyOdsVolume, baseOdsVolume, odsShifted, variableOds,
       manDays, paidManDays, ftManDays, ptManDays, idleFtManDays, poolUtilisation, ftPool:pool,
-      deployedFtCost, idleFtCost, ptCost,
+      deployedFtCost, idleFtCost, ptCost, fixed, monthlyOrderVolume,
       minTotal:Math.min(...totals), maxTotal:Math.max(...totals),
       ptDays: ptDays.map(d=>d.label),
       minAchievedProd: prods.length?Math.min(...prods):null,
@@ -2587,7 +2605,53 @@
       worstWeekday: worst.label, weekTotal, staffCap:cap,
       benchLimited: days.some(d=>d.benchLimited),
       missedDays: missedDays.map(d=>d.label),
-      odsOptimized: FC_ODS.optimize && Math.abs(odsShifted) >= 1, reason };
+      odsOptimized: FC_ODS.optimize && Math.abs(odsShifted) >= 1 };
+  }
+  function fcSuggestHeadcountForDistrict(district){
+    const maxOverdrivePct = Math.min(20, Math.max(0, +FC_SUGGEST.overdrivePct || 0));
+    // Candidate Overdrive values, low to high, always including both ends.
+    // Integer-percent steps are plenty of resolution here (team size moves in
+    // whole heads), and at most 21 of them — building a whole district's week
+    // 21 times is still nothing (see fcOptimizeDayPlan's own cost-search note).
+    const steps = [];
+    for(let pct=0; pct<=maxOverdrivePct; pct++) steps.push(pct);
+    if(steps[steps.length-1] !== maxOverdrivePct) steps.push(maxOverdrivePct);
+
+    let chosen = null, cheapest = null;
+    for(const pct of steps){
+      const candidate = fcBuildDistrictPlan(district, pct/100);
+      if(!candidate.applied) return candidate; // no forecast volume — nothing to search
+      if(cheapest == null || (candidate.costPerOrder ?? Infinity) < (cheapest.costPerOrder ?? Infinity)) cheapest = candidate;
+      if(candidate.feasible){ chosen = candidate; break; } // least-aggressive Overdrive that clears BOTH targets
+    }
+    const best = chosen || cheapest;
+    const searched = chosen ? steps.indexOf(chosen.overdrive*100) + 1 : steps.length;
+
+    let reason = null;
+    if(!best.feasible){
+      const bits = [];
+      if(!best.prodOk){
+        bits.push(`${best.missedDays.length === 7 ? 'every weekday' : best.missedDays.map(l=>{ const d=best.days.find(x=>x.label===l); return `${l} (${d && d.achievedProd!=null?d.achievedProd.toFixed(1):'—'})`; }).join(', ')} below the ${best.targetProd.toFixed(1)}/staff productivity target — the in-house volume left on those days is too small to keep even one head busy at target`);
+      }
+      if(!best.costOk) bits.push(`Cost/Order $${best.costPerOrder==null?'—':best.costPerOrder.toFixed(2)} vs target $${best.targetCost.toFixed(2)} (${best.costAchievement==null?'—':(best.costAchievement>=0?'+':'')+(best.costAchievement*100).toFixed(1)}%)`);
+      const zeroStaffCostPerOrder = best.monthlyOrderVolume>0 ? (best.fixed + best.baseOdsVolume*odsBlendedCostFor(district))/best.monthlyOrderVolume : null;
+      let lever;
+      if(!best.costOk && zeroStaffCostPerOrder != null && zeroStaffCostPerOrder > best.targetCost){
+        lever = `Fixed + ODS cost alone is already $${zeroStaffCostPerOrder.toFixed(2)}/order here, before a single staff cost — no staffing plan or channel split can close that.`;
+      } else if(!best.costOk && best.idleFtManDays >= 1){
+        lever = `${intFmt(best.idleFtManDays)} FT man-days/mo of the ${intFmt(best.ftPool.total)}-man-day roster commitment go undeployed even after searching Overdrive up to ${maxOverdrivePct}% — the volume can't absorb them. Widening Max ODS Volume Flex brings work back in-house at no extra staff cost; otherwise the lever is redeploying FT capacity to another district.`;
+      } else if(!best.costOk && best.ptManDays >= 1){
+        lever = `Even at ${maxOverdrivePct}% Overdrive the plan still needs ${intFmt(best.ptManDays)} PT man-days/mo on ${best.ptDays.join(', ')} — either more FT bench here, more volume to ODS, or raising Max Productivity Overdrive further.`;
+      } else {
+        lever = `Widen Max ODS Volume Flex if the partner can absorb or return more volume, raise Max Productivity Overdrive above ${maxOverdrivePct}% to allow leaner days, or revisit this district's targets.`;
+      }
+      reason = `${district}: ${bits.join('; ')}. Searched Overdrive 0–${maxOverdrivePct}% (${searched} of ${steps.length} steps) looking for a plan that clears both — none did. ${lever} The plan below is the cheapest one found and has been applied — it just doesn't clear target.`;
+    }
+
+    return { ...best, reason,
+      overdrivePct: Math.round(best.overdrive*100),
+      overdriveSearched: maxOverdrivePct,
+      overdriveAutoRaised: best.overdrive*100 > 0 };
   }
   // Runs the suggestion for one district and, if feasible, writes the
   // resulting PER-WEEKDAY headcounts straight into FC_STATE (infeasible
@@ -3072,8 +3136,14 @@
             + (r.ptManDays >= 1 ? ` and buys ${intFmt(r.ptManDays)} PT man-days/mo on ${r.ptDays.join(', ')}` : '')
             + '.'
           : '';
+        // v14.3 §1 — Suggest auto-searches Overdrive for the cheapest plan
+        // that still clears both targets, so the badge says which value it
+        // landed on when that wasn't the default 0%.
+        const overdriveNote = r.overdriveAutoRaised
+          ? ` Overdrive auto-set to ${r.overdrivePct}% (searched 0–${r.overdriveSearched}%) to bring Cost/Order under target.`
+          : '';
         const title = `Per-weekday plan: ${perDay}. `
-          + `Productivity ${r.weightedProd==null?'\u2014':r.weightedProd.toFixed(1)} vs target ${r.targetProd.toFixed(1)} (${fcRatePct(r.prodAchievement)}) across ${intFmt(r.manDays)} deployed man-days/mo — every head in that figure has work. `
+          + `Productivity ${r.weightedProd==null?'\u2014':r.weightedProd.toFixed(1)} vs target ${r.targetProd.toFixed(1)} (${fcRatePct(r.prodAchievement)}) across ${intFmt(r.manDays)} deployed man-days/mo — every head in that figure has work.${overdriveNote} `
           + (r.idleFtManDays >= 1 ? `Measured against the full ${intFmt(r.paidManDays)} paid man-days it reads ${r.paidProd==null?'\u2014':r.paidProd.toFixed(1)} (${fcRatePct(r.paidProdAchievement)}) — roster utilisation, not an operational miss. ` : '')
           + `Cost/Order $${r.costPerOrder==null?'\u2014':r.costPerOrder.toFixed(2)} vs target $${r.targetCost.toFixed(2)} (${fcRatePct(r.costAchievement)}), carrying the full roster commitment.${poolNote}${odsNote}`
           + (r.feasible ? '' : ` \u2014 ${r.reason}`);
@@ -3084,9 +3154,10 @@
           ? `<span class="fc-minroster-note" title="The 75% share is owed across the month, not on each day: ${intFmt(pool.total)} FT man-days/mo. This plan deploys ${intFmt(r.ftManDays)}${r.idleFtManDays>=1?`, leaves ${intFmt(r.idleFtManDays)} paid but undeployed`:''}${r.ptManDays>=1?`, and buys ${intFmt(r.ptManDays)} PT man-days`:''}. Paid total ${intFmt(r.paidManDays)} man-days/mo.">`
             + `FT pool ${r.poolUtilisation==null?'\u2014':(r.poolUtilisation*100).toFixed(0)}% deployed (${intFmt(r.ftManDays)}/${intFmt(pool.total)} man-days)${r.ptManDays>=1?` \u00b7 +${intFmt(r.ptManDays)} PT`:''}</span>`
           : '';
+        const odPill = r.overdriveAutoRaised ? ` \u00b7 OD ${r.overdrivePct}%` : '';
         badge = `<span class="fc-suggest-badge ${cls}" title="${title.replace(/"/g,'&quot;')}">`
           + `${mark} ${r.minTotal}\u2013${r.maxTotal} staff/day${misses}`
-          + ` \u00b7 Prod ${fcRatePct(r.prodAchievement)} \u00b7 Cost ${fcRatePct(r.costAchievement)}</span>`
+          + ` \u00b7 Prod ${fcRatePct(r.prodAchievement)} \u00b7 Cost ${fcRatePct(r.costAchievement)}${odPill}</span>`
           + rosterNote;
       }
     }
@@ -3156,6 +3227,12 @@
     const capNote = benchCapped.length
       ? ` <b>${benchCapped.length}</b> of those had at least one weekday capped by the current Staff List bench: ${benchCapped.map(r=>r.district).join(', ')}.`
       : '';
+    // v14.3 §1 — which districts needed the Overdrive search to move off 0%
+    // to clear Cost/Order, so it's visible without hovering every badge.
+    const odRaised = results.filter(r=>r.applied && r.overdriveAutoRaised);
+    const odRaisedNote = odRaised.length
+      ? ` <b>${odRaised.length}</b> needed Overdrive above 0% to clear Cost/Order: ${odRaised.map(r=>`${r.district} (${r.overdrivePct}%)`).join(', ')}.`
+      : '';
     // v11.0 §1 — the headline number for this change: what per-weekday
     // sizing costs (or saves) in man-days against the old flat rule, summed
     // over the districts that got a plan.
@@ -3177,12 +3254,13 @@
     banner.style.display = '';
     if(bad.length===0){
       banner.className = 'fc-suggest-banner ok';
-      banner.innerHTML = `<b>All ${results.length} districts</b> clear Target Productivity on every weekday and Target Cost/Order for the week.${mdNote}${odsNote}${capNote}`;
+      banner.innerHTML = `<b>All ${results.length} districts</b> clear Target Productivity on every weekday and Target Cost/Order for the week.${mdNote}${odsNote}${capNote}${odRaisedNote}`;
     } else {
       banner.className = 'fc-suggest-banner warn';
       banner.innerHTML = `<b>${results.length-bad.length-none.length} of ${results.length} districts</b> clear both targets. `
-        + `<b>${bad.length} miss</b> a target — their cheapest plan is still applied, so the figures below are real; hover the badge for which target and why: ${bad.map(r=>r.district).join(', ')}.`
+        + `<b>${bad.length} miss</b> a target — even after searching Overdrive up to its ceiling, their cheapest plan is still applied, so the figures below are real; hover the badge for which target and why: ${bad.map(r=>r.district).join(', ')}.`
         + (none.length ? ` <b>${none.length}</b> had no forecast volume to plan from: ${none.map(r=>r.district).join(', ')}.` : '')
+        + odRaisedNote
         + `${mdNote}${odsNote}${capNote}`;
     }
   }
