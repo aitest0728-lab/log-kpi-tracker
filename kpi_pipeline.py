@@ -232,27 +232,49 @@ STAFF_CAP_POSITION_TO_BUCKET = {
     pos: bucket for bucket, positions in STAFF_CAP_BUCKET_POSITIONS.items() for pos in positions
 }
 
-# v9.0 — Staff List "Department Code" (Column D) -> District, for the Staff
-# Allocation Cap. Most districts have two codes: a main one and a "P"-suffixed
-# one (e.g. LOGETH01 / LOGETHP01) — both roll up to the same district; ETK is
-# the only one with a single code in the current staff list. Codes not
-# listed here (LOGCFM, LOGOPR, LOGPD*, LOGTD02, LOGMGT, LOGEXP, LOGPED,
-# LOGMEN06, LOGMTM04, LOGFD02, LOGMET01, LOGMWT02, ...) are HQ / fleet-
-# management / other non-district departments and are excluded from the cap
-# entirely, the same way district_from_truck_no() excludes an unmatched
-# truck number.
-DEPARTMENT_CODE_DISTRICT_MAP = {
-    "LOGETH01": "ETH", "LOGETHP01": "ETH",
-    "LOGETK01": "ETK",
-    "LOGETN08": "NT-TSM", "LOGETNP08": "NT-TSM",
-    "LOGETX06": "ETX", "LOGETXP06": "ETX",
-    "LOGST04": "NT-ST", "LOGSTP04": "NT-ST",
-    "LOGTM04": "NT-TM", "LOGTMP04": "NT-TM",
-    "LOGWTH02": "WTH", "LOGWTHP02": "WTH",
-    "LOGWTK02": "WTK", "LOGWTKP02": "WTK",
-    "LOGWTW02": "NT-TW", "LOGWTWP02": "NT-TW",
-    "LOGWTX02": "WTX", "LOGWTXP02": "WTX",
-}
+# v10.2 — Staff List "Department Code" (Column E) -> District, for the
+# Staff Allocation Cap. Switched from an exact-code dict (each specific
+# code like "LOGETH01"/"LOGETHP01" hand-enumerated) to the SAME
+# prefix/startswith() matching ot_time_alert_workflow.py's
+# dept_code_to_district() uses against its own DEPT_CODE_TO_DISTRICT list
+# — same sheet, same Department Code column, so both scripts now classify
+# a given code identically instead of running two independently-maintained
+# mappings that could silently drift apart. This also closes the exact gap
+# the old dict's own docstring flagged: a new sub-code the district office
+# starts using (e.g. a third "LOGETH03") is picked up automatically here,
+# where the old exact-dict approach would have silently dropped it into
+# "unmapped" until someone noticed and added it by hand.
+# Codes with no matching prefix (LOGCFM, LOGOPR, LOGPD*, LOGTD02, LOGMGT,
+# LOGEXP, LOGPED, LOGMEN06, LOGMTM04, LOGFD02, LOGMET01, LOGMWT02, ...) are
+# HQ / fleet-management / other non-district departments and are excluded
+# from the cap entirely, the same way district_from_truck_no() excludes an
+# unmatched truck number.
+DEPT_CODE_TO_DISTRICT = [
+    ("LOGETH", "ETH"),
+    ("LOGETK", "ETK"),
+    ("LOGETX", "ETX"),
+    ("LOGST", "NT-ST"),
+    ("LOGTM", "NT-TM"),
+    ("LOGETN", "NT-TSM"),
+    ("LOGWTW", "NT-TW"),
+    ("LOGWTH", "WTH"),
+    ("LOGWTK", "WTK"),
+    ("LOGWTX", "WTX"),
+]
+
+
+def dept_code_to_district(dept_code):
+    """v10.2 — identical logic to ot_time_alert_workflow.py's function of
+    the same name: first prefix in DEPT_CODE_TO_DISTRICT that dept_code
+    starts with wins (order matters for that reason, even though every
+    prefix here happens to be distinct enough that it doesn't currently
+    matter in practice). Returns "" — not None — for an unmapped code, to
+    match the reference script's own return value exactly; callers here
+    treat "" the same way they'd treat None (falsy)."""
+    for prefix, district in DEPT_CODE_TO_DISTRICT:
+        if dept_code.startswith(prefix):
+            return district
+    return ""
 
 # v3.0 §4.1: staff in these positions are leads/supervisors/managers, not
 # individual couriers/drivers — excluded from HKTV Staff Productivity's
@@ -1524,17 +1546,16 @@ def compute_staff_allocation_cap():
       Position not in that map (team leader, supervisor, manager, transit-
       truck driver, fleet/ops/HQ role, ...) is excluded from every cap on
       purpose — see the comment on STAFF_CAP_BUCKET_POSITIONS above.
-    - Department Code -> District via DEPARTMENT_CODE_DISTRICT_MAP,
-      unchanged. This assumes the sheet's Dept column (E) uses the same
-      suffixed codes (e.g. "LOGETH01"/"LOGETHP01") as the old Excel
-      export's Department Code column, rather than the bare prefixes (e.g.
-      "LOGETH") ot_time_alert_workflow.py's own DEPT_CODE_TO_DISTRICT
-      table maps from that same column. If it turns out to be the bare-
-      prefix style instead, every row will come back unmapped and the cap
-      will silently read all zeros — the unmapped_depts warning below
-      fires loudly if that happens, so check pipeline_log.txt after the
-      first live run and switch this to a startswith() match like
-      DEPT_CODE_TO_DISTRICT if so.
+    - v10.2 — Department Code -> District via dept_code_to_district(),
+      the SAME prefix/startswith() matching ot_time_alert_workflow.py's
+      function of the same name uses against its own DEPT_CODE_TO_DISTRICT
+      list, reading the same sheet column. Previously an exact-code dict
+      (DEPARTMENT_CODE_DISTRICT_MAP) that hand-enumerated every specific
+      code ("LOGETH01"/"LOGETHP01"/...); switched so a new sub-code the
+      district office starts using is picked up automatically instead of
+      silently landing in "unmapped" until someone notices and edits the
+      dict — and so this script and ot_time_alert_workflow.py can't drift
+      apart on what a given Department Code means.
 
     Returns {district: {"ftDriver":n, "ftCourier":n, "ptDriver":n,
     "ptCourier":n}} for every one of the 10 DISTRICTS (0 where the staff
@@ -1555,8 +1576,8 @@ def compute_staff_allocation_cap():
 
     unmapped_depts, unmapped_positions = set(), set()
     for dept_code, pos in zip(active["Department Code"], active["Position"]):
-        district = DEPARTMENT_CODE_DISTRICT_MAP.get(dept_code)
-        if district is None:
+        district = dept_code_to_district(dept_code)  # v10.2 — prefix match, "" = unmapped
+        if not district:
             if dept_code:
                 unmapped_depts.add(dept_code)
             continue
@@ -1572,10 +1593,9 @@ def compute_staff_allocation_cap():
               f"STAFF_CAP_BUCKET_POSITIONS, excluded from every district's cap (supervisory/other "
               f"roles): {sorted(unmapped_positions)}")
     if unmapped_depts:
-        print(f"  ℹ️ Staff Allocation Cap: {len(unmapped_depts)} Department Code(s) not in "
-              f"DEPARTMENT_CODE_DISTRICT_MAP, excluded (non-district departments, or a Dept-code-"
-              f"format mismatch between the Google Sheet and the old Excel export — see the v10.0 "
-              f"note in this function's docstring): {sorted(unmapped_depts)}")
+        print(f"  ℹ️ Staff Allocation Cap: {len(unmapped_depts)} Department Code(s) matched no "
+              f"prefix in DEPT_CODE_TO_DISTRICT, excluded (non-district departments — HQ, fleet "
+              f"management, etc.): {sorted(unmapped_depts)}")
 
     cap["_asOf"] = dt.date.today().isoformat()
     cap["_source"] = f"Google Sheet: {STAFF_MASTER_TAB_NAME}"
