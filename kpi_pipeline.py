@@ -80,7 +80,29 @@ TABLEAU_GMV_WORKBOOK_ID = os.environ.get("TABLEAU_GMV_WORKBOOK_ID", "")
 # 目錄設定
 OIX_FOLDER = os.environ.get("OIX_FOLDER", r"C:\Users\chipanl\Downloads\Digimobi Report")
 REPORT_FOLDER = os.environ.get("REPORT_FOLDER", r"C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker\Folder for KPI Dashboard")
-# v3.0 §4: where the latest "Logistics_Staff_List_YYYYMMDD.xlsx" lives.
+# v10.0 — Staff List switched from the local "Logistics_Staff_List_YYYYMMDD.xlsx"
+# export (v3.0 §4, STAFF_LIST_FOLDER below) to the "Master LOG Staff List"
+# Google Sheet — it's the actively-maintained source and doesn't depend on
+# someone remembering to re-export Excel. Sheet URL, tab name, credential
+# path, and column layout are copied verbatim from ot_time_alert_workflow.py's
+# STAFF_MASTER_SHEET_URL / STAFF_MASTER_TAB_NAME / GOOGLE_CREDENTIAL_JSON /
+# STAFF_MASTER_*_COL — same sheet, same service-account credential, so both
+# scripts stay in sync if the sheet ever moves. See load_staff_master_df().
+STAFF_MASTER_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HT7KstK1iLUxWeprTZkGPzzjLzQ3PeXSeE9vdZ6cVp0/edit?gid=0#gid=0"
+STAFF_MASTER_TAB_NAME = "LOG Master"
+GOOGLE_CREDENTIAL_JSON = "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/digimobi-temperature-review-d88603b35531.json"
+STAFF_MASTER_STAFFID_COL = "A"    # Staff ID
+STAFF_MASTER_DEPT_CODE_COL = "E"  # Dept
+STAFF_MASTER_POSITION_COL = "G"   # Position
+# The sheet has no separate "Employment Status" column the way the old Excel
+# export did — Last Working Date (I) blank is treated as still-employed.
+# See load_staff_master_df()'s docstring for the notice-period caveat.
+STAFF_MASTER_LAST_WORKING_DATE_COL = "I"
+STAFF_MASTER_HEADER_ROW = 1  # row 1 is the header row
+
+# v3.0 §4 (DEPRECATED as of v10.0, replaced by the Google Sheet above — kept
+# here, unused, only so old pipeline_log.txt entries referencing this path
+# still make sense when read back later).
 STAFF_LIST_FOLDER = os.environ.get("STAFF_LIST_FOLDER", r"C:\Users\chipanl\Downloads\Staff List")
 DATA_JSON_PATH = os.environ.get("DATA_JSON_PATH", "./public/data.json")
 HISTORY_PATH = os.environ.get("HISTORY_PATH", "./history.json")
@@ -1358,95 +1380,175 @@ def load_oix(path):
     return pd.read_excel(path, header=1, dtype=str)
 
 
-def find_latest_staff_list():
-    """v3.0 §4 — finds the most-recently-dated
-    'Logistics_Staff_List_YYYYMMDD.xlsx' inside STAFF_LIST_FOLDER (YYYYMMDD
-    = the file's own "final update date", per spec — so we sort on that,
-    not on filesystem mtime)."""
-    pattern = re.compile(r"^Logistics_Staff_List_(\d{8})\.xlsx$", re.IGNORECASE)
-    candidates = []
-    if os.path.isdir(STAFF_LIST_FOLDER):
-        for fname in os.listdir(STAFF_LIST_FOLDER):
-            m = pattern.match(fname)
-            if m:
-                candidates.append((m.group(1), fname))
-    if not candidates:
+def load_staff_master_df():
+    """v10.0 — Pulls the "Master LOG Staff List" Google Sheet (LOG Master
+    tab) in place of the old local 'Logistics_Staff_List_YYYYMMDD.xlsx'
+    export. gspread auth pattern, credential path, sheet URL/tab, and
+    column layout are borrowed verbatim from ot_time_alert_workflow.py's
+    load_staff_master() (same sheet, same service-account credential):
+      A Staff ID, B User ID, C Fullname (EN), D Fullname (ZH), E Dept,
+      F Supervisor, G Position, H Join Date, I Last Working Date,
+      J Remarks, K Driving License Expiry Date.
+
+    Returns a DataFrame with columns: Staff ID, Department Code (upper-
+    cased/stripped), Position (upper-cased/stripped — comparable directly
+    against LEADER_EXCLUDE_POSITIONS / COURIER_POSITIONS / DRIVER_POSITIONS
+    / STAFF_CAP_POSITION_TO_BUCKET), and Active (bool — True when Last
+    Working Date, column I, is blank). The sheet has no separate
+    "Employment Status" column the way the old Excel export did, so a
+    blank Last Working Date is used as the still-employed signal here.
+    TODO: confirm this matches how the LOG team actually uses that column
+    — e.g. whether someone serving notice gets a future-dated Last Working
+    Date (would still read as Active here) or an immediate one.
+
+    Deliberately pads any row shorter than column K to a full-length row
+    of "" before indexing, rather than skipping it the way
+    ot_time_alert_workflow.py's load_staff_master() does — gspread's
+    get_all_values() trims trailing blank cells per row, so any row whose
+    Last Working Date (I) / Remarks (J) / Driving License Expiry (K) are
+    all blank — i.e. most currently-active staff — would otherwise come
+    back shorter than expected and get silently dropped entirely. That's
+    fine for an OT-alert script (a few missed staff just means a few
+    missed alerts) but not here, where this same map drives Position
+    classification and the Staff Allocation Cap for every district.
+
+    Raises FileNotFoundError (same exception type the old Excel-based
+    loader raised, so every existing caller's `except FileNotFoundError`
+    soft-fail below keeps working unchanged) if gspread/google-auth aren't
+    installed, the credential file is missing, or the sheet/tab can't be
+    opened.
+    """
+    try:
+        import gspread
+        from google.oauth2.service_account import Credentials
+    except ImportError as e:
         raise FileNotFoundError(
-            f"No 'Logistics_Staff_List_YYYYMMDD.xlsx' file found in {STAFF_LIST_FOLDER!r}."
+            "gspread / google-auth not installed — run: pip install gspread "
+            "google-auth --break-system-packages"
+        ) from e
+
+    if not os.path.exists(GOOGLE_CREDENTIAL_JSON):
+        raise FileNotFoundError(
+            f"Google service-account credential not found at {GOOGLE_CREDENTIAL_JSON!r} "
+            f"— can't read the '{STAFF_MASTER_TAB_NAME}' staff master sheet."
         )
-    candidates.sort()  # YYYYMMDD sorts correctly as a string
-    _, latest_fname = candidates[-1]
-    return os.path.join(STAFF_LIST_FOLDER, latest_fname)
+
+    try:
+        scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+        creds = Credentials.from_service_account_file(GOOGLE_CREDENTIAL_JSON, scopes=scopes)
+        gc = gspread.authorize(creds)
+        sheet_id = STAFF_MASTER_SHEET_URL.split("/d/")[1].split("/")[0]
+        sh = gc.open_by_key(sheet_id)
+        ws = sh.worksheet(STAFF_MASTER_TAB_NAME)
+        values = ws.get_all_values()
+    except Exception as e:
+        # Covers gspread's SpreadsheetNotFound/WorksheetNotFound/APIError and
+        # any transient network error alike — all treated as "staff master
+        # not available this run", the same soft-fail contract a missing
+        # Excel file used to have.
+        raise FileNotFoundError(
+            f"Could not read the '{STAFF_MASTER_TAB_NAME}' Google Sheet "
+            f"({STAFF_MASTER_SHEET_URL}): {e}"
+        ) from e
+
+    header_idx = STAFF_MASTER_HEADER_ROW - 1
+    rows = values[header_idx + 1:]
+
+    staffid_i = col(STAFF_MASTER_STAFFID_COL)
+    dept_i = col(STAFF_MASTER_DEPT_CODE_COL)
+    pos_i = col(STAFF_MASTER_POSITION_COL)
+    lwd_i = col(STAFF_MASTER_LAST_WORKING_DATE_COL)
+    width = max(staffid_i, dept_i, pos_i, lwd_i) + 1
+
+    records = []
+    for row in rows:
+        if len(row) < width:
+            row = row + [""] * (width - len(row))  # see docstring — pad, don't skip
+        staff_id = row[staffid_i].strip()
+        if not staff_id:
+            continue
+        records.append({
+            "Staff ID": staff_id,
+            "Department Code": row[dept_i].strip().upper(),
+            "Position": row[pos_i].strip().upper(),
+            "Active": row[lwd_i].strip() == "",
+        })
+
+    df = pd.DataFrame(records)
+    print(f"  📋 Loaded staff master from Google Sheet '{STAFF_MASTER_TAB_NAME}' ({len(df)} employees)")
+    return df
 
 
 def load_staff_position_map():
-    """v3.0 §4 — Employee No. (Column A) -> Position (Column G), from the
-    latest staff list. Position values are upper-cased/stripped so they
-    compare cleanly against LEADER_EXCLUDE_POSITIONS / COURIER_POSITIONS /
-    DRIVER_POSITIONS (which are already all-caps)."""
-    path = find_latest_staff_list()
-    df = pd.read_excel(path, dtype=str)
-    emp_col = df.columns[col("A")]
-    pos_col = df.columns[col("G")]
-    out = {}
-    for emp, pos in zip(df[emp_col], df[pos_col]):
-        if pd.isna(emp):
-            continue
-        out[str(emp).strip()] = "" if pd.isna(pos) else str(pos).strip().upper()
-    print(f"  📋 Loaded staff position map from {os.path.basename(path)} ({len(out)} employees)")
-    return out
+    """v10.0 — Staff ID -> Position, from the Google Sheet staff master
+    (see load_staff_master_df()). Previously read the latest local
+    'Logistics_Staff_List_YYYYMMDD.xlsx' export (v3.0 §4) — replaced
+    because the Google Sheet is the actively-maintained source and doesn't
+    depend on someone remembering to re-export Excel. Position values are
+    already upper-cased/stripped by load_staff_master_df()."""
+    df = load_staff_master_df()
+    return dict(zip(df["Staff ID"], df["Position"]))
 
 
 def compute_staff_allocation_cap():
-    """v9.0 — Reads the latest 'Logistics_Staff_List_YYYYMMDD.xlsx' (via
-    find_latest_staff_list(), same file/lookup already used for the
-    Courier/Driver Position classification above) and reduces it to a
-    maximum-cap table for Suggest Headcount: current ACTIVE headcount per
-    district, split into the same 4 buckets the Per-District Staff Plan
-    table uses (FT Driver, PT Driver, FT Courier, PT Courier).
+    """v9.0, updated v10.0 — Reads the Google Sheet staff master (via
+    load_staff_master_df(), same source now used for the Courier/Driver
+    Position classification above) and reduces it to a maximum-cap table
+    for Suggest Headcount: current ACTIVE headcount per district, split
+    into the same 4 buckets the Per-District Staff Plan table uses (FT
+    Driver, PT Driver, FT Courier, PT Courier).
 
-    - Employment Status: only rows whose status is exactly 'Active' count.
-      'Terminated' / 'Terminated (Black List)' staff are no longer
-      available to allocate, however recently they left.
-    - Position -> bucket via STAFF_CAP_POSITION_TO_BUCKET. A Position not in
-      that map (team leader, supervisor, manager, transit-truck driver,
-      fleet/ops/HQ role, ...) is excluded from every cap on purpose — see
-      the comment on STAFF_CAP_BUCKET_POSITIONS above.
-    - Department Code -> District via DEPARTMENT_CODE_DISTRICT_MAP. A code
-      not in that map (HQ / fleet-management / other non-district
-      departments) is excluded the same way.
+    v10.0 — switched from the local 'Logistics_Staff_List_YYYYMMDD.xlsx'
+    export to the Google Sheet (more stable, no dependency on someone
+    remembering to re-export). "Active" is now an empty Last Working Date
+    (column I) rather than an 'Employment Status' column — the sheet
+    doesn't have one; see load_staff_master_df()'s docstring for the
+    notice-period caveat.
+
+    - Position -> bucket via STAFF_CAP_POSITION_TO_BUCKET, unchanged. A
+      Position not in that map (team leader, supervisor, manager, transit-
+      truck driver, fleet/ops/HQ role, ...) is excluded from every cap on
+      purpose — see the comment on STAFF_CAP_BUCKET_POSITIONS above.
+    - Department Code -> District via DEPARTMENT_CODE_DISTRICT_MAP,
+      unchanged. This assumes the sheet's Dept column (E) uses the same
+      suffixed codes (e.g. "LOGETH01"/"LOGETHP01") as the old Excel
+      export's Department Code column, rather than the bare prefixes (e.g.
+      "LOGETH") ot_time_alert_workflow.py's own DEPT_CODE_TO_DISTRICT
+      table maps from that same column. If it turns out to be the bare-
+      prefix style instead, every row will come back unmapped and the cap
+      will silently read all zeros — the unmapped_depts warning below
+      fires loudly if that happens, so check pipeline_log.txt after the
+      first live run and switch this to a startswith() match like
+      DEPT_CODE_TO_DISTRICT if so.
 
     Returns {district: {"ftDriver":n, "ftCourier":n, "ptDriver":n,
     "ptCourier":n}} for every one of the 10 DISTRICTS (0 where the staff
-    list currently has nobody in that bucket), plus "_asOf" (the staff
-    list's own YYYYMMDD stamp, not today's date — so the dashboard can show
-    what the cap is actually based on) and "_source" (the filename used).
+    list currently has nobody in that bucket), plus "_asOf" (today's date —
+    the Google Sheet has no filename date stamp the old Excel export did)
+    and "_source" (the sheet name, for the same reason).
 
-    Raises FileNotFoundError if no staff list is present — same as
+    Raises FileNotFoundError if the sheet can't be read — same as
     load_staff_position_map(), left for the caller to soft-fail on so a
-    missing/late staff list doesn't take down the rest of the 14:00 run.
+    temporarily-unreachable sheet doesn't take down the rest of the 14:00
+    run.
     """
-    path = find_latest_staff_list()
-    df = pd.read_excel(path, dtype=str)
+    df = load_staff_master_df()
 
     cap = {d: {"ftDriver": 0, "ftCourier": 0, "ptDriver": 0, "ptCourier": 0} for d in DISTRICTS}
 
-    status = df["Employment Status"].fillna("").str.strip().str.upper()
-    active = df[status == "ACTIVE"]
+    active = df[df["Active"]]
 
     unmapped_depts, unmapped_positions = set(), set()
     for dept_code, pos in zip(active["Department Code"], active["Position"]):
-        dept_norm = "" if pd.isna(dept_code) else str(dept_code).strip().upper()
-        district = DEPARTMENT_CODE_DISTRICT_MAP.get(dept_norm)
+        district = DEPARTMENT_CODE_DISTRICT_MAP.get(dept_code)
         if district is None:
-            if dept_norm:
-                unmapped_depts.add(dept_norm)
+            if dept_code:
+                unmapped_depts.add(dept_code)
             continue
-        pos_norm = "" if pd.isna(pos) else str(pos).strip().upper()
-        bucket = STAFF_CAP_POSITION_TO_BUCKET.get(pos_norm)
+        bucket = STAFF_CAP_POSITION_TO_BUCKET.get(pos)
         if bucket is None:
-            if pos_norm:
-                unmapped_positions.add(pos_norm)
+            if pos:
+                unmapped_positions.add(pos)
             continue
         cap[district][bucket] += 1
 
@@ -1456,12 +1558,12 @@ def compute_staff_allocation_cap():
               f"roles): {sorted(unmapped_positions)}")
     if unmapped_depts:
         print(f"  ℹ️ Staff Allocation Cap: {len(unmapped_depts)} Department Code(s) not in "
-              f"DEPARTMENT_CODE_DISTRICT_MAP, excluded (non-district departments): "
-              f"{sorted(unmapped_depts)}")
+              f"DEPARTMENT_CODE_DISTRICT_MAP, excluded (non-district departments, or a Dept-code-"
+              f"format mismatch between the Google Sheet and the old Excel export — see the v10.0 "
+              f"note in this function's docstring): {sorted(unmapped_depts)}")
 
-    m = re.match(r"^Logistics_Staff_List_(\d{8})\.xlsx$", os.path.basename(path), re.IGNORECASE)
-    cap["_asOf"] = m.group(1) if m else None
-    cap["_source"] = os.path.basename(path)
+    cap["_asOf"] = dt.date.today().isoformat()
+    cap["_source"] = f"Google Sheet: {STAFF_MASTER_TAB_NAME}"
     return cap
 
 
