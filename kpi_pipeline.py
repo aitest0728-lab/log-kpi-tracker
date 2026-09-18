@@ -90,7 +90,22 @@ REPORT_FOLDER = os.environ.get("REPORT_FOLDER", r"C:\Users\chipanl\Downloads\Wha
 # scripts stay in sync if the sheet ever moves. See load_staff_master_df().
 STAFF_MASTER_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HT7KstK1iLUxWeprTZkGPzzjLzQ3PeXSeE9vdZ6cVp0/edit?gid=0#gid=0"
 STAFF_MASTER_TAB_NAME = "LOG Master"
-GOOGLE_CREDENTIAL_JSON = "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/digimobi-temperature-review-d88603b35531.json"
+GOOGLE_CREDENTIAL_JSON = os.environ.get(
+    "GOOGLE_CREDENTIAL_JSON",
+    # v10.1 fix — ot_time_alert_workflow.py's own comment on its WORK_DIR
+    # says its /mnt/c/... paths are a WSL-only convention and need
+    # adjusting to a plain Windows path when running directly under
+    # Windows Python instead of WSL. I copied the credential path from
+    # there verbatim and missed that adjustment; kpi_pipeline.py runs via
+    # run_productivity_0300.bat -> `py kpi_pipeline.py` under Task
+    # Scheduler, i.e. plain Windows Python (same reason OIX_FOLDER /
+    # REPORT_FOLDER / STAFF_LIST_FOLDER above are all raw C:\ paths, not
+    # /mnt/c/...) — confirmed by the trial-run pipeline_log.txt traceback:
+    # "credential not found at '/mnt/c/Users/...'". Fixed to the native
+    # Windows path here. Also made configurable via env var, matching the
+    # convention every other path in this section already follows.
+    r"C:\Users\chipanl\Downloads\Whatsapp Session\digimobi-temperature-review-d88603b35531.json"
+)
 STAFF_MASTER_STAFFID_COL = "A"    # Staff ID
 STAFF_MASTER_DEPT_CODE_COL = "E"  # Dept
 STAFF_MASTER_POSITION_COL = "G"   # Position
