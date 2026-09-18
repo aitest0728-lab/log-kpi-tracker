@@ -395,11 +395,21 @@
      v15.1 — sized up a step across this whole card: at minmax(150px) the
      weekday cells had a lot of unused space around fairly small type, so
      labels/inputs/totals all grew and the grid minmax grew with them. */
-  .fc-hc-cell{display:grid;grid-template-columns:1fr 1fr;gap:4px 6px;min-width:130px;}
+  .fc-hc-cell{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;min-width:140px;}
   .fc-hc-field{display:flex;align-items:center;gap:4px;}
   .fc-hc-field span{font-family:'Inter';font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--text-muted);width:28px;flex:none;}
   .fc-hc-field input{width:100%;min-width:0;font-family:'IBM Plex Mono';font-size:13.5px;padding:4px 5px;text-align:right;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);}
   .fc-hc-field input:focus{outline:none;border-color:var(--ink);}
+  /* v15.2 — the browser's native up/down spinner on type=number inputs is a
+     fixed-width control that doesn't shrink with the field, so at the
+     larger v15.1 font it was eating into the digits themselves on the
+     narrower FTC/PTC slot and rendering as a squashed, illegible glyph.
+     These are edited by typing (and by Suggest/Copy), never by the
+     spinner, so it's removed outright rather than left to fight the text
+     for space. */
+  .fc-hc-field input::-webkit-outer-spin-button,
+  .fc-hc-field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .fc-hc-field input[type=number]{-moz-appearance:textfield;}
   /* v15.0 §3 — Per-District Staff Plan, card layout. Replaces the old
      min-width:1180px table (which needed horizontal scroll to reach
      Sat/Sun on anything narrower than a wide desktop). Each district is
@@ -414,8 +424,11 @@
   .fc-plan-mini-field{display:flex;flex-direction:column;gap:3px;font-family:'Inter';font-size:10.5px;font-weight:700;letter-spacing:.03em;color:var(--text-muted);text-transform:uppercase;}
   .fc-plan-mini-field input{font-family:'IBM Plex Mono';font-size:13.5px;padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);width:84px;text-transform:none;}
   .fc-plan-mini-field input:focus{outline:none;border-color:var(--ink);}
+  .fc-plan-mini-field input::-webkit-outer-spin-button,
+  .fc-plan-mini-field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .fc-plan-mini-field input[type=number]{-moz-appearance:textfield;}
   .fc-plan-card-suggest{margin-left:auto;}
-  .fc-plan-card-weekdays{display:grid;grid-template-columns:repeat(auto-fill, minmax(172px, 1fr));gap:10px 12px;}
+  .fc-plan-card-weekdays{display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:14px 18px;}
   .fc-plan-wd-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;}
   .fc-plan-wd-label .occ{opacity:.6;font-weight:400;text-transform:none;letter-spacing:0;}
   .fc-hc-total{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:2px;padding-top:3px;border-top:1px dashed var(--line-soft);font-size:11.5px;color:var(--text-muted);}
@@ -2507,6 +2520,18 @@
   function fcOptimizeDayPlan(district, weekdayIdx, targetProd, overdrive, courierShare, ftAvail){
     const { lo, hi, base, total } = fcOdsBoundsFor(district, weekdayIdx);
     const blended = odsBlendedCostFor(district);
+    // v15.2 — ODS Tunnel Fee (ETH/WTH only) has to be part of the same
+    // marginal-cost comparison that chooses the ODS/HKTV split, or the
+    // optimizer will happily shift orders onto ODS without ever seeing the
+    // $100/user/day toll that shift creates in those two districts. The
+    // rate is historical (fcOdsProductivityRateFor doesn't read FC_STATE),
+    // so it's fixed once per weekday, outside the candidate loop.
+    const tunnelApplies = fcOdsTunnelAppliesTo(district);
+    const tunnelRate = tunnelApplies ? fcOdsProductivityRateFor(district, weekdayIdx) : 0;
+    const tunnelCostForOds = (ods)=>{
+      if(!tunnelApplies || !(ods > 0) || !(tunnelRate > 0)) return 0;
+      return Math.ceil(ods / tunnelRate) * ODS_TUNNEL_FEE_PER_USER;
+    };
     const candidates = [];
     const seen = new Set();
     const push = (v)=>{
@@ -2533,11 +2558,15 @@
       // v14.2 §1 — chosen on MARGINAL cost (PT + ODS). Pool FT is sunk, so
       // including it here would make in-house volume look expensive and push
       // orders to a partner the district is already paying staff to beat.
-      const dayCost = combo.marginalCost + ods*blended;
+      // v15.2 — + the ODS Tunnel toll this candidate's ODS volume would
+      // create (0 outside ETH/WTH), so the split search can't shift volume
+      // onto ODS purely because the toll was invisible to it.
+      const odsTunnelCost = tunnelCostForOds(ods);
+      const dayCost = combo.marginalCost + ods*blended + odsTunnelCost;
       if(!best || dayCost < best.dayCost - 1e-9){
         const achievedProd = combo.total > 0 ? hktv/combo.total : null;
         best = { ...combo, odsOrders:ods, odsBaseline:base, odsShift:ods-base, hktvOrders:hktv,
-          Smin, Smax, wanted, staffDailyCost: combo.dailyCost, odsDailyCost: ods*blended, dayCost,
+          Smin, Smax, wanted, staffDailyCost: combo.dailyCost, odsDailyCost: ods*blended, odsTunnelCost, dayCost,
           achievedProd, meetsProd: achievedProd != null && achievedProd >= targetProd,
           benchLimited: combo.shortfall > 0 };
       }
@@ -2632,6 +2661,13 @@
     const monthlyOdsVolume = days.reduce((a,d)=> a + d.odsOrders*d.occurrences, 0);
     const baseOdsVolume = baseOdsByDay.reduce((a,v,i)=> a + v*occ[i], 0);
     const variableOds = monthlyOdsVolume * blended;
+    // v15.2 — ODS Tunnel Fee (ETH/WTH only, 0 elsewhere): had been left out
+    // of this feasibility check entirely, so Suggest/Auto-Tune could mark a
+    // district's plan as clearing Cost/Order using a total that quietly
+    // excluded a cost the actual Weekly Forecast Plan and Cost Portal both
+    // charge it. Summed the same way as every other monthly cost line —
+    // weighted by each weekday's occurrences in the forecast month.
+    const variableOdsTunnel = days.reduce((a,d)=> a + (d.odsTunnelCost||0)*d.occurrences, 0);
 
     // v14.2 §1 — STAFF COST = the whole FT pool (paid whether deployed or
     // not) + whatever PT the plan had to buy on top. Deploying pool FT costs
@@ -2652,7 +2688,7 @@
     const manDays = ftManDays + ptManDays;                 // deployed — the plan, and the productivity denominator
     const paidManDays = manDays + idleFtManDays;           // payroll
     const poolUtilisation = pool.total > 0 ? Math.min(1, ftManDays/pool.total) : null;
-    const costPerOrder = monthlyOrderVolume > 0 ? (fixed + monthlyStaffCost + variableOds)/monthlyOrderVolume : null;
+    const costPerOrder = monthlyOrderVolume > 0 ? (fixed + monthlyStaffCost + variableOds + variableOdsTunnel)/monthlyOrderVolume : null;
     const totals = days.map(d=>d.total);
     const prods = days.map(d=>d.achievedProd).filter(v=>v!=null);
     const worst = days.reduce((a,b)=> (a.achievedProd ?? Infinity) <= (b.achievedProd ?? Infinity) ? a : b);
@@ -2679,7 +2715,7 @@
     return { feasible: costOk && prodOk, applied:true, costOk, prodOk, district, days, overdrive,
       targetProd, targetCost, costPerOrder, weightedProd, prodAchievement, costAchievement,
       paidProd, paidProdAchievement,
-      monthlyStaffCost, monthlyOdsVolume, baseOdsVolume, odsShifted, variableOds,
+      monthlyStaffCost, monthlyOdsVolume, baseOdsVolume, odsShifted, variableOds, variableOdsTunnel,
       manDays, paidManDays, ftManDays, ptManDays, idleFtManDays, poolUtilisation, ftPool:pool,
       deployedFtCost, idleFtCost, ptCost, fixed, monthlyOrderVolume,
       minTotal:Math.min(...totals), maxTotal:Math.max(...totals),
