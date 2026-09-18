@@ -333,12 +333,6 @@
   .cost-sub-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);margin:18px 0 8px;}
   .cost-sub-label:first-child{margin-top:0;}
   .fc-plan-wrap{margin-bottom:20px;}
-  #fcPlanTable{border-collapse:collapse;width:100%;}
-  #fcPlanTable thead th{background:var(--ink);color:var(--text-inverse-muted);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;text-align:left;padding:9px 10px;font-weight:600;white-space:nowrap;}
-  #fcPlanTable tbody td{padding:6px 10px;border-top:1px solid var(--line-soft);font-size:12.5px;}
-  #fcPlanTable tbody td:first-child{font-weight:600;}
-  #fcPlanTable input[type=number]{width:84px;}
-  #fcPlanTable .ph{color:var(--text-muted);font-size:10px;display:block;margin-top:2px;}
   #fcTable{border-collapse:collapse;width:100%;table-layout:fixed;}
   #fcTable thead th{position:sticky;top:0;background:var(--ink);color:var(--text-inverse-muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:11px 8px;font-weight:600;white-space:nowrap;border-left:1px solid rgba(255,255,255,.08);}
   #fcTable thead th:first-child{text-align:left;width:128px;border-left:none;}
@@ -374,7 +368,7 @@
   .fc-suggest-banner.ok{background:var(--green-soft);color:var(--green);}
   .fc-suggest-banner.warn{background:var(--red-soft);color:var(--red);}
   .fc-suggest-banner b{font-weight:700;}
-  #fcPlanTable td.fc-suggest-cell{white-space:nowrap;}
+  .fc-plan-card-suggest{white-space:nowrap;}
   .fc-suggest-btn{font-family:'Inter';font-size:11px;font-weight:700;padding:5px 10px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;white-space:nowrap;}
   .fc-suggest-btn:hover{border-color:#c7d0da;}
   .fc-suggest-badge{display:inline-block;margin-top:5px;font-size:10.5px;line-height:1.4;padding:3px 8px;border-radius:10px;max-width:190px;white-space:normal;cursor:help;}
@@ -388,17 +382,36 @@
   .fc-minroster-note{display:block;margin-top:4px;font-size:10px;line-height:1.4;color:var(--text-muted);max-width:190px;white-space:normal;cursor:help;}
   .fc-hc-minroster{font-size:9.5px;color:var(--text-muted);white-space:nowrap;cursor:help;}
 
-  /* v11.0 §1 — Per-weekday staff plan. The Per-District Staff Plan table now
-     carries one editable headcount block per weekday instead of a single
-     flat FT/PT number per district, so it grows from 7 columns to 10 and
-     needs its own horizontal scroll + a much denser cell. */
-  #fcPlanTable{min-width:1180px;}
-  #fcPlanTable thead th{white-space:nowrap;}
+  /* v11.0 §1 — Per-weekday staff plan: one editable headcount block per
+     weekday instead of a single flat FT/PT number per district. */
   .fc-hc-cell{display:grid;grid-template-columns:1fr 1fr;gap:3px 5px;min-width:118px;}
   .fc-hc-field{display:flex;align-items:center;gap:3px;}
   .fc-hc-field span{font-family:'Inter';font-size:9.5px;font-weight:700;letter-spacing:.03em;color:var(--text-muted);width:24px;flex:none;}
   .fc-hc-field input{width:100%;min-width:0;font-family:'IBM Plex Mono';font-size:11.5px;padding:3px 4px;text-align:right;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);}
   .fc-hc-field input:focus{outline:none;border-color:var(--ink);}
+  /* v15.0 §3 — Per-District Staff Plan, card layout. Replaces the old
+     min-width:1180px table (which needed horizontal scroll to reach
+     Sat/Sun on anything narrower than a wide desktop). Each district is
+     one card; the 7 weekday cells sit in a CSS grid that WRAPS onto
+     however many rows the viewport needs (auto-fill + minmax), so no
+     container here is ever wider than its parent — nothing to scroll
+     sideways for, at any width. */
+  .fc-plan-cards{display:flex;flex-direction:column;gap:14px;}
+  .fc-plan-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow);padding:12px 14px;}
+  .fc-plan-card-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 18px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line-soft);}
+  .fc-plan-card-title{font-family:'Inter';font-weight:700;font-size:15px;align-self:center;min-width:52px;}
+  .fc-plan-mini-field{display:flex;flex-direction:column;gap:3px;font-family:'Inter';font-size:9.5px;font-weight:700;letter-spacing:.03em;color:var(--text-muted);text-transform:uppercase;}
+  .fc-plan-mini-field input{font-family:'IBM Plex Mono';font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);width:78px;text-transform:none;}
+  .fc-plan-mini-field input:focus{outline:none;border-color:var(--ink);}
+  .fc-plan-card-suggest{margin-left:auto;}
+  .fc-plan-card-weekdays{display:grid;grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:10px 12px;}
+  .fc-plan-wd-label{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;}
+  .fc-plan-wd-label .occ{opacity:.6;font-weight:400;text-transform:none;letter-spacing:0;}
+  /* v15.0 §2 — Weekly rollup column on the Weekly Forecast Plan table: a
+     heavier left border + faint tint sets it apart from the seven daily
+     columns it summarizes, in both header and body. */
+  #fcTable .fc-weekly-th, #fcTable .fc-weekly-td{border-left:2px solid var(--ink);background:rgba(0,0,0,.025);}
+  #fcTable .fc-weekly-th{white-space:nowrap;}
   .fc-hc-total{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:2px;padding-top:3px;border-top:1px dashed var(--line-soft);font-size:10px;color:var(--text-muted);}
   .fc-hc-total .v{font-family:'IBM Plex Mono';font-size:11px;font-weight:700;color:var(--text);}
   .fc-hc-total .p{font-family:'IBM Plex Mono';font-size:10px;padding:1px 5px;border-radius:8px;background:var(--line-soft);color:var(--text-muted);}
@@ -690,7 +703,9 @@
            distribution.json — no new pipeline output needed. Layout mirrors
            Productivity Detail (weekday columns, district rows), but each
            cell is a single forecast plan instead of an A/B comparison, and
-           every input a leader can override sits above the table:
+           every input a leader can override sits above the Per-District
+           Staff Plan cards (v15.0 §3 — was a table, now one responsive
+           card per district; see fcRenderPlanTable):
              1) Order-ratio weights (T-2 / T-1 / current month), default
                 0% / 30% / 70% — matching staff_forecast.py's
                 FORECAST_WEIGHT_AUG/SEP for a Sep-forecast, generalized to
@@ -768,11 +783,11 @@
              productivity target — see fcSuggestHeadcountForDistrict()). -->
         <div class="prod-controls fc-suggest-row">
           <div class="prod-field fc-weight">
-            <label for="fcSuggestOverdrive" title="A CEILING, not a fixed setting, and only the DEFAULT one: Suggest Headcount searches Overdrive values from 0% up to a district's ceiling and applies the smallest that clears both Target Productivity and Target Cost/Order together. Any district with its own 'Max OD %' in the plan table below uses that instead of this. 0% stays untouched only if that already clears both; if Cost/Order is over target, the search leans the team out (which also lifts Productivity above target) until it isn't, or gives up at the ceiling and reports how much more it would have needed. Capped at 50%.">Max Productivity Overdrive (%) — default</label>
+            <label for="fcSuggestOverdrive" title="A CEILING, not a fixed setting, and only the DEFAULT one: Suggest Headcount searches Overdrive values from 0% up to a district's ceiling and applies the smallest that clears both Target Productivity and Target Cost/Order together. Any district with its own 'Max OD %' on its card below uses that instead of this. 0% stays untouched only if that already clears both; if Cost/Order is over target, the search leans the team out (which also lifts Productivity above target) until it isn't, or gives up at the ceiling and reports how much more it would have needed. Capped at 50%.">Max Productivity Overdrive (%) — default</label>
             <input type="number" id="fcSuggestOverdrive" min="0" max="50" step="1" value="0">
           </div>
           <div class="prod-field fc-weight">
-            <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. Only the DEFAULT: any district with its own 'Max ODS Flex %' in the plan table below uses that instead. Defaults to 0% — no channel-split movement — until raised here or on a specific district, to the agreed contractual bound.">Max ODS Volume Flex (±%) — default</label>
+            <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. Only the DEFAULT: any district with its own 'Max ODS Flex %' on its card below uses that instead. Defaults to 0% — no channel-split movement — until raised here or on a specific district, to the agreed contractual bound.">Max ODS Volume Flex (±%) — default</label>
             <input type="number" id="fcOdsFlex" min="0" max="100" step="1" value="0">
           </div>
           <div class="prod-field fc-weight">
@@ -787,7 +802,7 @@
           <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn" title="Resets the whole plan to defaults: per-weekday headcounts, Target Productivity overrides, the ODS/HKTV shift and the badges all go back to blank.">Clear Suggestions &amp; Reset Plan</button>
         </div>
         <div class="prod-note">
-          <b>One Overdrive ceiling per district, and now one ODS Flex ceiling per district too — not one of each for the network.</b> The two fields above are only the <i>defaults</i>; the <b>Max OD %</b> and <b>Max ODS Flex %</b> columns in the table below override them for a single district. How much of each a district needs is a property of that district — its own bench, volume, unit rates, and ODS partner terms — so a district that needs 27% Overdrive can have it without leaning out the nine that already clear both targets at 0%, and a district whose Overdrive is spent (its team already fits inside the paid FT pool, so a leaner team changes no cost) can still be fixed by moving volume to or from ODS, which is a real cost change regardless of team size. <b>Auto-Tune Overdrive &amp; ODS Flex</b> does this for you: it probes each district for the smallest Overdrive that clears both targets; where that alone isn't enough, it probes the smallest ODS Flex (holding Overdrive at whatever the first probe left) that closes the rest; and it writes only whichever of those actually moves the number, per district, leaving alone both the districts that already pass and the districts neither lever can fix. When a district misses, its badge says which — <b>needs OD n%</b>, <b>needs ODS Flex n%</b>, or <b>OD/Flex won't help</b> (the lever there is the FT bench or the target).<br>
+          <b>One Overdrive ceiling per district, and now one ODS Flex ceiling per district too — not one of each for the network.</b> The two fields above are only the <i>defaults</i>; the <b>Max OD %</b> and <b>Max ODS Flex %</b> fields on each district's card below override them for that district alone. How much of each a district needs is a property of that district — its own bench, volume, unit rates, and ODS partner terms — so a district that needs 27% Overdrive can have it without leaning out the nine that already clear both targets at 0%, and a district whose Overdrive is spent (its team already fits inside the paid FT pool, so a leaner team changes no cost) can still be fixed by moving volume to or from ODS, which is a real cost change regardless of team size. <b>Auto-Tune Overdrive &amp; ODS Flex</b> does this for you: it probes each district for the smallest Overdrive that clears both targets; where that alone isn't enough, it probes the smallest ODS Flex (holding Overdrive at whatever the first probe left) that closes the rest; and it writes only whichever of those actually moves the number, per district, leaving alone both the districts that already pass and the districts neither lever can fix. When a district misses, its badge says which — <b>needs OD n%</b>, <b>needs ODS Flex n%</b>, or <b>OD/Flex won't help</b> (the lever there is the FT bench or the target).<br>
           <b>Both targets drive the search, not just one.</b> A district is built at Overdrive 0% first — the leanest team that clears Target Productivity, capped by the Staff Allocation Cap. If that plan's Cost/Order already clears target too, it's used as-is. If not, Suggest re-builds the whole week at 1%, 2%, 3%… up to the Max Productivity Overdrive ceiling, and applies the <i>smallest</i> Overdrive that clears both — a leaner team both costs less and reads a higher Productivity, so the two targets pull the same way. The badge shows an <b>OD n%</b> pill whenever the search had to raise it above 0%. If nothing in the range clears both, the cheapest candidate found is applied and the badge explains why, in amber.<br>
           <b>Per weekday, at whichever Overdrive the search is trying:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), capped by the Staff Allocation Cap. Driver : Courier = 49 : 51; already-paid FT-pool heads are used before any PT head is bought, then whichever type is cheaper.<br>
           <b>Rostering across the week:</b> the FT pool is then spread over the seven weekdays to cover as much of that demand as possible — a first pass learns what each weekday wants, a second re-plans each day inside its slice of the pool. FT inside the pool is already paid, so it is used before any PT head is bought and it is treated as free when the ODS/HKTV split is chosen. PT appears only where the pool is exhausted.<br>
@@ -798,13 +813,16 @@
         </div>
         <div class="fc-suggest-banner" id="fcSuggestBanner" style="display:none;"></div>
 
-        <div class="fc-plan-wrap table-wrap">
-          <div class="table-scroll">
-            <table id="fcPlanTable">
-              <thead id="fcPlanTableHead"></thead>
-              <tbody id="fcPlanTableBody"></tbody>
-            </table>
-          </div>
+        <!-- v15.0 §3 — was a 12-column table (District + Target Productivity
+             + Max OD % + Max ODS Flex % + 7 weekday cells + Suggest), forced
+             into a 1180px min-width with horizontal scroll to see Sat/Sun.
+             Replaced with one responsive card per district: a header row for
+             the three per-district inputs + Suggest/Copy/badge, then the 7
+             weekday cells in a CSS grid that WRAPS onto as many rows as the
+             viewport needs instead of forcing one wide row — so every
+             weekday is visible without scrolling sideways at any width. -->
+        <div class="fc-plan-wrap" id="fcPlanCardsWrap">
+          <div id="fcPlanCards" class="fc-plan-cards"></div>
         </div>
 
         <div class="prod-legend" id="fcLegend"></div>
@@ -856,13 +874,13 @@
             <div class="fc-plan-wrap table-wrap">
               <div class="table-scroll">
                 <table id="costTotalTable">
-                  <thead><tr><th>District</th><th>Fixed ($)</th><th title="Weighted across the week: Σ (that weekday's FT/PT plan × Unit Cost) × that weekday's occurrences in the forecast month.">Variable — Staff ($)</th><th title="Σ (that weekday's total headcount × that weekday's occurrences in the forecast month) — the staffing plan measured in man-days rather than dollars.">Man-days /mo</th><th title="Monthly staff cost ÷ days in the forecast month — what the per-weekday plan averages out to per day.">Staff $/day (avg)</th><th>Variable — ODS ($)</th><th>Total ($)</th><th>Est. Order Volume /mo</th><th>Cost / Order ($)</th><th>Target Cost / Order ($)</th><th title="(forecast Cost/Order − Target Cost/Order) ÷ Target Cost/Order. Negative is good here — it means the forecast sits under target.">Achievement (%)</th></tr></thead>
+                  <thead><tr><th>District</th><th>Fixed ($)</th><th title="Weighted across the week: Σ (that weekday's FT/PT plan × Unit Cost) × that weekday's occurrences in the forecast month.">Variable — Staff ($)</th><th title="Σ (that weekday's total headcount × that weekday's occurrences in the forecast month) — the staffing plan measured in man-days rather than dollars.">Man-days /mo</th><th title="Monthly staff cost ÷ days in the forecast month — what the per-weekday plan averages out to per day.">Staff $/day (avg)</th><th>Variable — ODS ($)</th><th title="ETH &amp; WTH only, always $0 elsewhere. Σ (that weekday's ODS tunnel user count × $100) × that weekday's occurrences in the forecast month.">Variable — ODS Tunnel ($)</th><th>Total ($)</th><th>Est. Order Volume /mo</th><th>Cost / Order ($)</th><th>Target Cost / Order ($)</th><th title="(forecast Cost/Order − Target Cost/Order) ÷ Target Cost/Order. Negative is good here — it means the forecast sits under target.">Achievement (%)</th></tr></thead>
                   <tbody id="costTotalTableBody"></tbody>
                 </table>
               </div>
             </div>
             <div class="prod-note">
-          <b>Fixed</b> = Provision Plan daily rate × days in the forecast month. <b>Variable — Staff</b> = Σ over weekdays of (that weekday's ACTUAL scheduled FT/PT plan × Unit Cost per head/day) × that weekday's occurrences in the month. <b>Man-days /mo</b> = the same sum in heads. <b>Staff $/day (avg)</b> = Variable — Staff ÷ days in month. <b>Variable — ODS</b> = ODS orders in force (after any split shift) × Blended Cost/Order. <b>Est. Order Volume /mo</b> = Σ weekday Total Order forecast × that weekday's occurrences. <b>Cost/Order</b> = Total ÷ Est. Order Volume. <b>Achievement (%)</b> = (Cost/Order − Target Cost/Order) ÷ Target Cost/Order — negative is under target (green).
+          <b>Fixed</b> = Provision Plan daily rate × days in the forecast month. <b>Variable — Staff</b> = Σ over weekdays of (that weekday's ACTUAL scheduled FT/PT plan × Unit Cost per head/day) × that weekday's occurrences in the month. <b>Man-days /mo</b> = the same sum in heads. <b>Staff $/day (avg)</b> = Variable — Staff ÷ days in month. <b>Variable — ODS</b> = ODS orders in force (after any split shift) × Blended Cost/Order. <b>Variable — ODS Tunnel</b> = ETH &amp; WTH only (always $0 elsewhere): Σ over weekdays of (that weekday's ODS tunnel user count × $100/user) × that weekday's occurrences — the user count is that weekday's in-force ODS orders ÷ the district's own historical orders-per-ODS-user rate for that weekday, rounded up. <b>Est. Order Volume /mo</b> = Σ weekday Total Order forecast × that weekday's occurrences. <b>Cost/Order</b> = Total ÷ Est. Order Volume. <b>Achievement (%)</b> = (Cost/Order − Target Cost/Order) ÷ Target Cost/Order — negative is under target (green).
         </div>
           </div>
         </div>
@@ -3056,12 +3074,13 @@
       const avgStaffPerDay = fcCurrentMonthDays() > 0 ? variableStaff/fcCurrentMonthDays() : 0;
       const odsVolume = fcMonthlyOdsOrderEstimate(d);
       const variableOds = odsVolume * odsBlendedCostFor(d);
-      const total = fixed + variableStaff + variableOds;
+      const variableOdsTunnel = fcMonthlyOdsTunnelCostFor(d); // v15.0 §1 — ETH/WTH only, $0 elsewhere
+      const total = fixed + variableStaff + variableOds + variableOdsTunnel;
       const orderVolume = fcMonthlyOrderEstimate(d);
       const costPerOrder = orderVolume > 0 ? total/orderVolume : null;
       const target = TARGET_COST_PER_ORDER[d];
       const overCls = costPerOrder==null ? '' : (costPerOrder <= target ? 'cost-ok' : 'cost-over');
-      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td title="Paid roster: ${intFmt(workedManDays)} planned man-days + ${intFmt(Math.max(0, manDays-workedManDays))} idle minimum-roster man-days (75% FT bench held whether or not the volume needs them).">${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td></tr>`;
+      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td title="Paid roster: ${intFmt(workedManDays)} planned man-days + ${intFmt(Math.max(0, manDays-workedManDays))} idle minimum-roster man-days (75% FT bench held whether or not the volume needs them).">${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td>${money(variableOdsTunnel)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td></tr>`;
     }).join('');
   }
   function fcSetupCostPortalListeners(){
@@ -3114,9 +3133,14 @@
   // render alongside the order-ratio caches, so it can never outlive a data
   // change.
   let _fcWeekdayAvgCache = {};
-  function fcMonthWeekdayAvg(monthStr, district, weekdayIdx, metricKey){
+  // v15.0 §1 — `field` lets this same averaging logic run on a record's
+  // manpower instead of its orderCount (used by the ODS Tunnel Fee's
+  // orders-per-ODS-user rate below), without duplicating the whole
+  // no-data/real-zero handling. Default keeps every existing caller
+  // (order-count forecasts) unchanged.
+  function fcMonthWeekdayAvg(monthStr, district, weekdayIdx, metricKey, field='orderCount'){
     if(!monthStr) return null;
-    const ck = `${monthStr}|${district}|${weekdayIdx}|${metricKey}`;
+    const ck = `${monthStr}|${district}|${weekdayIdx}|${metricKey}|${field}`;
     if(ck in _fcWeekdayAvgCache) return _fcWeekdayAvgCache[ck];
     let sum = 0, count = 0;
     Object.keys(DATA.dailyProductivity).forEach(key=>{
@@ -3130,7 +3154,7 @@
       // district that runs ODS on three Mondays out of four now averages
       // (a+b+c+0)/4 — its actual expected Monday — instead of (a+b+c)/3,
       // which over-forecast ODS volume on the days it doesn't operate.
-      if(rec && rec.orderCount != null) { sum += rec.orderCount; count++; }
+      if(rec && rec.orderCount != null) { sum += (rec[field] || 0); count++; }
     });
     return (_fcWeekdayAvgCache[ck] = count ? sum/count : null);
   }
@@ -3138,15 +3162,16 @@
   // of 2, and to renormalize weights across whichever of the 3 months
   // actually has data for that weekday (so a T-2 month with no history yet
   // simply drops out instead of forcing a zero into the average).
-  function fcWeightedForecast(district, weekdayIdx, metricKey){
+  // v15.0 §1 — `field` passthrough, see fcMonthWeekdayAvg above.
+  function fcWeightedForecast(district, weekdayIdx, metricKey, field='orderCount'){
     const [t2,t1,cur] = fcMonthTriplet();
     const w2 = Math.max(0, +document.getElementById('fcWeightT2').value || 0);
     const w1 = Math.max(0, +document.getElementById('fcWeightT1').value || 0);
     const wc = Math.max(0, +document.getElementById('fcWeightCur').value || 0);
     const parts = [
-      { avg: fcMonthWeekdayAvg(t2, district, weekdayIdx, metricKey), w: w2 },
-      { avg: fcMonthWeekdayAvg(t1, district, weekdayIdx, metricKey), w: w1 },
-      { avg: fcMonthWeekdayAvg(cur, district, weekdayIdx, metricKey), w: wc },
+      { avg: fcMonthWeekdayAvg(t2, district, weekdayIdx, metricKey, field), w: w2 },
+      { avg: fcMonthWeekdayAvg(t1, district, weekdayIdx, metricKey, field), w: w1 },
+      { avg: fcMonthWeekdayAvg(cur, district, weekdayIdx, metricKey, field), w: wc },
     ].filter(p=>p.avg != null);
     if(parts.length === 0) return 0;
     const wSum = parts.reduce((s,p)=>s+p.w, 0);
@@ -3164,6 +3189,15 @@
   // Total Order − Estimated ODS Orders below.
   function fcForecastOdsOrders(district, weekdayIdx){
     return fcWeightedForecast(district, weekdayIdx, 'odsRatio');
+  }
+  // v15.0 §1 — same weighted T-2/T-1/current-month average, run on the
+  // ODS/VAN manpower field instead of orderCount. This is the baseline
+  // headcount the district actually ran to clear fcForecastOdsOrders() on
+  // this weekday — dividing the two gives a per-district, per-weekday
+  // orders-per-ODS-user rate (see fcOdsProductivityRateFor) without
+  // assuming one network-wide productivity number.
+  function fcForecastOdsManpower(district, weekdayIdx){
+    return fcWeightedForecast(district, weekdayIdx, 'odsRatio', 'manpower');
   }
   // Each district's share of TOTAL historical order count, across every day
   // currently loaded in productivity_history.json. This is the "Ratio
@@ -3323,12 +3357,15 @@
   // one occurrence instead of the whole month. This lets a leader see WHICH
   // days are cost-efficient and which aren't, rather than only the single
   // month-end number that averages them all together.
+  // v15.0 §1 — + ODS Tunnel Fee (ETH/WTH only, 0 elsewhere): this weekday's
+  // in-force ODS user count × $100. See fcOdsTunnelCostFor above.
   function fcDailyCostPerOrder(district, weekdayIdx, totalOrders, odsOrders){
     if(!(totalOrders > 0)) return null;
     const fixedDaily = FIXED_COST_PROVISION[district];
     const staffDaily = fcDailyStaffCost(district, weekdayIdx);
     const odsDaily = odsOrders * odsBlendedCostFor(district);
-    return (fixedDaily + staffDaily + odsDaily) / totalOrders;
+    const tunnelDaily = fcOdsTunnelCostFor(district, weekdayIdx);
+    return (fixedDaily + staffDaily + odsDaily + tunnelDaily) / totalOrders;
   }
   function fcPlanFor(district, weekdayIdx){
     const totalOrders = fcForecastTotalOrdersAdjusted(district, weekdayIdx);
@@ -3340,7 +3377,10 @@
     const targetProd = fcTargetProdFor(district);
     const costPerOrder = fcDailyCostPerOrder(district, weekdayIdx, totalOrders, odsOrders);
     const targetCostPerOrder = TARGET_COST_PER_ORDER[district] != null ? TARGET_COST_PER_ORDER[district] : TARGET_COST_PER_ORDER.overall;
-    return { totalOrders, odsOrders, odsShift, hktvOrders, ...hc, achievedProd, targetProd, costPerOrder, targetCostPerOrder };
+    // v15.0 §1 — ODS Tunnel Fee: user count + $ cost, ETH/WTH only (0 elsewhere).
+    const odsUserCount = fcOdsUserCountFor(district, weekdayIdx);
+    const odsTunnelCost = odsUserCount * ODS_TUNNEL_FEE_PER_USER;
+    return { totalOrders, odsOrders, odsShift, hktvOrders, ...hc, achievedProd, targetProd, costPerOrder, targetCostPerOrder, odsUserCount, odsTunnelCost };
   }
   // Est. monthly Total Order volume for a district — the weekday Total
   // Order forecasts (adjusted) summed across one week, scaled to a month
@@ -3477,6 +3517,69 @@
     return total;
   }
 
+  /* ---------------- ODS Tunnel Fee — ETH & WTH only (v15.0) ----------------
+     These two districts' ODS/VAN staff each cost an extra $100/day tunnel
+     toll, on top of the Blended Cost/Order already charged for ODS volume.
+     The fee is per ODS USER, not per order, so it needs a headcount — which
+     this weekday's Est. ODS Orders alone doesn't give. Per leader request,
+     that headcount is derived from the weekday's order volume: the same
+     IN-FORCE ODS order count already billed in fcDailyCostPerOrder (i.e.
+     after any optimizer channel-split shift), divided by the district's own
+     historical orders-per-ODS-user rate for that weekday — never a
+     network-wide rate, so NT-TSM/WTK's real Monday zeros (or any other
+     district's rate) can never leak into ETH/WTH's tunnel bill, and ETH's
+     rate never leaks into WTH's. */
+  const ODS_TUNNEL_FEE_PER_USER = 100; // $/user/day, ETH & WTH tunnel toll
+  const ODS_TUNNEL_DISTRICTS = ['ETH', 'WTH'];
+  function fcOdsTunnelAppliesTo(district){
+    return ODS_TUNNEL_DISTRICTS.includes(district);
+  }
+  // Orders-per-ODS-user for one district+weekday: the same weighted
+  // historical baseline fcForecastOdsOrders() already uses, ÷ the matching
+  // weighted historical ODS/VAN manpower — so a weekday that runs a bigger
+  // team AND more orders doesn't look artificially over- or under-staffed.
+  // Falls back to this district's own all-week rate (still per-district,
+  // just not per-weekday) when this specific weekday has no manpower
+  // history yet, then to the network's ODS/VAN Productivity target (the
+  // 'odsRatio' matrix's target of 19 orders/head/day) if the district has
+  // never run ODS at all — so a brand-new district still gets a sane tunnel
+  // estimate instead of a divide-by-zero blank.
+  function fcOdsProductivityRateFor(district, weekdayIdx){
+    const orders = fcForecastOdsOrders(district, weekdayIdx);
+    const manpower = fcForecastOdsManpower(district, weekdayIdx);
+    if(manpower > 0) return orders / manpower;
+    const occ = fcWeekdayOccurrences();
+    let so = 0, sm = 0;
+    for(let i=0;i<7;i++){ so += fcForecastOdsOrders(district, i) * occ[i]; sm += fcForecastOdsManpower(district, i) * occ[i]; }
+    if(sm > 0) return so / sm;
+    const odsMatrix = MATRICES.find(m=>m.key==='odsRatio');
+    return odsMatrix && odsMatrix.target > 0 ? odsMatrix.target : 19;
+  }
+  // The ODS user count this weekday's IN-FORCE ODS order volume implies for
+  // ETH/WTH — rounded UP, since a fractional user still needs the tunnel a
+  // whole day. 0 for every other district (never a network-wide count) and
+  // 0 on a weekday with no ODS orders in force.
+  function fcOdsUserCountFor(district, weekdayIdx){
+    if(!fcOdsTunnelAppliesTo(district)) return 0;
+    const orders = fcOdsOrdersFor(district, weekdayIdx); // in-force, post optimizer shift
+    if(!(orders > 0)) return 0;
+    const rate = fcOdsProductivityRateFor(district, weekdayIdx);
+    if(!(rate > 0)) return 0;
+    return Math.ceil(orders / rate);
+  }
+  function fcOdsTunnelCostFor(district, weekdayIdx){
+    return fcOdsUserCountFor(district, weekdayIdx) * ODS_TUNNEL_FEE_PER_USER;
+  }
+  // Est. monthly ODS Tunnel Fee for a district — same weekday-occurrence
+  // weighting as every other monthly cost line (fcMonthlyStaffCostFor,
+  // fcMonthlyOdsOrderEstimate). 0 for every district except ETH/WTH.
+  function fcMonthlyOdsTunnelCostFor(district){
+    const occ = fcWeekdayOccurrences();
+    let total = 0;
+    for(let i=0;i<7;i++) total += fcOdsTunnelCostFor(district, i) * occ[i];
+    return total;
+  }
+
   function fcRenderChips(){
     const wrap = document.getElementById('fcDistrictChips');
     const allOn = FC_STATE.districts.size === DISTRICTS.length;
@@ -3607,30 +3710,33 @@
       ${rosterLine}
     </div>`;
   }
+  // v15.0 §3 — per-district card instead of a table row: header strip with
+  // this district's Target Productivity / Max OD % / Max ODS Flex % inputs
+  // plus Suggest/Copy/badge, then all 7 weekdays as one wrapping CSS grid
+  // (fc-plan-card-weekdays) instead of 7 fixed table columns — see the CSS
+  // rule for why this needs no horizontal scroll at any width.
+  function fcPlanCardHtml(d, occ){
+    const weekdayCells = WEEKDAY_LABELS.map((w,i)=>`
+      <div class="fc-plan-wd">
+        <div class="fc-plan-wd-label">${w} <span class="occ" title="${occ[i]}× in the forecast month — this weekday's plan is weighted by that in the Cost Portal's Variable — Staff line.">×${occ[i]}</span></div>
+        ${fcPlanCellHtml(d, i)}
+      </div>`).join('');
+    return `<div class="fc-plan-card" data-d="${d}">
+      <div class="fc-plan-card-head">
+        <div class="fc-plan-card-title">${d}</div>
+        <label class="fc-plan-mini-field">Target Productivity<input type="number" min="0" step="0.1" class="fc-in-targetprod" data-d="${d}" placeholder="${TARGET_PRODUCTIVITY[d]}" value="${FC_STATE.targetProd[d] ?? ''}"></label>
+        <label class="fc-plan-mini-field" title="This district's own Max Productivity Overdrive ceiling for Suggest Headcount. Blank = the network default above. Suggest still applies the SMALLEST Overdrive that clears both targets — this only sets how far it may look.">Max OD %<input type="number" min="0" max="${FC_OVERDRIVE_HARD_MAX}" step="1" class="fc-in-overdrive" data-d="${d}" placeholder="${fcClampOverdrive(FC_SUGGEST.overdrivePct)}" value="${FC_SUGGEST.byDistrict[d] ?? ''}"></label>
+        <label class="fc-plan-mini-field" title="This district's own Max ODS Volume Flex ceiling for Suggest Headcount's channel-split optimizer. Blank = the network default above. Still a commercial limit — what THIS district's ODS partner can actually absorb — so raise it only as far as that agreement allows.">Max ODS Flex %<input type="number" min="0" max="100" step="1" class="fc-in-odsflex" data-d="${d}" placeholder="${Math.min(100,Math.max(0,+FC_ODS.flexPct||0))}" value="${FC_ODS.byDistrict[d] ?? ''}"></label>
+        <div class="fc-plan-card-suggest">${fcSuggestCellHtml(d)}</div>
+      </div>
+      <div class="fc-plan-card-weekdays">${weekdayCells}</div>
+    </div>`;
+  }
   function fcRenderPlanTable(){
-    const head = document.getElementById('fcPlanTableHead');
-    const body = document.getElementById('fcPlanTableBody');
+    const cardsEl = document.getElementById('fcPlanCards');
+    if(!cardsEl) return;
     const occ = fcWeekdayOccurrences();
-    if(head){
-      // v14.5 §2 — "Max OD %" is this district's OWN Overdrive ceiling.
-      // Blank = use the network default from the field above; the
-      // placeholder shows what that default currently is.
-      // v14.6 §2 — "Max ODS Flex %" is the same pattern for the ODS Volume
-      // Flex band: this district's own ceiling, falling back to the network
-      // default field above when blank.
-      head.innerHTML = `<tr><th>District</th><th>Target Productivity</th><th title="This district's own Max Productivity Overdrive ceiling for Suggest Headcount. Blank = the network default above. Suggest still applies the SMALLEST Overdrive that clears both targets — this only sets how far it may look.">Max OD %</th><th title="This district's own Max ODS Volume Flex ceiling for Suggest Headcount's channel-split optimizer. Blank = the network default above. Still a commercial limit — what THIS district's ODS partner can actually absorb — so raise it only as far as that agreement allows.">Max ODS Flex %</th>`
-        + WEEKDAY_LABELS.map((w,i)=>`<th title="${occ[i]}× in the forecast month — this weekday's plan is weighted by that in the Cost Portal's Variable — Staff line.">${w} <span style="opacity:.6;font-weight:400;">×${occ[i]}</span></th>`).join('')
-        + `<th>Suggest Headcount</th></tr>`;
-    }
-    body.innerHTML = DISTRICTS.map(d=>`
-      <tr data-d="${d}">
-        <td>${d}</td>
-        <td><input type="number" min="0" step="0.1" class="fc-in-targetprod" data-d="${d}" placeholder="${TARGET_PRODUCTIVITY[d]}" value="${FC_STATE.targetProd[d] ?? ''}"></td>
-        <td><input type="number" min="0" max="${FC_OVERDRIVE_HARD_MAX}" step="1" class="fc-in-overdrive" data-d="${d}" placeholder="${fcClampOverdrive(FC_SUGGEST.overdrivePct)}" value="${FC_SUGGEST.byDistrict[d] ?? ''}"></td>
-        <td><input type="number" min="0" max="100" step="1" class="fc-in-odsflex" data-d="${d}" placeholder="${Math.min(100,Math.max(0,+FC_ODS.flexPct||0))}" value="${FC_ODS.byDistrict[d] ?? ''}"></td>
-        ${WEEKDAY_LABELS.map((_,i)=>`<td>${fcPlanCellHtml(d, i)}</td>`).join('')}
-        <td class="fc-suggest-cell">${fcSuggestCellHtml(d)}</td>
-      </tr>`).join('');
+    cardsEl.innerHTML = DISTRICTS.map(d=>fcPlanCardHtml(d, occ)).join('');
   }
   // Runs Suggest Headcount for every district, applies feasible results
   // into FC_STATE, then re-renders the whole tab (so the plan table,
@@ -3815,7 +3921,7 @@
       </div>`;
     }).join('');
 
-    head.innerHTML = `<tr><th>District</th>${WEEKDAY_LABELS.map(w=>`<th>${w}</th>`).join('')}</tr>`;
+    head.innerHTML = `<tr><th>District</th>${WEEKDAY_LABELS.map(w=>`<th>${w}</th>`).join('')}<th class="fc-weekly-th" title="Mon–Sun rolled into one: sums for orders/headcount/tunnel-cost, Productivity and Cost/Order recomputed from those sums.">Weekly</th></tr>`;
 
     function fcCellHtml(p){
       const meetsTarget = p.achievedProd != null && p.achievedProd >= p.targetProd;
@@ -3842,10 +3948,15 @@
       // row in every cell regardless of whether that particular day shifted
       // anything.
       const hasShift = Math.abs(p.odsShift||0) >= 1;
+      // v15.0 §1 — ODS Tunnel line: only ever non-zero for ETH/WTH, so this
+      // naturally stays blank (visibility:hidden, same pattern as ↳ shifted
+      // above) for every other district without needing a district check here.
+      const hasTunnel = (p.odsUserCount||0) > 0;
       return `<div class="fc-cell">
         <div class="fc-row"><span class="fc-label">Total Order</span><span class="fc-val">${intFmt(p.totalOrders)}</span></div>
         <div class="fc-row"><span class="fc-label">Est. ODS Orders</span><span class="fc-val">${intFmt(p.odsOrders)}</span></div>
         <div class="fc-row fc-shift"${hasShift ? '' : ' style="visibility:hidden;"'}><span class="fc-label">↳ shifted ${p.odsShift>0?'to':'off'} ODS</span><span class="fc-val">${p.odsShift>0?'+':''}${intFmt(p.odsShift)}</span></div>
+        <div class="fc-row fc-shift"${hasTunnel ? '' : ' style="visibility:hidden;"'} title="Est. ODS Orders ÷ this district's historical orders-per-ODS-user rate for this weekday, rounded up. $${ODS_TUNNEL_FEE_PER_USER}/user/day tunnel toll, ETH &amp; WTH only."><span class="fc-label">↳ ODS tunnel users</span><span class="fc-val">${intFmt(p.odsUserCount)} · $${intFmt(p.odsTunnelCost)}</span></div>
         <div class="fc-row"><span class="fc-label">HKTV Orders</span><span class="fc-val">${intFmt(p.hktvOrders)}</span></div>
         <div class="fc-row"><span class="fc-label">FT Driver</span><span class="fc-val">${intFmt(p.ftDriver)}</span></div>
         <div class="fc-row"><span class="fc-label">FT Courier</span><span class="fc-val">${intFmt(p.ftCourier)}</span></div>
@@ -3864,33 +3975,56 @@
       </div>`;
     }
 
+    // v15.0 §2 — shared aggregator for both the network Total row (sums
+    // across DISTRICTS for one weekday, as before) and the new Weekly
+    // column (sums across WEEKDAYS for one district/row, added below).
+    // Cost/Order is always Σ(cost) ÷ Σ(orders) — never an average of
+    // per-slice Cost/Order figures, which would let a low-volume slice's
+    // ratio pull the aggregate around out of proportion to its orders.
+    function fcAggregateP(ps, targetProd, targetCostPerOrder){
+      let toSum=0, odSum=0, hkSum=0, fd=0, fc=0, pd=0, pc=0, shSum=0, costSum=0, ouSum=0, otSum=0;
+      ps.forEach(p=>{ toSum+=p.totalOrders; odSum+=p.odsOrders; hkSum+=p.hktvOrders; shSum+=p.odsShift||0; fd+=p.ftDriver; fc+=p.ftCourier; pd+=p.ptDriver; pc+=p.ptCourier; ouSum+=p.odsUserCount||0; otSum+=p.odsTunnelCost||0;
+        if(p.costPerOrder != null) costSum += p.costPerOrder * p.totalOrders; });
+      const staffTotal = fd+fc+pd+pc;
+      const achieved = staffTotal>0 ? hkSum/staffTotal : null;
+      const costPerOrder = toSum>0 ? costSum/toSum : null;
+      return { totalOrders:toSum, odsOrders:odSum, odsShift:shSum, hktvOrders:hkSum, ftDriver:fd, ftCourier:fc, ptDriver:pd, ptCourier:pc, achievedProd:achieved, targetProd, costPerOrder, targetCostPerOrder, odsUserCount:ouSum, odsTunnelCost:otSum };
+    }
+
+    // v15.0 §2 — per-district Weekly column: this district's own 7 fcPlanFor
+    // cells (Mon..Sun) rolled into one aggregate, using that district's own
+    // Target Productivity / Target Cost per Order (not the network overall)
+    // so its achievement pills stay meaningful against ITS target.
+    function fcWeeklyPFor(d){
+      const ps = WEEKDAY_LABELS.map((_,i)=>fcPlanFor(d,i));
+      const targetProd = fcTargetProdFor(d);
+      const targetCostPerOrder = TARGET_COST_PER_ORDER[d] != null ? TARGET_COST_PER_ORDER[d] : TARGET_COST_PER_ORDER.overall;
+      return fcAggregateP(ps, targetProd, targetCostPerOrder);
+    }
+
     const bodyRows = rowDistricts.map(d=>{
       const cells = WEEKDAY_LABELS.map((_,i)=>{
         const p = fcPlanFor(d,i);
         return `<td>${fcCellHtml(p)}</td>`;
       }).join('');
-      return `<tr><td>${d}</td>${cells}</tr>`;
+      const weeklyCell = `<td class="fc-weekly-td">${fcCellHtml(fcWeeklyPFor(d))}</td>`;
+      return `<tr><td>${d}</td>${cells}${weeklyCell}</tr>`;
     });
-    const totalCells = WEEKDAY_LABELS.map((_,i)=>{
-      let toSum=0, odSum=0, hkSum=0, fd=0, fc=0, pd=0, pc=0, shSum=0, costSum=0;
-      // v14.7 §1 — the Total row's Cost/Order is the SAME kind of ratio as a
-      // single district's: Σ each district's (Fixed + Staff + ODS) for this
-      // weekday, ÷ Σ their Total Order — not an average of the per-district
-      // Cost/Order figures, which would let a low-volume district's ratio
-      // pull the network figure around out of proportion to its orders.
-      rowDistricts.forEach(dist=>{ const p = fcPlanFor(dist,i); toSum+=p.totalOrders; odSum+=p.odsOrders; hkSum+=p.hktvOrders; shSum+=p.odsShift||0; fd+=p.ftDriver; fc+=p.ftCourier; pd+=p.ptDriver; pc+=p.ptCourier;
-        if(p.costPerOrder != null) costSum += p.costPerOrder * p.totalOrders; });
-      const staffTotal = fd+fc+pd+pc;
-      const achieved = staffTotal>0 ? hkSum/staffTotal : null;
-      const costPerOrder = toSum>0 ? costSum/toSum : null;
-      const p = { totalOrders:toSum, odsOrders:odSum, odsShift:shSum, hktvOrders:hkSum, ftDriver:fd, ftCourier:fc, ptDriver:pd, ptCourier:pc, achievedProd:achieved, targetProd:TARGET_PRODUCTIVITY.overall, costPerOrder, targetCostPerOrder:TARGET_COST_PER_ORDER.overall };
-      return `<td>${fcCellHtml(p)}</td>`;
-    }).join('');
-    body.innerHTML = bodyRows.join('') + `<tr class="total-row"><td><strong>Total</strong></td>${totalCells}</tr>`;
+    // Total row: one aggregate per weekday, across the visible districts —
+    // unchanged from before, just now built through fcAggregateP.
+    const totalPs = WEEKDAY_LABELS.map((_,i)=>
+      fcAggregateP(rowDistricts.map(dist=>fcPlanFor(dist,i)), TARGET_PRODUCTIVITY.overall, TARGET_COST_PER_ORDER.overall)
+    );
+    const totalCells = totalPs.map(p=>`<td>${fcCellHtml(p)}</td>`).join('');
+    // Weekly × Total corner: every district's every weekday, in one cell —
+    // the network's full-week overall result.
+    const weeklyTotalP = fcAggregateP(totalPs, TARGET_PRODUCTIVITY.overall, TARGET_COST_PER_ORDER.overall);
+    const weeklyTotalCell = `<td class="fc-weekly-td">${fcCellHtml(weeklyTotalP)}</td>`;
+    body.innerHTML = bodyRows.join('') + `<tr class="total-row"><td><strong>Total</strong></td>${totalCells}${weeklyTotalCell}</tr>`;
 
     note.innerHTML = `<b>Total Order</b> = weighted average of that weekday's historical Total Order (HKTV Staff + ODS/VAN) across T-2 / T-1 / current month, weights above (auto-renormalized over whichever months have data)`
       + (pctChange ? `, then × (1 ${pctChange>0?'+':'−'} ${Math.abs(pctChange)}%) applied network-wide and split across districts by historical order share. ` : '. ')
-      + `<b>Est. ODS Orders</b> = same method on ODS/VAN-only history (or the ODS Order Count override), after any channel-split shift — a ↳ line shows the shift. <b>HKTV Orders</b> = Total Order − Est. ODS Orders. <b>FT/PT rows</b> = that weekday's Per-District Staff Plan. <b>Productivity</b> = HKTV Orders ÷ total headcount; the pill is its achievement rate, (forecast − target) ÷ target — green at or above target, red below. <b>Cost/Order</b> = that weekday's (Fixed + planned Staff + ODS cost) ÷ that weekday's Total Order — a DAILY reading, not the monthly one in the Cost Planning portal below (which also carries the FT roster pool's paid-but-idle man-days), so a day can read cheap here while the month still misses target; green is at or under target. Hidden districts are excluded from the Total row.`;
+      + `<b>Est. ODS Orders</b> = same method on ODS/VAN-only history (or the ODS Order Count override), after any channel-split shift — a ↳ line shows the shift. <b>↳ ODS tunnel users</b> (ETH &amp; WTH only) = Est. ODS Orders ÷ that district's historical orders-per-ODS-user rate for that weekday, rounded up — × $${ODS_TUNNEL_FEE_PER_USER}/user/day folded into Cost/Order below; always 0 elsewhere. <b>HKTV Orders</b> = Total Order − Est. ODS Orders. <b>FT/PT rows</b> = that weekday's Per-District Staff Plan. <b>Productivity</b> = HKTV Orders ÷ total headcount; the pill is its achievement rate, (forecast − target) ÷ target — green at or above target, red below. <b>Cost/Order</b> = that weekday's (Fixed + planned Staff + ODS cost + ODS tunnel fee) ÷ that weekday's Total Order — a DAILY reading, not the monthly one in the Cost Planning portal below (which also carries the FT roster pool's paid-but-idle man-days), so a day can read cheap here while the month still misses target; green is at or under target. Hidden districts are excluded from the Total row. <b>Weekly</b> (rightmost column) = that row's Mon–Sun figures rolled into one: orders/headcount/tunnel-cost summed, Productivity and Cost/Order recomputed from those sums (not an average of the seven daily figures) — checked against that district's own target for the per-district rows, and the network overall target in the Total row.`;
   }
 
   /* v13.0 §2 — "Clear Suggestions" used to clear only the badges and the
@@ -3947,7 +4081,7 @@
       const wrap = document.getElementById('fcDistrictChips');
       if(wrap && !wrap.contains(e.target)){ fcDistrictDropdownOpen = false; fcRenderChips(); }
     });
-    document.getElementById('fcPlanTableBody').addEventListener('change', e=>{
+    document.getElementById('fcPlanCards').addEventListener('change', e=>{
       const inp = e.target; const d = inp.dataset.d; if(!d) return;
       const v = inp.value;
       if(inp.classList.contains('fc-in-targetprod')) FC_STATE.targetProd[d] = v;
@@ -3975,9 +4109,9 @@
       }
       renderForecastTab(); updateScrollHints();
     });
-    // Per-row "Suggest" button — event delegation since fcRenderPlanTable
-    // rebuilds the whole tbody on every render.
-    document.getElementById('fcPlanTableBody').addEventListener('click', e=>{
+    // Per-district "Suggest" button — event delegation since fcRenderPlanTable
+    // rebuilds all the cards on every render.
+    document.getElementById('fcPlanCards').addEventListener('click', e=>{
       const copyBtn = e.target.closest('.fc-copy-btn');
       if(copyBtn){
         // Flatten the week for this district: Monday's plan copied to Tue-Sun.
