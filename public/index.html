@@ -310,6 +310,7 @@
   .fc-weight-sum{font-size:11px;font-family:'IBM Plex Mono';padding:8px 10px;border-radius:8px;align-self:flex-end;}
   .fc-weight-sum.ok{background:var(--green-soft);color:var(--green);}
   .fc-weight-sum.bad{background:var(--red-soft);color:var(--red);}
+  .fc-order-daily-avg{font-size:11px;font-family:'IBM Plex Mono';color:var(--text-muted);margin-top:4px;min-height:14px;}
   /* v5.0 §1 — District filter is now a dropdown with checkboxes (replacing
      the old row of click-toggle chips), so multiple districts can be picked
      from one compact control instead of a full row of pills. */
@@ -767,6 +768,7 @@
           <div class="prod-field fc-weight">
             <label for="fcOrderPctChange">Overall Order % Change (festival/event adj.)</label>
             <input type="number" id="fcOrderPctChange" step="0.5" value="0" placeholder="e.g. 1">
+            <div class="fc-order-daily-avg" id="fcOrderPctDailyAvg" title="Overall Forecast Orders (network-wide monthly total, before this adjustment) × (1 + Overall Order % Change) ÷ days in the forecast month — so you can see what the % box actually does to a typical day's volume, not just the headline monthly number."></div>
           </div>
         </div>
 
@@ -2410,9 +2412,12 @@
   //   - no day may use more FT than the district's actual bench (100% cap)
   //   - the month's FT man-days may not exceed the pool
   //   - anything the pool can't cover is PT (to its own bench cap), then ODS
-  // Inside the pool an FT head is a SUNK cost, so the search treats it as
-  // free at the margin and prefers it over buying PT. Payroll is charged on
-  // the whole pool whether the plan deploys it or not (fcMinRosterTopUpFor).
+  // Inside the pool an FT head has zero MARGINAL cost for a given day's
+  // combo search (fcCheapestComboForTotal), so it's still preferred over
+  // buying PT at the day level. v16.0 — the MONTHLY total, though, now
+  // charges only the FT man-days actually deployed (fcMonthlyStaffCostFor);
+  // the undeployed part of the pool is reported by fcMinRosterTopUpFor for
+  // roster-utilisation purposes only and is no longer added as a cost line.
   function fcFtWeeklyBudgetFor(district){
     const cap = fcStaffCapFor(district);
     const occ = fcWeekdayOccurrences();
@@ -2685,8 +2690,13 @@
     const idleFtManDays = idleFtDriver + idleFtCourier;
     const ptCost = days.reduce((a,d)=> a + (d.ptDriver*u.ptDriver + d.ptCourier*u.ptCourier)*d.occurrences, 0);
     const deployedFtCost = ftDriverManDays*u.ftDriver + ftCourierManDays*u.ftCourier;
-    const idleFtCost = idleFtDriver*u.ftDriver + idleFtCourier*u.ftCourier;
-    const monthlyStaffCost = deployedFtCost + idleFtCost + ptCost;
+    const idleFtCost = idleFtDriver*u.ftDriver + idleFtCourier*u.ftCourier; // v16.0 — still computed, informational only (see below)
+    // v16.0 — DEPLOYED-ONLY, to stay numerically identical to
+    // fcMonthlyStaffCostFor (Cost Planning portal + Weekly Forecast Plan
+    // column): idleFtCost is no longer folded into the official monthly
+    // staff cost / Cost-Order check. idleFtCost and idleFtManDays are kept
+    // below purely as a roster-utilisation reading (see paidManDays/paidProd).
+    const monthlyStaffCost = deployedFtCost + ptCost;
 
     const manDays = ftManDays + ptManDays;                 // deployed — the plan, and the productivity denominator
     const paidManDays = manDays + idleFtManDays;           // payroll
@@ -2752,14 +2762,17 @@
      number:
        requiredPct — the smallest Overdrive that WOULD clear both targets.
                      Raising this district's ceiling to it is the whole fix.
-       saturated   — Cost/Order does not move at all as Overdrive rises. This
-                     is the common case and it is NOT a bug: once a day's
-                     team fits inside the FT roster pool, that payroll is
-                     sunk (fcMinRosterTopUpFor charges the pool whether it is
-                     deployed or not), so leaning the team further just moves
-                     FT man-days from "deployed" to "idle" at identical cost.
-                     No ceiling, however high, closes a gap of this kind —
-                     the levers are ODS flex, bench size, or the target.
+       saturated   — Cost/Order does not move at all as Overdrive rises,
+                     typically because some other constraint (the Staff
+                     Allocation Cap, or the FT/PT split itself) is already
+                     pinning the plan and Overdrive has no further room to
+                     lean the team out. No ceiling, however high, closes a
+                     gap of this kind — the levers are ODS flex, bench size,
+                     or the target. (v16.0 — staff cost is now deployed-only;
+                     see fcMonthlyStaffCostFor. The FT roster pool's idle
+                     man-days, from fcMinRosterTopUpFor, are tracked for
+                     roster-utilisation reporting only and no longer sunk
+                     into this cost figure.)
        floorCost   — the cheapest Cost/Order Overdrive can reach at all, and
                      at what percentage, so the residual gap is quantified.  */
   function fcProbeOverdriveHeadroom(district, ceilingPct, ceilingPlan){
@@ -3009,7 +3022,7 @@
       } else if(headroom && headroom.saturated && flexHeadroom && flexHeadroom.saturated){
         lever = `Neither lever, alone or combined, moves this district: Cost/Order is flat across the full Overdrive × ODS Flex search space up to ${FC_OVERDRIVE_HARD_MAX}% / 100%. The remaining levers are the FT bench itself or this district's Target Cost/Order.`;
       } else if(headroom && headroom.saturated){
-        lever = `Overdrive is spent here: Cost/Order does not move between ${maxOverdrivePct}% and ${FC_OVERDRIVE_HARD_MAX}%, because this district's team already fits inside its ${intFmt(best.ftPool.total)}-man-day FT roster pool — that payroll is owed whether the plan deploys it or not, so a leaner team only idles heads it still pays for.`
+        lever = `Overdrive is spent here: Cost/Order does not move between ${maxOverdrivePct}% and ${FC_OVERDRIVE_HARD_MAX}% — raising it further doesn't change this district's plan enough to move cost. The remaining levers are ODS Volume Flex, the FT bench itself, or this district's Target Cost/Order.`
           + (flexHeadroom && flexHeadroom.floorCost != null ? ` ODS Flex helps some — best it reaches is $${flexHeadroom.floorCost.toFixed(2)}/order at ${flexHeadroom.floorPct}%, still over the $${best.targetCost.toFixed(2)} target even at 100%, and the joint search found nothing better.` : ` The remaining lever is the FT bench itself or this district's Target Cost/Order.`);
       } else if(headroom && headroom.floorCost != null && headroom.floorCost < (best.costPerOrder ?? Infinity) - 1e-9){
         lever = `Overdrive helps but not enough: the cheapest it reaches is $${headroom.floorCost.toFixed(2)}/order at ${headroom.floorPct}% (still over the $${best.targetCost.toFixed(2)} target), searched all the way to the ${FC_OVERDRIVE_HARD_MAX}% hard limit.`
@@ -3117,8 +3130,8 @@
       // v11.0 §1 — weighted sum across the week's differing daily
       // headcounts, not one flat count × days-in-month.
       const variableStaff = fcMonthlyStaffCostFor(d);
-      const manDays = fcMonthlyManDaysFor(d);            // paid (plan + idle minimum roster)
-      const workedManDays = fcMonthlyWorkedManDaysFor(d); // planned/worked only
+      const manDays = fcMonthlyManDaysFor(d); // v16.0 — deployed only; matches the Weekly Forecast Plan's FT/PT headcount total
+      const idleInfo = fcMinRosterTopUpFor(d); // informational only — no longer folded into manDays/variableStaff, see below
       const avgStaffPerDay = fcCurrentMonthDays() > 0 ? variableStaff/fcCurrentMonthDays() : 0;
       const odsVolume = fcMonthlyOdsOrderEstimate(d);
       const variableOds = odsVolume * odsBlendedCostFor(d);
@@ -3128,7 +3141,10 @@
       const costPerOrder = orderVolume > 0 ? total/orderVolume : null;
       const target = TARGET_COST_PER_ORDER[d];
       const overCls = costPerOrder==null ? '' : (costPerOrder <= target ? 'cost-ok' : 'cost-over');
-      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td title="Paid roster: ${intFmt(workedManDays)} planned man-days + ${intFmt(Math.max(0, manDays-workedManDays))} idle minimum-roster man-days (75% FT bench held whether or not the volume needs them).">${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td>${money(variableOdsTunnel)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td></tr>`;
+      const manDaysTitle = idleInfo.idle >= 1
+        ? `Matches the Weekly Forecast Plan's FT Driver + FT Courier + PT Driver + PT Courier total (${intFmt(manDays)} man-days/mo). The 75% FT roster pool also carries ${intFmt(idleInfo.idle)} paid-but-idle man-days/mo not counted here or in Variable — Staff — see the Weekly Forecast Plan's own roster-utilisation note.`
+        : `Matches the Weekly Forecast Plan's FT Driver + FT Courier + PT Driver + PT Courier total.`;
+      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td title="${manDaysTitle}">${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td>${money(variableOdsTunnel)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td></tr>`;
     }).join('');
   }
   function fcSetupCostPortalListeners(){
@@ -3365,19 +3381,31 @@
     return hc.ftDriver*u.ftDriver + hc.ftCourier*u.ftCourier + hc.ptDriver*u.ptDriver + hc.ptCourier*u.ptCourier;
   }
   // v11.0 §1 — Variable — Staff Cost, as a weighted sum across the week
-  // instead of a single headcount × days-in-month. v14.2 §1 — plus the
-  // undeployed FT pool, so the line always carries the full 75% commitment
-  // however the plan spreads it.
+  // instead of a single headcount × days-in-month.
+  // v16.0 — DEPLOYED-ONLY. Previously this added the 75% FT roster pool's
+  // paid-but-idle man-days (fcMinRosterTopUpFor) as a monthly cost line,
+  // which made this figure — and the Man-days /mo it feeds — diverge from
+  // the actual scheduled FT/PT headcount shown in the Weekly Forecast Plan
+  // (e.g. a district could read 1,463 man-days/mo here against 1,119 in the
+  // Weekly Forecast Plan's own FT Driver + FT Courier total). That's also
+  // what the table's own footnote below always promised — "ACTUAL scheduled
+  // FT/PT plan", no idle add-on — so this brings the code back in line with
+  // its documented formula and with the forecast output. The idle-roster
+  // reading itself is unchanged and still available via fcMinRosterTopUpFor
+  // for informational/utilisation purposes; it's just no longer folded into
+  // the cost or man-days totals.
   function fcMonthlyStaffCostFor(district){
     const occ = fcWeekdayOccurrences();
     let total = 0;
     for(let i=0;i<7;i++) total += fcDailyStaffCost(district, i) * occ[i];
-    return total + fcMinRosterTopUpFor(district).cost;
+    return total;
   }
-  // Man-days, both readings. PAID = what the commitment costs; WORKED = the
-  // heads the plan actually deploys, which is the productivity denominator.
+  // Man-days — the heads the plan actually deploys (matches the Weekly
+  // Forecast Plan's FT/PT totals), which is also the productivity
+  // denominator. v16.0 — no longer adds the idle FT roster pool's man-days;
+  // see fcMonthlyStaffCostFor above.
   function fcMonthlyManDaysFor(district){
-    return fcMonthlyWorkedManDaysFor(district) + fcMinRosterTopUpFor(district).idle;
+    return fcMonthlyWorkedManDaysFor(district);
   }
   function fcMonthlyWorkedManDaysFor(district){
     const occ = fcWeekdayOccurrences();
@@ -3961,6 +3989,28 @@
       <span><i class="swatch" style="background:var(--ink)"></i>Current: ${monthLbl(cur)} (${wc}%)</span>
       <span class="target-note">Order adj: ${pctChange>0?'+':''}${pctChange}%</span>`;
 
+    // v15.4 — daily average order volume next to the % Change box, so a
+    // leader can see what the adjustment does to a TYPICAL DAY, not just the
+    // abstract percentage. Overall Forecast Orders = network-wide monthly
+    // total BEFORE this adjustment (Σ over all districts and weekdays of the
+    // weighted historical forecast × that weekday's occurrences); the network
+    // sum of fcForecastTotalOrdersAdjusted works out to exactly this same
+    // base × (1 + pct/100) (the extra volume the % adds is fully redistributed
+    // across districts by fcDistrictOrderRatios(), never invented or lost),
+    // so this matches the adjusted Est. Order Volume shown elsewhere on this
+    // tab once divided back down to a daily figure.
+    const dailyAvgEl = document.getElementById('fcOrderPctDailyAvg');
+    if(dailyAvgEl){
+      const occ = fcWeekdayOccurrences();
+      let overallForecastOrders = 0;
+      DISTRICTS.forEach(d=>{
+        for(let i=0;i<7;i++) overallForecastOrders += fcForecastTotalOrders(d,i) * occ[i];
+      });
+      const days = fcCurrentMonthDays();
+      const dailyAvg = days>0 ? overallForecastOrders*(1+pctChange/100)/days : null;
+      dailyAvgEl.textContent = dailyAvg==null ? '' : `≈ ${intFmt(Math.round(dailyAvg))} orders/day network-wide at ${pctChange>0?'+':''}${pctChange}%`;
+    }
+
     const rowDistricts = DISTRICTS.filter(d=>FC_STATE.districts.has(d));
 
     // ---- Summary strip: network-wide HKTV order forecast + planned staff + achieved productivity, one card per weekday ----
@@ -4007,8 +4057,8 @@
       // anything.
       const hasShift = Math.abs(p.odsShift||0) >= 1;
       const costTitle = isWeekly
-        ? `This district's monthly Fixed + Staff (incl. the paid-but-idle FT roster pool) + ODS cost ÷ its forecast order volume for the month: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is the SAME monthly figure as the Suggest Headcount pass/fail badge and this district's row in the Cost Planning portal below — they will always agree.`
-        : `This weekday's Fixed + planned Staff + ODS cost ÷ this weekday's Total Order forecast: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is one day's figure, not the monthly Cost/Order in the Weekly cell or the Cost Planning portal below, which also carry the FT roster pool's idle man-days — a day can look cheap here while the month still misses target.`;
+        ? `This district's monthly Fixed + Staff (deployed FT/PT headcount only) + ODS cost ÷ its forecast order volume for the month: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is the SAME monthly figure as the Suggest Headcount pass/fail badge and this district's row in the Cost Planning portal below — they will always agree.`
+        : `This weekday's Fixed + planned Staff + ODS cost ÷ this weekday's Total Order forecast: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is one day's figure, not the monthly Cost/Order in the Weekly cell or the Cost Planning portal below, which spreads the same staff cost across the whole month's occurrences — a day can look cheap here while the month still misses target.`;
       return `<div class="fc-cell">
         <div class="fc-row"><span class="fc-label">Total Order</span><span class="fc-val">${intFmt(p.totalOrders)}</span></div>
         <div class="fc-row"><span class="fc-label">Est. ODS Orders</span><span class="fc-val">${intFmt(p.odsOrders)}</span></div>
@@ -4057,10 +4107,13 @@
     // badge and the Cost Planning portal for districts sitting close to
     // target (e.g. WTH could read Cost -0.1% in one place and +0.1% in the
     // other for the identical plan). fcMonthlyAggregateFor reuses the exact
-    // same occurrence-weighted, idle-topup-inclusive functions the Cost
-    // Portal (fcRenderCostPortal) and the Suggest search (fcBuildDistrictPlan)
-    // already use, so "Weekly" is now numerically identical to both — one
-    // set of numbers, one pass/fail verdict, everywhere on the page.
+    // same occurrence-weighted functions the Cost Portal (fcRenderCostPortal)
+    // and the Suggest search (fcBuildDistrictPlan) already use, so "Weekly"
+    // is numerically identical to both — one set of numbers, one pass/fail
+    // verdict, everywhere on the page. v16.0 — all three now price staff as
+    // DEPLOYED-ONLY (no FT idle-roster top-up), so paidManDays and
+    // workedManDays below read the same; paidManDays is kept for callers
+    // that still want the (now-identical) figure by that name.
     function fcMonthlyAggregateFor(districts, targetProd, targetCostPerOrder){
       const occ = fcWeekdayOccurrences();
       let fixed=0, variableStaff=0, variableOds=0, variableOdsTunnel=0, orderVolume=0,
@@ -4068,7 +4121,7 @@
           fd=0, fc=0, pd=0, pc=0, shSum=0;
       districts.forEach(d=>{
         fixed += fcMonthlyFixedCostFor(d);
-        variableStaff += fcMonthlyStaffCostFor(d); // occurrence-weighted + idle FT pool top-up — same as the Cost Portal
+        variableStaff += fcMonthlyStaffCostFor(d); // occurrence-weighted, deployed-only — same as the Cost Portal
         const odsVol = fcMonthlyOdsOrderEstimate(d);
         variableOds += odsVol * odsBlendedCostFor(d);
         variableOdsTunnel += fcMonthlyOdsTunnelCostFor(d);
