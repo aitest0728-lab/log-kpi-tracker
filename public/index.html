@@ -2197,6 +2197,58 @@
     if(override != null && override !== '' && !isNaN(override)) return +override;
     return TARGET_PRODUCTIVITY[district] != null ? TARGET_PRODUCTIVITY[district] : TARGET_PRODUCTIVITY.overall;
   }
+  function fcTargetCostFor(district){
+    return TARGET_COST_PER_ORDER[district] != null ? TARGET_COST_PER_ORDER[district] : TARGET_COST_PER_ORDER.overall;
+  }
+  // v17.0 — POOLED NETWORK TARGETS.
+  // The Total card's actual figures are weighted rollups — Cost/Order is
+  // Σcost ÷ Σorders, Productivity is Σhktv ÷ Σman-days — not a plain average
+  // across districts. But its pass/fail check was comparing that rollup
+  // against a single flat "overall" constant (TARGET_COST_PER_ORDER.overall /
+  // TARGET_PRODUCTIVITY.overall) that has no necessary relationship to
+  // today's actual mix of district volumes. That let the network Total miss
+  // (or pass) even when all 10 districts individually clear their own
+  // target, which is confusing and mathematically avoidable.
+  //
+  // The fix: pool the TARGET the same way, with the same weights, as the
+  // actual figure it's compared against.
+  //   Cost/Order's actual is Σ(cost_d) ÷ Σ(orders_d) — a volume-weighted
+  //   average of each district's own Cost/Order. So its target should be a
+  //   volume-weighted average of each district's own Target Cost/Order:
+  //   Σ(target_d × orders_d) ÷ Σ(orders_d).
+  //   Productivity's actual is Σ(hktv_d) ÷ Σ(manDays_d) — a man-day-weighted
+  //   average of each district's own Productivity. So its target is
+  //   Σ(target_d × manDays_d) ÷ Σ(manDays_d).
+  // With the SAME weights on both sides, basic weighted-sum arithmetic
+  // guarantees: if actual_d ≤ target_d for every district (cost) or
+  // actual_d ≥ target_d for every district (productivity), the pooled
+  // actual clears the pooled target too — "all 10 districts meet target"
+  // now always implies "the network Total meets target."
+  function fcPooledTarget(items){
+    let wSum = 0, tSum = 0;
+    items.forEach(it=>{ if(it.weight > 0 && it.target != null){ wSum += it.weight; tSum += it.target*it.weight; } });
+    return wSum > 0 ? tSum/wSum : null;
+  }
+  // Monthly/Weekly pooling — weights are the same monthly figures the
+  // Weekly aggregate itself sums (fcMonthlyOrderEstimate, fcMonthlyWorkedManDaysFor).
+  function fcPooledMonthlyTargetsFor(districts){
+    const costItems = districts.map(d=>({ target: fcTargetCostFor(d), weight: fcMonthlyOrderEstimate(d) }));
+    const prodItems = districts.map(d=>({ target: fcTargetProdFor(d), weight: fcMonthlyWorkedManDaysFor(d) }));
+    return {
+      targetCost: fcPooledTarget(costItems) ?? TARGET_COST_PER_ORDER.overall,
+      targetProd: fcPooledTarget(prodItems) ?? TARGET_PRODUCTIVITY.overall
+    };
+  }
+  // Per-weekday pooling — weights are that single day's own Total Order
+  // forecast and headcount plan, matching what that day's fcAggregateP sums.
+  function fcPooledDailyTargetsFor(districts, weekdayIdx){
+    const costItems = districts.map(d=>({ target: fcTargetCostFor(d), weight: fcForecastTotalOrdersAdjusted(d, weekdayIdx) }));
+    const prodItems = districts.map(d=>({ target: fcTargetProdFor(d), weight: fcHeadcountFor(d, weekdayIdx).total }));
+    return {
+      targetCost: fcPooledTarget(costItems) ?? TARGET_COST_PER_ORDER.overall,
+      targetProd: fcPooledTarget(prodItems) ?? TARGET_PRODUCTIVITY.overall
+    };
+  }
   let fcDistrictDropdownOpen = false; // v5.0 §1 — open/closed state of the district dropdown panel
 
   // v5.0 — Fixed Cost - Provision (FIXED_COST_PROVISION) is a DAILY rate per
@@ -4102,7 +4154,8 @@
     // each and prices staff at deployed-only cost — that's the right math for
     // the per-weekday Total row (a single day, cross-district), but it is NOT
     // the same figure as the month: it skips each weekday's occurrence count
-    // (Mon×4 vs Tue×5, etc.) and the paid-but-idle FT roster pool top-up.
+    // (Mon×4 vs Tue×5, etc.) and prices staff at deployed-only cost the same
+    // way fcMonthlyStaffCostFor does.
     // That gap let "Weekly" disagree with the Suggest Headcount pass/fail
     // badge and the Cost Planning portal for districts sitting close to
     // target (e.g. WTH could read Cost -0.1% in one place and +0.1% in the
@@ -4171,7 +4224,7 @@
         </div>`).join('');
       const weeklyBlock = `
         <div class="fc-result-wd fc-result-weekly">
-          <div class="fc-result-wd-label" title="The forecast month's true figure for this plan — occurrence-weighted across Mon–Sun and, for Cost/Order, including the paid-but-idle FT roster pool top-up. Identical to the Suggest Headcount pass/fail badge and this row in the Cost Planning portal below.">Weekly</div>
+          <div class="fc-result-wd-label" title="The forecast month's true figure for this plan — occurrence-weighted across Mon–Sun. Identical to the Suggest Headcount pass/fail badge and this row in the Cost Planning portal below.">Weekly</div>
           ${fcCellHtml(weeklyP, {isWeekly:true})}
         </div>`;
       return `<div class="fc-result-card${isTotal?' fc-result-total':''}" data-d="${d}">
@@ -4185,19 +4238,24 @@
       return fcResultCardHtml(d, ps, fcWeeklyPFor(d), false);
     });
     // Total card: one aggregate per weekday, across the visible districts —
-    // unchanged from before, just now built through fcAggregateP.
-    const totalPs = WEEKDAY_LABELS.map((_,i)=>
-      fcAggregateP(rowDistricts.map(dist=>fcPlanFor(dist,i)), TARGET_PRODUCTIVITY.overall, TARGET_COST_PER_ORDER.overall)
-    );
+    // v17.0 — checked against that weekday's POOLED target (each visible
+    // district's own target, weighted the same way the actual figure is
+    // weighted), not a flat network constant. See fcPooledDailyTargetsFor.
+    const totalPs = WEEKDAY_LABELS.map((_,i)=>{
+      const pooled = fcPooledDailyTargetsFor(rowDistricts, i);
+      return fcAggregateP(rowDistricts.map(dist=>fcPlanFor(dist,i)), pooled.targetProd, pooled.targetCost);
+    });
     // Weekly × Total corner: every district's TRUE monthly figure rolled
     // into one network result (v15.3 — fcMonthlyAggregateFor, not the daily
     // fcAggregateP over totalPs, for the same reason as fcWeeklyPFor above).
-    const weeklyTotalP = fcMonthlyAggregateFor(rowDistricts, TARGET_PRODUCTIVITY.overall, TARGET_COST_PER_ORDER.overall);
+    // v17.0 — pooled monthly target, same reasoning as totalPs above.
+    const pooledMonthly = fcPooledMonthlyTargetsFor(rowDistricts);
+    const weeklyTotalP = fcMonthlyAggregateFor(rowDistricts, pooledMonthly.targetProd, pooledMonthly.targetCost);
     cardsWrap.innerHTML = bodyCards.join('') + fcResultCardHtml('Total', totalPs, weeklyTotalP, true);
 
     note.innerHTML = `<b>Total Order</b> = weighted average of that weekday's historical Total Order (HKTV Staff + ODS/VAN) across T-2 / T-1 / current month, weights above (auto-renormalized over whichever months have data)`
       + (pctChange ? `, then × (1 ${pctChange>0?'+':'−'} ${Math.abs(pctChange)}%) applied network-wide and split across districts by historical order share. ` : '. ')
-      + `<b>Est. ODS Orders</b> = same method on ODS/VAN-only history (or the ODS Order Count override), after any channel-split shift — a ↳ line shows the shift. ODS tunnel users (ETH &amp; WTH only) are now shown on the Per-District Staff Plan card above, next to the plan that drives them, rather than repeated on every block here. <b>HKTV Orders</b> = Total Order − Est. ODS Orders. <b>FT/PT rows</b> = that weekday's Per-District Staff Plan. <b>Productivity</b> = HKTV Orders ÷ total headcount; the pill is its achievement rate, (forecast − target) ÷ target — green at or above target, red below. <b>Cost/Order</b> = that weekday's (Fixed + planned Staff + ODS cost + ODS tunnel fee) ÷ that weekday's Total Order — a DAILY reading, not the monthly one in the Cost Planning portal below (which also carries the FT roster pool's paid-but-idle man-days), so a day can read cheap here while the month still misses target; green is at or under target. Hidden districts are excluded from the Total card. <b>Weekly</b> (last, amber-outlined block in each card) = that district's Mon–Sun figures rolled into one: orders/headcount/tunnel-cost summed, Productivity and Cost/Order recomputed from those sums (not an average of the seven daily figures) — checked against that district's own target for the per-district cards, and the network overall target in the Total card.`;
+      + `<b>Est. ODS Orders</b> = same method on ODS/VAN-only history (or the ODS Order Count override), after any channel-split shift — a ↳ line shows the shift. ODS tunnel users (ETH &amp; WTH only) are now shown on the Per-District Staff Plan card above, next to the plan that drives them, rather than repeated on every block here. <b>HKTV Orders</b> = Total Order − Est. ODS Orders. <b>FT/PT rows</b> = that weekday's Per-District Staff Plan. <b>Productivity</b> = HKTV Orders ÷ total headcount; the pill is its achievement rate, (forecast − target) ÷ target — green at or above target, red below. <b>Cost/Order</b> = that weekday's (Fixed + planned Staff + ODS cost + ODS tunnel fee) ÷ that weekday's Total Order — a DAILY reading, not the monthly one in the Cost Planning portal below, so a day can read cheap here while the month still misses target; green is at or under target. Hidden districts are excluded from the Total card. <b>Weekly</b> (last, amber-outlined block in each card) = that district's Mon–Sun figures rolled into one: orders/headcount/tunnel-cost summed, Productivity and Cost/Order recomputed from those sums (not an average of the seven daily figures) — checked against that district's own target for the per-district cards. <b>Total card</b> = the same rollup across every visible district, checked against a POOLED target: each visible district's own Target Cost/Order weighted by its order volume, and its own Target Productivity weighted by its man-days — the same weights the Total's own actual figures are pooled by — so if every district clears its own target, the Total clears its pooled target too.`;
   }
 
   /* v13.0 §2 — "Clear Suggestions" used to clear only the badges and the
