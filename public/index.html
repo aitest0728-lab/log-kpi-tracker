@@ -2077,17 +2077,20 @@
   // Full_Cost_Planning.xlsx "Variable Cost - Unit Cost" (HKTV Staff section).
   // Same daily-rate pattern as FIXED_COST_PROVISION below — any monthly
   // total must multiply by fcCurrentMonthDays(), not read this dict raw.
+  // v15.4 — FT Driver column refreshed from the updated Full_Cost_Planning.xlsx
+  // "Variable Cost - Unit Cost" sheet (all 10 districts); FT Courier/PT
+  // Driver/PT Courier are unchanged from the prior workbook snapshot.
   const UNIT_COST_STAFF = {
-    'ETH':   { ftDriver:1639.27, ftCourier:1532.26, ptDriver:1724.37, ptCourier:2921.78 },
-    'ETK':   { ftDriver:1567.92, ftCourier:1275.29, ptDriver:1630.42, ptCourier:1930.84 },
-    'ETX':   { ftDriver:1575.39, ftCourier:1486.83, ptDriver:2297.65, ptCourier:1930.84 },
-    'NT-ST': { ftDriver:1713.99, ftCourier:1476.83, ptDriver:1886.97, ptCourier:1930.84 },
-    'NT-TM': { ftDriver:1731.08, ftCourier:1441.85, ptDriver:2075.26, ptCourier:1930.84 },
-    'NT-TSM':{ ftDriver:1631.95, ftCourier:1535.70, ptDriver:1640.99, ptCourier:1930.84 },
+    'ETH':   { ftDriver:1671.00, ftCourier:1532.26, ptDriver:1724.37, ptCourier:2921.78 },
+    'ETK':   { ftDriver:1672.90, ftCourier:1275.29, ptDriver:1630.42, ptCourier:1930.84 },
+    'ETX':   { ftDriver:1628.90, ftCourier:1486.83, ptDriver:2297.65, ptCourier:1930.84 },
+    'NT-ST': { ftDriver:1948.90, ftCourier:1476.83, ptDriver:1886.97, ptCourier:1930.84 },
+    'NT-TM': { ftDriver:2002.57, ftCourier:1441.85, ptDriver:2075.26, ptCourier:1930.84 },
+    'NT-TSM':{ ftDriver:1610.74, ftCourier:1535.70, ptDriver:1640.99, ptCourier:1930.84 },
     'NT-TW': { ftDriver:1781.63, ftCourier:1699.28, ptDriver:1717.71, ptCourier:1760.73 },
-    'WTH':   { ftDriver:1702.65, ftCourier:1481.97, ptDriver:1739.65, ptCourier:1524.43 },
+    'WTH':   { ftDriver:1740.94, ftCourier:1481.97, ptDriver:1739.65, ptCourier:1524.43 },
     'WTK':   { ftDriver:1751.11, ftCourier:1503.75, ptDriver:1633.81, ptCourier:1571.65 },
-    'WTX':   { ftDriver:1675.49, ftCourier:1519.12, ptDriver:1663.92, ptCourier:1930.84 },
+    'WTX':   { ftDriver:1703.37, ftCourier:1519.12, ptDriver:1663.92, ptCourier:1930.84 },
   };
   // ODS Unit Cost / Job Point, per district, from ODS_Blended_Cost_per_Order.xlsx
   // "Cost Plan" (same figures as Full_Cost_Planning.xlsx's ODS Staff rows).
