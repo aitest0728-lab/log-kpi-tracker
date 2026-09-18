@@ -333,17 +333,7 @@
   .cost-sub-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);margin:18px 0 8px;}
   .cost-sub-label:first-child{margin-top:0;}
   .fc-plan-wrap{margin-bottom:20px;}
-  #fcTable{border-collapse:collapse;width:100%;table-layout:fixed;}
-  #fcTable thead th{position:sticky;top:0;background:var(--ink);color:var(--text-inverse-muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:11px 8px;font-weight:600;white-space:nowrap;border-left:1px solid rgba(255,255,255,.08);}
-  #fcTable thead th:first-child{text-align:left;width:128px;border-left:none;}
-  #fcTable tbody td{padding:0;text-align:center;border-top:1px solid var(--line-soft);border-left:1px solid var(--line-soft);vertical-align:top;min-width:150px;}
-  #fcTable tbody td:first-child{padding:0 10px;text-align:left;font-family:'Inter';font-weight:600;font-size:12.5px;background:var(--panel);border-left:none;white-space:nowrap;}
-  #fcTable tbody td:first-child .tgt{display:block;font-weight:400;color:var(--text-muted);font-size:10px;font-family:'IBM Plex Mono';margin-top:1px;}
-  #fcTable tbody tr.total-row td{font-weight:700;background:#f6f7f9;}
-  #fcTable tbody tr.total-row td:first-child{background:#eef0f3;}
-  #fcTable tbody td.heat-up{background:#f0f9f4;}
-  #fcTable tbody td.heat-down{background:#fdf1f1;}
-  .fc-cell{display:flex;flex-direction:column;gap:4px;padding:8px 8px;}
+  .fc-cell{display:flex;flex-direction:column;gap:4px;padding:9px 10px;}
   .fc-cell .fc-row{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:11px;}
   .fc-cell .fc-label{color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;font-size:9.5px;font-weight:600;}
   .fc-cell .fc-val{font-family:'IBM Plex Mono';font-size:12px;font-weight:600;color:var(--text);}
@@ -357,7 +347,25 @@
   .fc-cell .delta-pill.delta-flat{background:var(--line-soft);color:var(--text-muted);}
   #costTotalTable td.cost-ok{color:var(--green);font-weight:700;}
   #costTotalTable td.cost-over{color:var(--red);font-weight:700;}
-  @media (max-width:900px){ #fcTable{table-layout:auto;min-width:900px;} }
+
+  /* v15.1 — Weekly Forecast Plan, card layout (mirrors the Per-District
+     Staff Plan cards below). One card per district; its 7 weekday blocks
+     plus the Weekly rollup sit in a CSS grid that WRAPS instead of forcing
+     one wide row, so this needs no horizontal scroll at any width. The
+     Weekly block keeps the same header weight as the weekday blocks (dark
+     label chip) but is picked out with the site's accent color so it reads
+     as clearly as a weekday column header used to, not more faintly. */
+  .fc-result-cards{display:flex;flex-direction:column;gap:14px;}
+  .fc-result-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow);padding:12px 14px;}
+  .fc-result-card.fc-result-total{background:#f6f7f9;border-color:#c7d0da;}
+  .fc-result-card-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line-soft);}
+  .fc-result-card-title{font-family:'Inter';font-weight:700;font-size:18px;}
+  .fc-result-card-weekdays{display:grid;grid-template-columns:repeat(auto-fill, minmax(195px, 1fr));gap:10px 12px;}
+  .fc-result-wd{border:1px solid var(--line-soft);border-radius:8px;overflow:hidden;background:var(--panel);}
+  .fc-result-wd-label{background:var(--ink);color:var(--text-inverse-muted);font-family:'Inter';font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:6px 8px;}
+  .fc-result-weekly{border:2px solid var(--amber);box-shadow:0 0 0 1px var(--amber) inset;}
+  .fc-result-weekly .fc-result-wd-label{background:var(--amber);color:var(--ink);}
+  .fc-result-wd .fc-cell .fc-row.fc-shift{border-top:1px dashed var(--line-soft);}
 
   /* v8.0 — Suggest Headcount */
   .fc-suggest-row{align-items:flex-end;margin-bottom:6px;}
@@ -383,11 +391,14 @@
   .fc-hc-minroster{font-size:9.5px;color:var(--text-muted);white-space:nowrap;cursor:help;}
 
   /* v11.0 §1 — Per-weekday staff plan: one editable headcount block per
-     weekday instead of a single flat FT/PT number per district. */
-  .fc-hc-cell{display:grid;grid-template-columns:1fr 1fr;gap:3px 5px;min-width:118px;}
-  .fc-hc-field{display:flex;align-items:center;gap:3px;}
-  .fc-hc-field span{font-family:'Inter';font-size:9.5px;font-weight:700;letter-spacing:.03em;color:var(--text-muted);width:24px;flex:none;}
-  .fc-hc-field input{width:100%;min-width:0;font-family:'IBM Plex Mono';font-size:11.5px;padding:3px 4px;text-align:right;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);}
+     weekday instead of a single flat FT/PT number per district.
+     v15.1 — sized up a step across this whole card: at minmax(150px) the
+     weekday cells had a lot of unused space around fairly small type, so
+     labels/inputs/totals all grew and the grid minmax grew with them. */
+  .fc-hc-cell{display:grid;grid-template-columns:1fr 1fr;gap:4px 6px;min-width:130px;}
+  .fc-hc-field{display:flex;align-items:center;gap:4px;}
+  .fc-hc-field span{font-family:'Inter';font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--text-muted);width:28px;flex:none;}
+  .fc-hc-field input{width:100%;min-width:0;font-family:'IBM Plex Mono';font-size:13.5px;padding:4px 5px;text-align:right;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);}
   .fc-hc-field input:focus{outline:none;border-color:var(--ink);}
   /* v15.0 §3 — Per-District Staff Plan, card layout. Replaces the old
      min-width:1180px table (which needed horizontal scroll to reach
@@ -399,24 +410,25 @@
   .fc-plan-cards{display:flex;flex-direction:column;gap:14px;}
   .fc-plan-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow);padding:12px 14px;}
   .fc-plan-card-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 18px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line-soft);}
-  .fc-plan-card-title{font-family:'Inter';font-weight:700;font-size:15px;align-self:center;min-width:52px;}
-  .fc-plan-mini-field{display:flex;flex-direction:column;gap:3px;font-family:'Inter';font-size:9.5px;font-weight:700;letter-spacing:.03em;color:var(--text-muted);text-transform:uppercase;}
-  .fc-plan-mini-field input{font-family:'IBM Plex Mono';font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);width:78px;text-transform:none;}
+  .fc-plan-card-title{font-family:'Inter';font-weight:700;font-size:18px;align-self:center;min-width:52px;}
+  .fc-plan-mini-field{display:flex;flex-direction:column;gap:3px;font-family:'Inter';font-size:10.5px;font-weight:700;letter-spacing:.03em;color:var(--text-muted);text-transform:uppercase;}
+  .fc-plan-mini-field input{font-family:'IBM Plex Mono';font-size:13.5px;padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);width:84px;text-transform:none;}
   .fc-plan-mini-field input:focus{outline:none;border-color:var(--ink);}
   .fc-plan-card-suggest{margin-left:auto;}
-  .fc-plan-card-weekdays{display:grid;grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:10px 12px;}
-  .fc-plan-wd-label{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;}
+  .fc-plan-card-weekdays{display:grid;grid-template-columns:repeat(auto-fill, minmax(172px, 1fr));gap:10px 12px;}
+  .fc-plan-wd-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;}
   .fc-plan-wd-label .occ{opacity:.6;font-weight:400;text-transform:none;letter-spacing:0;}
-  /* v15.0 §2 — Weekly rollup column on the Weekly Forecast Plan table: a
-     heavier left border + faint tint sets it apart from the seven daily
-     columns it summarizes, in both header and body. */
-  #fcTable .fc-weekly-th, #fcTable .fc-weekly-td{border-left:2px solid var(--ink);background:rgba(0,0,0,.025);}
-  #fcTable .fc-weekly-th{white-space:nowrap;}
-  .fc-hc-total{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:2px;padding-top:3px;border-top:1px dashed var(--line-soft);font-size:10px;color:var(--text-muted);}
-  .fc-hc-total .v{font-family:'IBM Plex Mono';font-size:11px;font-weight:700;color:var(--text);}
-  .fc-hc-total .p{font-family:'IBM Plex Mono';font-size:10px;padding:1px 5px;border-radius:8px;background:var(--line-soft);color:var(--text-muted);}
+  .fc-hc-total{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:2px;padding-top:3px;border-top:1px dashed var(--line-soft);font-size:11.5px;color:var(--text-muted);}
+  .fc-hc-total .v{font-family:'IBM Plex Mono';font-size:13px;font-weight:700;color:var(--text);}
+  .fc-hc-total .p{font-family:'IBM Plex Mono';font-size:11px;padding:1px 5px;border-radius:8px;background:var(--line-soft);color:var(--text-muted);}
   .fc-hc-total .p.ok{background:var(--green-soft);color:var(--green);}
   .fc-hc-total .p.bad{background:var(--red-soft);color:var(--red);}
+  /* v15.1 — ODS tunnel readout, moved here from the Weekly Forecast Plan
+     output (ETH/WTH only): same quiet placement as the FT/bench roster
+     line above it, in the same blue used for the ↳-prefixed info rows
+     elsewhere in this tool. */
+  .fc-hc-tunnel{grid-column:1/-1;display:block;margin-top:2px;font-size:11px;line-height:1.4;color:#3a5a8c;cursor:help;}
+  .fc-hc-tunnel .v{font-family:'IBM Plex Mono';font-weight:700;}
   .fc-copy-btn{display:block;margin-top:6px;font-family:'Inter';font-size:10px;font-weight:600;padding:3px 8px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--text-muted);cursor:pointer;white-space:nowrap;}
   .fc-copy-btn:hover{border-color:#c7d0da;color:var(--text);}
 
@@ -886,16 +898,13 @@
         </div>
 
         <h3 class="prod-detail-label">Weekly Forecast Plan</h3>
-        <div class="table-wrap">
-          <div class="table-scroll">
-            <table id="fcTable">
-              <thead id="fcTableHead"></thead>
-              <tbody id="fcTableBody"></tbody>
-            </table>
-          </div>
-          <div class="scroll-fade"></div>
-          <div class="scroll-hint">scroll →</div>
-        </div>
+        <!-- v15.1 — was a min-width table needing horizontal scroll to reach
+             Sat/Sun/Weekly. Replaced with the same wrapping-card pattern as
+             the Per-District Staff Plan above: one card per district, its 7
+             weekdays + Weekly rollup laid out in a CSS grid that wraps onto
+             as many rows as the viewport needs, so nothing here is ever
+             wider than its parent. -->
+        <div class="fc-result-cards" id="fcResultCards"></div>
         <div class="prod-note" id="fcNote"></div>
       </div>
 
@@ -3702,12 +3711,20 @@
     const rosterLine = (hc.total > 0 && benchTotal > 0)
       ? `<div class="fc-hc-minroster" title="${d} rosters ${ftToday} FT today out of a ${benchTotal}-head FT bench${hc.ptDriver+hc.ptCourier>0?`, plus ${hc.ptDriver+hc.ptCourier} PT`:''}. FT days are drawn from a monthly pool of ${intFmt(bench.total)} man-days (${Math.round(FT_ROSTER_SHARE*100)}% of the bench across ${bench.days} days), so a light day here frees FT for a heavy day elsewhere in the week.">FT ${ftToday}/${benchTotal} bench${hc.ptDriver+hc.ptCourier>0?` \u00b7 +${hc.ptDriver+hc.ptCourier} PT`:''}</div>`
       : '';
+    // v15.1 — ODS tunnel readout lives on the input card now (ETH/WTH only,
+    // 0/blank everywhere else), next to the plan that drives it, instead of
+    // repeating on every cell of the Weekly Forecast Plan output below.
+    const odsUserCount = fcOdsUserCountFor(d, wd);
+    const tunnelLine = odsUserCount > 0
+      ? `<div class="fc-hc-tunnel" title="Est. ODS Orders ÷ ${d}'s historical orders-per-ODS-user rate for this weekday, rounded up. $${ODS_TUNNEL_FEE_PER_USER}/user/day tunnel toll.">↳ ODS tunnel <span class="v">${intFmt(odsUserCount)}</span> user${odsUserCount===1?'':'s'} · <span class="v">$${intFmt(odsUserCount*ODS_TUNNEL_FEE_PER_USER)}</span></div>`
+      : '';
     const fields = STAFF_BUCKETS.map(k=>
       `<label class="fc-hc-field"><span>${STAFF_BUCKET_LABELS[k]}</span><input type="number" min="0" step="1" class="fc-in-staff" data-d="${d}" data-wd="${wd}" data-k="${k}" placeholder="0" value="${slot[k] ?? ''}"></label>`
     ).join('');
     return `<div class="fc-hc-cell">${fields}
       <div class="fc-hc-total"><span>Σ <span class="v">${intFmt(hc.total)}</span></span><span class="p ${cls}" title="This weekday's forecast Productivity ${prod==null?'—':prod.toFixed(1)} (HKTV Orders ${intFmt(hktv)} ÷ ${intFmt(hc.total)} staff) vs target ${target.toFixed(1)} — achievement rate (forecast − target) ÷ target.">${prod==null?'—':prod.toFixed(1)} <b>${fcRatePct(rate)}</b></span></div>
       ${rosterLine}
+      ${tunnelLine}
     </div>`;
   }
   // v15.0 §3 — per-district card instead of a table row: header strip with
@@ -3869,16 +3886,15 @@
     banner.innerHTML += `<div class="fc-autotune-note" style="margin-top:.5em;"><b>Auto-Tune Overdrive.</b> ${bits.join(' ')}</div>`;
   }
   function renderForecastTab(){
-    const head = document.getElementById('fcTableHead');
-    const body = document.getElementById('fcTableBody');
+    const cardsWrap = document.getElementById('fcResultCards');
     const note = document.getElementById('fcNote');
     const legend = document.getElementById('fcLegend');
     const summary = document.getElementById('fcSummary');
     const sumBox = document.getElementById('fcWeightSum');
 
     if(Object.keys(DATA.dailyProductivity).length === 0){
-      head.innerHTML = ''; legend.innerHTML=''; summary.innerHTML='';
-      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No productivity_history.json alongside this page yet — the forecast needs it before it can calculate anything.</td></tr>`;
+      legend.innerHTML=''; summary.innerHTML='';
+      cardsWrap.innerHTML = `<div style="padding:24px;color:var(--text-muted);">No productivity_history.json alongside this page yet — the forecast needs it before it can calculate anything.</div>`;
       return;
     }
     _fcOrderRatioCache = null; // recompute the historical order-ratio split each render, in case data changed
@@ -3921,8 +3937,6 @@
       </div>`;
     }).join('');
 
-    head.innerHTML = `<tr><th>District</th>${WEEKDAY_LABELS.map(w=>`<th>${w}</th>`).join('')}<th class="fc-weekly-th" title="Mon–Sun rolled into one: sums for orders/headcount/tunnel-cost, Productivity and Cost/Order recomputed from those sums.">Weekly</th></tr>`;
-
     function fcCellHtml(p){
       const meetsTarget = p.achievedProd != null && p.achievedProd >= p.targetProd;
       const pillCls = p.achievedProd==null ? 'delta-flat' : meetsTarget ? 'delta-up' : 'delta-down';
@@ -3948,15 +3962,10 @@
       // row in every cell regardless of whether that particular day shifted
       // anything.
       const hasShift = Math.abs(p.odsShift||0) >= 1;
-      // v15.0 §1 — ODS Tunnel line: only ever non-zero for ETH/WTH, so this
-      // naturally stays blank (visibility:hidden, same pattern as ↳ shifted
-      // above) for every other district without needing a district check here.
-      const hasTunnel = (p.odsUserCount||0) > 0;
       return `<div class="fc-cell">
         <div class="fc-row"><span class="fc-label">Total Order</span><span class="fc-val">${intFmt(p.totalOrders)}</span></div>
         <div class="fc-row"><span class="fc-label">Est. ODS Orders</span><span class="fc-val">${intFmt(p.odsOrders)}</span></div>
         <div class="fc-row fc-shift"${hasShift ? '' : ' style="visibility:hidden;"'}><span class="fc-label">↳ shifted ${p.odsShift>0?'to':'off'} ODS</span><span class="fc-val">${p.odsShift>0?'+':''}${intFmt(p.odsShift)}</span></div>
-        <div class="fc-row fc-shift"${hasTunnel ? '' : ' style="visibility:hidden;"'} title="Est. ODS Orders ÷ this district's historical orders-per-ODS-user rate for this weekday, rounded up. $${ODS_TUNNEL_FEE_PER_USER}/user/day tunnel toll, ETH &amp; WTH only."><span class="fc-label">↳ ODS tunnel users</span><span class="fc-val">${intFmt(p.odsUserCount)} · $${intFmt(p.odsTunnelCost)}</span></div>
         <div class="fc-row"><span class="fc-label">HKTV Orders</span><span class="fc-val">${intFmt(p.hktvOrders)}</span></div>
         <div class="fc-row"><span class="fc-label">FT Driver</span><span class="fc-val">${intFmt(p.ftDriver)}</span></div>
         <div class="fc-row"><span class="fc-label">FT Courier</span><span class="fc-val">${intFmt(p.ftCourier)}</span></div>
@@ -4002,29 +4011,44 @@
       return fcAggregateP(ps, targetProd, targetCostPerOrder);
     }
 
-    const bodyRows = rowDistricts.map(d=>{
-      const cells = WEEKDAY_LABELS.map((_,i)=>{
-        const p = fcPlanFor(d,i);
-        return `<td>${fcCellHtml(p)}</td>`;
-      }).join('');
-      const weeklyCell = `<td class="fc-weekly-td">${fcCellHtml(fcWeeklyPFor(d))}</td>`;
-      return `<tr><td>${d}</td>${cells}${weeklyCell}</tr>`;
+    // v15.1 — one card per district: its 7 weekday blocks + the Weekly
+    // rollup block, in a wrapping grid (see .fc-result-card-weekdays).
+    // Replaces the old <tr>/<td> table row-building below with the same
+    // shape used by fcRenderPlanTable() above.
+    function fcResultCardHtml(d, ps, weeklyP, isTotal){
+      const weekdayBlocks = WEEKDAY_LABELS.map((w,i)=>`
+        <div class="fc-result-wd">
+          <div class="fc-result-wd-label">${w}</div>
+          ${fcCellHtml(ps[i])}
+        </div>`).join('');
+      const weeklyBlock = `
+        <div class="fc-result-wd fc-result-weekly">
+          <div class="fc-result-wd-label" title="Mon–Sun rolled into one: sums for orders/headcount/tunnel-cost, Productivity and Cost/Order recomputed from those sums.">Weekly</div>
+          ${fcCellHtml(weeklyP)}
+        </div>`;
+      return `<div class="fc-result-card${isTotal?' fc-result-total':''}" data-d="${d}">
+        <div class="fc-result-card-head"><div class="fc-result-card-title">${isTotal?'Total':d}</div></div>
+        <div class="fc-result-card-weekdays">${weekdayBlocks}${weeklyBlock}</div>
+      </div>`;
+    }
+
+    const bodyCards = rowDistricts.map(d=>{
+      const ps = WEEKDAY_LABELS.map((_,i)=>fcPlanFor(d,i));
+      return fcResultCardHtml(d, ps, fcWeeklyPFor(d), false);
     });
-    // Total row: one aggregate per weekday, across the visible districts —
+    // Total card: one aggregate per weekday, across the visible districts —
     // unchanged from before, just now built through fcAggregateP.
     const totalPs = WEEKDAY_LABELS.map((_,i)=>
       fcAggregateP(rowDistricts.map(dist=>fcPlanFor(dist,i)), TARGET_PRODUCTIVITY.overall, TARGET_COST_PER_ORDER.overall)
     );
-    const totalCells = totalPs.map(p=>`<td>${fcCellHtml(p)}</td>`).join('');
-    // Weekly × Total corner: every district's every weekday, in one cell —
+    // Weekly × Total corner: every district's every weekday, in one block —
     // the network's full-week overall result.
     const weeklyTotalP = fcAggregateP(totalPs, TARGET_PRODUCTIVITY.overall, TARGET_COST_PER_ORDER.overall);
-    const weeklyTotalCell = `<td class="fc-weekly-td">${fcCellHtml(weeklyTotalP)}</td>`;
-    body.innerHTML = bodyRows.join('') + `<tr class="total-row"><td><strong>Total</strong></td>${totalCells}${weeklyTotalCell}</tr>`;
+    cardsWrap.innerHTML = bodyCards.join('') + fcResultCardHtml('Total', totalPs, weeklyTotalP, true);
 
     note.innerHTML = `<b>Total Order</b> = weighted average of that weekday's historical Total Order (HKTV Staff + ODS/VAN) across T-2 / T-1 / current month, weights above (auto-renormalized over whichever months have data)`
       + (pctChange ? `, then × (1 ${pctChange>0?'+':'−'} ${Math.abs(pctChange)}%) applied network-wide and split across districts by historical order share. ` : '. ')
-      + `<b>Est. ODS Orders</b> = same method on ODS/VAN-only history (or the ODS Order Count override), after any channel-split shift — a ↳ line shows the shift. <b>↳ ODS tunnel users</b> (ETH &amp; WTH only) = Est. ODS Orders ÷ that district's historical orders-per-ODS-user rate for that weekday, rounded up — × $${ODS_TUNNEL_FEE_PER_USER}/user/day folded into Cost/Order below; always 0 elsewhere. <b>HKTV Orders</b> = Total Order − Est. ODS Orders. <b>FT/PT rows</b> = that weekday's Per-District Staff Plan. <b>Productivity</b> = HKTV Orders ÷ total headcount; the pill is its achievement rate, (forecast − target) ÷ target — green at or above target, red below. <b>Cost/Order</b> = that weekday's (Fixed + planned Staff + ODS cost + ODS tunnel fee) ÷ that weekday's Total Order — a DAILY reading, not the monthly one in the Cost Planning portal below (which also carries the FT roster pool's paid-but-idle man-days), so a day can read cheap here while the month still misses target; green is at or under target. Hidden districts are excluded from the Total row. <b>Weekly</b> (rightmost column) = that row's Mon–Sun figures rolled into one: orders/headcount/tunnel-cost summed, Productivity and Cost/Order recomputed from those sums (not an average of the seven daily figures) — checked against that district's own target for the per-district rows, and the network overall target in the Total row.`;
+      + `<b>Est. ODS Orders</b> = same method on ODS/VAN-only history (or the ODS Order Count override), after any channel-split shift — a ↳ line shows the shift. ODS tunnel users (ETH &amp; WTH only) are now shown on the Per-District Staff Plan card above, next to the plan that drives them, rather than repeated on every block here. <b>HKTV Orders</b> = Total Order − Est. ODS Orders. <b>FT/PT rows</b> = that weekday's Per-District Staff Plan. <b>Productivity</b> = HKTV Orders ÷ total headcount; the pill is its achievement rate, (forecast − target) ÷ target — green at or above target, red below. <b>Cost/Order</b> = that weekday's (Fixed + planned Staff + ODS cost + ODS tunnel fee) ÷ that weekday's Total Order — a DAILY reading, not the monthly one in the Cost Planning portal below (which also carries the FT roster pool's paid-but-idle man-days), so a day can read cheap here while the month still misses target; green is at or under target. Hidden districts are excluded from the Total card. <b>Weekly</b> (last, amber-outlined block in each card) = that district's Mon–Sun figures rolled into one: orders/headcount/tunnel-cost summed, Productivity and Cost/Order recomputed from those sums (not an average of the seven daily figures) — checked against that district's own target for the per-district cards, and the network overall target in the Total card.`;
   }
 
   /* v13.0 §2 — "Clear Suggestions" used to clear only the badges and the
