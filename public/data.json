@@ -1,13 +1,13 @@
 {
   "_readme": "PLACEHOLDER seed data in the new 6-key schema (5 matrices, Matrix 1 split into hktvStaff + odsRatio). This file is overwritten automatically by kpi_pipeline.py via run_productivity_0300.bat (03:00) and run_tableau_1500.bat (15:00) once Task Scheduler is set up. Delete this _readme field or leave it; the page ignores it.",
-  "generatedAt": "2026-09-18T14:17",
+  "generatedAt": "2026-09-18T17:32",
   "matrices": {
     "hktvStaff": {
       "actual": {
-        "overall": 49.9,
+        "overall": 49.88,
         "districts": {
-          "ETH": 44.27,
-          "ETK": 50.98,
+          "ETH": 44.21,
+          "ETK": 50.89,
           "ETX": 46.41,
           "NT-ST": 53.6,
           "NT-TM": 59.57,
@@ -19,10 +19,10 @@
         }
       },
       "forecast": {
-        "overall": 51.09,
+        "overall": 51.06,
         "districts": {
-          "ETH": 45.8,
-          "ETK": 51.82,
+          "ETH": 45.68,
+          "ETK": 51.6,
           "ETX": 46.61,
           "NT-ST": 55.21,
           "NT-TM": 60.17,
@@ -693,66 +693,66 @@
   },
   "staffAllocationCap": {
     "ETH": {
-      "ftDriver": 29,
-      "ftCourier": 31,
-      "ptDriver": 12,
-      "ptCourier": 2
+      "ftDriver": 28,
+      "ftCourier": 30,
+      "ptDriver": 6,
+      "ptCourier": 1
     },
     "ETK": {
-      "ftDriver": 34,
-      "ftCourier": 31,
+      "ftDriver": 24,
+      "ftCourier": 15,
       "ptDriver": 0,
       "ptCourier": 0
     },
     "ETX": {
-      "ftDriver": 25,
-      "ftCourier": 28,
-      "ptDriver": 12,
+      "ftDriver": 33,
+      "ftCourier": 41,
+      "ptDriver": 10,
       "ptCourier": 0
     },
     "NT-ST": {
-      "ftDriver": 30,
-      "ftCourier": 24,
+      "ftDriver": 28,
+      "ftCourier": 23,
       "ptDriver": 2,
       "ptCourier": 0
     },
     "NT-TM": {
-      "ftDriver": 34,
-      "ftCourier": 23,
-      "ptDriver": 1,
+      "ftDriver": 32,
+      "ftCourier": 20,
+      "ptDriver": 0,
       "ptCourier": 0
     },
     "NT-TSM": {
-      "ftDriver": 28,
+      "ftDriver": 26,
       "ftCourier": 35,
-      "ptDriver": 6,
+      "ptDriver": 4,
       "ptCourier": 0
     },
     "NT-TW": {
       "ftDriver": 25,
-      "ftCourier": 27,
-      "ptDriver": 8,
-      "ptCourier": 4
-    },
-    "WTH": {
-      "ftDriver": 26,
-      "ftCourier": 36,
-      "ptDriver": 13,
-      "ptCourier": 2
-    },
-    "WTK": {
-      "ftDriver": 22,
-      "ftCourier": 25,
-      "ptDriver": 11,
-      "ptCourier": 2
-    },
-    "WTX": {
-      "ftDriver": 21,
-      "ftCourier": 27,
-      "ptDriver": 10,
+      "ftCourier": 26,
+      "ptDriver": 7,
       "ptCourier": 0
     },
-    "_asOf": "20260827",
-    "_source": "Logistics_Staff_List_20260827.xlsx"
+    "WTH": {
+      "ftDriver": 25,
+      "ftCourier": 33,
+      "ptDriver": 10,
+      "ptCourier": 1
+    },
+    "WTK": {
+      "ftDriver": 21,
+      "ftCourier": 23,
+      "ptDriver": 4,
+      "ptCourier": 1
+    },
+    "WTX": {
+      "ftDriver": 22,
+      "ftCourier": 25,
+      "ptDriver": 7,
+      "ptCourier": 0
+    },
+    "_asOf": "2026-09-18",
+    "_source": "Google Sheet: LOG Master"
   }
 }
