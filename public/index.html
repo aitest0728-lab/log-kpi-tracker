@@ -3973,7 +3973,12 @@
       </div>`;
     }).join('');
 
-    function fcCellHtml(p){
+    function fcCellHtml(p, opts){
+      // v15.3 — Weekly cells now carry the TRUE monthly figure (see
+      // fcMonthlyAggregateFor), so their tooltip should say that instead of
+      // the daily "a day can look cheap" caveat, which no longer applies to
+      // them. Only the 7 per-weekday cells are still single-day readings.
+      const isWeekly = !!(opts && opts.isWeekly);
       const meetsTarget = p.achievedProd != null && p.achievedProd >= p.targetProd;
       const pillCls = p.achievedProd==null ? 'delta-flat' : meetsTarget ? 'delta-up' : 'delta-down';
       // v13.0 §6 — the pill now carries the achievement rate
@@ -3998,6 +4003,9 @@
       // row in every cell regardless of whether that particular day shifted
       // anything.
       const hasShift = Math.abs(p.odsShift||0) >= 1;
+      const costTitle = isWeekly
+        ? `This district's monthly Fixed + Staff (incl. the paid-but-idle FT roster pool) + ODS cost ÷ its forecast order volume for the month: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is the SAME monthly figure as the Suggest Headcount pass/fail badge and this district's row in the Cost Planning portal below — they will always agree.`
+        : `This weekday's Fixed + planned Staff + ODS cost ÷ this weekday's Total Order forecast: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is one day's figure, not the monthly Cost/Order in the Weekly cell or the Cost Planning portal below, which also carry the FT roster pool's idle man-days — a day can look cheap here while the month still misses target.`;
       return `<div class="fc-cell">
         <div class="fc-row"><span class="fc-label">Total Order</span><span class="fc-val">${intFmt(p.totalOrders)}</span></div>
         <div class="fc-row"><span class="fc-label">Est. ODS Orders</span><span class="fc-val">${intFmt(p.odsOrders)}</span></div>
@@ -4015,7 +4023,7 @@
         <div class="fc-row fc-primary">
           <span class="fc-label">Cost/Order</span>
           <span class="fc-val">${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)}</span>
-          <span class="delta-pill ${costPillCls}" title="This weekday's Fixed + planned Staff + ODS cost ÷ this weekday's Total Order forecast: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is one day's figure, not the monthly Cost/Order in the Cost Planning portal below, which also carries the FT roster pool's idle man-days — a day can look cheap here while the month still misses target.">${fcRatePct(costRate)}</span>
+          <span class="delta-pill ${costPillCls}" title="${costTitle}">${fcRatePct(costRate)}</span>
         </div>
       </div>`;
     }
@@ -4036,15 +4044,63 @@
       return { totalOrders:toSum, odsOrders:odSum, odsShift:shSum, hktvOrders:hkSum, ftDriver:fd, ftCourier:fc, ptDriver:pd, ptCourier:pc, achievedProd:achieved, targetProd, costPerOrder, targetCostPerOrder, odsUserCount:ouSum, odsTunnelCost:otSum };
     }
 
-    // v15.0 §2 — per-district Weekly column: this district's own 7 fcPlanFor
-    // cells (Mon..Sun) rolled into one aggregate, using that district's own
-    // Target Productivity / Target Cost per Order (not the network overall)
-    // so its achievement pills stay meaningful against ITS target.
+    // v15.3 — TRUE MONTHLY aggregate, for the "Weekly" rollup only.
+    // fcAggregateP (above) sums 7 individual weekday CELLS at one occurrence
+    // each and prices staff at deployed-only cost — that's the right math for
+    // the per-weekday Total row (a single day, cross-district), but it is NOT
+    // the same figure as the month: it skips each weekday's occurrence count
+    // (Mon×4 vs Tue×5, etc.) and the paid-but-idle FT roster pool top-up.
+    // That gap let "Weekly" disagree with the Suggest Headcount pass/fail
+    // badge and the Cost Planning portal for districts sitting close to
+    // target (e.g. WTH could read Cost -0.1% in one place and +0.1% in the
+    // other for the identical plan). fcMonthlyAggregateFor reuses the exact
+    // same occurrence-weighted, idle-topup-inclusive functions the Cost
+    // Portal (fcRenderCostPortal) and the Suggest search (fcBuildDistrictPlan)
+    // already use, so "Weekly" is now numerically identical to both — one
+    // set of numbers, one pass/fail verdict, everywhere on the page.
+    function fcMonthlyAggregateFor(districts, targetProd, targetCostPerOrder){
+      const occ = fcWeekdayOccurrences();
+      let fixed=0, variableStaff=0, variableOds=0, variableOdsTunnel=0, orderVolume=0,
+          odsVolume=0, hktvVolume=0, workedManDays=0, paidManDays=0,
+          fd=0, fc=0, pd=0, pc=0, shSum=0;
+      districts.forEach(d=>{
+        fixed += fcMonthlyFixedCostFor(d);
+        variableStaff += fcMonthlyStaffCostFor(d); // occurrence-weighted + idle FT pool top-up — same as the Cost Portal
+        const odsVol = fcMonthlyOdsOrderEstimate(d);
+        variableOds += odsVol * odsBlendedCostFor(d);
+        variableOdsTunnel += fcMonthlyOdsTunnelCostFor(d);
+        orderVolume += fcMonthlyOrderEstimate(d);
+        odsVolume += odsVol;
+        workedManDays += fcMonthlyWorkedManDaysFor(d);
+        paidManDays += fcMonthlyManDaysFor(d);
+        for(let i=0;i<7;i++){
+          const p = fcPlanFor(d,i), o = occ[i];
+          fd += p.ftDriver*o; fc += p.ftCourier*o; pd += p.ptDriver*o; pc += p.ptCourier*o;
+          hktvVolume += p.hktvOrders*o; shSum += (p.odsShift||0)*o;
+        }
+      });
+      const total = fixed + variableStaff + variableOds + variableOdsTunnel;
+      const costPerOrder = orderVolume>0 ? total/orderVolume : null;
+      // Productivity denominator is DEPLOYED man-days (workedManDays), not
+      // paid — matches fcBuildDistrictPlan's weightedProd exactly, so the
+      // Weekly Productivity pill agrees with the Suggest badge too.
+      const achievedProd = workedManDays>0 ? hktvVolume/workedManDays : null;
+      return { totalOrders:orderVolume, odsOrders:odsVolume, odsShift:shSum, hktvOrders:hktvVolume,
+        ftDriver:fd, ftCourier:fc, ptDriver:pd, ptCourier:pc,
+        achievedProd, targetProd, costPerOrder, targetCostPerOrder,
+        odsUserCount:0, odsTunnelCost:variableOdsTunnel,
+        workedManDays, paidManDays };
+    }
+    // v15.0 §2, v15.3 — per-district Weekly column: this district's TRUE
+    // monthly figure (see fcMonthlyAggregateFor above), using that
+    // district's own Target Productivity / Target Cost per Order (not the
+    // network overall) so its achievement pills stay meaningful against ITS
+    // target — and now always agree with its Suggest Headcount badge and its
+    // row in the Cost Planning portal below.
     function fcWeeklyPFor(d){
-      const ps = WEEKDAY_LABELS.map((_,i)=>fcPlanFor(d,i));
       const targetProd = fcTargetProdFor(d);
       const targetCostPerOrder = TARGET_COST_PER_ORDER[d] != null ? TARGET_COST_PER_ORDER[d] : TARGET_COST_PER_ORDER.overall;
-      return fcAggregateP(ps, targetProd, targetCostPerOrder);
+      return fcMonthlyAggregateFor([d], targetProd, targetCostPerOrder);
     }
 
     // v15.1 — one card per district: its 7 weekday blocks + the Weekly
@@ -4059,8 +4115,8 @@
         </div>`).join('');
       const weeklyBlock = `
         <div class="fc-result-wd fc-result-weekly">
-          <div class="fc-result-wd-label" title="Mon–Sun rolled into one: sums for orders/headcount/tunnel-cost, Productivity and Cost/Order recomputed from those sums.">Weekly</div>
-          ${fcCellHtml(weeklyP)}
+          <div class="fc-result-wd-label" title="The forecast month's true figure for this plan — occurrence-weighted across Mon–Sun and, for Cost/Order, including the paid-but-idle FT roster pool top-up. Identical to the Suggest Headcount pass/fail badge and this row in the Cost Planning portal below.">Weekly</div>
+          ${fcCellHtml(weeklyP, {isWeekly:true})}
         </div>`;
       return `<div class="fc-result-card${isTotal?' fc-result-total':''}" data-d="${d}">
         <div class="fc-result-card-head"><div class="fc-result-card-title">${isTotal?'Total':d}</div></div>
@@ -4077,9 +4133,10 @@
     const totalPs = WEEKDAY_LABELS.map((_,i)=>
       fcAggregateP(rowDistricts.map(dist=>fcPlanFor(dist,i)), TARGET_PRODUCTIVITY.overall, TARGET_COST_PER_ORDER.overall)
     );
-    // Weekly × Total corner: every district's every weekday, in one block —
-    // the network's full-week overall result.
-    const weeklyTotalP = fcAggregateP(totalPs, TARGET_PRODUCTIVITY.overall, TARGET_COST_PER_ORDER.overall);
+    // Weekly × Total corner: every district's TRUE monthly figure rolled
+    // into one network result (v15.3 — fcMonthlyAggregateFor, not the daily
+    // fcAggregateP over totalPs, for the same reason as fcWeeklyPFor above).
+    const weeklyTotalP = fcMonthlyAggregateFor(rowDistricts, TARGET_PRODUCTIVITY.overall, TARGET_COST_PER_ORDER.overall);
     cardsWrap.innerHTML = bodyCards.join('') + fcResultCardHtml('Total', totalPs, weeklyTotalP, true);
 
     note.innerHTML = `<b>Total Order</b> = weighted average of that weekday's historical Total Order (HKTV Staff + ODS/VAN) across T-2 / T-1 / current month, weights above (auto-renormalized over whichever months have data)`
