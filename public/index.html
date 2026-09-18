@@ -814,8 +814,8 @@
             <input type="number" id="fcSuggestOverdrive" min="0" max="50" step="1" value="0">
           </div>
           <div class="prod-field fc-weight">
-            <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. Only the DEFAULT: any district with its own 'Max ODS Flex %' on its card below uses that instead. Defaults to 0% — no channel-split movement — until raised here or on a specific district, to the agreed contractual bound.">Max ODS Volume Flex (±%) — default</label>
-            <input type="number" id="fcOdsFlex" min="0" max="100" step="1" value="0">
+            <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. Only the DEFAULT: any district with its own 'Max ODS Flex %' on its card below uses that instead. Set to 20% here — the agreed contractual bound — so every district's channel-split search is capped at ±20% unless a district's own field overrides it.">Max ODS Volume Flex (±%) — default</label>
+            <input type="number" id="fcOdsFlex" min="0" max="100" step="1" value="20">
           </div>
           <div class="prod-field fc-weight">
             <label for="fcOdsMaxShare" title="A ceiling on what proportion of a day's Total Orders may be handled by ODS instead of in-house staff. 30 = ODS never gets more than 30 of every 100 orders that day, whatever the flex band would otherwise allow. It only ever caps ODS volume DOWNWARD — it never forces volume onto ODS. Blank = no ceiling (the ±% flex band alone applies).">Max ODS Orders as % of Total Orders</label>
@@ -3568,7 +3568,7 @@
   */
   const FC_ODS = {
     optimize: true,      // whether Suggest Headcount is allowed to move the split at all
-    flexPct: 0,          // ± band around the forecast ODS baseline — the DEFAULT; see byDistrict. v14.8 §1 — was 20; leader wants the default at 0, matching Overdrive's own default of 0 (no channel-split movement unless a district's own ceiling, or this field, is explicitly raised)
+    flexPct: 20,         // ± band around the forecast ODS baseline — the DEFAULT; see byDistrict. v14.9 — raised to the agreed ±20% contractual bound so Suggest Headcount actually searches the channel split network-wide; still overridable per-district below and still gated by the feasibility check requiring BOTH Target Productivity and Target Cost/Order to clear before a shifted candidate is accepted
     maxSharePct: '',     // optional hard ceiling on ODS's share of a day's total orders
     // v14.6 §2 — ONE FLEX BAND FOR TEN DISTRICTS WAS THE SAME MISTAKE AS THE
     // OLD SINGLE OVERDRIVE CEILING. How far ODS volume can move is itself a
