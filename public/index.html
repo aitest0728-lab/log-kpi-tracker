@@ -2809,8 +2809,19 @@
     const dayOverdrive = WEEKDAY_LABELS.map((_,i)=> Math.min(overdrive, fcMaxOverdriveFor(district, i)/100));
     const pass1 = WEEKDAY_LABELS.map((label,i)=>
       fcOptimizeDayPlan(district, i, dayTargetProd[i], dayOverdrive[i], courierShare, null));
-    const ftDriverAlloc = fcSpreadFtPool(pass1.map(d=>d.ftDriver + d.ptDriver), occ, pool.ftDriver, cap.ftDriver, cap.ptDriver);
-    const ftCourierAlloc = fcSpreadFtPool(pass1.map(d=>d.ftCourier + d.ptCourier), occ, pool.ftCourier, cap.ftCourier, cap.ptCourier);
+    // v19.0 §1 — the FT pool (75% of bench) is a MINIMUM payroll commitment,
+    // not the ceiling on how many staff the plan may actually use: staff
+    // take leave unevenly day to day, so the real usable max on any given
+    // day is the district's full active bench from the Staff List (cap.*),
+    // not a fraction of it. Passing Infinity here means fcSpreadFtPool no
+    // longer shaves a day's FT allocation down to fit inside the weekly 75%
+    // pool — each day is bounded only by benchPerDay (the full Google Sheet
+    // headcount). The 75% figure keeps its other job untouched: pool/
+    // idleFtManDays/poolUtilisation below (and fcFtFloorFor, fcMinRosterTopUpFor,
+    // the tooltips) still read FT_ROSTER_SHARE for the "minimum roster
+    // commitment" / idle-payroll reporting — only the allocation ceiling changed.
+    const ftDriverAlloc = fcSpreadFtPool(pass1.map(d=>d.ftDriver + d.ptDriver), occ, Infinity, cap.ftDriver, cap.ptDriver);
+    const ftCourierAlloc = fcSpreadFtPool(pass1.map(d=>d.ftCourier + d.ptCourier), occ, Infinity, cap.ftCourier, cap.ptCourier);
 
     const days = WEEKDAY_LABELS.map((label,i)=>{
       const ftAvail = { ftDriver: ftDriverAlloc[i], ftCourier: ftCourierAlloc[i] };

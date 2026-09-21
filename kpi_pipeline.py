@@ -1699,7 +1699,7 @@ def compute_staff_allocation_cap():
     return cap
 
 
-def process_oix(df, position_map=None):
+def process_oix(df, position_map=None, dedupe=True):
     """Cleaning + district tagging steps: drop O2O rows from non-LF/LP/ODS/VAN
     users, fill blank Parent Order from Order Number, dedupe, tag District.
 
@@ -1711,7 +1711,21 @@ def process_oix(df, position_map=None):
     productivity_for_group(). If position_map is None (e.g. the staff list
     couldn't be found this run), "Position" is left all-blank and those two
     features simply have nothing to classify — everything else is
-    unaffected."""
+    unaffected.
+
+    v19.0 §2 — `dedupe` (default True, unchanged behavior for every existing
+    caller) controls the drop_duplicates(subset=[Parent Order, User]) step
+    below. That collapse is correct for manpower/order-count purposes (one
+    row per staff/order pair) but WRONG for a true waybill count: a single
+    Parent Order + User pair can legitimately carry several distinct Waybill
+    Numbers (multiple totes/parcels on the same order), and the (Parent
+    Order, User) dedupe silently keeps only one of them. Callers that need
+    an accurate unique-Waybill-Number count (waybill_count_for_group) should
+    pass dedupe=False to get a still-cleaned, still-District-tagged frame
+    with every waybill row intact — Waybill Number itself is still safe to
+    call .nunique() on directly, since a given waybill number's only
+    repetition in this extract is its own status-history rows, not a
+    different waybill."""
     c_user, c_addr = col("E"), col("R")
     c_order_no, c_parent = col("K"), col("L")
     c_truck = col("P")
@@ -1753,7 +1767,8 @@ def process_oix(df, position_map=None):
 
     df.iloc[:, c_parent] = [normalize_parent_order(l, k) for l, k in zip(parent, order_no)]
 
-    df = df.drop_duplicates(subset=[df.columns[c_parent], df.columns[c_user]])
+    if dedupe:
+        df = df.drop_duplicates(subset=[df.columns[c_parent], df.columns[c_user]])
 
     df["District"] = df.iloc[:, c_truck].apply(district_from_truck_no)
     unmatched = df["District"].isna().sum()
@@ -2071,21 +2086,31 @@ def backfill_productivity_log(history, target_date, position_map=None):
     productivity_history.json) doesn't silently under-count this month's
     MTD accumulation forever.
 
-    Why this only backfills ODS/VAN's figures (order count, waybill count,
-    manpower) and HKTV's manpower — never HKTV's order/waybill count:
+    Why this backfills ODS/VAN's figures (order count, waybill count,
+    manpower), HKTV's manpower, AND (v19.0 §2) HKTV's waybill count — but
+    still never HKTV's order count:
     ODS/VAN's order and waybill counts are entirely OIX-derived
     (order_count_for_group() / waybill_count_for_group()), so any day whose
     OIX_Record file is still sitting in OIX_FOLDER can be fully
-    reconstructed after the fact, no Tableau data required. HKTV's order/
-    waybill count, by contrast, is Tableau's network-wide total for that day
-    MINUS the OIX-derived ODS figure (split_hktv_ods_totals()) — and
-    Tableau's Delivery Dashboard reports only ever give us T-1 (one day) or
-    MTD (one pre-summed total), never a re-queryable per-day total for an
-    arbitrary past date. So there is nothing to back that half out of once
-    the day has rolled past T-1. Rather than fabricate a number, backfilled
-    days get manpower filled in (real, from OIX) and orderCount/
-    waybillCount/productivity left as None for the hktvStaff side — honest
-    about what can and can't be recovered.
+    reconstructed after the fact, no Tableau data required. HKTV's order
+    count, by contrast, is Tableau's network-wide total for that day MINUS
+    the OIX-derived ODS figure (split_hktv_ods_totals()) — and Tableau's
+    Delivery Dashboard reports only ever give us T-1 (one day) or MTD (one
+    pre-summed total), never a re-queryable per-day total for an arbitrary
+    past date. So there is nothing to back that half out of once the day
+    has rolled past T-1, and orderCount/productivity stay None for the
+    hktvStaff side — honest about what can't be recovered.
+
+    HKTV's waybill count is different: it doesn't need Tableau's network
+    total at all. Like ODS/VAN's, it can be counted straight from OIX with
+    waybill_count_for_group(df, ("LF", "LP")) — unique Waybill Number
+    (Column G) per district, for HKTV's own user prefixes. v19.0 §2 adds
+    this recovery, using process_oix(..., dedupe=False) (see its docstring)
+    rather than the (Parent Order, User)-deduped `df` used for manpower/
+    order-count above, since that dedupe silently drops every waybill past
+    the first whenever one order/user pair carries several — HKTV orders
+    routinely do, so the corrected count is substantially higher than a
+    naive count on the deduped frame would be.
 
     This is exactly what the Overview tab's HKTV Staff Productivity actually
     needs, though: its MTD "actual" is (Tableau's single MTD order total) −
@@ -2094,9 +2119,9 @@ def backfill_productivity_log(history, target_date, position_map=None):
     It was never built by summing daily HKTV order counts, so recovering
     ODS's per-day figures (which this function does) plus both groups'
     per-day manpower is exactly enough to fix the MTD accumulation; the
-    unrecoverable HKTV per-day order/waybill figures only affect that one
-    day's own row in the Productivity Detail / Daily Records table (and the
-    7-day rolling forecast, which already tolerates missing days).
+    unrecoverable HKTV per-day order count/productivity only affects that
+    one day's own row in the Productivity Detail / Daily Records table (and
+    the 7-day rolling forecast, which already tolerates missing days).
 
     `position_map` is passed through from the caller so a single staff list
     load can be reused across every date backfilled in one run, instead of
@@ -2135,14 +2160,21 @@ def backfill_productivity_log(history, target_date, position_map=None):
             continue
 
         try:
-            df = load_oix(path)
-            df = process_oix(df, position_map)
+            df_loaded = load_oix(path)
+            df = process_oix(df_loaded, position_map)
             hktv_manpower = manpower_for_group(df, ("LF", "LP"), exclude_positions=LEADER_EXCLUDE_POSITIONS)
             ods_manpower = manpower_for_group(df, ("ODS", "VAN"))
             ods_order_count = order_count_for_group(df, ("ODS", "VAN"))
             ods_waybill_count = waybill_count_for_group(df, ("ODS", "VAN"))
             courier_group = manpower_distribution_for_group(df, "courier")
             driver_group = manpower_distribution_for_group(df, "driver")
+            # v19.0 §2 — HKTV waybill count, recovered from the SAME OIX file
+            # but on a separately-processed, un-deduped frame (see
+            # process_oix()'s dedupe=False docstring) so multi-waybill orders
+            # aren't collapsed to one. Order count/productivity stay
+            # unrecoverable (see docstring above) — this only fills waybillCount.
+            df_for_waybill = process_oix(df_loaded, position_map, dedupe=False)
+            hktv_waybill_count = waybill_count_for_group(df_for_waybill, ("LF", "LP"))
         except Exception as e:
             print(f"  ⚠️ Productivity backfill: found {os.path.basename(path)!r} for "
                   f"{missing_date.isoformat()} but failed to parse it ({e}) — skipping this date.")
@@ -2155,15 +2187,17 @@ def backfill_productivity_log(history, target_date, position_map=None):
             "districts": {dist: {"order": ods_order_count["districts"][dist],
                                   "waybill": ods_waybill_count["districts"][dist]} for dist in DISTRICTS},
         })
-        # HKTV Staff: manpower is real; order/waybill/productivity stay None —
-        # see the docstring above for why those can't be recovered after T-1.
+        # HKTV Staff: manpower is real; waybillCount is now recovered too
+        # (v19.0 §2, see docstring above); order count/productivity stay
+        # None — Tableau's per-day network total can't be recovered after T-1.
         hktv_entry = {
             "districts": {
-                dist: {"orderCount": None, "waybillCount": None,
+                dist: {"orderCount": None,
+                       "waybillCount": hktv_waybill_count["districts"].get(dist),
                        "manpower": hktv_manpower["districts"].get(dist, 0), "productivity": None}
                 for dist in DISTRICTS
             },
-            "total": {"orderCount": None, "waybillCount": None,
+            "total": {"orderCount": None, "waybillCount": hktv_waybill_count["overall"],
                       "manpower": hktv_manpower["overall"], "productivity": None},
         }
         log[missing_date.isoformat()] = {"hktvStaff": hktv_entry, "odsRatio": ods_entry}
@@ -2192,8 +2226,9 @@ def backfill_productivity_log(history, target_date, position_map=None):
 
     if filled:
         print(f"  🩹 Productivity backfill: recovered {len(filled)} missing day(s) from OIX_Record "
-              f"files still in {OIX_FOLDER!r} (ODS/VAN order+waybill+manpower, HKTV manpower "
-              f"only — see backfill_productivity_log() docstring): {filled}")
+              f"files still in {OIX_FOLDER!r} (ODS/VAN order+waybill+manpower, HKTV manpower+waybill "
+              f"— HKTV order count/productivity still unrecoverable, see "
+              f"backfill_productivity_log() docstring): {filled}")
     if unavailable:
         print(f"  ⚠️ Productivity backfill: {len(unavailable)} day(s) this month still have no "
               f"dailyProductivityLog entry AND no OIX_Record file left in {OIX_FOLDER!r} to "
