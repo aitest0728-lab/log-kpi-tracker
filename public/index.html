@@ -1183,7 +1183,7 @@
     { key:'hktvStaff',        section:'productivity', label:'HKTV Staff Productivity',  unit:'#',  target:24,     better:'high', fmt:v=>v==null?'—':v.toFixed(2), forecastLabel:'Monthly Average' },
     { key:'odsRatio',         section:'productivity', label:'ODS / VAN Productivity',   unit:'#',  target:19,     better:'high', fmt:v=>v==null?'—':v.toFixed(2) },
     { key:'delayRate',        section:'tableau',      label:'Delay Rate',               unit:'%',  target:4.0,    better:'low',  fmt:v=>v==null?'—':v.toFixed(2)+'%', forecastLabel:'Monthly Average' },
-    { key:'poorRating',       section:'tableau',      label:'Poor Rating %',            unit:'%',  target:0.07,   better:'low',  fmt:v=>v==null?'—':v.toFixed(1)+'%', forecastLabel:'Monthly Average' },
+    { key:'poorRating',       section:'tableau',      label:'Poor Rating %',            unit:'%',  target:0.07,   better:'low',  fmt:v=>v==null?'—':v.toFixed(3)+'%', forecastLabel:'Monthly Average' },
     { key:'missingLostAmount',section:'tableau',      label:'Missing & Lost Amount',    unit:'$',  target:400000, better:'low',  fmt:v=>v==null?'—':'$'+Math.round(v).toLocaleString() },
     { key:'rfidMissingTote',  section:'tableau',      label:'RFID Missing Tote',        unit:'#',  target:146,    better:'low',  fmt:v=>v==null?'—':Math.round(v).toLocaleString() },
   ];
@@ -4855,7 +4855,7 @@
       body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No other_aspects_history.json alongside this page yet — kpi_pipeline.py's Tableau section writes it automatically once this metric has been computed at least once. This table will populate on its own.</td></tr>`;
       return;
     }
-    const fmt = metric==='poorRating' ? (v=>v==null?'—':v.toFixed(1)+'%')
+    const fmt = metric==='poorRating' ? (v=>v==null?'—':v.toFixed(3)+'%')
               : metric==='missingLostAmount' ? (v=>v==null?'—':'$'+Math.round(v).toLocaleString())
               : (v=>v==null?'—':Math.round(v).toLocaleString());
 
