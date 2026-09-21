@@ -2117,16 +2117,28 @@
 
   // ---- Reference data embedded from the two Finance workbooks (v6.0 §1/§2) ----
   // Fixed Cost — DAILY Provision per District, from Full_Cost_Planning.xlsx
-  // "Fixed Cost - Provision": the "Same for 10 Districts" controllable +
-  // non-controllable line items (identical for every district) plus each
-  // district's own Transit & Ice costs. No longer a user input — see §2.
+  // "Fixed Cost - Provision": sum of every Controllable + Non-Controllable
+  // provision line item (Parking, Penalty Ticket, Tunnel Fee, Truck Repair &
+  // Maintenance, Accident Compensation, Car Cleaning, FMP, License &
+  // Insurance, DigiMobi, HKTV CCTV Service Fee, Frontline MGT Cost, Cross
+  // Charge - Wet Market, Cross Charge - Warehouse, Office Team Exp., KT
+  // Warehouse, Car Fuel, Others Cost, Repair & Maintenance) PLUS each
+  // district's own Transit & Ice costs (Transit - Cool Truck, Transit -
+  // Ambient, Outsource Manpower, Ice - Tube Ice, Ice - Dry Ice). No longer a
+  // user input — see §2.
   // v5.0 — corrected: this is a DAILY figure, not monthly as previously
   // assumed. Any monthly total must go through fcMonthlyFixedCostFor()
   // below, which multiplies by the number of days in the forecast's
   // current month, rather than reading this dict directly.
+  // v19.0 §3 — refreshed from the updated Full_Cost_Planning.xlsx: every
+  // provision line item is now genuinely per-district (the workbook no
+  // longer has a single "same for 10 districts" figure for the
+  // Controllable/Non-Controllable rows — each of the 10 columns differs),
+  // so this dict is now a real per-district daily total, not the old
+  // shared-provision-plus-Transit&Ice split.
   const FIXED_COST_PROVISION = {
-    'ETH':24159.14, 'ETK':24772.14, 'ETX':24847.14, 'NT-ST':23610.14, 'NT-TM':24607.14,
-    'NT-TSM':25824.99, 'NT-TW':24152.14, 'WTH':26630.14, 'WTK':25503.34, 'WTX':24856.64
+    'ETH':24159.14, 'ETK':17268.63, 'ETX':22218.82, 'NT-ST':21628.75, 'NT-TM':24177.32,
+    'NT-TSM':23052.31, 'NT-TW':26869.28, 'WTH':26255.19, 'WTK':28491.34, 'WTX':20118.79
   };
   // Variable Cost — Unit Cost per head per DAY, per district, from
   // Full_Cost_Planning.xlsx "Variable Cost - Unit Cost" (HKTV Staff section).
