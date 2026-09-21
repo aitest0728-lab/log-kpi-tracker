@@ -543,7 +543,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       </div>
     </div>
-    <div class="rail-foot">v5.0</div>
+    <div class="rail-foot">v6.0</div>
   </nav>
 
   <!-- MAIN -->
@@ -833,7 +833,7 @@
                (Mon–Sun) on record — a week with any missing day, or that
                contains a HK general holiday (e.g. National Day), is left
                out of the average entirely rather than partially counted.
-               See fcForecastValidWeeks()/fcWeekdayAvgAcrossWeeks() in the
+               See fcForecastValidDates()/fcWeekdayAvgAcrossWeeks() in the
                script section. This note shows how many weeks qualified. -->
           <div class="fc-weight-sum" id="fcWeightSum"></div>
           <div class="prod-field fc-weight">
@@ -844,7 +844,7 @@
         </div>
         <!-- Weeks left OUT of the Order Ratio forecast, each with the reason
              (holiday / no data / week not finished yet). Filled by
-             fcRenderExcludedWeeks() from fcExcludedWeeks(). -->
+             fcRenderExcludedDays() from fcExcludedDays(). -->
         <div class="fc-weeks-excluded none" id="fcWeeksExcluded"></div>
 
         <!-- ODS staging inputs — moved up from the Cost Planning portal so
@@ -3356,6 +3356,15 @@
   // week average (National Day etc. "dramatically affect the order pattern
   // in a week", per spec) — not just the holiday date itself. This list
   // needs a yearly top-up; it currently only covers 2026.
+  // FORECAST DATA START — the forecast model only learns from orders on or
+  // after this date. District zones were rearranged at the end of August
+  // 2026, which moved a lot of order volume between districts, so anything
+  // earlier describes a different map and is left out of EVERY forecast
+  // input: the weekday order averages, the ODS/VAN averages, the ODS
+  // orders-per-user rate, and the district order-ratio splits below.
+  // Change this one line if the zones are ever rearranged again.
+  const FORECAST_DATA_START = '2026-09-01';
+  const FORECAST_START_REASON = 'district zones were rearranged at the end of August, so earlier volumes are not comparable';
   const HK_HOLIDAY_NAMES = {
     '2026-01-01': "New Year's Day",
     '2026-02-17': 'Lunar New Year (1st day)', '2026-02-18': 'Lunar New Year (2nd day)', '2026-02-19': 'Lunar New Year (3rd day)',
@@ -3375,35 +3384,40 @@
   const HK_HOLIDAYS = new Set(Object.keys(HK_HOLIDAY_NAMES));
 
   // v6.0 §1 — replaces the old weighted T-2/T-1/Current-month average.
-  // A week (Mon–Sun) only counts toward the forecast if EVERY day in it has
-  // real Total Order data (dayRecord('combined','Total') — which itself
-  // requires both hktvStaff and odsRatio to be present that day) AND none
-  // of its 7 dates is a HK General Holiday; a week failing either check is
-  // omitted entirely, not partially counted. Memoized per render the same
-  // way the old month-based cache was.
-  let _fcValidWeeksCache = null;
-  function fcForecastValidWeeks(){
-    if(_fcValidWeeksCache) return _fcValidWeeksCache;
-    const weeks = listAvailableWeeks(); // Monday strings
-    _fcValidWeeksCache = weeks.filter(monday=>{
-      for(let i=0;i<7;i++){
-        const dateKey = addDays(monday, i);
-        if(HK_HOLIDAYS.has(dateKey)) return false;
-        if(!dayRecord(dateKey, 'combined', 'Total')) return false;
-      }
-      return true;
-    });
-    return _fcValidWeeksCache;
+  // PER-DAY, not per-week: every individual DATE counts toward its own
+  // weekday's average if (a) it is on/after FORECAST_DATA_START (the
+  // end-of-August zone rearrangement), (b) it has real Total Order data
+  // (dayRecord('combined','Total') — which itself requires both hktvStaff
+  // and odsRatio to be present that day), and (c) its Mon–Sun week contains
+  // no HK General Holiday (National Day etc. "dramatically affect the order
+  // pattern in a week", per the original spec, so the whole week's days are
+  // still dropped when one of them is a holiday). A gap on one day no longer
+  // throws away the other six days of that week — the days around it still
+  // count, each toward its own weekday. Memoized per render.
+  const FC_WD_SHORT = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let _fcValidDatesCache = null;
+  function fcHolidayInWeekOf(dateKey){
+    const monday = mondayOf(dateKey);
+    for(let i=0;i<7;i++){ const d = addDays(monday, i); if(HK_HOLIDAYS.has(d)) return d; }
+    return null;
   }
-  // Same two tests fcForecastValidWeeks() applies (holiday in the week, or a
-  // day without real Total Order data), but reported instead of just
-  // filtered: for every week on record that does NOT qualify, WHY it was
-  // left out. Data gaps are split into three kinds so the reason is
-  // actionable — history not started yet (partial first week), the week is
-  // still in progress (days after the latest data), or a genuine gap in
-  // the middle (a date the Tableau/OIX feed never delivered).
+  function fcForecastValidDates(){
+    if(_fcValidDatesCache) return _fcValidDatesCache;
+    _fcValidDatesCache = Object.keys(DATA.dailyProductivity).sort().filter(dateKey=>{
+      if(dateKey < FORECAST_DATA_START) return false; // zone rearrangement — see FORECAST_DATA_START
+      if(fcHolidayInWeekOf(dateKey)) return false;
+      return !!dayRecord(dateKey, 'combined', 'Total');
+    });
+    return _fcValidDatesCache;
+  }
+  // How many days each weekday's average is built from (Mon..Sun).
+  function fcValidDayCountsByWeekday(){
+    const counts = [0,0,0,0,0,0,0];
+    fcForecastValidDates().forEach(d=>{ counts[weekdayIndexOf(d)]++; });
+    return counts;
+  }
   function fcFmtDateRuns(dates){
-    // ['2026-08-03','2026-08-04','2026-08-05','2026-08-07'] -> '08-03 – 08-05, 08-07'
+    // ['2026-09-03','2026-09-04','2026-09-05','2026-09-08'] -> '09-03 – 09-05, 09-08'
     const out = []; let start = null, prev = null;
     const short = d => d.slice(5);
     const flush = ()=>{ if(start!=null) out.push(start===prev ? short(start) : `${short(start)} – ${short(prev)}`); };
@@ -3414,56 +3428,54 @@
     flush();
     return out.join(', ');
   }
-  function fcExcludedWeeks(){
+  // Every date from FORECAST_DATA_START up to the latest data date that is
+  // NOT used, with WHY — reported instead of just filtered. Consecutive
+  // dates with the same reason are merged into one line. Dates before
+  // FORECAST_DATA_START are deliberately not reported (a standing model
+  // setting, not a data problem), and neither are dates after the latest
+  // data (they simply haven't happened yet).
+  function fcExcludedDays(){
     const keys = Object.keys(DATA.dailyProductivity).sort();
     if(!keys.length) return [];
-    const firstDate = keys[0], lastDate = keys[keys.length-1];
-    const validSet = new Set(fcForecastValidWeeks());
-    const out = [];
-    listAvailableWeeks().slice().sort().forEach(monday=>{
-      if(validSet.has(monday)) return;
-      const reasons = [];
-      const holidays = [], before = [], after = [], gaps = [];
-      for(let i=0;i<7;i++){
-        const dateKey = addDays(monday, i);
-        if(HK_HOLIDAYS.has(dateKey)) holidays.push(dateKey);
-        if(!dayRecord(dateKey, 'combined', 'Total')){
-          if(dateKey < firstDate) before.push(dateKey);
-          else if(dateKey > lastDate) after.push(dateKey);
-          else {
-            const hasH = !!dayRecord(dateKey, 'hktvStaff', 'Total'), hasO = !!dayRecord(dateKey, 'odsRatio', 'Total');
-            gaps.push({ dateKey, why: !hasH && !hasO ? 'no data' : !hasH ? 'HKTV Staff data missing' : 'ODS/VAN data missing' });
-          }
-        }
+    const lastDate = keys[keys.length-1];
+    const validSet = new Set(fcForecastValidDates());
+    const items = [];
+    for(let d = FORECAST_DATA_START; d <= lastDate; d = addDays(d, 1)){
+      if(validSet.has(d)) continue;
+      const hol = fcHolidayInWeekOf(d);
+      let why;
+      if(hol) why = `week contains HK general holiday ${hol.slice(5)} ${HK_HOLIDAY_NAMES[hol]} — the whole week is dropped`;
+      else {
+        const hasH = !!dayRecord(d, 'hktvStaff', 'Total'), hasO = !!dayRecord(d, 'odsRatio', 'Total');
+        why = !hasH && !hasO ? 'no data' : !hasH ? 'HKTV Staff data missing' : 'ODS/VAN data missing';
       }
-      if(holidays.length) reasons.push(`contains HK general holiday: ${holidays.map(d=>`${d.slice(5)} ${HK_HOLIDAY_NAMES[d]}`).join('; ')} — the whole week is dropped, not just that day`);
-      if(before.length) reasons.push(`not a full week — history only starts on ${firstDate} (no data ${fcFmtDateRuns(before)})`);
-      if(after.length) reasons.push(`week still in progress — latest data is ${lastDate} (${fcFmtDateRuns(after)} not in yet)`);
-      if(gaps.length){
-        const kinds = Array.from(new Set(gaps.map(g=>g.why)));
-        reasons.push(`data gap — ` + kinds.map(k=>`${k} on ${fcFmtDateRuns(gaps.filter(g=>g.why===k).map(g=>g.dateKey))}`).join('; '));
-      }
-      if(!reasons.length) reasons.push('excluded (no reason recorded)');
-      out.push({ monday, reasons });
-    });
-    return out;
+      const last = items[items.length-1];
+      if(last && last.why === why && addDays(last.to, 1) === d) last.to = d;
+      else items.push({ from:d, to:d, why });
+    }
+    return items;
   }
-  function fcRenderExcludedWeeks(){
+  function fcRenderExcludedDays(){
     const el = document.getElementById('fcWeeksExcluded');
     if(!el) return;
-    const ex = fcExcludedWeeks();
+    const ex = fcExcludedDays();
     if(!ex.length){
       el.className = 'fc-weeks-excluded none';
-      el.textContent = 'Weeks not used in the forecast: none — every week on record is a full, non-holiday week.';
+      el.textContent = `Days not used in the forecast: none — every day on record (from ${FORECAST_DATA_START}) has data and sits in a non-holiday week.`;
       return;
     }
+    const nDays = ex.reduce((a,x)=> a + Math.round((new Date(x.to+'T00:00:00') - new Date(x.from+'T00:00:00'))/86400000) + 1, 0);
+    const label = x => {
+      const a = FC_WD_SHORT[weekdayIndexOf(x.from)], b = FC_WD_SHORT[weekdayIndexOf(x.to)];
+      return x.from === x.to ? `${x.from} (${a})` : `${x.from} – ${x.to} (${a} – ${b})`;
+    };
     el.className = 'fc-weeks-excluded';
-    el.innerHTML = `<div class="fc-wx-title">Weeks NOT used in the forecast (${ex.length}) — a week is only counted if all 7 days have data and it has no HK general holiday</div><ul>`
-      + ex.map(w=>`<li><span class="fc-wx-week">${weekLabel(w.monday).replace('Week of ','')}</span> — ${w.reasons.join('; ')}</li>`).join('')
+    el.innerHTML = `<div class="fc-wx-title">Days NOT used in the forecast (${nDays}) — a day only counts if it has both HKTV Staff and ODS/VAN data and its week has no HK general holiday</div><ul>`
+      + ex.map(x=>`<li><span class="fc-wx-week">${label(x)}</span> — ${x.why}</li>`).join('')
       + `</ul>`;
   }
-  // Average order count for one district+weekday, across every FULL,
-  // non-holiday week on record (fcForecastValidWeeks above) — generalized to
+  // Average order count for one district+weekday, across every USABLE DAY of
+  // that weekday (fcForecastValidDates above) — generalized to
   // a metricKey so it can average 'combined' (Total Order = HKTV Staff +
   // ODS/VAN) or 'odsRatio' (ODS/VAN orders only), and a `field` so the same
   // logic can run on manpower instead of orderCount (used by the ODS Tunnel
@@ -3473,8 +3485,8 @@
     const ck = `${district}|${weekdayIdx}|${metricKey}|${field}`;
     if(ck in _fcWeekdayAvgCache) return _fcWeekdayAvgCache[ck];
     let sum = 0, count = 0;
-    fcForecastValidWeeks().forEach(monday=>{
-      const key = addDays(monday, weekdayIdx);
+    fcForecastValidDates().forEach(key=>{
+      if(weekdayIndexOf(key) !== weekdayIdx) return;
       const rec = dayRecord(key, metricKey, district);
       // v14.5 §1 behaviour preserved — a real zero (0 orders / 0 staff) IS
       // data and counts; only a genuine gap (orderCount null) is skipped.
@@ -3516,6 +3528,7 @@
     const sums = {}; DISTRICTS.forEach(d=>sums[d]=0);
     let total = 0;
     Object.keys(DATA.dailyProductivity).forEach(key=>{
+      if(key < FORECAST_DATA_START) return; // zone rearrangement — pre-September shares describe the old district map
       DISTRICTS.forEach(d=>{
         const rec = dayRecord(key, 'combined', d);
         if(rec && rec.orderCount != null){ sums[d]+=rec.orderCount; total+=rec.orderCount; }
@@ -3535,6 +3548,7 @@
     const sums = {}; DISTRICTS.forEach(d=>sums[d]=0);
     let total = 0;
     Object.keys(DATA.dailyProductivity).forEach(key=>{
+      if(key < FORECAST_DATA_START) return; // zone rearrangement — see FORECAST_DATA_START
       DISTRICTS.forEach(d=>{
         const rec = dayRecord(key, 'odsRatio', d);
         if(rec && rec.orderCount != null){ sums[d]+=rec.orderCount; total+=rec.orderCount; }
@@ -4255,22 +4269,23 @@
     _fcOrderRatioCache = null; // recompute the historical order-ratio split each render, in case data changed
     _fcOdsOrderRatioCache = null;
     _fcWeekdayOccCache = null; // v6.0 §1 — now a flat [1,1,1,1,1,1,1], but still cheap to recompute per render
-    _fcValidWeeksCache = null; // v6.0 §1 — which full/non-holiday weeks qualify can change as data is appended
+    _fcValidDatesCache = null; // v6.0 §1 — which days qualify can change as data is appended
     _fcWeekdayAvgCache = {};   // recompute from the data every render
 
     fcRenderChips();
     fcRenderPlanTable();
     fcRenderCostPortal();
 
-    const validWeeks = fcForecastValidWeeks();
+    const validDates = fcForecastValidDates();
+    const wdCounts = fcValidDayCountsByWeekday();
     const pctChange = +document.getElementById('fcOrderPctChange').value || 0;
-    sumBox.textContent = validWeeks.length
-      ? `Order Ratio forecast averaged across ${validWeeks.length} full week${validWeeks.length===1?'':'s'} of data`
-      : `No full, non-holiday week of data available yet — Order Ratio forecast reads 0 until one closes`;
-    sumBox.className = 'fc-weight-sum ' + (validWeeks.length ? 'ok' : 'bad');
-    fcRenderExcludedWeeks();
+    sumBox.textContent = validDates.length
+      ? `Order Ratio forecast averaged across ${validDates.length} day${validDates.length===1?'':'s'} of data (from ${FORECAST_DATA_START}) — days per weekday: ${FC_WD_SHORT.map((w,i)=>`${w} ${wdCounts[i]}`).join(' · ')}`
+      : `No usable day of data on/after ${FORECAST_DATA_START} yet — Order Ratio forecast reads 0`;
+    sumBox.className = 'fc-weight-sum ' + (validDates.length ? 'ok' : 'bad');
+    fcRenderExcludedDays();
     legend.innerHTML = `
-      <span><i class="swatch" style="background:var(--ink)"></i>Weeks used: ${validWeeks.length ? validWeeks.map(m=>weekLabel(m)).join(', ') : '—'}</span>
+      <span><i class="swatch" style="background:var(--ink)"></i>Days used: ${validDates.length ? fcFmtDateRuns(validDates) : '—'}</span>
       <span class="target-note">Order adj: ${pctChange>0?'+':''}${pctChange}%</span>`;
 
     // v15.4 — daily average order volume next to the % Change box, so a
@@ -4488,7 +4503,7 @@
     const weeklyTotalP = fcMonthlyAggregateFor(rowDistricts, pooledMonthly.targetProd, pooledMonthly.targetCost);
     cardsWrap.innerHTML = bodyCards.join('') + fcResultCardHtml('Total', totalPs, weeklyTotalP, true);
 
-    note.innerHTML = `<b>Total Order</b> = plain average of that weekday's historical Total Order (HKTV Staff + ODS/VAN) across every full, non-holiday week on record (see the note above the Per-District Staff Plan)`
+    note.innerHTML = `<b>Total Order</b> = plain average of that weekday's historical Total Order (HKTV Staff + ODS/VAN) across every usable day of that weekday on record from ${FORECAST_DATA_START} on — days with data, in weeks with no HK general holiday (see the note above the Per-District Staff Plan)`
       + (pctChange ? `, then × (1 ${pctChange>0?'+':'−'} ${Math.abs(pctChange)}%) applied network-wide and split across districts by historical order share. ` : '. ')
       + `<b>Est. ODS Orders</b> = same method on ODS/VAN-only history (or the ODS Order Count override), after any channel-split shift — a ↳ line shows the shift. ODS tunnel users (ETH &amp; WTH only) are now shown on the Per-District Staff Plan card above, next to the plan that drives them, rather than repeated on every block here. <b>HKTV Orders</b> = Total Order − Est. ODS Orders. <b>FT/PT rows</b> = that weekday's Per-District Staff Plan. <b>Productivity</b> = HKTV Orders ÷ total headcount; the pill is its achievement rate, (forecast − target) ÷ target — green at or above target, red below. <b>Cost/Order</b> = that weekday's (Fixed + planned Staff + ODS cost + ODS tunnel fee) ÷ that weekday's Total Order — a DAILY reading, not the weekly one in the Cost Planning portal below, so a day can read cheap here while the week still misses target; green is at or under target. Hidden districts are excluded from the Total card. <b>Weekly</b> (last, amber-outlined block in each card) = that district's Mon–Sun figures rolled into one: orders/headcount/tunnel-cost summed, Productivity and Cost/Order recomputed from those sums (not an average of the seven daily figures) — checked against that district's own target for the per-district cards. <b>Total card</b> = the same rollup across every visible district, checked against a POOLED target: each visible district's own Target Cost/Order weighted by its order volume, and its own Target Productivity weighted by its man-days — the same weights the Total's own actual figures are pooled by — so if every district clears its own target, the Total clears its pooled target too.`;
   }
