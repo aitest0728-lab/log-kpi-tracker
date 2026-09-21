@@ -170,7 +170,12 @@ REPORT_FILES = {
     "report_a": "Summary By RP Group (MTD).csv",
     "report_b": "MTD Summary By RP.csv",
     "report_c": "MTD Summary By RP Group.csv",
-    "poor_rating": "Delivery Rating.csv",
+    # v6.0 §3 — replaced by the "Delivery Rating Report" Tableau report's
+    # "MTD Courier Rating by District" sheet (see TABLEAU_TARGETS below);
+    # filename mirrors the sheet name, same convention as every other entry
+    # here. The old "LogisticsKPIReport"/"Delivery Rating" source is gone —
+    # this file_key now points at the new report exclusively.
+    "poor_rating": "MTD Courier Rating by District.csv",
     "rfid": "RP Breakdown (7days).csv",  # 保持無空格，依據您之前提供的檔名
     "gmv": "Sheet 1.csv",  # v3.0 §3 — fixed download filename, per spec
 
@@ -307,10 +312,27 @@ TABLEAU_TARGETS = [
         "sheet_name": "MTD Summary By RP Group",
         "url": "https://inhouse-analytics.hktv.com.hk/#/views/MonthlyRP-CSCancelReportC/MonthlyRP-CSCancelSummary"
     },
+    # v6.0 §3 — "Delivery Rating Report" Tableau report, "MTD Courier Rating
+    # By District" sheet. Per spec this sheet is ALREADY pre-selected in the
+    # Crosstab dialog when it opens, and must NOT be clicked again.
+    #
+    # v6.0 fix — the generic is_sheet_already_selected() check was not enough
+    # here (pipeline_log.txt: both attempts ended in a 60s timeout waiting
+    # for the download event, and no "already selected" line was logged).
+    # The thumbnail list is a TOGGLE, so clicking the pre-selected sheet
+    # DESELECTS it and the final Download then exports nothing. The old
+    # sheet_name was spelled "...by District" while the sheet is titled
+    # "...By District": the exact-title selectors are case-sensitive, so the
+    # already-selected check found nothing and returned False, and the
+    # case-INsensitive has-text fallback then matched the thumbnail and
+    # clicked it. `preselected` makes the loop skip the thumbnail step
+    # outright, whatever the check says (and the title is now spelled to
+    # match, with the check itself made case-insensitive as well).
     {
         "file_key": "poor_rating",
-        "sheet_name": "Delivery Rating",
-        "url": "https://inhouse-analytics.hktv.com.hk/#/views/LogisticsKPIReport/LogisticsKPI"
+        "sheet_name": "MTD Courier Rating By District",
+        "preselected": True,
+        "url": "https://inhouse-analytics.hktv.com.hk/#/views/Deliveryratingreport-emaildata-Up/MTDCourierRatingByDistrict?:iid=1"
     },
     {
         "file_key": "rfid",
@@ -557,7 +579,44 @@ def is_sheet_already_selected(page, sheet_name):
                     return state == "true"
             except Exception:
                 continue
+    # v6.0 fix — 上面的 selector 是「title 完全相等」(大小寫敏感)。如果設定檔裡的
+    # sheet_name 跟 Tableau 縮圖的 title 只差大小寫/多餘空白（例如 "by" vs "By"），
+    # 上面全部會找不到、誤判成「未選取」，接著後面 has-text 備援（大小寫不敏感）
+    # 卻點得到 → 把已選取的縮圖切換成取消選取。這裡補一次大小寫不敏感的比對。
+    want = " ".join(str(sheet_name).split()).lower()
+    for target in candidates:
+        try:
+            opts = target.locator('[role="option"]')
+            for i in range(min(opts.count(), 40)):
+                opt = opts.nth(i)
+                title = " ".join((opt.get_attribute("title") or "").split()).lower()
+                if title == want:
+                    state = opt.get_attribute("aria-selected")
+                    if state is not None:
+                        return state == "true"
+        except Exception:
+            continue
     return False  # 找不到就當作未選取，走原本點擊流程（不影響原本能成功的報表）
+
+
+def log_selected_sheet_thumbnails(page):
+    """v6.0 — 純除錯用：印出 Crosstab 對話框裡目前「已選取」的工作表縮圖 title。
+    用在「預先選取、不點擊」的報表，萬一之後又下載失敗，log 裡就看得到當時
+    Tableau 實際預選的是哪一個 sheet（不會點擊任何東西）。"""
+    viz_frame = page.frame_locator('iframe[title="Data Visualisation"]')
+    seen = []
+    for target in [viz_frame, page.main_frame] + list(page.frames):
+        try:
+            opts = target.locator('[role="option"]')
+            for i in range(min(opts.count(), 40)):
+                opt = opts.nth(i)
+                if opt.get_attribute("aria-selected") == "true":
+                    title = (opt.get_attribute("title") or "").strip()
+                    if title and title not in seen:
+                        seen.append(title)
+        except Exception:
+            continue
+    print(f"  🔎 目前已選取的工作表縮圖: {seen if seen else '（偵測不到縮圖清單，可能此報表本來就只有單一工作表）'}")
 
 
 def smart_click_with_scroll(page, selectors, timeout_sec=15):
@@ -762,7 +821,11 @@ def fetch_tableau_reports():
                     # 備援：文字比對（含大小寫/多餘空白容錯）
                     f"[role='option']:has-text('{sheet_name}')",
                 ]
-                if is_sheet_already_selected(page, sheet_name):
+                if target.get("preselected"):
+                    # v6.0 fix — 依規格這個 sheet 在開啟 Crosstab 時已經預先選取，完全不碰縮圖。
+                    print(f"  ℹ️ '{sheet_name}' 依規格已預先選取，不再點擊工作表縮圖（縮圖是切換式，再點一次會變成取消選取）")
+                    log_selected_sheet_thumbnails(page)
+                elif is_sheet_already_selected(page, sheet_name):
                     print(f"  ℹ️ 工作表縮圖 '{sheet_name}' 已經是選取狀態，跳過點擊（避免切換式選取被點成取消選取）")
                 elif not fast_click(page, sheet_option_selectors, 3000):
                     if not smart_click_with_scroll(page, sheet_option_selectors, 15):
@@ -808,6 +871,14 @@ def fetch_tableau_reports():
                     return True
                 except Exception as e:
                     print(f"  ❌ 下載 {sheet_name} 失敗: {e}")
+                    # v6.0 — 存一張截圖，之後能直接看到失敗當下 Crosstab 對話框的狀態
+                    # (哪個 sheet 有被選取、CSV 有沒有選到)，不用再靠推測。
+                    try:
+                        shot_path = os.path.join(REPORT_FOLDER, f"_debug_{target['file_key']}_download_failed.png")
+                        page.screenshot(path=shot_path, full_page=True)
+                        print(f"  📸 失敗當下截圖: {shot_path}")
+                    except Exception:
+                        pass
                     return False
 
             succeeded = False
@@ -990,14 +1061,17 @@ def parse_number(val):
     s = str(val).replace(",", "").strip()
     return float(s) if s and s.lower() != "nan" else 0.0
 
-def parse_percent(val):
+def parse_percent(val, decimals=2):
     # v4.0.1 §1 correction — round to 2dp at the source (Tableau exports these
     # as e.g. "7.3%"), so every Delay/Early/On Time % figure written to
     # data.json / delay_history.json is consistently 2 decimal places
     # instead of inheriting whatever precision the source happened to have.
+    # v6.0 §3 — `decimals` lets a caller ask for a different precision
+    # (Poor Rating % now needs 3dp, per spec) without duplicating this
+    # function; every existing caller keeps the default 2dp behaviour.
     if pd.isna(val): return None
     s = str(val).replace("%", "").strip()
-    return round(float(s), 2) if s and s.lower() != "nan" else None
+    return round(float(s), decimals) if s and s.lower() != "nan" else None
 
 def load_crosstab(filename, marker_col0_values):
     path = os.path.join(REPORT_FOLDER, filename)
@@ -1246,15 +1320,38 @@ def parse_mtd_overall_delay():
                       f"{REPORT_FILES['mtd_delay_early_ontime']!r}.")
 
 def parse_poor_rating():
-    # v3.1 (Sept 2026): the header marker itself changed too — this crosstab's
-    # first column used to be labelled exactly "district"; it now reads
-    # "district (group)". Accept both so a future revert doesn't break this
-    # again silently.
-    df = load_crosstab(REPORT_FILES["poor_rating"], {"district", "district (group)"})
+    """v6.0 §3 — parses REPORT_FILES["poor_rating"], now downloaded from the
+    "Delivery Rating Report" Tableau report's "MTD Courier Rating by
+    District" sheet (replaces the old "Delivery Rating"/LogisticsKPIReport
+    source entirely — see TABLEAU_TARGETS above).
+
+    Shape (confirmed from the sample export): row 0 repeats the MTD month
+    label across every column (ignored); row 1 is the real header —
+    "District (adjusted)" | "Courier Rating <=2 #" | "# of Order with
+    rating" | "Total # of Order" | "1-2* Ratio"; row 2+ is one row per
+    district plus a final "Grand Total" row.
+
+    The value column is located by its header text ("1-2* Ratio") rather
+    than a fixed column index — the old source's poor-rating figure sat at
+    a hardcoded index 5, which no longer matches this report's column
+    layout. Per spec, rounded to 3 decimal places (the old source used 2)."""
+    path = os.path.join(REPORT_FOLDER, REPORT_FILES["poor_rating"])
+    raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str)
+    header_row_idx = ratio_col_idx = None
+    for i in range(min(10, len(raw))):
+        for j, cell in enumerate(raw.iloc[i]):
+            if str(cell).strip() == "1-2* Ratio":
+                header_row_idx, ratio_col_idx = i, j
+                break
+        if header_row_idx is not None:
+            break
+    if header_row_idx is None:
+        raise ValueError(f"無法在 {path} 中找到 '1-2* Ratio' 欄位標頭。")
+
     per_district, overall = {}, None
-    for _, row in df.iterrows():
+    for _, row in raw.iloc[header_row_idx + 1:].iterrows():
         label = normalize_district_label(row.iloc[0])
-        val = parse_percent(row.iloc[5])
+        val = parse_percent(row.iloc[ratio_col_idx], decimals=3)
         if val is None: continue
         if label in DISTRICTS: per_district[label] = val
         elif label.lower() == "grand total": overall = val
@@ -2475,8 +2572,68 @@ def build_gmv_monthly(history):
 
 def append_delay_history(history, date_str, delay_early_t1):
     """v4.0 §2 — durable full daily log for the 'Delay %' tab: one row per
-    day, by timeslot (AM/PM/EV/EV2/Overall) and district (+ overall)."""
+    day, by timeslot (AM/PM/EV/EV2/Overall) and district (+ overall).
+
+    v6.0 fix — `date_str` is the DATA date of the record (T-1), NOT the
+    date the pipeline happened to run. The 'Actual Delivery - Delay & Early
+    %' report is the DeliverySummary T-1 view, so a run on Monday holds
+    Sunday's figures and must file them under Sunday's date. It used to be
+    filed under the run date (T+0), which showed as a same-day row on the
+    Delay % tab and shifted every later day's label by one."""
     history.setdefault("delayPercentDaily", {})[date_str] = delay_early_t1
+
+
+def migrate_delay_t1_keys(history):
+    """v6.0 fix — ONE-TIME re-keying of the delay history written before
+    append_delay_history() was given the T-1 data date.
+
+    Every record in history["delayPercentDaily"] (and its twin in
+    history["delayRate"], the series behind the 30-day forecast) was filed
+    under the day the pipeline RAN, but holds the previous day's T-1
+    figures. So each key is shifted back by one day: a record filed as
+    2026-09-21 becomes 2026-09-20.
+
+    history["delayPercentDaily"] is only ever written by
+    append_delay_history(), so all of it is run-date keyed and is shifted
+    wholesale. history["delayRate"] is mixed — besides those T-1 records it
+    holds day-level ESTIMATES that backfill_delay_rate_history() recovered
+    from the zone-type file under their TRUE dates — so it is only touched
+    where its value matches the delayPercentDaily record for the same key
+    (i.e. is provably the T-1 write). Each such entry is moved to the
+    corrected date, replacing any zone-average estimate sitting there (the
+    real T-1 figure wins), and the old run-date slot is cleared so no
+    T+0 row survives. A slot that ends up empty is refilled from the zone
+    file by the next run's backfill, exactly like any other missing day.
+
+    Idempotent: guarded by history["_migrations"]["delay_t1_key_shift"], so
+    it runs once and is a no-op on every later run (and on a history.json
+    that has already been migrated by hand). Returns True if it changed
+    anything."""
+    marker = history.setdefault("_migrations", {})
+    if marker.get("delay_t1_key_shift"):
+        return False
+    one_day = dt.timedelta(days=1)
+    daily = history.get("delayPercentDaily", {})
+    rate = history.setdefault("delayRate", {})
+    moved_rate = {}
+    for old_key, rec in daily.items():
+        new_key = (dt.date.fromisoformat(old_key) - one_day).isoformat()
+        t1_overall = rec.get("overall", {}).get("Overall", {}).get("delay")
+        t1_districts = {d: rec.get("districts", {}).get(d, {}).get("Overall", {}).get("delay") for d in DISTRICTS}
+        existing = rate.get(old_key)
+        if existing is not None and existing.get("overall") == t1_overall and existing.get("districts") == t1_districts:
+            moved_rate[new_key] = existing
+            del rate[old_key]
+    rate.update(moved_rate)
+    shifted = {(dt.date.fromisoformat(k) - one_day).isoformat(): v for k, v in daily.items()}
+    if daily:
+        history["delayPercentDaily"] = dict(sorted(shifted.items()))
+    history["delayRate"] = dict(sorted(rate.items()))
+    marker["delay_t1_key_shift"] = dt.date.today().isoformat()
+    if daily:
+        print(f"  🔧 One-time fix: re-keyed {len(daily)} Delay % day(s) from run date to T-1 data date "
+              f"({min(daily)}…{max(daily)} → {min(shifted)}…{max(shifted)}).")
+    return bool(daily)
 
 
 def build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay):
@@ -2665,6 +2822,7 @@ def run_section_tableau():
     total_days = (dt.date(today.year + (today.month == 12), (today.month % 12) + 1, 1) - dt.timedelta(days=1)).day
 
     history = load_history()
+    migrate_delay_t1_keys(history)  # v6.0 — one-time, idempotent; must run BEFORE today's T-1 delay record is appended below
     payload = load_data_json()
     matrices = payload.setdefault("matrices", {})
 
@@ -2689,10 +2847,16 @@ def run_section_tableau():
     # effect on the forecast value calculation") — so we still append today's
     # single-day delay% into the history series used by rolling_average(),
     # completely separately from the MTD "actual" we display.
+    # v6.0 fix — the "Actual Delivery - Delay & Early %" file is the T-1 view,
+    # so its record belongs to the DATA date (today - 1), not the run date.
+    # Filing it under `today` showed a same-day (T+0) row on the Delay % tab
+    # and shifted the 30-day forecast window by a day. Same T-1 convention as
+    # productivity_target_date and the GMV write below.
+    delay_data_date = today - dt.timedelta(days=1)
     delay_early_t1 = parse_delay_early_pct("delay_early")
     t1_overall_delay = delay_early_t1["overall"].get("Overall", {}).get("delay")
     t1_district_delay = {d: delay_early_t1["districts"][d].get("Overall", {}).get("delay") for d in DISTRICTS}
-    append_history(history, "delayRate", today.isoformat(), t1_overall_delay, t1_district_delay)
+    append_history(history, "delayRate", delay_data_date.isoformat(), t1_overall_delay, t1_district_delay)
     delay_fc_overall, delay_fc_districts = rolling_average(history, "delayRate", 30, today)
 
     zone_type = parse_delay_rate_by_zone_type()          # per-district Residential/Commercial/Overall, MTD
@@ -2721,7 +2885,7 @@ def run_section_tableau():
     # the MTD delay/early file itself has no per-district Total row (see
     # parse_delay_early_pct docstring).
     delay_early_mtd = parse_delay_early_pct("mtd_delay_early_ontime")
-    append_delay_history(history, today.isoformat(), delay_early_t1)
+    append_delay_history(history, delay_data_date.isoformat(), delay_early_t1)  # v6.0 — T-1 data date, see delay_data_date above
     save_delay_history(build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay))
 
     # v4.0 §3 — backfill any missing GMV / Delay Rate days from whatever
