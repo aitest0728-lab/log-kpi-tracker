@@ -1,6 +1,6 @@
 {
   "_readme": "PLACEHOLDER seed data in the new 6-key schema (5 matrices, Matrix 1 split into hktvStaff + odsRatio). This file is overwritten automatically by kpi_pipeline.py via run_productivity_0300.bat (03:00) and run_tableau_1500.bat (15:00) once Task Scheduler is set up. Delete this _readme field or leave it; the page ignores it.",
-  "generatedAt": "2026-09-21T09:57",
+  "generatedAt": "2026-09-21T14:17",
   "matrices": {
     "hktvStaff": {
       "actual": {
@@ -85,18 +85,18 @@
         }
       },
       "forecast": {
-        "overall": 9.83,
+        "overall": 9.61,
         "districts": {
-          "ETH": 5.8,
-          "ETK": 5.07,
-          "ETX": 17.01,
-          "NT-ST": 7.76,
-          "NT-TM": 11.6,
-          "NT-TSM": 10.74,
-          "NT-TW": 9.52,
-          "WTH": 10.5,
-          "WTK": 9.13,
-          "WTX": 11.01
+          "ETH": 5.88,
+          "ETK": 4.5,
+          "ETX": 16.56,
+          "NT-ST": 8.21,
+          "NT-TM": 11.33,
+          "NT-TSM": 10.32,
+          "NT-TW": 9.24,
+          "WTH": 10.03,
+          "WTK": 9.1,
+          "WTX": 10.73
         }
       },
       "target": {
@@ -106,33 +106,33 @@
     },
     "poorRating": {
       "actual": {
-        "overall": 3.15,
+        "overall": 3.12,
         "districts": {
-          "ETH": 3.34,
-          "ETK": 1.86,
-          "ETX": 5.26,
-          "NT-ST": 1.81,
-          "NT-TM": 2.7,
-          "NT-TSM": 2.35,
-          "NT-TW": 2.87,
-          "WTH": 4.6,
-          "WTK": 2.85,
-          "WTX": 5.13
+          "ETH": 3.25,
+          "ETK": 1.72,
+          "ETX": 5.15,
+          "NT-ST": 1.99,
+          "NT-TM": 2.65,
+          "NT-TSM": 2.26,
+          "NT-TW": 2.75,
+          "WTH": 4.81,
+          "WTK": 2.9,
+          "WTX": 4.97
         }
       },
       "forecast": {
         "overall": 3.0,
         "districts": {
-          "ETH": 3.7,
+          "ETH": 3.69,
           "ETK": 1.58,
           "ETX": 4.56,
-          "NT-ST": 1.62,
+          "NT-ST": 1.63,
           "NT-TM": 2.5,
           "NT-TSM": 2.62,
-          "NT-TW": 2.39,
-          "WTH": 4.63,
+          "NT-TW": 2.38,
+          "WTH": 4.64,
           "WTK": 3.55,
-          "WTX": 4.58
+          "WTX": 4.57
         }
       },
       "target": {
@@ -715,7 +715,7 @@
     },
     "ETK": {
       "ftDriver": 24,
-      "ftCourier": 15,
+      "ftCourier": 16,
       "ptDriver": 0,
       "ptCourier": 0
     },
@@ -733,7 +733,7 @@
     },
     "NT-TM": {
       "ftDriver": 32,
-      "ftCourier": 20,
+      "ftCourier": 24,
       "ptDriver": 0,
       "ptCourier": 0
     },
