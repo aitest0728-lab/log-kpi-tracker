@@ -310,6 +310,13 @@
   .fc-weight-sum{font-size:11px;font-family:'IBM Plex Mono';padding:8px 10px;border-radius:8px;align-self:flex-end;}
   .fc-weight-sum.ok{background:var(--green-soft);color:var(--green);}
   .fc-weight-sum.bad{background:var(--red-soft);color:var(--red);}
+  /* Forecast tab — which weeks the Order Ratio forecast did NOT use, and why */
+  .fc-weeks-excluded{margin:10px 0 4px;padding:9px 12px;border-radius:8px;font-size:11.5px;line-height:1.55;background:#fdf1dc;color:#8a5a12;}
+  .fc-weeks-excluded.none{background:var(--panel);color:var(--text-muted);border:1px solid var(--line);}
+  .fc-weeks-excluded .fc-wx-title{font-weight:700;margin-bottom:3px;}
+  .fc-weeks-excluded ul{margin:0;padding-left:16px;}
+  .fc-weeks-excluded li{margin:1px 0;}
+  .fc-weeks-excluded .fc-wx-week{font-family:'IBM Plex Mono';font-size:11px;font-weight:600;}
   .fc-order-daily-avg{font-size:11px;font-family:'IBM Plex Mono';color:var(--text-muted);margin-top:4px;min-height:14px;}
   /* v5.0 §1 — District filter is now a dropdown with checkboxes (replacing
      the old row of click-toggle chips), so multiple districts can be picked
@@ -835,6 +842,10 @@
             <div class="fc-order-daily-avg" id="fcOrderPctDailyAvg" title="Overall Forecast Orders (network-wide weekly total, before this adjustment) × (1 + Overall Order % Change) ÷ 7 — so you can see what the % box actually does to a typical day's volume, not just the headline weekly number."></div>
           </div>
         </div>
+        <!-- Weeks left OUT of the Order Ratio forecast, each with the reason
+             (holiday / no data / week not finished yet). Filled by
+             fcRenderExcludedWeeks() from fcExcludedWeeks(). -->
+        <div class="fc-weeks-excluded none" id="fcWeeksExcluded"></div>
 
         <!-- ODS staging inputs — moved up from the Cost Planning portal so
              they sit with the other forecast-driving inputs instead of being
@@ -3345,22 +3356,23 @@
   // week average (National Day etc. "dramatically affect the order pattern
   // in a week", per spec) — not just the holiday date itself. This list
   // needs a yearly top-up; it currently only covers 2026.
-  const HK_HOLIDAYS = new Set([
-    '2026-01-01', // New Year's Day
-    '2026-02-17', '2026-02-18', '2026-02-19', // Lunar New Year (1st–3rd day)
-    '2026-04-03', '2026-04-04', // Good Friday / day following
-    '2026-04-06', // Day following Ching Ming Festival
-    '2026-04-07', // Day following Easter Monday
-    '2026-05-01', // Labour Day
-    '2026-05-25', // Day following the Birthday of the Buddha
-    '2026-06-19', // Tuen Ng Festival
-    '2026-07-01', // HKSAR Establishment Day
-    '2026-09-26', // Day following Chinese Mid-Autumn Festival
-    '2026-10-01', // National Day
-    '2026-10-19', // Day following Chung Yeung Festival
-    '2026-12-25', // Christmas Day
-    '2026-12-26', // First weekday after Christmas Day
-  ]);
+  const HK_HOLIDAY_NAMES = {
+    '2026-01-01': "New Year's Day",
+    '2026-02-17': 'Lunar New Year (1st day)', '2026-02-18': 'Lunar New Year (2nd day)', '2026-02-19': 'Lunar New Year (3rd day)',
+    '2026-04-03': 'Good Friday', '2026-04-04': 'Day following Good Friday',
+    '2026-04-06': 'Day following Ching Ming Festival',
+    '2026-04-07': 'Day following Easter Monday',
+    '2026-05-01': 'Labour Day',
+    '2026-05-25': 'Day following the Birthday of the Buddha',
+    '2026-06-19': 'Tuen Ng Festival',
+    '2026-07-01': 'HKSAR Establishment Day',
+    '2026-09-26': 'Day following Chinese Mid-Autumn Festival',
+    '2026-10-01': 'National Day',
+    '2026-10-19': 'Day following Chung Yeung Festival',
+    '2026-12-25': 'Christmas Day',
+    '2026-12-26': 'First weekday after Christmas Day',
+  };
+  const HK_HOLIDAYS = new Set(Object.keys(HK_HOLIDAY_NAMES));
 
   // v6.0 §1 — replaces the old weighted T-2/T-1/Current-month average.
   // A week (Mon–Sun) only counts toward the forecast if EVERY day in it has
@@ -3382,6 +3394,73 @@
       return true;
     });
     return _fcValidWeeksCache;
+  }
+  // Same two tests fcForecastValidWeeks() applies (holiday in the week, or a
+  // day without real Total Order data), but reported instead of just
+  // filtered: for every week on record that does NOT qualify, WHY it was
+  // left out. Data gaps are split into three kinds so the reason is
+  // actionable — history not started yet (partial first week), the week is
+  // still in progress (days after the latest data), or a genuine gap in
+  // the middle (a date the Tableau/OIX feed never delivered).
+  function fcFmtDateRuns(dates){
+    // ['2026-08-03','2026-08-04','2026-08-05','2026-08-07'] -> '08-03 – 08-05, 08-07'
+    const out = []; let start = null, prev = null;
+    const short = d => d.slice(5);
+    const flush = ()=>{ if(start!=null) out.push(start===prev ? short(start) : `${short(start)} – ${short(prev)}`); };
+    dates.forEach(d=>{
+      if(prev!=null && addDays(prev,1)===d){ prev = d; return; }
+      flush(); start = d; prev = d;
+    });
+    flush();
+    return out.join(', ');
+  }
+  function fcExcludedWeeks(){
+    const keys = Object.keys(DATA.dailyProductivity).sort();
+    if(!keys.length) return [];
+    const firstDate = keys[0], lastDate = keys[keys.length-1];
+    const validSet = new Set(fcForecastValidWeeks());
+    const out = [];
+    listAvailableWeeks().slice().sort().forEach(monday=>{
+      if(validSet.has(monday)) return;
+      const reasons = [];
+      const holidays = [], before = [], after = [], gaps = [];
+      for(let i=0;i<7;i++){
+        const dateKey = addDays(monday, i);
+        if(HK_HOLIDAYS.has(dateKey)) holidays.push(dateKey);
+        if(!dayRecord(dateKey, 'combined', 'Total')){
+          if(dateKey < firstDate) before.push(dateKey);
+          else if(dateKey > lastDate) after.push(dateKey);
+          else {
+            const hasH = !!dayRecord(dateKey, 'hktvStaff', 'Total'), hasO = !!dayRecord(dateKey, 'odsRatio', 'Total');
+            gaps.push({ dateKey, why: !hasH && !hasO ? 'no data' : !hasH ? 'HKTV Staff data missing' : 'ODS/VAN data missing' });
+          }
+        }
+      }
+      if(holidays.length) reasons.push(`contains HK general holiday: ${holidays.map(d=>`${d.slice(5)} ${HK_HOLIDAY_NAMES[d]}`).join('; ')} — the whole week is dropped, not just that day`);
+      if(before.length) reasons.push(`not a full week — history only starts on ${firstDate} (no data ${fcFmtDateRuns(before)})`);
+      if(after.length) reasons.push(`week still in progress — latest data is ${lastDate} (${fcFmtDateRuns(after)} not in yet)`);
+      if(gaps.length){
+        const kinds = Array.from(new Set(gaps.map(g=>g.why)));
+        reasons.push(`data gap — ` + kinds.map(k=>`${k} on ${fcFmtDateRuns(gaps.filter(g=>g.why===k).map(g=>g.dateKey))}`).join('; '));
+      }
+      if(!reasons.length) reasons.push('excluded (no reason recorded)');
+      out.push({ monday, reasons });
+    });
+    return out;
+  }
+  function fcRenderExcludedWeeks(){
+    const el = document.getElementById('fcWeeksExcluded');
+    if(!el) return;
+    const ex = fcExcludedWeeks();
+    if(!ex.length){
+      el.className = 'fc-weeks-excluded none';
+      el.textContent = 'Weeks not used in the forecast: none — every week on record is a full, non-holiday week.';
+      return;
+    }
+    el.className = 'fc-weeks-excluded';
+    el.innerHTML = `<div class="fc-wx-title">Weeks NOT used in the forecast (${ex.length}) — a week is only counted if all 7 days have data and it has no HK general holiday</div><ul>`
+      + ex.map(w=>`<li><span class="fc-wx-week">${weekLabel(w.monday).replace('Week of ','')}</span> — ${w.reasons.join('; ')}</li>`).join('')
+      + `</ul>`;
   }
   // Average order count for one district+weekday, across every FULL,
   // non-holiday week on record (fcForecastValidWeeks above) — generalized to
@@ -4189,6 +4268,7 @@
       ? `Order Ratio forecast averaged across ${validWeeks.length} full week${validWeeks.length===1?'':'s'} of data`
       : `No full, non-holiday week of data available yet — Order Ratio forecast reads 0 until one closes`;
     sumBox.className = 'fc-weight-sum ' + (validWeeks.length ? 'ok' : 'bad');
+    fcRenderExcludedWeeks();
     legend.innerHTML = `
       <span><i class="swatch" style="background:var(--ink)"></i>Weeks used: ${validWeeks.length ? validWeeks.map(m=>weekLabel(m)).join(', ') : '—'}</span>
       <span class="target-note">Order adj: ${pctChange>0?'+':''}${pctChange}%</span>`;
