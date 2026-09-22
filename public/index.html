@@ -447,7 +447,13 @@
   .fc-plan-mini-field input::-webkit-outer-spin-button,
   .fc-plan-mini-field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
   .fc-plan-mini-field input[type=number]{-moz-appearance:textfield;}
-  .fc-plan-card-suggest{margin-left:auto;}
+  /* v19.0 §5 — Suggest and "Keep Current Status" now share ONE column: a
+     single flex item (this) carries margin-left:auto so the pair moves as
+     one unit to the right edge, instead of each of the two inner
+     .fc-plan-card-suggest divs having its own margin-left:auto — which
+     split the row's free space between BOTH of them and pushed "Keep
+     Current" out to the far-right edge of the card, away from Suggest. */
+  .fc-plan-card-actions{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
   .fc-plan-card-weekdays{display:grid;grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));gap:14px 18px;}
   .fc-plan-wd-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;}
   .fc-plan-wd-label .occ{opacity:.6;font-weight:400;text-transform:none;letter-spacing:0;}
@@ -2933,7 +2939,18 @@
 
     const manDays = ftManDays + ptManDays;                 // deployed — the plan, and the productivity denominator
     const paidManDays = manDays + idleFtManDays;           // payroll
-    const poolUtilisation = pool.total > 0 ? Math.min(1, ftManDays/pool.total) : null;
+    // v19.0 §5 — NOT clamped to 100% (was Math.min(1, ...)). Before v19.0
+    // §1, ftManDays could never exceed pool.total — fcSpreadFtPool enforced
+    // the 75% pool as a hard weekly ceiling on FT usage, so the clamp was a
+    // no-op. Now that the pool is genuinely just a MINIMUM roster commitment
+    // (v19.0 §1 — the real ceiling is the Staff List bench), a district can
+    // legitimately deploy MORE FT man-days than its 75% pool once demand
+    // calls for it — the clamp was silently showing "100% deployed" next to
+    // raw numbers (e.g. 381/304) that plainly read over 100%, which is
+    // exactly the discrepancy that gets asked about. idleFtManDays above is
+    // unaffected — Math.max(0, pool - ftManDays) already floors at 0 on its
+    // own when ftManDays overshoots the pool, so nothing there needed a change.
+    const poolUtilisation = pool.total > 0 ? ftManDays/pool.total : null;
     // v18.0 §1 — the WEEK's target is now a pool of the 7 per-weekday
     // targets, weighted by that day's own deployed man-days — the same
     // man-day-weighted pooling fcPooledMonthlyTargetsFor/fcWeeklyPFor use
@@ -3743,7 +3760,10 @@
     return { idleFtDriver, idleFtCourier, idle: idleFtDriver + idleFtCourier,
       cost: idleFtDriver*u.ftDriver + idleFtCourier*u.ftCourier,
       pool, deployedFtDriver, deployedFtCourier, deployedFt,
-      utilisation: pool.total > 0 ? Math.min(1, deployedFt/pool.total) : null };
+      // v19.0 §5 — unclamped, same reasoning as fcBuildDistrictPlan's
+      // poolUtilisation above: the pool is a floor, not a ceiling, so
+      // deployedFt can legitimately exceed it now.
+      utilisation: pool.total > 0 ? deployedFt/pool.total : null };
   }
   // Cost of fielding one weekday's planned team for ONE occurrence of that
   // day (UNIT_COST_STAFF is a per-head-per-DAY rate). Scheduled heads only —
@@ -4338,8 +4358,10 @@
     return `<div class="fc-plan-card" data-d="${d}">
       <div class="fc-plan-card-head">
         <div class="fc-plan-card-title">${d}</div>
-        <div class="fc-plan-card-suggest">${fcSuggestCellHtml(d)}</div>
-        <div class="fc-plan-card-suggest fc-plan-card-current">${fcCurrentStatusCellHtml(d)}</div>
+        <div class="fc-plan-card-actions">
+          <div class="fc-plan-card-suggest">${fcSuggestCellHtml(d)}</div>
+          <div class="fc-plan-card-suggest fc-plan-card-current">${fcCurrentStatusCellHtml(d)}</div>
+        </div>
       </div>
       <div class="fc-plan-card-weekdays">${weekdayCells}</div>
     </div>`;
