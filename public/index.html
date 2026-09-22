@@ -996,7 +996,7 @@
             <div class="fc-plan-wrap table-wrap">
               <div class="table-scroll">
                 <table id="costTotalTable">
-                  <thead><tr><th>District</th><th>Fixed ($)</th><th title="Weighted across the week: Σ (that weekday's FT/PT plan × Unit Cost) × that weekday's occurrences in the forecast week.">Variable — Staff ($)</th><th title="Σ (that weekday's total headcount × that weekday's occurrences in the forecast week) — the staffing plan measured in man-days rather than dollars.">Man-days /wk</th><th title="Weekly staff cost ÷ days in the forecast week — what the per-weekday plan averages out to per day.">Staff $/day (avg)</th><th>Variable — ODS ($)</th><th title="ETH &amp; WTH only, always $0 elsewhere. Σ (that weekday's ODS tunnel user count × $100) × that weekday's occurrences in the forecast week.">Variable — ODS Tunnel ($)</th><th>Total ($)</th><th>Est. Order Volume /wk</th><th>Cost / Order ($)</th><th>Target Cost / Order ($)</th><th title="(forecast Cost/Order − Target Cost/Order) ÷ Target Cost/Order. Negative is good here — it means the forecast sits under target.">Achievement (%)</th></tr></thead>
+                  <thead><tr><th>District</th><th title="Provision - Controllable Cost + Transit &amp; Ice, daily rate × days in the forecast week. Feeds the Cost / Order column.">Fixed — Controllable ($)</th><th title="Weighted across the week: Σ (that weekday's FT/PT plan × Unit Cost) × that weekday's occurrences in the forecast week.">Variable — Staff ($)</th><th title="Σ (that weekday's total headcount × that weekday's occurrences in the forecast week) — the staffing plan measured in man-days rather than dollars.">Man-days /wk</th><th title="Weekly staff cost ÷ days in the forecast week — what the per-weekday plan averages out to per day.">Staff $/day (avg)</th><th>Variable — ODS ($)</th><th title="ETH &amp; WTH only, always $0 elsewhere. Σ (that weekday's ODS tunnel user count × $100) × that weekday's occurrences in the forecast week.">Variable — ODS Tunnel ($)</th><th title="Provision - Non-Controllable Cost (Office Team Exp., KT Warehouse, Car Fuel, Others Cost, Repair &amp; Maintenance), daily rate × days in the forecast week. Included in Total ($) only — never in Cost / Order, since ops has no lever over it.">Non-Controllable ($)</th><th>Total ($)</th><th>Est. Order Volume /wk</th><th title="Controllable Fixed + Variable — Staff + Variable — ODS + Variable — ODS Tunnel, ÷ Order Volume. Excludes Non-Controllable cost.">Cost / Order ($)</th><th>Target Cost / Order ($)</th><th title="(forecast Cost/Order − Target Cost/Order) ÷ Target Cost/Order. Negative is good here — it means the forecast sits under target.">Achievement (%)</th></tr></thead>
                   <tbody id="costTotalTableBody"></tbody>
                 </table>
               </div>
@@ -2159,29 +2159,54 @@
 
   // ---- Reference data embedded from the two Finance workbooks (v6.0 §1/§2) ----
   // Fixed Cost — DAILY Provision per District, from Full_Cost_Planning.xlsx
-  // "Fixed Cost - Provision": sum of every Controllable + Non-Controllable
-  // provision line item (Parking, Penalty Ticket, Tunnel Fee, Truck Repair &
-  // Maintenance, Accident Compensation, Car Cleaning, FMP, License &
-  // Insurance, DigiMobi, HKTV CCTV Service Fee, Frontline MGT Cost, Cross
-  // Charge - Wet Market, Cross Charge - Warehouse, Office Team Exp., KT
-  // Warehouse, Car Fuel, Others Cost, Repair & Maintenance) PLUS each
-  // district's own Transit & Ice costs (Transit - Cool Truck, Transit -
-  // Ambient, Outsource Manpower, Ice - Tube Ice, Ice - Dry Ice). No longer a
-  // user input — see §2.
-  // v5.0 — corrected: this is a DAILY figure, not monthly as previously
-  // assumed. Any monthly total must go through fcMonthlyFixedCostFor()
-  // below, which multiplies by the number of days in the forecast's
-  // current month, rather than reading this dict directly.
+  // "Fixed Cost - Provision", now split into the two sub-totals the sheet
+  // itself distinguishes, because they are used differently (v20.0 §1):
+  //   FIXED_COST_CONTROLLABLE    — every "Provision - Controllable Cost" line
+  //     item (Parking, Penalty Ticket, Tunnel Fee, Truck Repair & Maintenance,
+  //     Accident Compensation, Car Cleaning, FMP, License & Insurance,
+  //     DigiMobi, HKTV CCTV Service Fee, Frontline MGT Cost, Cross Charge -
+  //     Wet Market, Cross Charge - Warehouse) PLUS each district's own
+  //     Transit & Ice costs (Transit - Cool Truck, Transit - Ambient,
+  //     Outsource Manpower, Ice - Tube Ice, Ice - Dry Ice) — that section of
+  //     the sheet isn't labelled Controllable or Non-Controllable, and ops
+  //     can influence it the same way they can the Controllable lines, so it
+  //     stays bucketed with Controllable here.
+  //   FIXED_COST_NONCONTROLLABLE — the "Provision - Non-Controllable Cost"
+  //     lines only (Office Team Exp., KT Warehouse, Car Fuel, Others Cost,
+  //     Repair & Maintenance).
+  // v20.0 §1 — BUGFIX: every Cost/Order figure compared against
+  // TARGET_COST_PER_ORDER (Suggest Headcount, the Forecast tab's per-day and
+  // Weekly Cost/Order cells, and the Cost Planning portal's Cost/Order
+  // column) must use CONTROLLABLE fixed cost only — ops can't be held to a
+  // target that bakes in cost it has no lever over. Non-controllable cost
+  // now only ever appears inside the Cost Planning portal's Total ($) column
+  // (see fcRenderCostPortal), never in a Cost/Order-vs-target comparison.
+  // No longer a user input — see §2.
+  // v5.0 — corrected: these are DAILY figures, not monthly as previously
+  // assumed. Any monthly total must go through fcMonthlyFixedCostFor() /
+  // fcMonthlyNonControllableCostFor() below, which multiply by the number of
+  // days in the forecast's current month, rather than reading these dicts
+  // directly.
   // v19.0 §3 — refreshed from the updated Full_Cost_Planning.xlsx: every
   // provision line item is now genuinely per-district (the workbook no
   // longer has a single "same for 10 districts" figure for the
-  // Controllable/Non-Controllable rows — each of the 10 columns differs),
-  // so this dict is now a real per-district daily total, not the old
-  // shared-provision-plus-Transit&Ice split.
-  const FIXED_COST_PROVISION = {
-    'ETH':24159.14, 'ETK':17268.63, 'ETX':22218.82, 'NT-ST':21628.75, 'NT-TM':24177.32,
-    'NT-TSM':23052.31, 'NT-TW':26869.28, 'WTH':26255.19, 'WTK':28491.34, 'WTX':20118.79
+  // Controllable/Non-Controllable rows — each of the 10 columns differs).
+  const FIXED_COST_CONTROLLABLE = {
+    'ETH':14013.22, 'ETK':10725.27, 'ETX':12827.48, 'NT-ST':11531.14, 'NT-TM':14465.42,
+    'NT-TSM':14193.53, 'NT-TW':14735.31, 'WTH':16642.15, 'WTK':17774.30, 'WTX':10484.18
   };
+  const FIXED_COST_NONCONTROLLABLE = {
+    'ETH':10145.92, 'ETK':6543.36, 'ETX':9391.34, 'NT-ST':10097.61, 'NT-TM':9711.90,
+    'NT-TSM':8858.78, 'NT-TW':12133.97, 'WTH':9613.03, 'WTK':10717.03, 'WTX':9634.61
+  };
+  // Full daily Fixed Cost - Provision (Controllable + Non-Controllable) — kept
+  // only for anything that genuinely wants the whole-sheet figure; every
+  // Cost/Order calculation must use FIXED_COST_CONTROLLABLE (via
+  // fcMonthlyFixedCostFor) instead, never this.
+  const FIXED_COST_PROVISION = {};
+  Object.keys(FIXED_COST_CONTROLLABLE).forEach(d=>{
+    FIXED_COST_PROVISION[d] = FIXED_COST_CONTROLLABLE[d] + FIXED_COST_NONCONTROLLABLE[d];
+  });
   // Variable Cost — Unit Cost per head per DAY, per district, from
   // Full_Cost_Planning.xlsx "Variable Cost - Unit Cost" (HKTV Staff section).
   // Same daily-rate pattern as FIXED_COST_PROVISION below — any monthly
@@ -2404,8 +2429,20 @@
   function fcCurrentMonthDays(){
     return 7;
   }
+  // v20.0 §1 — CONTROLLABLE fixed cost only (see FIXED_COST_CONTROLLABLE
+  // above). This is the "fixed" figure every Cost/Order-vs-target
+  // calculation must use — Suggest Headcount, the Forecast tab's per-day and
+  // Weekly Cost/Order cells, and the Cost Planning portal's Cost/Order
+  // column. It deliberately excludes Non-Controllable cost.
   function fcMonthlyFixedCostFor(district){
-    return FIXED_COST_PROVISION[district] * fcCurrentMonthDays();
+    return FIXED_COST_CONTROLLABLE[district] * fcCurrentMonthDays();
+  }
+  // v20.0 §1 — Non-Controllable fixed cost only, monthly. Used SOLELY to
+  // build the Cost Planning portal's Total ($) column (fcRenderCostPortal) —
+  // never folded into a Cost/Order figure that gets compared against
+  // TARGET_COST_PER_ORDER.
+  function fcMonthlyNonControllableCostFor(district){
+    return FIXED_COST_NONCONTROLLABLE[district] * fcCurrentMonthDays();
   }
   // v11.0 §1 — how many times each weekday falls in the forecast period.
   // This is the weight that turns a per-weekday staffing plan into a
@@ -2852,7 +2889,7 @@
   // without an exponential per-day search.
   function fcBuildDistrictPlan(district, overdrive){
     const targetCost = TARGET_COST_PER_ORDER[district] != null ? TARGET_COST_PER_ORDER[district] : TARGET_COST_PER_ORDER.overall;
-    const fixed = fcMonthlyFixedCostFor(district); // v5.0 — daily rate × days in month, not the raw daily figure
+    const fixed = fcMonthlyFixedCostFor(district); // v20.0 §1 — CONTROLLABLE fixed cost only, daily rate × days in month
     const monthlyOrderVolume = fcMonthlyOrderEstimate(district); // Total Order — unchanged by the split
     const blended = odsBlendedCostFor(district);
     const courierShare = fcCourierShareFor(district); // v14.6 §1 — fixed 49:51 driver:courier
@@ -3446,7 +3483,8 @@
     }).join('');
 
     totalBody.innerHTML = DISTRICTS.map(d=>{
-      const fixed = fcMonthlyFixedCostFor(d); // v5.0 — daily rate × days in month, not the raw daily figure
+      const fixed = fcMonthlyFixedCostFor(d); // v20.0 §1 — CONTROLLABLE fixed cost only (daily rate × days in month)
+      const nonControllable = fcMonthlyNonControllableCostFor(d); // v20.0 §1 — shown only in Total ($) below, never in Cost/Order
       // v11.0 §1 — weighted sum across the week's differing daily
       // headcounts, not one flat count × days-in-month.
       const variableStaff = fcMonthlyStaffCostFor(d);
@@ -3456,15 +3494,23 @@
       const odsVolume = fcMonthlyOdsOrderEstimate(d);
       const variableOds = odsVolume * odsBlendedCostFor(d);
       const variableOdsTunnel = fcMonthlyOdsTunnelCostFor(d); // v15.0 §1 — ETH/WTH only, $0 elsewhere
-      const total = fixed + variableStaff + variableOds + variableOdsTunnel;
+      // v20.0 §1 — Total ($) still carries the FULL cost (Controllable +
+      // Non-Controllable + Variable), same as before this fix. Only the
+      // Cost/Order column below (and every Cost/Order figure elsewhere on
+      // the page) was changed to drop Non-Controllable cost.
+      const total = fixed + nonControllable + variableStaff + variableOds + variableOdsTunnel;
       const orderVolume = fcMonthlyOrderEstimate(d);
-      const costPerOrder = orderVolume > 0 ? total/orderVolume : null;
+      // v20.0 §1 — BUGFIX: Cost/Order compared against target now uses
+      // CONTROLLABLE fixed cost only (`fixed`) — Non-Controllable cost
+      // (`nonControllable`) is deliberately left out of this ratio, it only
+      // feeds the Total ($) column above.
+      const costPerOrder = orderVolume > 0 ? (fixed + variableStaff + variableOds + variableOdsTunnel)/orderVolume : null;
       const target = TARGET_COST_PER_ORDER[d];
       const overCls = costPerOrder==null ? '' : (costPerOrder <= target ? 'cost-ok' : 'cost-over');
       const manDaysTitle = idleInfo.idle >= 1
         ? `Matches the Weekly Forecast Plan's FT Driver + FT Courier + PT Driver + PT Courier total (${intFmt(manDays)} man-days/mo). The 75% FT roster pool also carries ${intFmt(idleInfo.idle)} paid-but-idle man-days/mo not counted here or in Variable — Staff — see the Weekly Forecast Plan's own roster-utilisation note.`
         : `Matches the Weekly Forecast Plan's FT Driver + FT Courier + PT Driver + PT Courier total.`;
-      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td title="${manDaysTitle}">${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td>${money(variableOdsTunnel)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td></tr>`;
+      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td title="${manDaysTitle}">${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td>${money(variableOdsTunnel)}</td><td title="Provision - Non-Controllable Cost (Office Team Exp., KT Warehouse, Car Fuel, Others Cost, Repair &amp; Maintenance) — included in Total ($) only, never in Cost / Order.">${money(nonControllable)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}" title="Controllable Fixed + Variable — Staff + Variable — ODS + Variable — ODS Tunnel, ÷ Order Volume. Excludes Non-Controllable cost.">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td></tr>`;
     }).join('');
   }
   function fcSetupCostPortalListeners(){
@@ -3816,8 +3862,11 @@
   // v14.7 §1 — DAILY Cost/Order, the per-weekday analog of the monthly
   // Cost/Order metric the Cost Planning portal already reports. Same three
   // components, just for one day instead of a month:
-  //   Fixed  — FIXED_COST_PROVISION is already a DAILY rate per district
+  //   Fixed  — FIXED_COST_CONTROLLABLE is already a DAILY rate per district
   //            (see fcMonthlyFixedCostFor's comment), so no scaling needed.
+  //            v20.0 §1 — controllable only; Non-Controllable cost is never
+  //            part of a Cost/Order-vs-target figure, only of the Cost
+  //            Planning portal's Total ($) column.
   //   Staff  — fcDailyStaffCost(): this weekday's planned FT/PT team, one
   //            occurrence.
   //   ODS    — this weekday's ODS orders in force (baseline + any optimizer
@@ -3831,7 +3880,7 @@
   // in-force ODS user count × $100. See fcOdsTunnelCostFor above.
   function fcDailyCostPerOrder(district, weekdayIdx, totalOrders, odsOrders){
     if(!(totalOrders > 0)) return null;
-    const fixedDaily = FIXED_COST_PROVISION[district];
+    const fixedDaily = FIXED_COST_CONTROLLABLE[district];
     const staffDaily = fcDailyStaffCost(district, weekdayIdx);
     const odsDaily = odsOrders * odsBlendedCostFor(district);
     const tunnelDaily = fcOdsTunnelCostFor(district, weekdayIdx);
