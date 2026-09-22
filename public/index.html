@@ -485,8 +485,24 @@
      Current" out to the far-right edge of the card, away from Suggest. */
   .fc-plan-card-actions{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
   .fc-plan-card-weekdays{display:grid;grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));gap:14px 18px;}
-  .fc-plan-wd-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;}
+  /* v28.0 §1 — each weekday is now its own bounded, dashed-outline cell
+     (matching the dashed "editable inputs above / computed results below"
+     convention already used inside the cell) instead of floating loose in
+     the grid with only a gap between it and its neighbours — so the 7 days
+     read as 7 visually separate cells, not one run-on block. The dashed
+     border also distinguishes an editable weekday cell at a glance from the
+     solid-bordered, read-only Weekly/Total blocks (.fc-result-wd) that sit
+     alongside it in the same grid. */
+  .fc-plan-wd{border:1px dashed var(--line);border-radius:8px;overflow:hidden;background:var(--panel);}
+  /* The weekday label is now a full-bleed header bar (like .fc-result-wd's
+     dark label bar), so MON/TUE/etc. reads as a clear header on top of its
+     cell rather than a small caption easy to lose above the input grid. A
+     quieter slate tint (not the dark .fc-result-wd-label ink, and not the
+     amber Weekly / total-card colors) keeps every day looking like an
+     equal, still-editable slot. */
+  .fc-plan-wd-label{margin:0;padding:7px 10px;background:var(--slate-soft);color:var(--ink);border-bottom:1px solid var(--line);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
   .fc-plan-wd-label .occ{opacity:.6;font-weight:400;text-transform:none;letter-spacing:0;}
+  .fc-plan-wd .fc-hc-cell{padding:10px 10px 12px;}
   .fc-hc-total{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:2px;padding-top:3px;border-top:1px dashed var(--line-soft);font-size:11.5px;color:var(--text-muted);}
   .fc-hc-total .v{font-family:'IBM Plex Mono';font-size:13px;font-weight:700;color:var(--text);}
   .fc-hc-total .p{font-family:'IBM Plex Mono';font-size:11px;padding:1px 5px;border-radius:8px;background:var(--line-soft);color:var(--text-muted);}
