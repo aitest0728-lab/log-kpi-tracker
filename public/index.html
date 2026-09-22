@@ -2112,6 +2112,23 @@
     return (_fcWeekdayMpAvgCache[ck] = count ? sum/count : null);
   }
 
+  // v22.0 §2 — Weekly average staff per group, computed from all days in
+  // forecast period. Used by current-status and optimizing models to avoid
+  // daily variation accumulation (e.g., 40+35+38+... vs true avg per day).
+  // Returns the average daily headcount for this group across the entire week,
+  // which is then distributed across weekdays proportionally to smooth
+  // deployment variability and give a more realistic view of capacity.
+  function fcWeeklyAvgManpowerDist(district, groupKey){
+    const ck = `${district}|${groupKey}|weekly`;
+    if(ck in _fcWeekdayMpAvgCache) return _fcWeekdayMpAvgCache[ck];
+    let sum = 0, count = 0;
+    fcForecastValidDates().forEach(key=>{
+      const v = mpDayHeadcount(key, groupKey, district);
+      if(v != null){ sum += v; count++; }
+    });
+    return (_fcWeekdayMpAvgCache[ck] = count ? sum/count : null);
+  }
+
   /* Generic period-selector population, reused by Productivity Detail
      (prefix 'prod') and ODS/VAN Order Ratio (prefix 'ods'). Per v3.0 §1:
      preset Period B = this week/month (most recent), Period A = last
@@ -2783,9 +2800,13 @@
   // the historical average, not a productivity search: nothing here is
   // optimized or clamped to a target, it's a straight report of "what we
   // actually ran" projected forward.
+  // v22.0 §2 — Now uses weekly average staff (fcWeeklyAvgManpowerDist) instead
+  // of weekday-specific average (fcWeekdayAvgManpowerDist), so that small daily
+  // variations don't accumulate across the week. This gives a more realistic and
+  // stable view of sustainable deployment capacity.
   function fcCurrentStatusHeadcountFor(district, weekdayIdx){
-    const avgCourier = fcWeekdayAvgManpowerDist(district, weekdayIdx, 'courier');
-    const avgDriver = fcWeekdayAvgManpowerDist(district, weekdayIdx, 'driver');
+    const avgCourier = fcWeeklyAvgManpowerDist(district, 'courier');
+    const avgDriver = fcWeeklyAvgManpowerDist(district, 'driver');
     if(avgCourier == null && avgDriver == null) return null; // no manpower history for this weekday
     const rawTotal = (avgCourier||0) + (avgDriver||0);
     const S = Math.round(rawTotal);
