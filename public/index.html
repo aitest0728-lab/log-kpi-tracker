@@ -383,16 +383,28 @@
   .fc-suggest-banner{margin:10px 0 16px;padding:10px 14px;border-radius:9px;font-size:12px;line-height:1.5;}
   .fc-suggest-banner.ok{background:var(--green-soft);color:var(--green);}
   .fc-suggest-banner.warn{background:var(--red-soft);color:var(--red);}
+  /* v19.0 §4 — "Keep Current Status": neutral blue, since this is a report
+     (what the historical pattern would produce), not a pass/fail verdict —
+     green/red would wrongly imply it cleared or missed a target. */
+  .fc-suggest-banner.info{background:#e6eefc;color:#2f5fb3;}
   .fc-suggest-banner b{font-weight:700;}
   .fc-plan-card-suggest{white-space:nowrap;}
-  .fc-suggest-btn{font-family:'Inter';font-size:11px;font-weight:700;padding:5px 10px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;white-space:nowrap;}
-  .fc-suggest-btn:hover{border-color:#c7d0da;}
+  .fc-suggest-btn,.fc-current-btn{font-family:'Inter';font-size:11px;font-weight:700;padding:5px 10px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;white-space:nowrap;}
+  .fc-suggest-btn:hover,.fc-current-btn:hover{border-color:#c7d0da;}
+  /* v19.0 §4 — "Keep Current Status" all-districts button: same shape as
+     Suggest's, deliberately NOT the same solid-ink fill — this isn't the
+     primary optimizing action, just a comparison report. */
+  .fc-current-all-btn{background:var(--panel);color:var(--text);border-color:var(--line);}
+  .fc-current-all-btn:hover{border-color:#c7d0da;}
   .fc-suggest-badge{display:inline-block;margin-top:5px;font-size:10.5px;line-height:1.4;padding:3px 8px;border-radius:10px;max-width:190px;white-space:normal;cursor:help;}
   .fc-suggest-badge.ok{background:var(--green-soft);color:var(--green);}
   .fc-suggest-badge.bad{background:var(--red-soft);color:var(--red);}
   /* v13.0 §5 — a plan that was applied but misses a target: amber, not red.
      Red is now reserved for "no plan at all". */
   .fc-suggest-badge.warn{background:#fdf1dc;color:#8a5a12;}
+  /* v19.0 §4 — "Keep Current Status" badge: same neutral blue as the banner
+     above, for the same reason (report, not verdict). */
+  .fc-suggest-badge.info{background:#e6eefc;color:#2f5fb3;}
   /* v14.0 — minimum roster annotation: payroll-side figure, deliberately
      quieter than the demand-driven headline it sits under. */
   .fc-minroster-note{display:block;margin-top:4px;font-size:10px;line-height:1.4;color:var(--text-muted);max-width:190px;white-space:normal;cursor:help;}
@@ -901,6 +913,7 @@
             <input type="checkbox" id="fcOdsOptimize" checked> Optimize ODS / HKTV split
           </label>
           <button type="button" class="cost-portal-toggle fc-suggest-all-btn" id="fcSuggestAllBtn">Suggest Headcount — All Districts</button>
+          <button type="button" class="cost-portal-toggle fc-current-all-btn" id="fcCurrentStatusAllBtn" title="For every district, fills each weekday's plan with that district's REAL historical Courier/Driver headcount (from manpower_distribution.json, averaged per weekday) instead of a demand-driven target — FT/PT split via the same cheapest-combo logic as Suggest, same Staff Allocation Cap bench, but the total and the Courier:Driver ratio both come from what actually ran, not a search. Keeps the historical ODS/HKTV split (no channel-split shift). This is a REPORT — what keeping current staffing would produce against this month's forecast volume — not an optimization, so nothing here is judged pass/fail against a target.">Keep Current Status — All Districts</button>
           <button type="button" class="cost-portal-toggle fc-autotune-btn" id="fcAutoTuneBtn" title="For each district separately, finds the SMALLEST Max Productivity Overdrive that clears both its cost and its productivity target and writes just that into that district's Max OD % on every weekday (a leader can narrow individual days afterwards). When Overdrive alone can't get there, it also tries the SMALLEST ODS Volume Flex that closes the rest of the gap and writes that into Max Flex % on every weekday instead — moving volume to/from ODS is a real cost change even where Overdrive is spent. Districts that already clear both are left where they are on both ceilings; districts neither lever can fix are left alone and reported with the lever that would actually move them (the FT bench or the target).">Auto-Tune Overdrive &amp; ODS Flex — Per District</button>
           <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn" title="Resets the whole plan to defaults: per-weekday headcounts, per-weekday Target Productivity / Max OD % / Max ODS Flex % overrides, the ODS/HKTV shift and the badges all go back to blank.">Clear Suggestions &amp; Reset Plan</button>
         </div>
@@ -2043,6 +2056,29 @@
     });
     return sums.map((s,i)=> counts[i] ? s/counts[i] : null);
   }
+  // v19.0 §4 — "Keep Current Status" needs the REAL historical Courier vs
+  // Driver split, not the network 49:51 default fcCourierShareFor() falls
+  // back to. manpower_distribution.json tracks the two roles separately
+  // (mpDayHeadcount above) where dailyProductivityLog's hktvStaff only
+  // carries one combined headcount — so this reads from DATA.dailyManpower
+  // instead. Same "average this weekday across every usable day on record"
+  // treatment as fcWeekdayAvgAcrossWeeks below (built after
+  // fcForecastValidDates() is defined further down, but function
+  // declarations are hoisted, so calling it here is fine), scoped to the
+  // same forecast day-set so the two stay comparable. Memoized per render
+  // like _fcWeekdayAvgCache; cleared alongside it in renderForecastTab().
+  let _fcWeekdayMpAvgCache = {};
+  function fcWeekdayAvgManpowerDist(district, weekdayIdx, groupKey){
+    const ck = `${district}|${weekdayIdx}|${groupKey}`;
+    if(ck in _fcWeekdayMpAvgCache) return _fcWeekdayMpAvgCache[ck];
+    let sum = 0, count = 0;
+    fcForecastValidDates().forEach(key=>{
+      if(weekdayIndexOf(key) !== weekdayIdx) return;
+      const v = mpDayHeadcount(key, groupKey, district);
+      if(v != null){ sum += v; count++; }
+    });
+    return (_fcWeekdayMpAvgCache[ck] = count ? sum/count : null);
+  }
 
   /* Generic period-selector population, reused by Productivity Detail
      (prefix 'prod') and ODS/VAN Order Ratio (prefix 'ods'). Per v3.0 §1:
@@ -2241,6 +2277,7 @@
     // 7-slot-array shape above.
     targetProd: {},
     suggestions: {},                                // district -> last fcSuggestHeadcountForDistrict() result, for the badge in the plan table
+    currentStatus: {},                              // v19.0 §4 — district -> last fcApplyCurrentStatusFor() result, for the "Keep Current Status" badge
   };
   // Lazily materializes a district's 7 weekday slots so callers never have
   // to null-check. Returns the slot object for one weekday, mutable in place.
@@ -2644,6 +2681,27 @@
     return { ...combo, total, requested:S, shortfall, dailyCost, marginalCost,
       ftTotal: combo.ftDriver + combo.ftCourier, ptTotal: combo.ptDriver + combo.ptCourier,
       ptUsed: (combo.ptDriver + combo.ptCourier) > 0 };
+  }
+  // v19.0 §4 — "Keep Current Status": what this weekday's plan would look
+  // like if staffing simply matched the REAL historical Courier/Driver
+  // headcount this district ran on this weekday (fcWeekdayAvgManpowerDist,
+  // from manpower_distribution.json) instead of a demand-driven target.
+  // Reuses fcCheapestComboForTotal for the FT/PT split within each role —
+  // same cheapest-combo logic Suggest uses, same Staff Allocation Cap bench
+  // — but both S (the total) and the Courier share fed into it come from
+  // the historical average, not a productivity search: nothing here is
+  // optimized or clamped to a target, it's a straight report of "what we
+  // actually ran" projected forward.
+  function fcCurrentStatusHeadcountFor(district, weekdayIdx){
+    const avgCourier = fcWeekdayAvgManpowerDist(district, weekdayIdx, 'courier');
+    const avgDriver = fcWeekdayAvgManpowerDist(district, weekdayIdx, 'driver');
+    if(avgCourier == null && avgDriver == null) return null; // no manpower history for this weekday
+    const rawTotal = (avgCourier||0) + (avgDriver||0);
+    const S = Math.round(rawTotal);
+    if(S <= 0) return { ftDriver:0, ftCourier:0, ptDriver:0, ptCourier:0, total:0, avgCourier:avgCourier||0, avgDriver:avgDriver||0 };
+    const courierShare = rawTotal > 0 ? (avgCourier||0)/rawTotal : fcCourierShareFor(district);
+    const combo = fcCheapestComboForTotal(district, S, courierShare, {});
+    return { ...combo, avgCourier: avgCourier||0, avgDriver: avgDriver||0 };
   }
   // This weekday's forecast HKTV Orders = Total Order (adjusted) - Est. ODS
   // Orders, i.e. the volume the in-house FT/PT team actually has to clear.
@@ -3296,7 +3354,46 @@
         // history, a changed order % adjustment, a new ODS Order Count).
         FC_STATE.odsShift[district][day.weekdayIdx] = day.odsShift;
       });
+      // v19.0 §4 — the cells this badge described just got overwritten by a
+      // fresh Suggest result; a stale "Keep Current Status" badge for the
+      // same district would now be describing numbers no longer on screen.
+      FC_STATE.currentStatus[district] = null;
     }
+    return result;
+  }
+  // v19.0 §4 — "Keep Current Status": writes fcCurrentStatusHeadcountFor()'s
+  // per-weekday combos straight into the SAME plan cells fcApplySuggestionFor
+  // writes into above — everything downstream (results cards, Cost Portal,
+  // Weekly Forecast Plan) then reads it exactly like any other plan, no
+  // separate rendering path needed. odsShift is reset to 0 (baseline / no
+  // optimizer shift) for every weekday: "current status" means keeping the
+  // historical ODS/HKTV split, and fcOdsBaselineOrders() IS that historical
+  // weekday average already — it doesn't need a shift to be "current".
+  // Clears any stale Suggest badge for this district, for the same reason
+  // fcApplySuggestionFor above clears this one.
+  function fcApplyCurrentStatusFor(district){
+    const days = [];
+    let anyData = false;
+    for(let i=0;i<7;i++){
+      const combo = fcCurrentStatusHeadcountFor(district, i);
+      if(combo) anyData = true;
+      days.push(combo);
+    }
+    if(!anyData){
+      const result = { applied:false, district,
+        reason:`No manpower_distribution.json history found for ${district} on any weekday yet.` };
+      FC_STATE.currentStatus[district] = result;
+      return result;
+    }
+    if(!FC_STATE.odsShift[district]) FC_STATE.odsShift[district] = WEEKDAY_LABELS.map(()=>0);
+    days.forEach((combo, i)=>{
+      const slot = fcStaffSlot(district, i);
+      STAFF_BUCKETS.forEach(k=>{ slot[k] = combo ? combo[k] : 0; });
+      FC_STATE.odsShift[district][i] = 0;
+    });
+    FC_STATE.suggestions[district] = null; // the cells no longer reflect any Suggest search
+    const result = { applied:true, district, days };
+    FC_STATE.currentStatus[district] = result;
     return result;
   }
 
@@ -4043,6 +4140,41 @@
     return `<button type="button" class="fc-suggest-btn" data-d="${d}">Suggest</button>`
       + badge;
   }
+  // v19.0 §4 — "Keep Current Status" column: a button plus — once run for
+  // this district in this session — a badge reporting the resulting figures.
+  // Deliberately simpler than fcSuggestCellHtml's: this isn't a search, so
+  // there's no feasibility verdict, no lever/headroom reasoning, no
+  // roster-pool note to explain — just what the actual historical
+  // Courier/Driver pattern produces against this month's forecast volume,
+  // read straight off the cells fcApplyCurrentStatusFor() just wrote (via
+  // fcHeadcountFor/fcPlanFor/fcWeeklyPFor, same functions every other
+  // figure on this tab reads from).
+  function fcCurrentStatusCellHtml(d){
+    const r = FC_STATE.currentStatus[d];
+    let badge = '';
+    if(r){
+      if(!r.applied){
+        badge = `<span class="fc-suggest-badge bad" title="${(r.reason||'').replace(/"/g,'&quot;')}">\u26a0 no history to copy</span>`;
+      } else {
+        const weekly = fcWeeklyPFor(d);
+        const totals = WEEKDAY_LABELS.map((_,i)=>fcHeadcountFor(d,i).total);
+        const minT = Math.min(...totals), maxT = Math.max(...totals);
+        const perDay = WEEKDAY_LABELS.map((w,i)=>{
+          const hc = fcHeadcountFor(d,i);
+          const p = fcPlanFor(d,i);
+          const pt = hc.ptDriver + hc.ptCourier;
+          return `${w} ${hc.total} (${hc.ftDriver+hc.ftCourier} FT${pt>0?` + ${pt} PT`:''}, ${p.achievedProd==null?'\u2014':p.achievedProd.toFixed(1)}/staff)`;
+        }).join(' \u00b7 ');
+        const prodRate = fcAchievementRate(weekly.achievedProd, weekly.targetProd);
+        const costRate = fcAchievementRate(weekly.costPerOrder, weekly.targetCostPerOrder);
+        const title = `Per-weekday historical average: ${perDay}. This copies the ACTUAL Courier/Driver headcount ${d} ran on each weekday on record (manpower_distribution.json), split FT/PT by the same cheapest-combo logic Suggest uses (same Staff Allocation Cap bench), and keeps the historical ODS/HKTV split — no channel-split shift. Productivity ${weekly.achievedProd==null?'\u2014':weekly.achievedProd.toFixed(1)} vs target ${weekly.targetProd.toFixed(1)} (${fcRatePct(prodRate)}). Cost/Order $${weekly.costPerOrder==null?'\u2014':weekly.costPerOrder.toFixed(2)} vs target $${weekly.targetCostPerOrder.toFixed(2)} (${fcRatePct(costRate)}). This is a REPORT, not a search — nothing here is optimized to clear either target.`;
+        badge = `<span class="fc-suggest-badge info" title="${title.replace(/"/g,'&quot;')}">`
+          + `${minT}\u2013${maxT} staff/day \u00b7 Prod ${fcRatePct(prodRate)} \u00b7 Cost ${fcRatePct(costRate)}</span>`;
+      }
+    }
+    return `<button type="button" class="fc-current-btn" data-d="${d}">Keep Current</button>`
+      + badge;
+  }
   // v11.0 §1 — one editable headcount block per weekday. The four buckets
   // are rendered as a compact 2×2 grid inside each weekday cell, with that
   // day's staff total and achieved productivity underneath so the effect of
@@ -4134,6 +4266,7 @@
       <div class="fc-plan-card-head">
         <div class="fc-plan-card-title">${d}</div>
         <div class="fc-plan-card-suggest">${fcSuggestCellHtml(d)}</div>
+        <div class="fc-plan-card-suggest fc-plan-card-current">${fcCurrentStatusCellHtml(d)}</div>
       </div>
       <div class="fc-plan-card-weekdays">${weekdayCells}</div>
     </div>`;
@@ -4195,6 +4328,23 @@
         + odRaisedNote
         + `${mdNote}${odsNote}${capNote}`;
     }
+  }
+  // v19.0 §4 — "Keep Current Status" for every district: same apply-then-
+  // render-then-banner shape as fcSuggestAll above, but this is a REPORT
+  // (what the actual historical Courier/Driver pattern produces against
+  // this month's forecast volume), not a search — so the banner has no
+  // pass/fail verdict to report, just what got applied and what didn't.
+  function fcCurrentStatusAll(){
+    const results = DISTRICTS.map(d=>fcApplyCurrentStatusFor(d));
+    renderForecastTab();
+    updateScrollHints();
+    const banner = document.getElementById('fcSuggestBanner');
+    const ok = results.filter(r=>r.applied);
+    const none = results.filter(r=>!r.applied);
+    banner.style.display = '';
+    banner.className = 'fc-suggest-banner info';
+    banner.innerHTML = `<b>Keep Current Status</b> applied to <b>${ok.length}</b> of ${results.length} districts — each weekday's plan now copies that district's actual historical Courier/Driver headcount (manpower_distribution.json) and keeps the historical ODS/HKTV split, projected against this month's forecast order volume. Nothing here was searched or optimized against a target.`
+      + (none.length ? ` <b>${none.length}</b> had no manpower history to copy: ${none.map(r=>r.district).join(', ')}.` : '');
   }
   /* v14.5 §2 / v14.6 §2 — AUTO-TUNE, TWO LEVERS PER DISTRICT.
      The complaint this exists to answer: the suggestion could not find a
@@ -4294,6 +4444,7 @@
     _fcWeekdayOccCache = null; // v6.0 §1 — now a flat [1,1,1,1,1,1,1], but still cheap to recompute per render
     _fcValidDatesCache = null; // v6.0 §1 — which days qualify can change as data is appended
     _fcWeekdayAvgCache = {};   // recompute from the data every render
+    _fcWeekdayMpAvgCache = {}; // v19.0 §4 — same, for the Courier/Driver history "Keep Current Status" reads
 
     fcRenderChips();
     fcRenderPlanTable();
@@ -4549,6 +4700,7 @@
     FC_ODS.byDistrict = {};       // v14.6 §2 — same for per-district ODS Flex ceilings
     FC_STATE.odsShift = {};
     FC_STATE.suggestions = {};
+    FC_STATE.currentStatus = {}; // v19.0 §4
     const banner = document.getElementById('fcSuggestBanner');
     if(banner) banner.style.display = 'none';
     renderForecastTab(); updateScrollHints();
@@ -4629,6 +4781,15 @@
       fcApplySuggestionFor(btn.dataset.d);
       renderForecastTab(); updateScrollHints();
     });
+    // v19.0 §4 — Per-district "Keep Current Status" button, same delegation
+    // pattern as Suggest above (separate class/listener so the two never
+    // fire on the same click — .fc-suggest-btn and .fc-current-btn don't
+    // overlap on either button).
+    document.getElementById('fcPlanCards').addEventListener('click', e=>{
+      const btn = e.target.closest('.fc-current-btn'); if(!btn) return;
+      fcApplyCurrentStatusFor(btn.dataset.d);
+      renderForecastTab(); updateScrollHints();
+    });
     document.getElementById('fcSuggestOverdrive').addEventListener('change', e=>{
       // v5.0 — hard-capped regardless of what's typed; also clamps the field
       // itself back to a valid value so it can't be left showing something
@@ -4662,6 +4823,7 @@
       fcOdsBandChanged();
     });
     document.getElementById('fcSuggestAllBtn').addEventListener('click', fcSuggestAll);
+    document.getElementById('fcCurrentStatusAllBtn').addEventListener('click', fcCurrentStatusAll); // v19.0 §4
     document.getElementById('fcSuggestClearBtn').addEventListener('click', fcResetPlan);
     document.getElementById('fcAutoTuneBtn').addEventListener('click', fcAutoTuneOverdrive);
   }
