@@ -535,6 +535,11 @@
   .fc-ods-toggle input{cursor:pointer;}
   .fc-cell .fc-row.fc-shift .fc-label,.fc-cell .fc-row.fc-shift .fc-val{color:#3a5a8c;}
   .fc-cell .fc-row.fc-shift{border-top:1px dashed var(--line-soft);}
+  /* v28.0 §3 — same FT/PT divider as the editable headcount fields above the
+     dashed line (.fc-hc-ftpt-sep), but for this read-only forecast table:
+     a thin line ahead of "PT Driver" so the FT pair and PT pair read as two
+     groups here too, not just in the input fields. */
+  .fc-cell .fc-row.fc-pt-group{border-top:1px dashed var(--line-soft);padding-top:4px;margin-top:1px;}
 
   /* GMV / Basket Size summary strip — a couple of headline cards rather than
      the 7-weekday grid the productivity tabs use (GMV's summary isn't
@@ -4663,7 +4668,7 @@
       <div class="fc-row"><span class="fc-label">HKTV Orders</span><span class="fc-val">${intFmt(p.hktvOrders)}</span></div>
       <div class="fc-row"><span class="fc-label">FT Driver</span><span class="fc-val">${intFmt(p.ftDriver)}</span></div>
       <div class="fc-row"><span class="fc-label">FT Courier</span><span class="fc-val">${intFmt(p.ftCourier)}</span></div>
-      <div class="fc-row"><span class="fc-label">PT Driver</span><span class="fc-val">${intFmt(p.ptDriver)}</span></div>
+      <div class="fc-row fc-pt-group"><span class="fc-label">PT Driver</span><span class="fc-val">${intFmt(p.ptDriver)}</span></div>
       <div class="fc-row"><span class="fc-label">PT Courier</span><span class="fc-val">${intFmt(p.ptCourier)}</span></div>
       <div class="fc-row fc-primary">
         <span class="fc-label">Productivity</span>
