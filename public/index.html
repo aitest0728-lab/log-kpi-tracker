@@ -969,9 +969,18 @@
              weekday cells in a CSS grid that WRAPS onto as many rows as the
              viewport needs instead of forcing one wide row — so every
              weekday is visible without scrolling sideways at any width. -->
+        <!-- v27.0 §2 — the separate "Weekly Forecast Plan" section (further
+             down the tab) has been folded into this one: each district card
+             now carries its own Weekly rollup block after the 7 weekday
+             cells, and a read-only Total card (aggregate across every
+             visible district) is appended after the last district card — so
+             the full forecast output lives right here, with the inputs that
+             drive it, instead of in a second identical-looking section a
+             scroll away. See fcPlanCardHtml/fcRenderPlanTable. -->
         <div class="fc-plan-wrap" id="fcPlanCardsWrap">
           <div id="fcPlanCards" class="fc-plan-cards"></div>
         </div>
+        <div class="prod-note" id="fcNote"></div>
 
         <div class="prod-legend" id="fcLegend"></div>
         <div class="prod-summary" id="fcSummary"></div>
@@ -1033,15 +1042,6 @@
           </div>
         </div>
 
-        <h3 class="prod-detail-label">Weekly Forecast Plan</h3>
-        <!-- v15.1 — was a min-width table needing horizontal scroll to reach
-             Sat/Sun/Weekly. Replaced with the same wrapping-card pattern as
-             the Per-District Staff Plan above: one card per district, its 7
-             weekdays + Weekly rollup laid out in a CSS grid that wraps onto
-             as many rows as the viewport needs, so nothing here is ever
-             wider than its parent. -->
-        <div class="fc-result-cards" id="fcResultCards"></div>
-        <div class="prod-note" id="fcNote"></div>
       </div>
 
       <!-- HKTV MANPOWER DISTRIBUTION: v3.0 §4 — daily distinct headcount of
@@ -4186,6 +4186,47 @@
     const targetCostPerOrder = TARGET_COST_PER_ORDER[d] != null ? TARGET_COST_PER_ORDER[d] : TARGET_COST_PER_ORDER.overall;
     return fcMonthlyAggregateFor([d], targetProd, targetCostPerOrder);
   }
+  // v27.0 §2 — HOISTED to top-level (was nested inside renderForecastTab()):
+  // the network Total card, at the bottom of the Per-District Staff Plan
+  // (fcRenderPlanTable), needs both of these, and a `function` declared
+  // inside renderForecastTab()'s body isn't visible to fcRenderPlanTable(),
+  // a separate top-level function. Nothing about what they compute or
+  // render changed, only where they're declared.
+  //
+  // v15.0 §2 — shared aggregator for the network Total row: sums across
+  // DISTRICTS for one weekday (or, via fcMonthlyAggregateFor, across a
+  // month). Cost/Order is always Σ(cost) ÷ Σ(orders) — never an average of
+  // per-slice Cost/Order figures, which would let a low-volume slice's
+  // ratio pull the aggregate around out of proportion to its orders.
+  function fcAggregateP(ps, targetProd, targetCostPerOrder){
+    let toSum=0, odSum=0, hkSum=0, fd=0, fc=0, pd=0, pc=0, shSum=0, costSum=0, ouSum=0, otSum=0;
+    ps.forEach(p=>{ toSum+=p.totalOrders; odSum+=p.odsOrders; hkSum+=p.hktvOrders; shSum+=p.odsShift||0; fd+=p.ftDriver; fc+=p.ftCourier; pd+=p.ptDriver; pc+=p.ptCourier; ouSum+=p.odsUserCount||0; otSum+=p.odsTunnelCost||0;
+      if(p.costPerOrder != null) costSum += p.costPerOrder * p.totalOrders; });
+    const staffTotal = fd+fc+pd+pc;
+    const achieved = staffTotal>0 ? hkSum/staffTotal : null;
+    const costPerOrder = toSum>0 ? costSum/toSum : null;
+    return { totalOrders:toSum, odsOrders:odSum, odsShift:shSum, hktvOrders:hkSum, ftDriver:fd, ftCourier:fc, ptDriver:pd, ptCourier:pc, achievedProd:achieved, targetProd, costPerOrder, targetCostPerOrder, odsUserCount:ouSum, odsTunnelCost:otSum };
+  }
+  // v15.1 — one card, read-only: 7 weekday blocks + the Weekly rollup
+  // block, in a wrapping grid (.fc-result-card-weekdays). Used only for the
+  // network Total card now (each district's own card builds its weekday
+  // cells from fcPlanCellHtml instead, since those are editable).
+  function fcResultCardHtml(d, ps, weeklyP, isTotal){
+    const weekdayBlocks = WEEKDAY_LABELS.map((w,i)=>`
+      <div class="fc-result-wd">
+        <div class="fc-result-wd-label">${w}</div>
+        ${fcCellHtml(ps[i])}
+      </div>`).join('');
+    const weeklyBlock = `
+      <div class="fc-result-wd fc-result-weekly">
+        <div class="fc-result-wd-label" title="The forecast week's true figure for this plan — Mon–Sun rolled into one. Identical to the Suggest Headcount pass/fail badge and this row in the Cost Planning portal below.">Weekly</div>
+        ${fcCellHtml(weeklyP, {isWeekly:true})}
+      </div>`;
+    return `<div class="fc-result-card${isTotal?' fc-result-total':''}" data-d="${d}">
+      <div class="fc-result-card-head"><div class="fc-result-card-title">${isTotal?'Total':d}</div></div>
+      <div class="fc-result-card-weekdays">${weekdayBlocks}${weeklyBlock}</div>
+    </div>`;
+  }
   // Est. monthly Total Order volume for a district — the weekday Total
   // Order forecasts (adjusted) summed across one week, scaled to a month
   // (52/12 ≈ 4.345 weeks/month). Used as the order-volume base for Cost/Order.
@@ -4667,6 +4708,15 @@
         <div class="fc-plan-wd-label">${w} <span class="occ" title="${occ[i]}× in the forecast month — this weekday's plan is weighted by that in the Cost Portal's Variable — Staff line.">×${occ[i]}</span></div>
         ${fcPlanCellHtml(d, i)}
       </div>`).join('');
+    // v27.0 §2 — this district's Weekly rollup (Mon–Sun rolled into one true
+    // monthly figure), formerly the last block of its card in the separate
+    // Weekly Forecast Plan section, now sits at the end of this same card's
+    // weekday grid — one card, everything about this district's plan.
+    const weeklyBlock = `
+      <div class="fc-result-wd fc-result-weekly">
+        <div class="fc-result-wd-label" title="The forecast week's true figure for this plan — Mon–Sun rolled into one. Identical to the Suggest Headcount pass/fail badge and this district's row in the Cost Planning portal below.">Weekly</div>
+        ${fcCellHtml(fcWeeklyPFor(d), {isWeekly:true})}
+      </div>`;
     return `<div class="fc-plan-card" data-d="${d}">
       <div class="fc-plan-card-head">
         <div class="fc-plan-card-title">${d}</div>
@@ -4675,7 +4725,7 @@
           <div class="fc-plan-card-suggest fc-plan-card-current">${fcCurrentStatusCellHtml(d)}</div>
         </div>
       </div>
-      <div class="fc-plan-card-weekdays">${weekdayCells}</div>
+      <div class="fc-plan-card-weekdays">${weekdayCells}${weeklyBlock}</div>
     </div>`;
   }
   function fcRenderPlanTable(){
@@ -4687,9 +4737,27 @@
     // renders a card here either, same filter fcRenderWeeklyForecastPlan
     // already applies to its own rows.
     const shown = DISTRICTS.filter(d=>FC_STATE.districts.has(d));
-    cardsEl.innerHTML = shown.length
-      ? shown.map(d=>fcPlanCardHtml(d, occ)).join('')
-      : `<div style="padding:16px;color:var(--text-muted);">No districts selected — choose one or more from the dropdown above to see their plan.</div>`;
+    if(!shown.length){
+      cardsEl.innerHTML = `<div style="padding:16px;color:var(--text-muted);">No districts selected — choose one or more from the dropdown above to see their plan.</div>`;
+      return;
+    }
+    const districtCards = shown.map(d=>fcPlanCardHtml(d, occ)).join('');
+    // v27.0 §2 — the network Total card (formerly the last card of the
+    // separate Weekly Forecast Plan section) now closes out this same list:
+    // one aggregate per weekday across the visible districts, checked
+    // against that weekday's POOLED target (each visible district's own
+    // target, weighted the same way the actual figure is weighted — see
+    // fcPooledDailyTargetsFor), plus a true-monthly Weekly corner (every
+    // visible district's monthly figure rolled into one network result,
+    // checked against the pooled monthly target — fcPooledMonthlyTargetsFor).
+    // Read-only: an aggregate across districts has no single plan to edit.
+    const totalPs = WEEKDAY_LABELS.map((_,i)=>{
+      const pooled = fcPooledDailyTargetsFor(shown, i);
+      return fcAggregateP(shown.map(dist=>fcPlanFor(dist,i)), pooled.targetProd, pooled.targetCost);
+    });
+    const pooledMonthly = fcPooledMonthlyTargetsFor(shown);
+    const weeklyTotalP = fcMonthlyAggregateFor(shown, pooledMonthly.targetProd, pooledMonthly.targetCost);
+    cardsEl.innerHTML = districtCards + fcResultCardHtml('Total', totalPs, weeklyTotalP, true);
   }
   // Runs Suggest Headcount for every district, applies feasible results
   // into FC_STATE, then re-renders the whole tab (so the plan table,
@@ -4869,15 +4937,21 @@
     banner.innerHTML += `<div class="fc-autotune-note" style="margin-top:.5em;"><b>Auto-Tune Overdrive.</b> ${bits.join(' ')}</div>`;
   }
   function renderForecastTab(){
-    const cardsWrap = document.getElementById('fcResultCards');
+    // v27.0 §2 — the separate Weekly Forecast Plan section (and its
+    // #fcResultCards mount) is gone; fcRenderPlanTable() now renders the
+    // full forecast output — including the Weekly rollup and Total card —
+    // straight into #fcPlanCards, so this function no longer owns that DOM
+    // node directly. #fcNote stays (relocated under the plan cards) since
+    // the explanation below still applies to what's now inside them.
     const note = document.getElementById('fcNote');
     const legend = document.getElementById('fcLegend');
     const summary = document.getElementById('fcSummary');
     const sumBox = document.getElementById('fcWeightSum');
+    const cardsEl = document.getElementById('fcPlanCards');
 
     if(Object.keys(DATA.dailyProductivity).length === 0){
-      legend.innerHTML=''; summary.innerHTML='';
-      cardsWrap.innerHTML = `<div style="padding:24px;color:var(--text-muted);">No productivity_history.json alongside this page yet — the forecast needs it before it can calculate anything.</div>`;
+      legend.innerHTML=''; summary.innerHTML=''; note.innerHTML='';
+      if(cardsEl) cardsEl.innerHTML = `<div style="padding:24px;color:var(--text-muted);">No productivity_history.json alongside this page yet — the forecast needs it before it can calculate anything.</div>`;
       return;
     }
     _fcOrderRatioCache = null; // recompute the historical order-ratio split each render, in case data changed
@@ -4939,76 +5013,15 @@
       </div>`;
     }).join('');
 
-    // v15.0 §2 — shared aggregator for both the network Total row (sums
-    // across DISTRICTS for one weekday, as before) and the new Weekly
-    // column (sums across WEEKDAYS for one district/row, added below).
-    // Cost/Order is always Σ(cost) ÷ Σ(orders) — never an average of
-    // per-slice Cost/Order figures, which would let a low-volume slice's
-    // ratio pull the aggregate around out of proportion to its orders.
-    function fcAggregateP(ps, targetProd, targetCostPerOrder){
-      let toSum=0, odSum=0, hkSum=0, fd=0, fc=0, pd=0, pc=0, shSum=0, costSum=0, ouSum=0, otSum=0;
-      ps.forEach(p=>{ toSum+=p.totalOrders; odSum+=p.odsOrders; hkSum+=p.hktvOrders; shSum+=p.odsShift||0; fd+=p.ftDriver; fc+=p.ftCourier; pd+=p.ptDriver; pc+=p.ptCourier; ouSum+=p.odsUserCount||0; otSum+=p.odsTunnelCost||0;
-        if(p.costPerOrder != null) costSum += p.costPerOrder * p.totalOrders; });
-      const staffTotal = fd+fc+pd+pc;
-      const achieved = staffTotal>0 ? hkSum/staffTotal : null;
-      const costPerOrder = toSum>0 ? costSum/toSum : null;
-      return { totalOrders:toSum, odsOrders:odSum, odsShift:shSum, hktvOrders:hkSum, ftDriver:fd, ftCourier:fc, ptDriver:pd, ptCourier:pc, achievedProd:achieved, targetProd, costPerOrder, targetCostPerOrder, odsUserCount:ouSum, odsTunnelCost:otSum };
-    }
-
-    // v15.3 — TRUE MONTHLY aggregate ("Weekly" rollup) and v15.0 §2/v15.3's
-    // per-district Weekly column — fcMonthlyAggregateFor() and fcWeeklyPFor()
-    // — used to live here, but v19.0 §4's "Keep Current Status" badge needs
-    // fcWeeklyPFor() too and that badge is built by fcCurrentStatusCellHtml(),
-    // a top-level function outside this closure — a local `function` inside
-    // renderForecastTab() isn't visible there. Moved both to top level, right
-    // after fcPlanFor() (their real dependency), instead of duplicating the
-    // logic. See the comment there for what they do; nothing about their
-    // behavior changed, only where they're declared.
-
-    // v15.1 — one card per district: its 7 weekday blocks + the Weekly
-    // rollup block, in a wrapping grid (see .fc-result-card-weekdays).
-    // Replaces the old <tr>/<td> table row-building below with the same
-    // shape used by fcRenderPlanTable() above.
-    function fcResultCardHtml(d, ps, weeklyP, isTotal){
-      const weekdayBlocks = WEEKDAY_LABELS.map((w,i)=>`
-        <div class="fc-result-wd">
-          <div class="fc-result-wd-label">${w}</div>
-          ${fcCellHtml(ps[i])}
-        </div>`).join('');
-      const weeklyBlock = `
-        <div class="fc-result-wd fc-result-weekly">
-          <div class="fc-result-wd-label" title="The forecast week's true figure for this plan — Mon–Sun rolled into one. Identical to the Suggest Headcount pass/fail badge and this row in the Cost Planning portal below.">Weekly</div>
-          ${fcCellHtml(weeklyP, {isWeekly:true})}
-        </div>`;
-      return `<div class="fc-result-card${isTotal?' fc-result-total':''}" data-d="${d}">
-        <div class="fc-result-card-head"><div class="fc-result-card-title">${isTotal?'Total':d}</div></div>
-        <div class="fc-result-card-weekdays">${weekdayBlocks}${weeklyBlock}</div>
-      </div>`;
-    }
-
-    const bodyCards = rowDistricts.map(d=>{
-      const ps = WEEKDAY_LABELS.map((_,i)=>fcPlanFor(d,i));
-      return fcResultCardHtml(d, ps, fcWeeklyPFor(d), false);
-    });
-    // Total card: one aggregate per weekday, across the visible districts —
-    // v17.0 — checked against that weekday's POOLED target (each visible
-    // district's own target, weighted the same way the actual figure is
-    // weighted), not a flat network constant. See fcPooledDailyTargetsFor.
-    const totalPs = WEEKDAY_LABELS.map((_,i)=>{
-      const pooled = fcPooledDailyTargetsFor(rowDistricts, i);
-      return fcAggregateP(rowDistricts.map(dist=>fcPlanFor(dist,i)), pooled.targetProd, pooled.targetCost);
-    });
-    // Weekly × Total corner: every district's TRUE monthly figure rolled
-    // into one network result (v15.3 — fcMonthlyAggregateFor, not the daily
-    // fcAggregateP over totalPs, for the same reason as fcWeeklyPFor above).
-    // v17.0 — pooled monthly target, same reasoning as totalPs above.
-    const pooledMonthly = fcPooledMonthlyTargetsFor(rowDistricts);
-    const weeklyTotalP = fcMonthlyAggregateFor(rowDistricts, pooledMonthly.targetProd, pooledMonthly.targetCost);
-    cardsWrap.innerHTML = bodyCards.join('') + fcResultCardHtml('Total', totalPs, weeklyTotalP, true);
-
+    // v27.0 §2 — the per-district and Total forecast output (7 weekday
+    // blocks + Weekly rollup, per card) is now built and written to
+    // #fcPlanCards entirely inside fcRenderPlanTable() (called above), right
+    // alongside the editable headcount inputs that drive it — see
+    // fcPlanCardHtml/fcAggregateP/fcResultCardHtml. This function just
+    // documents those figures below the merged cards.
     note.innerHTML = `<b>Total Order</b> = plain average of that weekday's historical Total Order (HKTV Staff + ODS/VAN) across every usable day of that weekday on record from ${FORECAST_DATA_START} on — days with data, not within ${FC_HOLIDAY_SKIP_DAYS} days of an HK general holiday (holiday counts as day 1; see the note above the Per-District Staff Plan)`
       + (pctChange ? `, then × (1 ${pctChange>0?'+':'−'} ${Math.abs(pctChange)}%) applied network-wide and split across districts by historical order share. ` : '. ')
-      + `<b>Est. ODS Orders</b> = same method on ODS/VAN-only history (or the ODS Order Count override), after any channel-split shift — a ↳ line shows the shift. ODS tunnel users (ETH &amp; WTH only) are now shown on the Per-District Staff Plan card above, next to the plan that drives them, rather than repeated on every block here. <b>HKTV Orders</b> = Total Order − Est. ODS Orders. <b>FT/PT rows</b> = that weekday's Per-District Staff Plan. <b>Productivity</b> = HKTV Orders ÷ total headcount; the pill is its achievement rate, (forecast − target) ÷ target — green at or above target, red below. <b>Cost/Order</b> = that weekday's (Fixed + planned Staff + ODS cost + ODS tunnel fee) ÷ that weekday's Total Order — a DAILY reading, not the weekly one in the Cost Planning portal below, so a day can read cheap here while the week still misses target; green is at or under target. Hidden districts are excluded from the Total card. <b>Weekly</b> (last, amber-outlined block in each card) = that district's Mon–Sun figures rolled into one: orders/headcount/tunnel-cost summed, Productivity and Cost/Order recomputed from those sums (not an average of the seven daily figures) — checked against that district's own target for the per-district cards. <b>Total card</b> = the same rollup across every visible district, checked against a POOLED target: each visible district's own Target Cost/Order weighted by its order volume, and its own Target Productivity weighted by its man-days — the same weights the Total's own actual figures are pooled by — so if every district clears its own target, the Total clears its pooled target too.`;
+      + `<b>Est. ODS Orders</b> = same method on ODS/VAN-only history (or the ODS Order Count override), after any channel-split shift — a ↳ line shows the shift. ODS tunnel users (ETH &amp; WTH only) are shown above the dashed line, next to the plan that drives them, rather than repeated on every block below it. <b>HKTV Orders</b> = Total Order − Est. ODS Orders. <b>FT/PT rows</b> = that weekday's Per-District Staff Plan. <b>Productivity</b> = HKTV Orders ÷ total headcount; the pill is its achievement rate, (forecast − target) ÷ target — green at or above target, red below. <b>Cost/Order</b> = that weekday's (Fixed + planned Staff + ODS cost + ODS tunnel fee) ÷ that weekday's Total Order — a DAILY reading, not the weekly one in the Cost Planning portal below, so a day can read cheap here while the week still misses target; green is at or under target. Hidden districts are excluded from the Total card. <b>Weekly</b> (last, amber-outlined block in each card) = that district's Mon–Sun figures rolled into one: orders/headcount/tunnel-cost summed, Productivity and Cost/Order recomputed from those sums (not an average of the seven daily figures) — checked against that district's own target. <b>Total card</b> = the same rollup across every visible district, checked against a POOLED target: each visible district's own Target Cost/Order weighted by its order volume, and its own Target Productivity weighted by its man-days — the same weights the Total's own actual figures are pooled by — so if every district clears its own target, the Total clears its pooled target too.`;
   }
 
   /* v13.0 §2 — "Clear Suggestions" used to clear only the badges and the
