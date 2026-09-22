@@ -440,6 +440,12 @@
      weekday cells had a lot of unused space around fairly small type, so
      labels/inputs/totals all grew and the grid minmax grew with them. */
   .fc-hc-cell{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;min-width:140px;}
+  /* v26.0 §1 — fcCellHtml()'s .fc-cell block, now reused inside the
+     Per-District Staff Plan's per-weekday cell (a 2-column grid), needs to
+     span both columns and lose its own standalone padding/gap so it sits
+     flush under the Σ staff line's dashed divider instead of floating in
+     one grid column with its own inset. */
+  .fc-hc-cell > .fc-cell{grid-column:1/-1;padding:0;gap:3px;}
   .fc-hc-field{display:flex;align-items:center;gap:4px;}
   .fc-hc-field span{font-family:'Inter';font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--text-muted);width:28px;flex:none;}
   .fc-hc-field input{width:100%;min-width:0;font-family:'IBM Plex Mono';font-size:13.5px;padding:4px 5px;text-align:right;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);}
@@ -486,17 +492,14 @@
   .fc-hc-total .p{font-family:'IBM Plex Mono';font-size:11px;padding:1px 5px;border-radius:8px;background:var(--line-soft);color:var(--text-muted);}
   .fc-hc-total .p.ok{background:var(--green-soft);color:var(--green);}
   .fc-hc-total .p.bad{background:var(--red-soft);color:var(--red);}
-  /* v18.0 §1 — per-weekday Target Prod / Max OD % / Max ODS Flex % inputs (above the dashed line) and the Orders / Prod / Cost-per-Order results (below it). */
+  /* v18.0 §1 — per-weekday Target Prod / Max OD % / Max ODS Flex % inputs (above the dashed line); v27.0 §1 — the full forecast table (below it) replaced the condensed Orders/Prod/Cost-per-Order readout, see fcPlanCellHtml. */
   .fc-plan-wd-targets{grid-column:1/-1;display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:4px 6px;margin-top:2px;}
   .fc-plan-wd-targets .fc-plan-mini-field{font-size:9px;gap:2px;letter-spacing:.02em;min-width:0;}
   .fc-plan-wd-targets .fc-plan-mini-field input{width:100%;min-width:0;font-size:12.5px;padding:3px 4px;text-align:right;}
-  .fc-hc-result{grid-column:1/-1;display:flex;align-items:baseline;gap:6px;font-size:11.5px;color:var(--text-muted);cursor:help;}
-  .fc-hc-result .k{flex:none;min-width:56px;font-weight:700;font-size:10.5px;letter-spacing:.03em;text-transform:uppercase;}
-  .fc-hc-result .v{font-family:'IBM Plex Mono';font-size:13px;font-weight:700;color:var(--text);}
-  .fc-hc-result .sub{margin-left:auto;font-family:'IBM Plex Mono';font-size:10.5px;}
-  .fc-hc-result .p{margin-left:auto;font-family:'IBM Plex Mono';font-size:11px;padding:1px 5px;border-radius:8px;background:var(--line-soft);color:var(--text-muted);}
-  .fc-hc-result .p.ok{background:var(--green-soft);color:var(--green);}
-  .fc-hc-result .p.bad{background:var(--red-soft);color:var(--red);}
+  /* v27.0 §1 — the .fc-hc-result condensed Orders/Prod/Cost-per-Order rows
+     are gone from the Per-District Staff Plan cell (replaced by the full
+     .fc-cell forecast table via fcCellHtml — see .fc-hc-cell > .fc-cell
+     above), so these rules were removed along with them. */
   /* v15.1 — ODS tunnel readout, moved here from the Weekly Forecast Plan
      output (ETH/WTH only): same quiet placement as the FT/bench roster
      line above it, in the same blue used for the ↳-prefixed info rows
@@ -4548,23 +4551,82 @@
         <label class="fc-plan-mini-field" title="This weekday's own Max ODS Volume Flex ceiling for Suggest Headcount's channel-split optimizer. Blank = the network default above. Still a commercial limit — what THIS district's ODS partner can actually absorb on THIS day.">Max Flex %<input type="number" min="0" max="100" step="1" class="fc-in-odsflex" data-d="${d}" data-wd="${wd}" placeholder="${Math.min(100,Math.max(0,+FC_ODS.flexPct||0))}" value="${flexVal}"></label>
       </div>`;
   }
+  // v26.0 §1 — HOISTED to top-level (was nested inside renderForecastTab()):
+  // the detailed per-weekday breakdown — Total Order, Est. ODS Orders, HKTV
+  // Orders, FT/PT rows, Productivity, Cost/Order, each against target — used
+  // to live only in the separate "Weekly Forecast Plan" section further down
+  // the page. Now also called directly from fcPlanCellHtml() below, so the
+  // Per-District Staff Plan cell shows this same detail immediately under
+  // its own dashed line — no scrolling down to a second section to see the
+  // effect of an edit. Nothing about what it computes or renders changed,
+  // only where it's declared (needs to be reachable from both places).
+  function fcCellHtml(p, opts){
+    // v15.3 — Weekly cells now carry the TRUE monthly figure (see
+    // fcMonthlyAggregateFor), so their tooltip should say that instead of
+    // the daily "a day can look cheap" caveat, which no longer applies to
+    // them. Only the 7 per-weekday cells are still single-day readings.
+    const isWeekly = !!(opts && opts.isWeekly);
+    const meetsTarget = p.achievedProd != null && p.achievedProd >= p.targetProd;
+    const pillCls = p.achievedProd==null ? 'delta-flat' : meetsTarget ? 'delta-up' : 'delta-down';
+    // v13.0 §6 — the pill now carries the achievement rate
+    // (forecast − target) ÷ target instead of restating the target; the
+    // target itself moves into the tooltip.
+    const prodRate = fcAchievementRate(p.achievedProd, p.targetProd);
+    // v14.7 §1 — Cost/Order, one weekday at a time. Lower is better, so the
+    // achievement-rate sign is inverted from Productivity's: a rate BELOW
+    // target (negative) is the good direction here.
+    const meetsCost = p.costPerOrder != null && p.costPerOrder <= p.targetCostPerOrder;
+    const costPillCls = p.costPerOrder==null ? 'delta-flat' : meetsCost ? 'delta-up' : 'delta-down';
+    const costRate = fcAchievementRate(p.costPerOrder, p.targetCostPerOrder);
+    // v14.8 §2 — the "shifted ODS" row used to be OMITTED entirely on a
+    // day with no shift, which meant every row below it (Productivity,
+    // Cost/Order) sat one row higher than the same row in a neighbouring
+    // cell that DID have a shift — so the table didn't line up
+    // horizontally at all past that point. Now the row is always
+    // rendered, so it always claims the same slice of vertical space;
+    // when there's nothing to show, `visibility:hidden` (not
+    // `display:none`) blanks its content and border while leaving that
+    // space reserved, so Productivity and Cost/Order land on the same
+    // row in every cell regardless of whether that particular day shifted
+    // anything.
+    const hasShift = Math.abs(p.odsShift||0) >= 1;
+    const costTitle = isWeekly
+      ? `This district's monthly Fixed + Staff (deployed FT/PT headcount only) + ODS cost ÷ its forecast order volume for the month: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is the SAME monthly figure as the Suggest Headcount pass/fail badge and this district's row in the Cost Planning portal below — they will always agree.`
+      : `This weekday's Fixed + planned Staff + ODS cost ÷ this weekday's Total Order forecast: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is one day's figure, not the monthly Cost/Order in the Weekly cell or the Cost Planning portal below, which spreads the same staff cost across the whole month's occurrences — a day can look cheap here while the month still misses target.`;
+    return `<div class="fc-cell">
+      <div class="fc-row"><span class="fc-label">Total Order</span><span class="fc-val">${intFmt(p.totalOrders)}</span></div>
+      <div class="fc-row"><span class="fc-label">Est. ODS Orders</span><span class="fc-val">${intFmt(p.odsOrders)}</span></div>
+      <div class="fc-row fc-shift"${hasShift ? '' : ' style="visibility:hidden;"'}><span class="fc-label">↳ shifted ${p.odsShift>0?'to':'off'} ODS</span><span class="fc-val">${p.odsShift>0?'+':''}${intFmt(p.odsShift)}</span></div>
+      <div class="fc-row"><span class="fc-label">HKTV Orders</span><span class="fc-val">${intFmt(p.hktvOrders)}</span></div>
+      <div class="fc-row"><span class="fc-label">FT Driver</span><span class="fc-val">${intFmt(p.ftDriver)}</span></div>
+      <div class="fc-row"><span class="fc-label">FT Courier</span><span class="fc-val">${intFmt(p.ftCourier)}</span></div>
+      <div class="fc-row"><span class="fc-label">PT Driver</span><span class="fc-val">${intFmt(p.ptDriver)}</span></div>
+      <div class="fc-row"><span class="fc-label">PT Courier</span><span class="fc-val">${intFmt(p.ptCourier)}</span></div>
+      <div class="fc-row fc-primary">
+        <span class="fc-label">Productivity</span>
+        <span class="fc-val">${p.achievedProd==null?'—':p.achievedProd.toFixed(1)}</span>
+        <span class="delta-pill ${pillCls}" title="Forecast ${p.achievedProd==null?'—':p.achievedProd.toFixed(1)} vs target ${p.targetProd.toFixed(1)} — achievement rate = (forecast − target) ÷ target.">${fcRatePct(prodRate)}</span>
+      </div>
+      <div class="fc-row fc-primary">
+        <span class="fc-label">Cost/Order</span>
+        <span class="fc-val">${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)}</span>
+        <span class="delta-pill ${costPillCls}" title="${costTitle}">${fcRatePct(costRate)}</span>
+      </div>
+    </div>`;
+  }
   function fcPlanCellHtml(d, wd){
     const slot = fcStaffSlot(d, wd);
     const hc = fcHeadcountFor(d, wd);
-    const hktv = fcForecastHktvOrders(d, wd);
-    const prod = hc.total > 0 ? hktv/hc.total : null;
-    const target = fcTargetProdFor(d, wd);
-    const cls = prod == null ? '' : (prod >= target ? 'ok' : 'bad');
-    const rate = fcAchievementRate(prod, target);   // v13.0 §6
-    // v18.0 §1 — the results below the dashed line now carry everything a
-    // leader needs to judge an edit to THIS day's inputs without scrolling
-    // down to the Weekly Forecast Plan: forecast order count, staff
-    // productivity, and cost / order, each against this day's own target.
+    // v27.0 §1 — the condensed Orders/Prod/Cost-per-Order readout below the
+    // dashed line is gone. In its place: the SAME full forecast table
+    // (fcCellHtml — Total Order, Est. ODS Orders, any ODS shift, HKTV
+    // Orders, FT/PT breakdown, Productivity and Cost/Order, each against
+    // this day's own target) that used to live only in the separate Weekly
+    // Forecast Plan section further down the page. One table, reused in
+    // both places, so a leader sees the full breakdown for an edit right
+    // under the inputs that produced it — no scrolling down to a second
+    // section to find it.
     const pd = fcPlanFor(d, wd);
-    const costTarget = pd.targetCostPerOrder;
-    const costCls = pd.costPerOrder == null ? '' : (pd.costPerOrder <= costTarget ? 'ok' : 'bad');
-    const costRate = fcAchievementRate(pd.costPerOrder, costTarget);
-    const odsShiftNote = Math.abs(pd.odsShift) >= 1 ? ` · ODS shifted ${pd.odsShift>0?'+':''}${intFmt(pd.odsShift)}` : '';
     // v14.2 §1 — the cell is the deployed plan and its pill is the real
     // productivity, so nothing needs qualifying per day. What's worth showing
     // is how this day draws on the shared FT roster: FT rostered today out of
@@ -4588,15 +4650,7 @@
     return `<div class="fc-hc-cell">${fields}
       ${fcPlanTargetsRowHtml(d, wd)}
       <div class="fc-hc-total"><span>Σ <span class="v">${intFmt(hc.total)}</span> staff</span></div>
-      <div class="fc-hc-result" title="This weekday's forecast Total Order = ${intFmt(pd.totalOrders)} (HKTV ${intFmt(hktv)} + ODS ${intFmt(pd.odsOrders)}${odsShiftNote}), after the Overall Order % Change.">
-        <span class="k">Orders</span><span class="v">${intFmt(pd.totalOrders)}</span><span class="sub">HKTV ${intFmt(hktv)}</span>
-      </div>
-      <div class="fc-hc-result" title="This weekday's forecast Productivity ${prod==null?'—':prod.toFixed(1)} (HKTV Orders ${intFmt(hktv)} ÷ ${intFmt(hc.total)} staff) vs THIS weekday's target ${target.toFixed(1)} — achievement rate (forecast − target) ÷ target.">
-        <span class="k">Prod</span><span class="v">${prod==null?'—':prod.toFixed(1)}</span><span class="p ${cls}">${fcRatePct(rate)}</span>
-      </div>
-      <div class="fc-hc-result" title="This weekday's forecast Cost / Order ${pd.costPerOrder==null?'—':'$'+pd.costPerOrder.toFixed(2)} vs the district's target $${costTarget.toFixed(2)} — (Fixed + Staff + ODS + tunnel) ÷ Total Order. Above target is over budget, so the pill is red when the rate is positive.">
-        <span class="k">Cost/Ord</span><span class="v">${pd.costPerOrder==null?'—':'$'+pd.costPerOrder.toFixed(2)}</span><span class="p ${costCls}">${fcRatePct(costRate)}</span>
-      </div>
+      ${fcCellHtml(pd)}
       ${rosterLine}
       ${tunnelLine}
     </div>`;
@@ -4884,61 +4938,6 @@
         <span class="delta-pill delta-flat">${achieved==null?'—':achieved.toFixed(1)+' / staff'}</span>
       </div>`;
     }).join('');
-
-    function fcCellHtml(p, opts){
-      // v15.3 — Weekly cells now carry the TRUE monthly figure (see
-      // fcMonthlyAggregateFor), so their tooltip should say that instead of
-      // the daily "a day can look cheap" caveat, which no longer applies to
-      // them. Only the 7 per-weekday cells are still single-day readings.
-      const isWeekly = !!(opts && opts.isWeekly);
-      const meetsTarget = p.achievedProd != null && p.achievedProd >= p.targetProd;
-      const pillCls = p.achievedProd==null ? 'delta-flat' : meetsTarget ? 'delta-up' : 'delta-down';
-      // v13.0 §6 — the pill now carries the achievement rate
-      // (forecast − target) ÷ target instead of restating the target; the
-      // target itself moves into the tooltip.
-      const prodRate = fcAchievementRate(p.achievedProd, p.targetProd);
-      // v14.7 §1 — Cost/Order, one weekday at a time. Lower is better, so the
-      // achievement-rate sign is inverted from Productivity's: a rate BELOW
-      // target (negative) is the good direction here.
-      const meetsCost = p.costPerOrder != null && p.costPerOrder <= p.targetCostPerOrder;
-      const costPillCls = p.costPerOrder==null ? 'delta-flat' : meetsCost ? 'delta-up' : 'delta-down';
-      const costRate = fcAchievementRate(p.costPerOrder, p.targetCostPerOrder);
-      // v14.8 §2 — the "shifted ODS" row used to be OMITTED entirely on a
-      // day with no shift, which meant every row below it (Productivity,
-      // Cost/Order) sat one row higher than the same row in a neighbouring
-      // cell that DID have a shift — so the table didn't line up
-      // horizontally at all past that point. Now the row is always
-      // rendered, so it always claims the same slice of vertical space;
-      // when there's nothing to show, `visibility:hidden` (not
-      // `display:none`) blanks its content and border while leaving that
-      // space reserved, so Productivity and Cost/Order land on the same
-      // row in every cell regardless of whether that particular day shifted
-      // anything.
-      const hasShift = Math.abs(p.odsShift||0) >= 1;
-      const costTitle = isWeekly
-        ? `This district's monthly Fixed + Staff (deployed FT/PT headcount only) + ODS cost ÷ its forecast order volume for the month: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is the SAME monthly figure as the Suggest Headcount pass/fail badge and this district's row in the Cost Planning portal below — they will always agree.`
-        : `This weekday's Fixed + planned Staff + ODS cost ÷ this weekday's Total Order forecast: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is one day's figure, not the monthly Cost/Order in the Weekly cell or the Cost Planning portal below, which spreads the same staff cost across the whole month's occurrences — a day can look cheap here while the month still misses target.`;
-      return `<div class="fc-cell">
-        <div class="fc-row"><span class="fc-label">Total Order</span><span class="fc-val">${intFmt(p.totalOrders)}</span></div>
-        <div class="fc-row"><span class="fc-label">Est. ODS Orders</span><span class="fc-val">${intFmt(p.odsOrders)}</span></div>
-        <div class="fc-row fc-shift"${hasShift ? '' : ' style="visibility:hidden;"'}><span class="fc-label">↳ shifted ${p.odsShift>0?'to':'off'} ODS</span><span class="fc-val">${p.odsShift>0?'+':''}${intFmt(p.odsShift)}</span></div>
-        <div class="fc-row"><span class="fc-label">HKTV Orders</span><span class="fc-val">${intFmt(p.hktvOrders)}</span></div>
-        <div class="fc-row"><span class="fc-label">FT Driver</span><span class="fc-val">${intFmt(p.ftDriver)}</span></div>
-        <div class="fc-row"><span class="fc-label">FT Courier</span><span class="fc-val">${intFmt(p.ftCourier)}</span></div>
-        <div class="fc-row"><span class="fc-label">PT Driver</span><span class="fc-val">${intFmt(p.ptDriver)}</span></div>
-        <div class="fc-row"><span class="fc-label">PT Courier</span><span class="fc-val">${intFmt(p.ptCourier)}</span></div>
-        <div class="fc-row fc-primary">
-          <span class="fc-label">Productivity</span>
-          <span class="fc-val">${p.achievedProd==null?'—':p.achievedProd.toFixed(1)}</span>
-          <span class="delta-pill ${pillCls}" title="Forecast ${p.achievedProd==null?'—':p.achievedProd.toFixed(1)} vs target ${p.targetProd.toFixed(1)} — achievement rate = (forecast − target) ÷ target.">${fcRatePct(prodRate)}</span>
-        </div>
-        <div class="fc-row fc-primary">
-          <span class="fc-label">Cost/Order</span>
-          <span class="fc-val">${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)}</span>
-          <span class="delta-pill ${costPillCls}" title="${costTitle}">${fcRatePct(costRate)}</span>
-        </div>
-      </div>`;
-    }
 
     // v15.0 §2 — shared aggregator for both the network Total row (sums
     // across DISTRICTS for one weekday, as before) and the new Weekly
