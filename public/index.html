@@ -2670,6 +2670,11 @@
   // Overdrive candidate a sweep happens to be trying — so the pool's own
   // size doesn't shift underneath the search that spends it. Memoized per
   // render, same as the other forecast caches.
+  // v25.0 §2 — NO LONGER CALLED: fcFtWeeklyBudgetFor() stopped using this to
+  // cap the FT pool (see its v25.0 §2 comment) — the pool is sized off the
+  // full bench only now. Left in place in case a future feature wants "what
+  // does 0%-Overdrive Target Productivity alone call for" as a standalone
+  // read, but it no longer shapes the pool ceiling.
   let _fcForecastFtDemandCache = {};
   function fcForecastFtDemandFor(district){
     if(_fcForecastFtDemandCache[district]) return _fcForecastFtDemandCache[district];
@@ -2763,32 +2768,36 @@
   // charges only the FT man-days actually deployed (fcMonthlyStaffCostFor);
   // the undeployed part of the pool is reported by fcMinRosterTopUpFor for
   // roster-utilisation purposes only and is no longer added as a cost line.
-  // v22.0 §1 — pool spending is now constrained by BOTH bench cap (theoretical
-  // maximum) AND the forecast's own computed manpower need (v23.0 §1 — see
-  // fcForecastFtDemandFor). Uses the smaller of the two, so forecast
-  // suggestions respect what the forecast itself says it needs, not just
-  // the theoretical bench ceiling.
+  // v22.0 §1 — (superseded by v25.0 §2 below — this used to constrain pool
+  // spending by BOTH bench cap AND forecast demand; that demand cap was
+  // removed as a bug, see v25.0 §2's comment.)
   // v23.0 §2 — also returns poolBaseFtDriver/poolBaseFtCourier/poolBaseTotal:
   // the FULL bench × days (100% of total manpower, not the 75% share). The
   // 75% figures (ftDriver/ftCourier/total) remain the actual WEEKLY SPENDING
   // CAP fcSpreadFtPool enforces; the 100% figures are for reporting "how
   // much of this district's total manpower is deployed" without reading
   // over 100% just because the cap itself is a 75% share.
+  // v25.0 §2 — BUGFIX: sizing the pool off min(bench, forecast demand)
+  // silently shrank the 75% commitment whenever a district's 0%-Overdrive
+  // baseline need (fcForecastFtDemandFor) came in under its bench — which
+  // is the common case, since Overdrive/ODS Flex then push volume further
+  // and are searched ON TOP of that baseline. That left Suggest/Auto-Tune
+  // pinned against a pool ceiling well under 75% of the real bench (e.g.
+  // 64% "deployed" against the full bench while still buying PT on top —
+  // idle bench FT sitting unused, contradicting "FT is a sunk cost, use it
+  // before PT"). The pool is now sized off the FULL theoretical bench only,
+  // matching the stated policy: 75% of bench is a MINIMUM commitment paid
+  // regardless of volume (and the per-day search can still roster up to
+  // 100% of bench when that's cheaper than PT) — demand should shape HOW
+  // that pool gets spent day-to-day (fcSpreadFtPool/fcOptimizeDayPlan
+  // already do that), not how big the pool itself is.
   function fcFtWeeklyBudgetFor(district){
     const cap = fcStaffCapFor(district);
-    const demand = fcForecastFtDemandFor(district);
     const occ = fcWeekdayOccurrences();
     const days = occ.reduce((a,b)=>a+b,0);
-    const f = (benchV, demandV)=> {
-      if(!isFinite(benchV)) return 0; // no bench data = no pool
-      // Use the minimum of bench cap (theoretical) and the forecast's own
-      // computed need — a district the forecast doesn't call for a full
-      // bench on doesn't get a pool sized as if it did.
-      const effective = Math.min(benchV, isFinite(demandV) ? demandV : benchV);
-      return Math.round(effective*FT_ROSTER_SHARE*days);
-    };
-    const ftDriver = f(cap.ftDriver, demand.ftDriver);
-    const ftCourier = f(cap.ftCourier, demand.ftCourier);
+    const f = (benchV)=> isFinite(benchV) ? Math.round(benchV*FT_ROSTER_SHARE*days) : 0;
+    const ftDriver = f(cap.ftDriver);
+    const ftCourier = f(cap.ftCourier);
     const poolBaseFtDriver = isFinite(cap.ftDriver) ? Math.round(cap.ftDriver*days) : 0;
     const poolBaseFtCourier = isFinite(cap.ftCourier) ? Math.round(cap.ftCourier*days) : 0;
     return { days, ftDriver, ftCourier, total: ftDriver + ftCourier,
