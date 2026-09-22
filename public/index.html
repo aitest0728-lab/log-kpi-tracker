@@ -447,6 +447,11 @@
      one grid column with its own inset. */
   .fc-hc-cell > .fc-cell{grid-column:1/-1;padding:0;gap:3px;}
   .fc-hc-field{display:flex;align-items:center;gap:4px;}
+  /* v28.0 §2 — thin divider between the FT pair (FTD/FTC) and the PT pair
+     (PTD/PTC), so the two headcount groups read as two groups instead of
+     one flat 2×2 block. Spans both grid columns; a hair shorter top/bottom
+     margin than the surrounding gap so it doesn't crowd either row. */
+  .fc-hc-ftpt-sep{grid-column:1/-1;border-top:1px dashed var(--line-soft);margin:1px 0;}
   .fc-hc-field span{font-family:'Inter';font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--text-muted);width:28px;flex:none;}
   .fc-hc-field input{width:100%;min-width:0;font-family:'IBM Plex Mono';font-size:13.5px;padding:4px 5px;text-align:right;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--text);}
   .fc-hc-field input:focus{outline:none;border-color:var(--ink);}
@@ -501,7 +506,7 @@
      read-only Weekly/Total header bars — so every header in this grid
      reads the same way; the dashed vs. solid cell border is what tells an
      editable weekday apart from a computed rollup, not the header color. */
-  .fc-plan-wd-label{margin:0;padding:7px 10px;background:var(--ink);color:var(--text-inverse-muted);text-align:center;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
+  .fc-plan-wd-label{margin:0;padding:7px 10px;background:var(--ink);color:#ffffff;text-align:center;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
   .fc-plan-wd-label .occ{opacity:.6;font-weight:400;text-transform:none;letter-spacing:0;}
   .fc-plan-wd .fc-hc-cell{padding:10px 10px 12px;}
   .fc-hc-total{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:2px;padding-top:3px;border-top:1px dashed var(--line-soft);font-size:11.5px;color:var(--text-muted);}
@@ -4702,10 +4707,20 @@
     const tunnelLine = odsUserCount > 0
       ? `<div class="fc-hc-tunnel" title="Est. ODS Orders ÷ ${d}'s historical orders-per-ODS-user rate for this weekday, rounded up. $${ODS_TUNNEL_FEE_PER_USER}/user/day tunnel toll.">↳ ODS tunnel <span class="v">${intFmt(odsUserCount)}</span> user${odsUserCount===1?'':'s'} · <span class="v">$${intFmt(odsUserCount*ODS_TUNNEL_FEE_PER_USER)}</span></div>`
       : '';
-    const fields = STAFF_BUCKETS.map(k=>
+    // v28.0 §2 — FT (ftDriver/ftCourier) and PT (ptDriver/ptCourier) are
+    // rendered as two explicit groups now, with a full-width divider
+    // between them (STAFF_BUCKETS' own order is FT pair then PT pair, so
+    // a plain slice(0,2)/slice(2) split is enough — no need to branch on
+    // the bucket name itself).
+    const ftFields = STAFF_BUCKETS.slice(0,2).map(k=>
       `<label class="fc-hc-field"><span>${STAFF_BUCKET_LABELS[k]}</span><input type="number" min="0" step="1" class="fc-in-staff" data-d="${d}" data-wd="${wd}" data-k="${k}" placeholder="0" value="${slot[k] ?? ''}"></label>`
     ).join('');
-    return `<div class="fc-hc-cell">${fields}
+    const ptFields = STAFF_BUCKETS.slice(2).map(k=>
+      `<label class="fc-hc-field"><span>${STAFF_BUCKET_LABELS[k]}</span><input type="number" min="0" step="1" class="fc-in-staff" data-d="${d}" data-wd="${wd}" data-k="${k}" placeholder="0" value="${slot[k] ?? ''}"></label>`
+    ).join('');
+    return `<div class="fc-hc-cell">${ftFields}
+      <div class="fc-hc-ftpt-sep"></div>
+      ${ptFields}
       ${fcPlanTargetsRowHtml(d, wd)}
       <div class="fc-hc-total"><span>Σ <span class="v">${intFmt(hc.total)}</span> staff</span></div>
       ${fcCellHtml(pd)}
