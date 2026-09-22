@@ -403,8 +403,6 @@
 
   /* v8.0 — Suggest Headcount */
   .fc-suggest-row{align-items:flex-end;margin-bottom:6px;}
-  .fc-suggest-all-btn{background:var(--ink);color:var(--text-inverse-muted);border-color:var(--ink);}
-  .fc-suggest-all-btn:hover{opacity:.9;}
   .fc-suggest-clear-btn{color:var(--text-muted);}
   .fc-suggest-banner{margin:10px 0 16px;padding:10px 14px;border-radius:9px;font-size:12px;line-height:1.5;}
   .fc-suggest-banner.ok{background:var(--green-soft);color:var(--green);}
@@ -944,7 +942,6 @@
           <label class="fc-ods-toggle" title="When on, Suggest Headcount also chooses each weekday's ODS/HKTV split — moving orders to whichever channel is cheaper at the margin, within the flex band above and the district's bench. When off, the split stays exactly as forecast (v11.0 behaviour).">
             <input type="checkbox" id="fcOdsOptimize" checked> Optimize ODS / HKTV split
           </label>
-          <button type="button" class="cost-portal-toggle fc-suggest-all-btn" id="fcSuggestAllBtn">Suggest Headcount — All Districts</button>
           <button type="button" class="cost-portal-toggle fc-current-all-btn" id="fcCurrentStatusAllBtn" title="For every district, fills each weekday's plan with that district's REAL historical Courier/Driver headcount (from manpower_distribution.json, averaged per weekday) instead of a demand-driven target — FT/PT split via the same cheapest-combo logic as Suggest, same Staff Allocation Cap bench, but the total and the Courier:Driver ratio both come from what actually ran, not a search. Keeps the historical ODS/HKTV split (no channel-split shift). This is a REPORT — what keeping current staffing would produce against this month's forecast volume — not an optimization, so nothing here is judged pass/fail against a target.">Keep Current Status — All Districts</button>
           <button type="button" class="cost-portal-toggle fc-autotune-btn" id="fcAutoTuneBtn" title="For each district separately, finds the SMALLEST Max Productivity Overdrive that clears both its cost and its productivity target and writes just that into that district's Max OD % on every weekday (a leader can narrow individual days afterwards). When Overdrive alone can't get there, it also tries the SMALLEST ODS Volume Flex that closes the rest of the gap and writes that into Max Flex % on every weekday instead — moving volume to/from ODS is a real cost change even where Overdrive is spent. Districts that already clear both are left where they are on both ceilings; districts neither lever can fix are left alone and reported with the lever that would actually move them (the FT bench or the target).">Auto-Tune Overdrive &amp; ODS Flex — Per District</button>
           <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn" title="Resets the whole plan to defaults: per-weekday headcounts, per-weekday Target Productivity / Max OD % / Max ODS Flex % overrides, the ODS/HKTV shift and the badges all go back to blank.">Clear Suggestions &amp; Reset Plan</button>
@@ -2620,17 +2617,37 @@
       ptCourier: cap.ptCourier != null ? cap.ptCourier : Infinity,
     };
   }
-  // v22.0 §1 — FT pool max spending cap based on average practice (current
-  // deployed manpower), separate from theoretical bench cap. If a district
-  // has average-practice cap data, it's used as the pool spending limit even
-  // if the bench itself (staffAllocationCap) could theoretically go higher.
-  function fcFtPoolAvgPracticeCapFor(district){
-    const cap = (DATA.ftPoolAvgPracticeCap || {})[district];
-    if(!cap) return { ftDriver:Infinity, ftCourier:Infinity };
-    return {
-      ftDriver: cap.ftDriver  != null ? cap.ftDriver  : Infinity,
-      ftCourier: cap.ftCourier != null ? cap.ftCourier : Infinity,
-    };
+  // v23.0 §1 — REPLACES fcFtPoolAvgPracticeCapFor (a historical "average
+  // practice" figure sourced from data.json's ftPoolAvgPracticeCap, which
+  // was never actually wired into DATA and so was always a no-op). The FT
+  // pool's spending cap is now bounded by the FORECAST's own computed
+  // manpower need instead of a separately maintained historical number:
+  // for each weekday, what team (FT+PT, bench-capped but NOT pool-capped)
+  // Target Productivity at 0% Overdrive actually calls for
+  // (fcOptimizeDayPlan with ftAvail=null, i.e. the same "Pass 1" every
+  // Suggest/Auto-Tune run already computes), averaged across the week by
+  // weekday occurrence. Always computed at Overdrive 0% — not whatever
+  // Overdrive candidate a sweep happens to be trying — so the pool's own
+  // size doesn't shift underneath the search that spends it. Memoized per
+  // render, same as the other forecast caches.
+  let _fcForecastFtDemandCache = {};
+  function fcForecastFtDemandFor(district){
+    if(_fcForecastFtDemandCache[district]) return _fcForecastFtDemandCache[district];
+    const courierShare = fcCourierShareFor(district);
+    const occ = fcWeekdayOccurrences();
+    let wDriver = 0, wCourier = 0, wOcc = 0;
+    for(let i=0;i<7;i++){
+      const targetProd = fcTargetProdFor(district, i);
+      const day = fcOptimizeDayPlan(district, i, targetProd, 0, courierShare, null);
+      if(day){
+        wDriver += (day.ftDriver + day.ptDriver) * occ[i];
+        wCourier += (day.ftCourier + day.ptCourier) * occ[i];
+        wOcc += occ[i];
+      }
+    }
+    const result = wOcc > 0 ? { ftDriver: wDriver/wOcc, ftCourier: wCourier/wOcc } : { ftDriver:Infinity, ftCourier:Infinity };
+    _fcForecastFtDemandCache[district] = result;
+    return result;
   }
 
   // v11.0 §2 — Courier:Driver split is a fixed, ops-confirmed real-world
@@ -2707,22 +2724,35 @@
   // the undeployed part of the pool is reported by fcMinRosterTopUpFor for
   // roster-utilisation purposes only and is no longer added as a cost line.
   // v22.0 §1 — pool spending is now constrained by BOTH bench cap (theoretical
-  // maximum) AND average practice cap (current deployed manpower). Uses the
-  // smaller of the two, so forecast suggestions respect what's actually used.
+  // maximum) AND the forecast's own computed manpower need (v23.0 §1 — see
+  // fcForecastFtDemandFor). Uses the smaller of the two, so forecast
+  // suggestions respect what the forecast itself says it needs, not just
+  // the theoretical bench ceiling.
+  // v23.0 §2 — also returns poolBaseFtDriver/poolBaseFtCourier/poolBaseTotal:
+  // the FULL bench × days (100% of total manpower, not the 75% share). The
+  // 75% figures (ftDriver/ftCourier/total) remain the actual WEEKLY SPENDING
+  // CAP fcSpreadFtPool enforces; the 100% figures are for reporting "how
+  // much of this district's total manpower is deployed" without reading
+  // over 100% just because the cap itself is a 75% share.
   function fcFtWeeklyBudgetFor(district){
     const cap = fcStaffCapFor(district);
-    const practiceCap = fcFtPoolAvgPracticeCapFor(district);
+    const demand = fcForecastFtDemandFor(district);
     const occ = fcWeekdayOccurrences();
     const days = occ.reduce((a,b)=>a+b,0);
-    const f = (benchV, practiceV)=> {
+    const f = (benchV, demandV)=> {
       if(!isFinite(benchV)) return 0; // no bench data = no pool
-      // Use the minimum of bench cap (theoretical) and practice cap (actual deployed)
-      const effective = Math.min(benchV, practiceV);
+      // Use the minimum of bench cap (theoretical) and the forecast's own
+      // computed need — a district the forecast doesn't call for a full
+      // bench on doesn't get a pool sized as if it did.
+      const effective = Math.min(benchV, isFinite(demandV) ? demandV : benchV);
       return Math.round(effective*FT_ROSTER_SHARE*days);
     };
-    const ftDriver = f(cap.ftDriver, practiceCap.ftDriver);
-    const ftCourier = f(cap.ftCourier, practiceCap.ftCourier);
+    const ftDriver = f(cap.ftDriver, demand.ftDriver);
+    const ftCourier = f(cap.ftCourier, demand.ftCourier);
+    const poolBaseFtDriver = isFinite(cap.ftDriver) ? Math.round(cap.ftDriver*days) : 0;
+    const poolBaseFtCourier = isFinite(cap.ftCourier) ? Math.round(cap.ftCourier*days) : 0;
     return { days, ftDriver, ftCourier, total: ftDriver + ftCourier,
+      poolBaseFtDriver, poolBaseFtCourier, poolBaseTotal: poolBaseFtDriver + poolBaseFtCourier,
       benchFtDriver: isFinite(cap.ftDriver) ? cap.ftDriver : 0,
       benchFtCourier: isFinite(cap.ftCourier) ? cap.ftCourier : 0,
       hasPool: isFinite(cap.ftDriver) || isFinite(cap.ftCourier) };
@@ -3013,19 +3043,19 @@
     const dayOverdrive = WEEKDAY_LABELS.map((_,i)=> Math.min(overdrive, fcMaxOverdriveFor(district, i)/100));
     const pass1 = WEEKDAY_LABELS.map((label,i)=>
       fcOptimizeDayPlan(district, i, dayTargetProd[i], dayOverdrive[i], courierShare, null));
-    // v19.0 §1 — the FT pool (75% of bench) is a MINIMUM payroll commitment,
-    // not the ceiling on how many staff the plan may actually use: staff
-    // take leave unevenly day to day, so the real usable max on any given
-    // day is the district's full active bench from the Staff List (cap.*),
-    // not a fraction of it. Passing Infinity here means fcSpreadFtPool no
-    // longer shaves a day's FT allocation down to fit inside the weekly 75%
-    // pool — each day is bounded only by benchPerDay (the full Google Sheet
-    // headcount). The 75% figure keeps its other job untouched: pool/
-    // idleFtManDays/poolUtilisation below (and fcFtFloorFor, fcMinRosterTopUpFor,
-    // the tooltips) still read FT_ROSTER_SHARE for the "minimum roster
-    // commitment" / idle-payroll reporting — only the allocation ceiling changed.
-    const ftDriverAlloc = fcSpreadFtPool(pass1.map(d=>d.ftDriver + d.ptDriver), occ, Infinity, cap.ftDriver, cap.ptDriver);
-    const ftCourierAlloc = fcSpreadFtPool(pass1.map(d=>d.ftCourier + d.ptCourier), occ, Infinity, cap.ftCourier, cap.ptCourier);
+    // v23.0 §3 — REVERSED v19.0 §1 per leader request: the 75% pool is again
+    // a real WEEKLY ceiling on FT spend, not just a "minimum commitment"
+    // that the plan could freely exceed up to 100% bench on any given day.
+    // Passing pool.ftDriver/pool.ftCourier (the role's weekly man-day
+    // budget from fcFtWeeklyBudgetFor, now itself sized off the forecast's
+    // own demand — see fcForecastFtDemandFor) means fcSpreadFtPool shaves
+    // days back down whenever the week's total would exceed that budget —
+    // PER-DAY allocation still varies (a heavy Friday can still draw more
+    // FT than a quiet Wednesday; each day is still bounded above by
+    // benchPerDay, the full Google Sheet headcount), it's the WEEK's total
+    // that's held to the 75% share.
+    const ftDriverAlloc = fcSpreadFtPool(pass1.map(d=>d.ftDriver + d.ptDriver), occ, pool.ftDriver, cap.ftDriver, cap.ptDriver);
+    const ftCourierAlloc = fcSpreadFtPool(pass1.map(d=>d.ftCourier + d.ptCourier), occ, pool.ftCourier, cap.ftCourier, cap.ptCourier);
 
     const days = WEEKDAY_LABELS.map((label,i)=>{
       const ftAvail = { ftDriver: ftDriverAlloc[i], ftCourier: ftCourierAlloc[i] };
@@ -3067,18 +3097,16 @@
 
     const manDays = ftManDays + ptManDays;                 // deployed — the plan, and the productivity denominator
     const paidManDays = manDays + idleFtManDays;           // payroll
-    // v19.0 §5 — NOT clamped to 100% (was Math.min(1, ...)). Before v19.0
-    // §1, ftManDays could never exceed pool.total — fcSpreadFtPool enforced
-    // the 75% pool as a hard weekly ceiling on FT usage, so the clamp was a
-    // no-op. Now that the pool is genuinely just a MINIMUM roster commitment
-    // (v19.0 §1 — the real ceiling is the Staff List bench), a district can
-    // legitimately deploy MORE FT man-days than its 75% pool once demand
-    // calls for it — the clamp was silently showing "100% deployed" next to
-    // raw numbers (e.g. 381/304) that plainly read over 100%, which is
-    // exactly the discrepancy that gets asked about. idleFtManDays above is
-    // unaffected — Math.max(0, pool - ftManDays) already floors at 0 on its
-    // own when ftManDays overshoots the pool, so nothing there needed a change.
-    const poolUtilisation = pool.total > 0 ? ftManDays/pool.total : null;
+    // v23.0 §2 — REVERSED v19.0 §5: since the 75% pool is once again a real
+    // weekly ceiling on FT spend (v23.0 §3, fcSpreadFtPool above), ftManDays
+    // can no longer exceed pool.total by construction — so the confusing
+    // >100% reading is gone even measured against the 75% cap. But the
+    // FIGURE displayed here is deliberately against poolBaseTotal instead —
+    // the district's FULL bench × days (100% of total manpower), not the
+    // 75% share — so "% deployed" reads as a share of total manpower, and a
+    // fully-utilised pool reads at (not above) its own 75% target rather
+    // than at 100% of a number that was already discounted to 75%.
+    const poolUtilisation = pool.poolBaseTotal > 0 ? ftManDays/pool.poolBaseTotal : null;
     // v18.0 §1 — the WEEK's target is now a pool of the 7 per-weekday
     // targets, weighted by that day's own deployed man-days — the same
     // man-day-weighted pooling fcPooledMonthlyTargetsFor/fcWeeklyPFor use
@@ -3625,11 +3653,11 @@
   }
 
   // v6.0 §1 — Hong Kong General Holidays, gazetted by the HKSAR Government
-  // (see gov.hk/en/about/abouthk/holiday). Any week (Mon–Sun) that contains
-  // one of these dates is dropped whole from the Order Ratio forecast's
-  // week average (National Day etc. "dramatically affect the order pattern
-  // in a week", per spec) — not just the holiday date itself. This list
-  // needs a yearly top-up; it currently only covers 2026.
+  // (see gov.hk/en/about/abouthk/holiday). v23.0 §3 — each holiday now skips
+  // a 5-DAY WINDOW from the Order Ratio forecast's average: the holiday
+  // date itself (counted as day 1) plus the following 4 days, not the whole
+  // Mon–Sun week it falls in. This list needs a yearly top-up; it currently
+  // only covers 2026.
   // FORECAST DATA START — the forecast model only learns from orders on or
   // after this date. District zones were rearranged at the end of August
   // 2026, which moved a lot of order volume between districts, so anything
@@ -3662,17 +3690,26 @@
   // weekday's average if (a) it is on/after FORECAST_DATA_START (the
   // end-of-August zone rearrangement), (b) it has real Total Order data
   // (dayRecord('combined','Total') — which itself requires both hktvStaff
-  // and odsRatio to be present that day), and (c) its Mon–Sun week contains
-  // no HK General Holiday (National Day etc. "dramatically affect the order
-  // pattern in a week", per the original spec, so the whole week's days are
-  // still dropped when one of them is a holiday). A gap on one day no longer
-  // throws away the other six days of that week — the days around it still
-  // count, each toward its own weekday. Memoized per render.
+  // and odsRatio to be present that day), and (c) it doesn't fall in the
+  // 5-day skip window of an HK General Holiday (National Day etc.
+  // "dramatically affect the order pattern" for a few days afterward, per
+  // spec — v23.0 §3: the holiday date itself, counted as day 1, plus the
+  // following 4 days, so 5 days total; not the whole Mon–Sun week anymore).
+  // A gap on one day no longer throws away the other days around it — each
+  // still counts toward its own weekday. Memoized per render.
   const FC_WD_SHORT = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const FC_HOLIDAY_SKIP_DAYS = 5; // holiday date (day 1) + 4 following days
   let _fcValidDatesCache = null;
+  // Returns the holiday date dateKey is being skipped for (itself, or one of
+  // the 4 days after it), or null if dateKey isn't in any holiday's skip
+  // window. Checked by walking backward from dateKey rather than forward
+  // from every holiday, so it's a straight 5-lookup no matter how many
+  // holidays are in HK_HOLIDAYS.
   function fcHolidayInWeekOf(dateKey){
-    const monday = mondayOf(dateKey);
-    for(let i=0;i<7;i++){ const d = addDays(monday, i); if(HK_HOLIDAYS.has(d)) return d; }
+    for(let back=0; back<FC_HOLIDAY_SKIP_DAYS; back++){
+      const d = addDays(dateKey, -back);
+      if(HK_HOLIDAYS.has(d)) return d;
+    }
     return null;
   }
   function fcForecastValidDates(){
@@ -3718,7 +3755,7 @@
       if(validSet.has(d)) continue;
       const hol = fcHolidayInWeekOf(d);
       let why;
-      if(hol) why = `week contains HK general holiday ${hol.slice(5)} ${HK_HOLIDAY_NAMES[hol]} — the whole week is dropped`;
+      if(hol) why = `within ${FC_HOLIDAY_SKIP_DAYS} days of HK general holiday ${hol.slice(5)} ${HK_HOLIDAY_NAMES[hol]} (holiday counts as day 1) — skipped`;
       else {
         const hasH = !!dayRecord(d, 'hktvStaff', 'Total'), hasO = !!dayRecord(d, 'odsRatio', 'Total');
         why = !hasH && !hasO ? 'no data' : !hasH ? 'HKTV Staff data missing' : 'ODS/VAN data missing';
@@ -3735,7 +3772,7 @@
     const ex = fcExcludedDays();
     if(!ex.length){
       el.className = 'fc-weeks-excluded none';
-      el.textContent = `Days not used in the forecast: none — every day on record (from ${FORECAST_DATA_START}) has data and sits in a non-holiday week.`;
+      el.textContent = `Days not used in the forecast: none — every day on record (from ${FORECAST_DATA_START}) has data and isn't within ${FC_HOLIDAY_SKIP_DAYS} days of an HK general holiday.`;
       return;
     }
     const nDays = ex.reduce((a,x)=> a + Math.round((new Date(x.to+'T00:00:00') - new Date(x.from+'T00:00:00'))/86400000) + 1, 0);
@@ -3744,7 +3781,7 @@
       return x.from === x.to ? `${x.from} (${a})` : `${x.from} – ${x.to} (${a} – ${b})`;
     };
     el.className = 'fc-weeks-excluded';
-    el.innerHTML = `<div class="fc-wx-title">Days NOT used in the forecast (${nDays}) — a day only counts if it has both HKTV Staff and ODS/VAN data and its week has no HK general holiday</div><ul>`
+    el.innerHTML = `<div class="fc-wx-title">Days NOT used in the forecast (${nDays}) — a day only counts if it has both HKTV Staff and ODS/VAN data and isn't within ${FC_HOLIDAY_SKIP_DAYS} days of an HK general holiday (holiday counts as day 1)</div><ul>`
       + ex.map(x=>`<li><span class="fc-wx-week">${label(x)}</span> — ${x.why}</li>`).join('')
       + `</ul>`;
   }
@@ -3897,10 +3934,13 @@
     return { idleFtDriver, idleFtCourier, idle: idleFtDriver + idleFtCourier,
       cost: idleFtDriver*u.ftDriver + idleFtCourier*u.ftCourier,
       pool, deployedFtDriver, deployedFtCourier, deployedFt,
-      // v19.0 §5 — unclamped, same reasoning as fcBuildDistrictPlan's
-      // poolUtilisation above: the pool is a floor, not a ceiling, so
-      // deployedFt can legitimately exceed it now.
-      utilisation: pool.total > 0 ? deployedFt/pool.total : null };
+      // v23.0 §2 — against poolBaseTotal (100% of bench), same as
+      // fcBuildDistrictPlan's poolUtilisation — see that comment. A manually
+      // typed plan (this function reads whatever's on screen, not just an
+      // auto-tuned one) can still exceed the 75% pool.ftDriver/ftCourier
+      // budget itself; measuring against the full bench keeps the % sane
+      // even then, short of manually overstaffing past the whole bench.
+      utilisation: pool.poolBaseTotal > 0 ? deployedFt/pool.poolBaseTotal : null };
   }
   // Cost of fielding one weekday's planned team for ONE occurrence of that
   // day (UNIT_COST_STAFF is a per-head-per-DAY rate). Scheduled heads only —
@@ -4316,7 +4356,7 @@
         const pool = r.ftPool;
         const poolNote = pool && pool.total
           ? ` FT roster pool: ${intFmt(pool.total)} man-days/mo (${Math.round(FT_ROSTER_SHARE*100)}% of a ${pool.benchFtDriver+pool.benchFtCourier}-head FT bench across ${pool.days} days), spread across the week rather than fixed per day.`
-            + ` This plan deploys ${intFmt(r.ftManDays)} of it (${r.poolUtilisation==null?'\u2014':(r.poolUtilisation*100).toFixed(0)}%)`
+            + ` This plan deploys ${intFmt(r.ftManDays)} of the district's ${intFmt(pool.poolBaseTotal)} total man-days (${r.poolUtilisation==null?'\u2014':(r.poolUtilisation*100).toFixed(0)}% of total manpower — the ${intFmt(pool.total)}-man-day, 75% figure above is the pool commitment, not what this reads against)`
             + (r.idleFtManDays >= 1 ? `, leaving ${intFmt(r.idleFtManDays)} man-days/mo paid but undeployed` : '')
             + (r.ptManDays >= 1 ? ` and buys ${intFmt(r.ptManDays)} PT man-days/mo on ${r.ptDays.join(', ')}` : '')
             + '.'
@@ -4352,8 +4392,8 @@
         const mark = r.feasible ? '\u2713' : '\u26a0';
         const misses = r.feasible ? '' : ` \u00b7 misses ${[!r.prodOk?'prod':null, !r.costOk?'cost':null].filter(Boolean).join(' + ')}`;
         const rosterNote = pool && pool.total
-          ? `<span class="fc-minroster-note" title="The 75% share is owed across the month, not on each day: ${intFmt(pool.total)} FT man-days/mo. This plan deploys ${intFmt(r.ftManDays)}${r.idleFtManDays>=1?`, leaves ${intFmt(r.idleFtManDays)} paid but undeployed`:''}${r.ptManDays>=1?`, and buys ${intFmt(r.ptManDays)} PT man-days`:''}. Paid total ${intFmt(r.paidManDays)} man-days/mo.">`
-            + `FT pool ${r.poolUtilisation==null?'\u2014':(r.poolUtilisation*100).toFixed(0)}% deployed (${intFmt(r.ftManDays)}/${intFmt(pool.total)} man-days)${r.ptManDays>=1?` \u00b7 +${intFmt(r.ptManDays)} PT`:''}</span>`
+          ? `<span class="fc-minroster-note" title="The 75% share is owed across the month, not on each day: ${intFmt(pool.total)} FT man-days/mo out of ${intFmt(pool.poolBaseTotal)} total man-days on the bench. This plan deploys ${intFmt(r.ftManDays)}${r.idleFtManDays>=1?`, leaves ${intFmt(r.idleFtManDays)} paid but undeployed`:''}${r.ptManDays>=1?`, and buys ${intFmt(r.ptManDays)} PT man-days`:''}. Paid total ${intFmt(r.paidManDays)} man-days/mo.">`
+            + `FT pool ${r.poolUtilisation==null?'\u2014':(r.poolUtilisation*100).toFixed(0)}% deployed (${intFmt(r.ftManDays)}/${intFmt(pool.poolBaseTotal)} man-days)${r.ptManDays>=1?` \u00b7 +${intFmt(r.ptManDays)} PT`:''}</span>`
           : '';
         // v14.5 §2 / v14.7 §2 — the pill now carries the ACTIONABLE case too:
         // which ceiling(s) this district needs, jointly if that's what it
@@ -4510,7 +4550,14 @@
     const cardsEl = document.getElementById('fcPlanCards');
     if(!cardsEl) return;
     const occ = fcWeekdayOccurrences();
-    cardsEl.innerHTML = DISTRICTS.map(d=>fcPlanCardHtml(d, occ)).join('');
+    // v23.0 §2 — the plan cards now collapse along with the district
+    // dropdown: a district unchecked there (FC_STATE.districts) no longer
+    // renders a card here either, same filter fcRenderWeeklyForecastPlan
+    // already applies to its own rows.
+    const shown = DISTRICTS.filter(d=>FC_STATE.districts.has(d));
+    cardsEl.innerHTML = shown.length
+      ? shown.map(d=>fcPlanCardHtml(d, occ)).join('')
+      : `<div style="padding:16px;color:var(--text-muted);">No districts selected — choose one or more from the dropdown above to see their plan.</div>`;
   }
   // Runs Suggest Headcount for every district, applies feasible results
   // into FC_STATE, then re-renders the whole tab (so the plan table,
@@ -4611,35 +4658,62 @@
          a different lever (the FT bench or the target itself) instead.
      Then the whole suggestion re-runs with the tuned ceilings in force, so
      every figure on screen comes from the applied plan rather than a probe. */
+  // v23.0 §1 — pulled out of fcAutoTuneOverdrive's per-district loop so the
+  // same probe-and-tune step can run for ONE district on its own (the
+  // per-district "Suggest" button below now calls this directly instead of
+  // running the plain cheapest-Overdrive-0% sweep) as well as for every
+  // district at once (fcAutoTuneOverdrive). Only writes the Overdrive/ODS
+  // Flex ceilings — it does not itself write headcount into FC_STATE; call
+  // fcApplySuggestionFor(district) afterwards (or fcSuggestAll()) for that,
+  // same as before.
+  function fcAutoTuneDistrict(d){
+    const probe = fcSuggestHeadcountForDistrict(d);
+    if(!probe.applied) return { d, kind:'noVolume' };
+    if(probe.feasible) return { d, kind:'already' };
+    if(probe.overdriveRequiredPct != null){
+      // v18.0 §1 — Auto-Tune raises the ceiling UNIFORMLY across all 7
+      // weekdays; a leader can still narrow individual days down again
+      // afterward on the plan cards.
+      FC_SUGGEST.byDistrict[d] = new Array(7).fill(probe.overdriveRequiredPct);
+      return { d, kind:'od', pct: probe.overdriveRequiredPct, from: probe.overdriveCeiling };
+    }
+    if(probe.odsFlexRequiredPct != null){
+      FC_ODS.byDistrict[d] = new Array(7).fill(probe.odsFlexRequiredPct);
+      return { d, kind:'flex', pct: probe.odsFlexRequiredPct, from: probe.odsFlexCeiling, heldOd: probe.overdrivePct };
+    }
+    if(probe.jointOdPct != null && probe.jointFlexPct != null){
+      // v14.7 §2 — neither lever alone closed it, but together they do.
+      // Write BOTH ceilings; leaving one at its old value would silently
+      // reproduce whichever single-lever search already failed.
+      FC_SUGGEST.byDistrict[d] = new Array(7).fill(probe.jointOdPct);
+      FC_ODS.byDistrict[d] = new Array(7).fill(probe.jointFlexPct);
+      return { d, kind:'joint', od: probe.jointOdPct, flex: probe.jointFlexPct };
+    }
+    return { d, kind:'stuck', saturated: probe.overdriveSaturated && probe.odsFlexSaturated, prodOk: probe.prodOk,
+      floorCost: probe.odsFlexFloorCost != null ? probe.odsFlexFloorCost : probe.overdriveFloorCost,
+      floorPct: probe.odsFlexFloorCost != null ? probe.odsFlexFloorPct : probe.overdriveFloorPct,
+      floorLever: probe.odsFlexFloorCost != null ? 'ODS Flex' : 'Overdrive',
+      targetCost: probe.targetCost };
+  }
+  // v23.0 §1 — the per-district "Suggest" button's handler: auto-tunes THIS
+  // district's Overdrive/ODS Flex ceilings (fcAutoTuneDistrict), then
+  // applies the suggestion with those tuned ceilings in force
+  // (fcApplySuggestionFor) — so the button now hands back the Auto-Tune
+  // result directly instead of the plain 0%-first sweep.
+  function fcApplyAutoTuneFor(district){
+    fcAutoTuneDistrict(district);
+    return fcApplySuggestionFor(district);
+  }
   function fcAutoTuneOverdrive(){
     const raisedOd = [], raisedFlex = [], raisedJoint = [], already = [], stuck = [], noVolume = [];
     DISTRICTS.forEach(d=>{
-      const probe = fcSuggestHeadcountForDistrict(d);
-      if(!probe.applied){ noVolume.push(d); return; }
-      if(probe.feasible){ already.push(d); return; }
-      if(probe.overdriveRequiredPct != null){
-        // v18.0 §1 — Auto-Tune raises the ceiling UNIFORMLY across all 7
-        // weekdays; a leader can still narrow individual days down again
-        // afterward on the plan cards.
-        FC_SUGGEST.byDistrict[d] = new Array(7).fill(probe.overdriveRequiredPct);
-        raisedOd.push({ d, pct: probe.overdriveRequiredPct, from: probe.overdriveCeiling });
-      } else if(probe.odsFlexRequiredPct != null){
-        FC_ODS.byDistrict[d] = new Array(7).fill(probe.odsFlexRequiredPct);
-        raisedFlex.push({ d, pct: probe.odsFlexRequiredPct, from: probe.odsFlexCeiling, heldOd: probe.overdrivePct });
-      } else if(probe.jointOdPct != null && probe.jointFlexPct != null){
-        // v14.7 §2 — neither lever alone closed it, but together they do.
-        // Write BOTH ceilings; leaving one at its old value would silently
-        // reproduce whichever single-lever search already failed.
-        FC_SUGGEST.byDistrict[d] = new Array(7).fill(probe.jointOdPct);
-        FC_ODS.byDistrict[d] = new Array(7).fill(probe.jointFlexPct);
-        raisedJoint.push({ d, od: probe.jointOdPct, flex: probe.jointFlexPct });
-      } else {
-        stuck.push({ d, saturated: probe.overdriveSaturated && probe.odsFlexSaturated, prodOk: probe.prodOk,
-          floorCost: probe.odsFlexFloorCost != null ? probe.odsFlexFloorCost : probe.overdriveFloorCost,
-          floorPct: probe.odsFlexFloorCost != null ? probe.odsFlexFloorPct : probe.overdriveFloorPct,
-          floorLever: probe.odsFlexFloorCost != null ? 'ODS Flex' : 'Overdrive',
-          targetCost: probe.targetCost });
-      }
+      const info = fcAutoTuneDistrict(d);
+      if(info.kind==='noVolume') noVolume.push(d);
+      else if(info.kind==='already') already.push(d);
+      else if(info.kind==='od') raisedOd.push(info);
+      else if(info.kind==='flex') raisedFlex.push(info);
+      else if(info.kind==='joint') raisedJoint.push(info);
+      else if(info.kind==='stuck') stuck.push(info);
     });
     fcSuggestAll(); // re-plans, re-renders, and writes its own banner
     const banner = document.getElementById('fcSuggestBanner');
@@ -4680,6 +4754,7 @@
     _fcValidDatesCache = null; // v6.0 §1 — which days qualify can change as data is appended
     _fcWeekdayAvgCache = {};   // recompute from the data every render
     _fcWeekdayMpAvgCache = {}; // v19.0 §4 — same, for the Courier/Driver history "Keep Current Status" reads
+    _fcForecastFtDemandCache = {}; // v23.0 §1 — same, for the FT pool's forecast-demand figure
 
     fcRenderChips();
     fcRenderPlanTable();
@@ -4854,7 +4929,7 @@
     const weeklyTotalP = fcMonthlyAggregateFor(rowDistricts, pooledMonthly.targetProd, pooledMonthly.targetCost);
     cardsWrap.innerHTML = bodyCards.join('') + fcResultCardHtml('Total', totalPs, weeklyTotalP, true);
 
-    note.innerHTML = `<b>Total Order</b> = plain average of that weekday's historical Total Order (HKTV Staff + ODS/VAN) across every usable day of that weekday on record from ${FORECAST_DATA_START} on — days with data, in weeks with no HK general holiday (see the note above the Per-District Staff Plan)`
+    note.innerHTML = `<b>Total Order</b> = plain average of that weekday's historical Total Order (HKTV Staff + ODS/VAN) across every usable day of that weekday on record from ${FORECAST_DATA_START} on — days with data, not within ${FC_HOLIDAY_SKIP_DAYS} days of an HK general holiday (holiday counts as day 1; see the note above the Per-District Staff Plan)`
       + (pctChange ? `, then × (1 ${pctChange>0?'+':'−'} ${Math.abs(pctChange)}%) applied network-wide and split across districts by historical order share. ` : '. ')
       + `<b>Est. ODS Orders</b> = same method on ODS/VAN-only history (or the ODS Order Count override), after any channel-split shift — a ↳ line shows the shift. ODS tunnel users (ETH &amp; WTH only) are now shown on the Per-District Staff Plan card above, next to the plan that drives them, rather than repeated on every block here. <b>HKTV Orders</b> = Total Order − Est. ODS Orders. <b>FT/PT rows</b> = that weekday's Per-District Staff Plan. <b>Productivity</b> = HKTV Orders ÷ total headcount; the pill is its achievement rate, (forecast − target) ÷ target — green at or above target, red below. <b>Cost/Order</b> = that weekday's (Fixed + planned Staff + ODS cost + ODS tunnel fee) ÷ that weekday's Total Order — a DAILY reading, not the weekly one in the Cost Planning portal below, so a day can read cheap here while the week still misses target; green is at or under target. Hidden districts are excluded from the Total card. <b>Weekly</b> (last, amber-outlined block in each card) = that district's Mon–Sun figures rolled into one: orders/headcount/tunnel-cost summed, Productivity and Cost/Order recomputed from those sums (not an average of the seven daily figures) — checked against that district's own target for the per-district cards. <b>Total card</b> = the same rollup across every visible district, checked against a POOLED target: each visible district's own Target Cost/Order weighted by its order volume, and its own Target Productivity weighted by its man-days — the same weights the Total's own actual figures are pooled by — so if every district clears its own target, the Total clears its pooled target too.`;
   }
@@ -4955,7 +5030,7 @@
     // rebuilds all the cards on every render.
     document.getElementById('fcPlanCards').addEventListener('click', e=>{
       const btn = e.target.closest('.fc-suggest-btn'); if(!btn) return;
-      fcApplySuggestionFor(btn.dataset.d);
+      fcApplyAutoTuneFor(btn.dataset.d);
       renderForecastTab(); updateScrollHints();
     });
     // v19.0 §4 — Per-district "Keep Current Status" button, same delegation
@@ -4999,7 +5074,6 @@
       else { const clamped = Math.min(100, Math.max(0, +raw)); e.target.value = clamped; FC_ODS.maxSharePct = clamped; }
       fcOdsBandChanged();
     });
-    document.getElementById('fcSuggestAllBtn').addEventListener('click', fcSuggestAll);
     document.getElementById('fcCurrentStatusAllBtn').addEventListener('click', fcCurrentStatusAll); // v19.0 §4
     document.getElementById('fcSuggestClearBtn').addEventListener('click', fcResetPlan);
     document.getElementById('fcAutoTuneBtn').addEventListener('click', fcAutoTuneOverdrive);
