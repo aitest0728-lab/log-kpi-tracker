@@ -828,5 +828,23 @@
     },
     "_asOf": "2026-09-21",
     "_note": "September MTD totals from Excel, split by historical driver/courier ratio"
+  },
+  "actualManpowerDeployedMtd": {
+    "periodStart": "2026-09-01",
+    "periodEnd": "2026-09-20",
+    "dayCount": 20,
+    "districts": {
+      "ETH": 899,
+      "ETK": 629,
+      "ETX": 771,
+      "NT-ST": 703,
+      "NT-TM": 703,
+      "NT-TSM": 891,
+      "NT-TW": 714,
+      "WTH": 944,
+      "WTK": 814,
+      "WTX": 931
+    },
+    "_note": "Actual total FT manpower deployed per district, Sept 1-20 2026 (manually supplied). Drives the Forecast tab's Keep Current Status model (fcCurrentStatusHeadcountFor) as the weekly-pool total, replacing the manpower_distribution.json-derived average."
   }
 }

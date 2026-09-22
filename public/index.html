@@ -942,7 +942,7 @@
           <label class="fc-ods-toggle" title="When on, Suggest Headcount also chooses each weekday's ODS/HKTV split — moving orders to whichever channel is cheaper at the margin, within the flex band above and the district's bench. When off, the split stays exactly as forecast (v11.0 behaviour).">
             <input type="checkbox" id="fcOdsOptimize" checked> Optimize ODS / HKTV split
           </label>
-          <button type="button" class="cost-portal-toggle fc-current-all-btn" id="fcCurrentStatusAllBtn" title="For every district, fills each weekday's plan with that district's REAL historical Courier/Driver headcount (from manpower_distribution.json, averaged per weekday) instead of a demand-driven target — FT/PT split via the same cheapest-combo logic as Suggest, same Staff Allocation Cap bench, but the total and the Courier:Driver ratio both come from what actually ran, not a search. Keeps the historical ODS/HKTV split (no channel-split shift). This is a REPORT — what keeping current staffing would produce against this month's forecast volume — not an optimization, so nothing here is judged pass/fail against a target.">Keep Current Status — All Districts</button>
+          <button type="button" class="cost-portal-toggle fc-current-all-btn" id="fcCurrentStatusAllBtn" title="For every district, fills each weekday's plan with that district's REAL historical Courier/Driver mix (from manpower_distribution.json, averaged per weekday) scaled to fit the actual total FT manpower deployed that district ran MTD (data.json's actualManpowerDeployedMtd, weekly pool = daily avg × 7) instead of a demand-driven target — FT/PT split via the same cheapest-combo logic as Suggest, same Staff Allocation Cap bench, but the total comes from what was actually deployed, not a search. Keeps the historical ODS/HKTV split (no channel-split shift). This is a REPORT — what keeping current staffing would produce against this month's forecast volume — not an optimization, so nothing here is judged pass/fail against a target.">Keep Current Status — All Districts</button>
           <button type="button" class="cost-portal-toggle fc-autotune-btn" id="fcAutoTuneBtn" title="For each district separately, finds the SMALLEST Max Productivity Overdrive that clears both its cost and its productivity target and writes just that into that district's Max OD % on every weekday (a leader can narrow individual days afterwards). When Overdrive alone can't get there, it also tries the SMALLEST ODS Volume Flex that closes the rest of the gap and writes that into Max Flex % on every weekday instead — moving volume to/from ODS is a real cost change even where Overdrive is spent. Districts that already clear both are left where they are on both ceilings; districts neither lever can fix are left alone and reported with the lever that would actually move them (the FT bench or the target).">Auto-Tune Overdrive &amp; ODS Flex — Per District</button>
           <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn" title="Resets the whole plan to defaults: per-weekday headcounts, per-weekday Target Productivity / Max OD % / Max ODS Flex % overrides, the ODS/HKTV shift and the badges all go back to blank.">Clear Suggestions &amp; Reset Plan</button>
         </div>
@@ -1271,6 +1271,12 @@
                             // compute_staff_allocation_cap()). Used by Suggest Headcount as a hard
                             // ceiling on top of the productivity-driven one — see fcStaffCapFor().
                             // Empty object = no cap loaded yet (fcStaffCapFor() treats that as "no cap").
+    actualManpowerDeployedMtd: {}, // v24.0 §1 — manually-supplied actual total FT manpower deployed
+                            // per district over a known MTD window (data.json's
+                            // "actualManpowerDeployedMtd": {periodStart, periodEnd, dayCount,
+                            // districts}). Replaces manpower_distribution.json's daily log as the
+                            // "Keep Current Status" model's weekly-pool total — see
+                            // fcActualManpowerAvgFor() and fcCurrentStatusHeadcountFor().
   };
   let dataSource = { status:'demo', generatedAt:null };
 
@@ -1386,12 +1392,14 @@
         rfidMonthly: json.rfidMonthly || {},
         dailyProductivity: {},  // filled in below, from its own file
         staffAllocationCap: json.staffAllocationCap || {}, // v9.0 — see fcStaffCapFor()
+        actualManpowerDeployedMtd: json.actualManpowerDeployedMtd || {}, // v24.0 §1 — see fcActualManpowerAvgFor()
       };
       dataSource = { status:'live', generatedAt: json.generatedAt || null };
     }catch(err){
       dataSource = { status:'demo', generatedAt:null };
       DATA.dailyProductivity = buildDemoDailyProductivity();
       DATA.staffAllocationCap = DEMO_STAFF_ALLOCATION_CAP; // v9.0 — see its declaration above
+      DATA.actualManpowerDeployedMtd = DEMO_ACTUAL_MANPOWER_DEPLOYED_MTD; // v24.0 §1 — see its declaration above
     }
 
     // Daily order-count/manpower history lives in its own file, not data.json —
@@ -2126,6 +2134,25 @@
     return (_fcWeekdayMpAvgCache[ck] = count ? sum/count : null);
   }
 
+  // v24.0 §1 — Real, hand-supplied total FT manpower actually deployed per
+  // district over a known MTD window (data.json's "actualManpowerDeployedMtd"
+  // — periodStart/periodEnd/dayCount/districts). This REPLACES
+  // fcWeeklyAvgManpowerDist as the "Keep Current Status" model's pool total:
+  // that function derived a weekly figure from manpower_distribution.json's
+  // day-by-day Courier/Driver log, which tracks operational headcount, not
+  // the actual FT roster genuinely deployed. Returns the average PER DAY
+  // (total ÷ dayCount) so callers can scale it to whatever period they need
+  // (fcCurrentStatusHeadcountFor multiplies by 7 for the week). Returns null
+  // if this district isn't in the data.json block yet, so callers can fall
+  // back to the old manpower_distribution.json-derived figure.
+  function fcActualManpowerAvgFor(district){
+    const block = DATA.actualManpowerDeployedMtd;
+    if(!block || !block.districts || !block.dayCount) return null;
+    const total = block.districts[district];
+    if(total == null) return null;
+    return total / block.dayCount;
+  }
+
   /* Generic period-selector population, reused by Productivity Detail
      (prefix 'prod') and ODS/VAN Order Ratio (prefix 'ods'). Per v3.0 §1:
      preset Period B = this week/month (most recent), Period A = last
@@ -2329,6 +2356,19 @@
     'WTH':   { ftDriver:26, ftCourier:36, ptDriver:13, ptCourier:2 },
     'WTK':   { ftDriver:22, ftCourier:25, ptDriver:11, ptCourier:2 },
     'WTX':   { ftDriver:21, ftCourier:27, ptDriver:10, ptCourier:0 },
+  };
+
+  // v24.0 §1 — Demo-only fallback for Actual Manpower Deployed MTD
+  // (fcActualManpowerAvgFor()), mirroring DEMO_STAFF_ALLOCATION_CAP above:
+  // just enough to preview "Keep Current Status" without data.json. A live
+  // run always overwrites this with data.json's own manually-maintained
+  // "actualManpowerDeployedMtd" block — see loadDataSource()'s catch branch.
+  const DEMO_ACTUAL_MANPOWER_DEPLOYED_MTD = {
+    periodStart: '2026-09-01', periodEnd: '2026-09-20', dayCount: 20,
+    districts: {
+      'ETH':899, 'ETK':629, 'ETX':771, 'NT-ST':703, 'NT-TM':703,
+      'NT-TSM':891, 'NT-TW':714, 'WTH':944, 'WTK':814, 'WTX':931,
+    },
   };
 
   // v11.0 §1 — the staff plan is now PER WEEKDAY, not one flat FT/PT number
@@ -2832,20 +2872,34 @@
   // actually ran" projected forward.
   // v22.0 §2 revised — Uses weekday-specific averages (fcWeekdayAvgManpowerDist)
   // to preserve day-to-day fluctuation (Mon≠Tue≠Wed, etc.), but scales the entire
-  // week proportionally if total exceeds the realistic weekly pool
-  // (fcWeeklyAvgManpowerDist × days). This gives realistic daily variation while
-  // respecting sustainable deployment capacity.
+  // week proportionally if total exceeds the realistic weekly pool. This gives
+  // realistic daily variation while respecting sustainable deployment capacity.
+  // v24.0 §1 — the weekly pool itself now comes from fcActualManpowerAvgFor()
+  // (data.json's hand-supplied "actualManpowerDeployedMtd" — the REAL total
+  // FT manpower deployed per district over a known MTD window), not
+  // fcWeeklyAvgManpowerDist's manpower_distribution.json-derived average.
+  // Falls back to the old manpower_distribution.json calc for any district
+  // data.json hasn't supplied yet, so a partially-filled block doesn't blank
+  // out the rest of the table.
   function fcCurrentStatusHeadcountFor(district, weekdayIdx){
     // Get weekday-specific average to preserve daily variation
     const dayAvgCourier = fcWeekdayAvgManpowerDist(district, weekdayIdx, 'courier');
     const dayAvgDriver = fcWeekdayAvgManpowerDist(district, weekdayIdx, 'driver');
     if(dayAvgCourier == null && dayAvgDriver == null) return null; // no manpower history for this weekday
-    
-    // Calculate scaling factor: if the sum of all 7 days exceeds the realistic
-    // weekly pool, scale the entire week down proportionally to fit
-    const weekAvgCourier = fcWeeklyAvgManpowerDist(district, 'courier') || 0;
-    const weekAvgDriver = fcWeeklyAvgManpowerDist(district, 'driver') || 0;
-    const weekPoolTotal = (weekAvgCourier + weekAvgDriver) * 7; // 7 days × daily avg
+
+    // v24.0 §1 — weekly pool total: prefer the real actual-deployed figure
+    // from data.json; fall back to the manpower_distribution.json-derived
+    // weekly average (fcWeeklyAvgManpowerDist) only if this district isn't
+    // in the data.json block yet.
+    const actualDailyAvg = fcActualManpowerAvgFor(district);
+    let weekPoolTotal;
+    if(actualDailyAvg != null){
+      weekPoolTotal = actualDailyAvg * 7; // 7 days × real actual-deployed daily avg
+    }else{
+      const weekAvgCourier = fcWeeklyAvgManpowerDist(district, 'courier') || 0;
+      const weekAvgDriver = fcWeeklyAvgManpowerDist(district, 'driver') || 0;
+      weekPoolTotal = (weekAvgCourier + weekAvgDriver) * 7; // 7 days × daily avg
+    }
     
     let projectedWeekTotal = 0;
     for(let i=0; i<7; i++){
@@ -4625,7 +4679,7 @@
     const none = results.filter(r=>!r.applied);
     banner.style.display = '';
     banner.className = 'fc-suggest-banner info';
-    banner.innerHTML = `<b>Keep Current Status</b> applied to <b>${ok.length}</b> of ${results.length} districts — each weekday's plan now copies that district's actual historical Courier/Driver headcount (manpower_distribution.json) and keeps the historical ODS/HKTV split, projected against this month's forecast order volume. Nothing here was searched or optimized against a target.`
+    banner.innerHTML = `<b>Keep Current Status</b> applied to <b>${ok.length}</b> of ${results.length} districts — each weekday's plan now copies that district's historical Courier/Driver mix, scaled to the actual FT manpower deployed MTD (data.json), and keeps the historical ODS/HKTV split, projected against this month's forecast order volume. Nothing here was searched or optimized against a target.`
       + (none.length ? ` <b>${none.length}</b> had no manpower history to copy: ${none.map(r=>r.district).join(', ')}.` : '');
   }
   /* v14.5 §2 / v14.6 §2 — AUTO-TUNE, TWO LEVERS PER DISTRICT.
