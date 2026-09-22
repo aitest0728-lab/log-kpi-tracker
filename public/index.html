@@ -538,8 +538,12 @@
   /* v28.0 §3 — same FT/PT divider as the editable headcount fields above the
      dashed line (.fc-hc-ftpt-sep), but for this read-only forecast table:
      a thin line ahead of "PT Driver" so the FT pair and PT pair read as two
-     groups here too, not just in the input fields. */
-  .fc-cell .fc-row.fc-pt-group{border-top:1px dashed var(--line-soft);padding-top:4px;margin-top:1px;}
+     groups here too, not just in the input fields. Border only, like
+     .fc-row.fc-shift above — the parent .fc-cell's own 4px row gap is
+     already enough spacing; adding padding/margin on top of it (as
+     .fc-row.fc-primary does further down) doubled up into a visibly empty
+     gap here. */
+  .fc-cell .fc-row.fc-pt-group{border-top:1px dashed var(--line-soft);}
 
   /* GMV / Basket Size summary strip — a couple of headline cards rather than
      the 7-weekday grid the productivity tabs use (GMV's summary isn't
