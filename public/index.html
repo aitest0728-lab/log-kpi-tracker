@@ -1019,13 +1019,13 @@
             <div class="fc-plan-wrap table-wrap">
               <div class="table-scroll">
                 <table id="costTotalTable">
-                  <thead><tr><th>District</th><th title="Provision - Controllable Cost + Transit &amp; Ice, daily rate × days in the forecast week. Feeds the Cost / Order column.">Fixed — Controllable ($)</th><th title="Weighted across the week: Σ (that weekday's FT/PT plan × Unit Cost) × that weekday's occurrences in the forecast week.">Variable — Staff ($)</th><th title="Σ (that weekday's total headcount × that weekday's occurrences in the forecast week) — the staffing plan measured in man-days rather than dollars.">Man-days /wk</th><th title="Weekly staff cost ÷ days in the forecast week — what the per-weekday plan averages out to per day.">Staff $/day (avg)</th><th>Variable — ODS ($)</th><th title="ETH &amp; WTH only, always $0 elsewhere. Σ (that weekday's ODS tunnel user count × $100) × that weekday's occurrences in the forecast week.">Variable — ODS Tunnel ($)</th><th title="Provision - Non-Controllable Cost (Office Team Exp., KT Warehouse, Car Fuel, Others Cost, Repair &amp; Maintenance), daily rate × days in the forecast week. Included in Total ($) only — never in Cost / Order, since ops has no lever over it.">Non-Controllable ($)</th><th>Total ($)</th><th>Est. Order Volume /wk</th><th title="Controllable Fixed + Variable — Staff + Variable — ODS + Variable — ODS Tunnel, ÷ Order Volume. Excludes Non-Controllable cost.">Cost / Order ($)</th><th>Target Cost / Order ($)</th><th title="(forecast Cost/Order − Target Cost/Order) ÷ Target Cost/Order. Negative is good here — it means the forecast sits under target.">Achievement (%)</th></tr></thead>
+                  <thead><tr><th>District</th><th title="Provision - Controllable Cost + Transit &amp; Ice, daily rate × days in the forecast week. Feeds the Cost / Order column.">Fixed — Controllable ($)</th><th title="Weighted across the week: Σ (that weekday's FT/PT plan × Unit Cost) × that weekday's occurrences in the forecast week.">Variable — Staff ($)</th><th title="Σ (that weekday's total headcount × that weekday's occurrences in the forecast week) — the staffing plan measured in man-days rather than dollars.">Man-days /wk</th><th title="Weekly staff cost ÷ days in the forecast week — what the per-weekday plan averages out to per day.">Staff $/day (avg)</th><th>Variable — ODS ($)</th><th title="ETH &amp; WTH only, always $0 elsewhere. Σ (that weekday's ODS tunnel user count × $100) × that weekday's occurrences in the forecast week.">Variable — ODS Tunnel ($)</th><th title="Provision - Non-Controllable Cost (Office Team Exp., KT Warehouse, Car Fuel, Others Cost, Repair &amp; Maintenance), daily rate × days in the forecast week. Included in Total ($) only — never in Cost / Order, since ops has no lever over it.">Non-Controllable ($)</th><th>Total ($)</th><th>Est. Order Volume /wk</th><th title="Controllable Fixed + Variable — Staff + Variable — ODS + Variable — ODS Tunnel, ÷ Order Volume. Excludes Non-Controllable cost.">Cost / Order (Only Controllable Cost) ($)</th><th>Target Cost / Order ($)</th><th title="(forecast Cost/Order − Target Cost/Order) ÷ Target Cost/Order. Negative is good here — it means the forecast sits under target.">Achievement (%)</th><th title="Total ($) — Controllable Fixed + Variable — Staff + Variable — ODS + Variable — ODS Tunnel + Non-Controllable — ÷ Order Volume. Includes Non-Controllable cost, unlike Cost / Order (Only Controllable Cost).">Total Cost / Order ($)</th></tr></thead>
                   <tbody id="costTotalTableBody"></tbody>
                 </table>
               </div>
             </div>
             <div class="prod-note">
-          <b>Fixed</b> = Provision Plan daily rate × days in the forecast week. <b>Variable — Staff</b> = Σ over weekdays of (that weekday's ACTUAL scheduled FT/PT plan × Unit Cost per head/day) × that weekday's occurrences in the week. <b>Man-days /wk</b> = the same sum in heads. <b>Staff $/day (avg)</b> = Variable — Staff ÷ days in week. <b>Variable — ODS</b> = ODS orders in force (after any split shift) × Blended Cost/Order. <b>Variable — ODS Tunnel</b> = ETH &amp; WTH only (always $0 elsewhere): Σ over weekdays of (that weekday's ODS tunnel user count × $100/user) × that weekday's occurrences — the user count is that weekday's in-force ODS orders ÷ the district's own historical orders-per-ODS-user rate for that weekday, rounded up. <b>Est. Order Volume /wk</b> = Σ weekday Total Order forecast × that weekday's occurrences. <b>Cost/Order</b> = Total ÷ Est. Order Volume. <b>Achievement (%)</b> = (Cost/Order − Target Cost/Order) ÷ Target Cost/Order — negative is under target (green).
+          <b>Fixed</b> = Provision Plan daily rate × days in the forecast week. <b>Variable — Staff</b> = Σ over weekdays of (that weekday's ACTUAL scheduled FT/PT plan × Unit Cost per head/day) × that weekday's occurrences in the week. <b>Man-days /wk</b> = the same sum in heads. <b>Staff $/day (avg)</b> = Variable — Staff ÷ days in week. <b>Variable — ODS</b> = ODS orders in force (after any split shift) × Blended Cost/Order. <b>Variable — ODS Tunnel</b> = ETH &amp; WTH only (always $0 elsewhere): Σ over weekdays of (that weekday's ODS tunnel user count × $100/user) × that weekday's occurrences — the user count is that weekday's in-force ODS orders ÷ the district's own historical orders-per-ODS-user rate for that weekday, rounded up. <b>Est. Order Volume /wk</b> = Σ weekday Total Order forecast × that weekday's occurrences. <b>Cost / Order (Only Controllable Cost)</b> = (Fixed — Controllable + Variable — Staff + Variable — ODS + Variable — ODS Tunnel) ÷ Est. Order Volume — excludes Non-Controllable cost, compared against Target Cost / Order. <b>Achievement (%)</b> = (Cost/Order − Target Cost/Order) ÷ Target Cost/Order — negative is under target (green). <b>Total Cost / Order</b> = Total ($) ÷ Est. Order Volume — includes Non-Controllable cost; informational only, not compared against a target.
         </div>
           </div>
         </div>
@@ -2908,8 +2908,16 @@
       projectedWeekTotal += (dc + dd);
     }
     
-    // Scale factor: if projected week > pool, scale down; otherwise keep as-is
-    const scale = projectedWeekTotal > weekPoolTotal ? weekPoolTotal / projectedWeekTotal : 1.0;
+    // v24.0 §1 — BUGFIX: previously only scaled DOWN when the weekday-shape
+    // sum exceeded the pool, else left scale at 1.0 — so whenever the new
+    // data.json-sourced weekPoolTotal was LARGER than the old
+    // manpower_distribution.json-derived sum (the common case, since the
+    // hand-supplied actuals run higher than the day-by-day Courier/Driver
+    // log), the scale silently stayed at 1.0 and the plan came out
+    // identical to the pre-v24.0 figures — which is why Man-days/wk looked
+    // unchanged after deploying. The pool must always be matched, not just
+    // capped, so the actual-deployed total genuinely drives the plan.
+    const scale = projectedWeekTotal > 0 ? weekPoolTotal / projectedWeekTotal : 1.0;
     
     const scaledCourier = (dayAvgCourier || 0) * scale;
     const scaledDriver = (dayAvgDriver || 0) * scale;
@@ -3680,10 +3688,17 @@
       const costPerOrder = orderVolume > 0 ? (fixed + variableStaff + variableOds + variableOdsTunnel)/orderVolume : null;
       const target = TARGET_COST_PER_ORDER[d];
       const overCls = costPerOrder==null ? '' : (costPerOrder <= target ? 'cost-ok' : 'cost-over');
+      // v25.0 §1 — Total Cost / Order: same ÷ Order Volume, but using the
+      // FULL Total ($) figure above (Controllable + Non-Controllable +
+      // Variable) instead of the controllable-only numerator costPerOrder
+      // uses. Purely informational — never compared against
+      // TARGET_COST_PER_ORDER (that target is a controllable-cost target),
+      // so it gets no over/under styling of its own.
+      const totalCostPerOrder = orderVolume > 0 ? total/orderVolume : null;
       const manDaysTitle = idleInfo.idle >= 1
         ? `Matches the Weekly Forecast Plan's FT Driver + FT Courier + PT Driver + PT Courier total (${intFmt(manDays)} man-days/mo). The 75% FT roster pool also carries ${intFmt(idleInfo.idle)} paid-but-idle man-days/mo not counted here or in Variable — Staff — see the Weekly Forecast Plan's own roster-utilisation note.`
         : `Matches the Weekly Forecast Plan's FT Driver + FT Courier + PT Driver + PT Courier total.`;
-      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td title="${manDaysTitle}">${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td>${money(variableOdsTunnel)}</td><td title="Provision - Non-Controllable Cost (Office Team Exp., KT Warehouse, Car Fuel, Others Cost, Repair &amp; Maintenance) — included in Total ($) only, never in Cost / Order.">${money(nonControllable)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}" title="Controllable Fixed + Variable — Staff + Variable — ODS + Variable — ODS Tunnel, ÷ Order Volume. Excludes Non-Controllable cost.">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td></tr>`;
+      return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td title="${manDaysTitle}">${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td>${money(variableOdsTunnel)}</td><td title="Provision - Non-Controllable Cost (Office Team Exp., KT Warehouse, Car Fuel, Others Cost, Repair &amp; Maintenance) — included in Total ($) only, never in Cost / Order.">${money(nonControllable)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}" title="Controllable Fixed + Variable — Staff + Variable — ODS + Variable — ODS Tunnel, ÷ Order Volume. Excludes Non-Controllable cost.">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td><td title="Total ($) ÷ Order Volume. Includes Non-Controllable cost, unlike Cost / Order (Only Controllable Cost).">${totalCostPerOrder==null?'—':money(totalCostPerOrder)}</td></tr>`;
     }).join('');
   }
   function fcSetupCostPortalListeners(){
