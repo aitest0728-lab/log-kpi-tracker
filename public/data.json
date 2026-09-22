@@ -708,66 +708,110 @@
   },
   "staffAllocationCap": {
     "ETH": {
-      "ftDriver": 20,
-      "ftCourier": 22,
-      "ptDriver": 0,
-      "ptCourier": 0
+      "ftDriver": 28,
+      "ftCourier": 30,
+      "ptDriver": 6,
+      "ptCourier": 1
     },
     "ETK": {
-      "ftDriver": 18,
-      "ftCourier": 12,
+      "ftDriver": 24,
+      "ftCourier": 16,
       "ptDriver": 0,
       "ptCourier": 0
     },
     "ETX": {
-      "ftDriver": 17,
-      "ftCourier": 19,
-      "ptDriver": 0,
+      "ftDriver": 33,
+      "ftCourier": 41,
+      "ptDriver": 10,
       "ptCourier": 0
     },
     "NT-ST": {
-      "ftDriver": 20,
-      "ftCourier": 14,
-      "ptDriver": 0,
+      "ftDriver": 27,
+      "ftCourier": 23,
+      "ptDriver": 2,
       "ptCourier": 0
     },
     "NT-TM": {
-      "ftDriver": 21,
-      "ftCourier": 12,
+      "ftDriver": 32,
+      "ftCourier": 24,
       "ptDriver": 0,
       "ptCourier": 0
     },
     "NT-TSM": {
-      "ftDriver": 18,
-      "ftCourier": 24,
-      "ptDriver": 0,
+      "ftDriver": 26,
+      "ftCourier": 35,
+      "ptDriver": 4,
       "ptCourier": 0
     },
     "NT-TW": {
-      "ftDriver": 16,
-      "ftCourier": 18,
-      "ptDriver": 0,
+      "ftDriver": 25,
+      "ftCourier": 26,
+      "ptDriver": 7,
       "ptCourier": 0
     },
     "WTH": {
-      "ftDriver": 15,
-      "ftCourier": 19,
-      "ptDriver": 0,
-      "ptCourier": 0
+      "ftDriver": 25,
+      "ftCourier": 33,
+      "ptDriver": 10,
+      "ptCourier": 1
     },
     "WTK": {
-      "ftDriver": 17,
-      "ftCourier": 21,
-      "ptDriver": 0,
-      "ptCourier": 0
+      "ftDriver": 21,
+      "ftCourier": 22,
+      "ptDriver": 4,
+      "ptCourier": 1
     },
     "WTX": {
-      "ftDriver": 17,
-      "ftCourier": 24,
-      "ptDriver": 0,
+      "ftDriver": 22,
+      "ftCourier": 25,
+      "ptDriver": 7,
       "ptCourier": 0
     },
     "_asOf": "2026-09-21",
-    "_source": "Derived from average daily manpower distribution"
+    "_source": "Google Sheet: LOG Master"
+  },
+  "ftPoolAvgPracticeCap": {
+    "ETH": {
+      "ftDriver": 20,
+      "ftCourier": 22
+    },
+    "ETK": {
+      "ftDriver": 19,
+      "ftCourier": 12
+    },
+    "ETX": {
+      "ftDriver": 17,
+      "ftCourier": 19
+    },
+    "NT-ST": {
+      "ftDriver": 20,
+      "ftCourier": 14
+    },
+    "NT-TM": {
+      "ftDriver": 21,
+      "ftCourier": 12
+    },
+    "NT-TSM": {
+      "ftDriver": 18,
+      "ftCourier": 24
+    },
+    "NT-TW": {
+      "ftDriver": 16,
+      "ftCourier": 18
+    },
+    "WTH": {
+      "ftDriver": 15,
+      "ftCourier": 19
+    },
+    "WTK": {
+      "ftDriver": 17,
+      "ftCourier": 21
+    },
+    "WTX": {
+      "ftDriver": 17,
+      "ftCourier": 24
+    },
+    "_asOf": "2026-09-21",
+    "_note": "Average deployed FT per district from daily manpower practice. Used as max pool spending cap in forecast. Separate from theoretical bench in staffAllocationCap."
   }
 }

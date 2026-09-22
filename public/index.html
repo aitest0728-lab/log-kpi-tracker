@@ -2603,6 +2603,18 @@
       ptCourier: cap.ptCourier != null ? cap.ptCourier : Infinity,
     };
   }
+  // v22.0 §1 — FT pool max spending cap based on average practice (current
+  // deployed manpower), separate from theoretical bench cap. If a district
+  // has average-practice cap data, it's used as the pool spending limit even
+  // if the bench itself (staffAllocationCap) could theoretically go higher.
+  function fcFtPoolAvgPracticeCapFor(district){
+    const cap = (DATA.ftPoolAvgPracticeCap || {})[district];
+    if(!cap) return { ftDriver:Infinity, ftCourier:Infinity };
+    return {
+      ftDriver: cap.ftDriver  != null ? cap.ftDriver  : Infinity,
+      ftCourier: cap.ftCourier != null ? cap.ftCourier : Infinity,
+    };
+  }
 
   // v11.0 §2 — Courier:Driver split is a fixed, ops-confirmed real-world
   // ratio instead of being derived from manpower_distribution.json.
@@ -2677,12 +2689,22 @@
   // charges only the FT man-days actually deployed (fcMonthlyStaffCostFor);
   // the undeployed part of the pool is reported by fcMinRosterTopUpFor for
   // roster-utilisation purposes only and is no longer added as a cost line.
+  // v22.0 §1 — pool spending is now constrained by BOTH bench cap (theoretical
+  // maximum) AND average practice cap (current deployed manpower). Uses the
+  // smaller of the two, so forecast suggestions respect what's actually used.
   function fcFtWeeklyBudgetFor(district){
     const cap = fcStaffCapFor(district);
+    const practiceCap = fcFtPoolAvgPracticeCapFor(district);
     const occ = fcWeekdayOccurrences();
     const days = occ.reduce((a,b)=>a+b,0);
-    const f = (v)=> isFinite(v) ? Math.round(v*FT_ROSTER_SHARE*days) : 0; // no bench data = no pool
-    const ftDriver = f(cap.ftDriver), ftCourier = f(cap.ftCourier);
+    const f = (benchV, practiceV)=> {
+      if(!isFinite(benchV)) return 0; // no bench data = no pool
+      // Use the minimum of bench cap (theoretical) and practice cap (actual deployed)
+      const effective = Math.min(benchV, practiceV);
+      return Math.round(effective*FT_ROSTER_SHARE*days);
+    };
+    const ftDriver = f(cap.ftDriver, practiceCap.ftDriver);
+    const ftCourier = f(cap.ftCourier, practiceCap.ftCourier);
     return { days, ftDriver, ftCourier, total: ftDriver + ftCourier,
       benchFtDriver: isFinite(cap.ftDriver) ? cap.ftDriver : 0,
       benchFtCourier: isFinite(cap.ftCourier) ? cap.ftCourier : 0,
