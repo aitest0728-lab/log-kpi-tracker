@@ -708,66 +708,66 @@
   },
   "staffAllocationCap": {
     "ETH": {
-      "ftDriver": 28,
-      "ftCourier": 30,
-      "ptDriver": 6,
-      "ptCourier": 1
+      "ftDriver": 20,
+      "ftCourier": 22,
+      "ptDriver": 0,
+      "ptCourier": 0
     },
     "ETK": {
-      "ftDriver": 24,
-      "ftCourier": 16,
+      "ftDriver": 18,
+      "ftCourier": 12,
       "ptDriver": 0,
       "ptCourier": 0
     },
     "ETX": {
-      "ftDriver": 33,
-      "ftCourier": 41,
-      "ptDriver": 10,
+      "ftDriver": 17,
+      "ftCourier": 19,
+      "ptDriver": 0,
       "ptCourier": 0
     },
     "NT-ST": {
-      "ftDriver": 27,
-      "ftCourier": 23,
-      "ptDriver": 2,
+      "ftDriver": 20,
+      "ftCourier": 14,
+      "ptDriver": 0,
       "ptCourier": 0
     },
     "NT-TM": {
-      "ftDriver": 32,
-      "ftCourier": 24,
+      "ftDriver": 21,
+      "ftCourier": 12,
       "ptDriver": 0,
       "ptCourier": 0
     },
     "NT-TSM": {
-      "ftDriver": 26,
-      "ftCourier": 35,
-      "ptDriver": 4,
+      "ftDriver": 18,
+      "ftCourier": 24,
+      "ptDriver": 0,
       "ptCourier": 0
     },
     "NT-TW": {
-      "ftDriver": 25,
-      "ftCourier": 26,
-      "ptDriver": 7,
+      "ftDriver": 16,
+      "ftCourier": 18,
+      "ptDriver": 0,
       "ptCourier": 0
     },
     "WTH": {
-      "ftDriver": 25,
-      "ftCourier": 33,
-      "ptDriver": 10,
-      "ptCourier": 1
+      "ftDriver": 15,
+      "ftCourier": 19,
+      "ptDriver": 0,
+      "ptCourier": 0
     },
     "WTK": {
-      "ftDriver": 21,
-      "ftCourier": 22,
-      "ptDriver": 4,
-      "ptCourier": 1
+      "ftDriver": 17,
+      "ftCourier": 21,
+      "ptDriver": 0,
+      "ptCourier": 0
     },
     "WTX": {
-      "ftDriver": 22,
-      "ftCourier": 25,
-      "ptDriver": 7,
+      "ftDriver": 17,
+      "ftCourier": 24,
+      "ptDriver": 0,
       "ptCourier": 0
     },
     "_asOf": "2026-09-21",
-    "_source": "Google Sheet: LOG Master"
+    "_source": "Derived from average daily manpower distribution"
   }
 }
