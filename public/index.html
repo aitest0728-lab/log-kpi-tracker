@@ -2800,20 +2800,42 @@
   // the historical average, not a productivity search: nothing here is
   // optimized or clamped to a target, it's a straight report of "what we
   // actually ran" projected forward.
-  // v22.0 §2 — Now uses weekly average staff (fcWeeklyAvgManpowerDist) instead
-  // of weekday-specific average (fcWeekdayAvgManpowerDist), so that small daily
-  // variations don't accumulate across the week. This gives a more realistic and
-  // stable view of sustainable deployment capacity.
+  // v22.0 §2 revised — Uses weekday-specific averages (fcWeekdayAvgManpowerDist)
+  // to preserve day-to-day fluctuation (Mon≠Tue≠Wed, etc.), but scales the entire
+  // week proportionally if total exceeds the realistic weekly pool
+  // (fcWeeklyAvgManpowerDist × days). This gives realistic daily variation while
+  // respecting sustainable deployment capacity.
   function fcCurrentStatusHeadcountFor(district, weekdayIdx){
-    const avgCourier = fcWeeklyAvgManpowerDist(district, 'courier');
-    const avgDriver = fcWeeklyAvgManpowerDist(district, 'driver');
-    if(avgCourier == null && avgDriver == null) return null; // no manpower history for this weekday
-    const rawTotal = (avgCourier||0) + (avgDriver||0);
+    // Get weekday-specific average to preserve daily variation
+    const dayAvgCourier = fcWeekdayAvgManpowerDist(district, weekdayIdx, 'courier');
+    const dayAvgDriver = fcWeekdayAvgManpowerDist(district, weekdayIdx, 'driver');
+    if(dayAvgCourier == null && dayAvgDriver == null) return null; // no manpower history for this weekday
+    
+    // Calculate scaling factor: if the sum of all 7 days exceeds the realistic
+    // weekly pool, scale the entire week down proportionally to fit
+    const weekAvgCourier = fcWeeklyAvgManpowerDist(district, 'courier') || 0;
+    const weekAvgDriver = fcWeeklyAvgManpowerDist(district, 'driver') || 0;
+    const weekPoolTotal = (weekAvgCourier + weekAvgDriver) * 7; // 7 days × daily avg
+    
+    let projectedWeekTotal = 0;
+    for(let i=0; i<7; i++){
+      const dc = fcWeekdayAvgManpowerDist(district, i, 'courier') || 0;
+      const dd = fcWeekdayAvgManpowerDist(district, i, 'driver') || 0;
+      projectedWeekTotal += (dc + dd);
+    }
+    
+    // Scale factor: if projected week > pool, scale down; otherwise keep as-is
+    const scale = projectedWeekTotal > weekPoolTotal ? weekPoolTotal / projectedWeekTotal : 1.0;
+    
+    const scaledCourier = (dayAvgCourier || 0) * scale;
+    const scaledDriver = (dayAvgDriver || 0) * scale;
+    const rawTotal = scaledCourier + scaledDriver;
     const S = Math.round(rawTotal);
-    if(S <= 0) return { ftDriver:0, ftCourier:0, ptDriver:0, ptCourier:0, total:0, avgCourier:avgCourier||0, avgDriver:avgDriver||0 };
-    const courierShare = rawTotal > 0 ? (avgCourier||0)/rawTotal : fcCourierShareFor(district);
+    
+    if(S <= 0) return { ftDriver:0, ftCourier:0, ptDriver:0, ptCourier:0, total:0, avgCourier:scaledCourier, avgDriver:scaledDriver };
+    const courierShare = rawTotal > 0 ? scaledCourier/rawTotal : fcCourierShareFor(district);
     const combo = fcCheapestComboForTotal(district, S, courierShare, {});
-    return { ...combo, avgCourier: avgCourier||0, avgDriver: avgDriver||0 };
+    return { ...combo, avgCourier: scaledCourier, avgDriver: scaledDriver };
   }
   // This weekday's forecast HKTV Orders = Total Order (adjusted) - Est. ODS
   // Orders, i.e. the volume the in-house FT/PT team actually has to clear.
