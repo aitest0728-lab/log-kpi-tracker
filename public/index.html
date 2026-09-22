@@ -496,11 +496,12 @@
   .fc-plan-wd{border:1px dashed var(--line);border-radius:8px;overflow:hidden;background:var(--panel);}
   /* The weekday label is now a full-bleed header bar (like .fc-result-wd's
      dark label bar), so MON/TUE/etc. reads as a clear header on top of its
-     cell rather than a small caption easy to lose above the input grid. A
-     quieter slate tint (not the dark .fc-result-wd-label ink, and not the
-     amber Weekly / total-card colors) keeps every day looking like an
-     equal, still-editable slot. */
-  .fc-plan-wd-label{margin:0;padding:7px 10px;background:var(--slate-soft);color:var(--ink);border-bottom:1px solid var(--line);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
+     cell rather than a small caption easy to lose above the input grid.
+     Centered, dark background / light text — the same treatment as the
+     read-only Weekly/Total header bars — so every header in this grid
+     reads the same way; the dashed vs. solid cell border is what tells an
+     editable weekday apart from a computed rollup, not the header color. */
+  .fc-plan-wd-label{margin:0;padding:7px 10px;background:var(--ink);color:var(--text-inverse-muted);text-align:center;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
   .fc-plan-wd-label .occ{opacity:.6;font-weight:400;text-transform:none;letter-spacing:0;}
   .fc-plan-wd .fc-hc-cell{padding:10px 10px 12px;}
   .fc-hc-total{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:2px;padding-top:3px;border-top:1px dashed var(--line-soft);font-size:11.5px;color:var(--text-muted);}
