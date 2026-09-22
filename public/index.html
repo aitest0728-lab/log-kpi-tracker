@@ -25,6 +25,11 @@
     --red-soft:#fbe6e6;
     --green:#3e9c6d;
     --green-soft:#e3f3ea;
+    --blue-soft:#e6eefb;
+    --teal-soft:#e2f4f0;
+    --purple-soft:#f0eafb;
+    --rose-soft:#fceaf0;
+    --slate-soft:#eef1f6;
     --radius:10px;
     --shadow:0 1px 2px rgba(16,24,38,.04), 0 8px 24px -12px rgba(16,24,38,.12);
     font-size:16px;
@@ -355,6 +360,27 @@
   .fc-cell .delta-pill.delta-flat{background:var(--line-soft);color:var(--text-muted);}
   #costTotalTable td.cost-ok{color:var(--green);font-weight:700;}
   #costTotalTable td.cost-over{color:var(--red);font-weight:700;}
+  /* v20.1 — light background tint per cost group, so the table reads as
+     five zones at a glance instead of one wall of numbers: Fixed —
+     Controllable (blue), Variable — Staff (teal), Variable — ODS (purple),
+     Non-Controllable (amber, matches the existing amber "informational, not
+     actionable" convention), and the Cost/Order-vs-target zone (rose). Total
+     ($) and Est. Order Volume stay a neutral slate/white — they're sums, not
+     a cost "kind" — so the eye lands on them as the bottom line rather than
+     folding them into a colored group. Header row keeps its dark theme; a
+     thin colored underline on each th echoes the body tint below it. */
+  #costTotalTable thead th:nth-child(2){box-shadow:inset 0 -3px 0 var(--blue-soft);}
+  #costTotalTable thead th:nth-child(3),#costTotalTable thead th:nth-child(4),#costTotalTable thead th:nth-child(5){box-shadow:inset 0 -3px 0 var(--teal-soft);}
+  #costTotalTable thead th:nth-child(6),#costTotalTable thead th:nth-child(7){box-shadow:inset 0 -3px 0 var(--purple-soft);}
+  #costTotalTable thead th:nth-child(8){box-shadow:inset 0 -3px 0 var(--amber-soft);}
+  #costTotalTable thead th:nth-child(9){box-shadow:inset 0 -3px 0 var(--slate-soft);}
+  #costTotalTable thead th:nth-child(11),#costTotalTable thead th:nth-child(12),#costTotalTable thead th:nth-child(13){box-shadow:inset 0 -3px 0 var(--rose-soft);}
+  #costTotalTable tbody td:nth-child(2){background:var(--blue-soft);}
+  #costTotalTable tbody td:nth-child(3),#costTotalTable tbody td:nth-child(4),#costTotalTable tbody td:nth-child(5){background:var(--teal-soft);}
+  #costTotalTable tbody td:nth-child(6),#costTotalTable tbody td:nth-child(7){background:var(--purple-soft);}
+  #costTotalTable tbody td:nth-child(8){background:var(--amber-soft);}
+  #costTotalTable tbody td:nth-child(9){background:var(--slate-soft);}
+  #costTotalTable tbody td:nth-child(11),#costTotalTable tbody td:nth-child(12),#costTotalTable tbody td:nth-child(13){background:var(--rose-soft);}
 
   /* v15.1 — Weekly Forecast Plan, card layout (mirrors the Per-District
      Staff Plan cards below). One card per district; its 7 weekday blocks
