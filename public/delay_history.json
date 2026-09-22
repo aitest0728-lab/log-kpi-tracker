@@ -2543,11 +2543,51 @@
             "delay": 1.42,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 4.5,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 0.2,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 1.6,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0.7,
+            "early": null,
+            "onTime": null
           }
         },
         "ETK": {
           "Overall": {
             "delay": 2.84,
+            "early": null,
+            "onTime": null
+          },
+          "AM": {
+            "delay": 5.8,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 2.9,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
             "early": null,
             "onTime": null
           }
@@ -2557,11 +2597,51 @@
             "delay": 4.26,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 4.2,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 6.3,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 2.0,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
           }
         },
         "NT-ST": {
           "Overall": {
             "delay": 0.63,
+            "early": null,
+            "onTime": null
+          },
+          "AM": {
+            "delay": 7.3,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 2.5,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0.2,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 2.9,
             "early": null,
             "onTime": null
           }
@@ -2571,11 +2651,51 @@
             "delay": 0.05,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 0.1,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
           }
         },
         "NT-TSM": {
           "Overall": {
             "delay": 4.8,
+            "early": null,
+            "onTime": null
+          },
+          "AM": {
+            "delay": 4.7,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 6.7,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 1.3,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 5.6,
             "early": null,
             "onTime": null
           }
@@ -2585,11 +2705,51 @@
             "delay": 4.66,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 10.7,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 5.1,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0.1,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
           }
         },
         "WTH": {
           "Overall": {
             "delay": 5.28,
+            "early": null,
+            "onTime": null
+          },
+          "AM": {
+            "delay": 8.6,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 10.7,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0.1,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
             "early": null,
             "onTime": null
           }
@@ -2599,6 +2759,26 @@
             "delay": 1.88,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 4.6,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 2.5,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
           }
         },
         "WTX": {
@@ -2606,10 +2786,30 @@
             "delay": 4.37,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 12.4,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 4.1,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
           }
         }
       },
-      "_note": "ESTIMATED backfill (zone-mix weighted); no early/on-time/timeslot split"
+      "_note": "ESTIMATED backfill (zone-mix weighted); timeslot (AM/PM/EV/EV2) Delay % backfilled from Timeslot_Delay (Sept 18 - Sept 19).xlsx \u2014 early/on-time split still unavailable at both Overall and timeslot level."
     },
     "2026-09-19": {
       "overall": {
@@ -2625,11 +2825,51 @@
             "delay": 4.86,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 9.6,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 6.2,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0.1,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
           }
         },
         "ETK": {
           "Overall": {
             "delay": 3.68,
+            "early": null,
+            "onTime": null
+          },
+          "AM": {
+            "delay": 3.5,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 5.9,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 1.6,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 1.1,
             "early": null,
             "onTime": null
           }
@@ -2639,11 +2879,51 @@
             "delay": 7.33,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 4.7,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 12.4,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 1.7,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 6.1,
+            "early": null,
+            "onTime": null
           }
         },
         "NT-ST": {
           "Overall": {
             "delay": 4.2,
+            "early": null,
+            "onTime": null
+          },
+          "AM": {
+            "delay": 1.4,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 0.6,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
             "early": null,
             "onTime": null
           }
@@ -2653,11 +2933,51 @@
             "delay": 1.71,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 3.8,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 1.1,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
           }
         },
         "NT-TSM": {
           "Overall": {
             "delay": 4.09,
+            "early": null,
+            "onTime": null
+          },
+          "AM": {
+            "delay": 10.0,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 4.2,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 10.0,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
             "early": null,
             "onTime": null
           }
@@ -2667,11 +2987,51 @@
             "delay": 5.66,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 10.5,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 5.5,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 2.3,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 2.1,
+            "early": null,
+            "onTime": null
           }
         },
         "WTH": {
           "Overall": {
             "delay": 9.73,
+            "early": null,
+            "onTime": null
+          },
+          "AM": {
+            "delay": 10.3,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 5.5,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 2.3,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 2.1,
             "early": null,
             "onTime": null
           }
@@ -2681,6 +3041,26 @@
             "delay": 5.64,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 11.9,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 5.9,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0.5,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
           }
         },
         "WTX": {
@@ -2688,10 +3068,30 @@
             "delay": 2.94,
             "early": null,
             "onTime": null
+          },
+          "AM": {
+            "delay": 5.1,
+            "early": null,
+            "onTime": null
+          },
+          "PM": {
+            "delay": 4.4,
+            "early": null,
+            "onTime": null
+          },
+          "EV": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
+          },
+          "EV2": {
+            "delay": 0,
+            "early": null,
+            "onTime": null
           }
         }
       },
-      "_note": "ESTIMATED backfill (zone-mix weighted); no early/on-time/timeslot split"
+      "_note": "ESTIMATED backfill (zone-mix weighted); timeslot (AM/PM/EV/EV2) Delay % backfilled from Timeslot_Delay (Sept 18 - Sept 19).xlsx \u2014 early/on-time split still unavailable at both Overall and timeslot level."
     },
     "2026-09-20": {
       "overall": {
