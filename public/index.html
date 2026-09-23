@@ -84,6 +84,39 @@
   .view-toggle button{border:none;background:transparent;font-family:'Inter';font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer;color:var(--text-muted);}
   .view-toggle button.on{background:var(--ink);color:#fff;}
 
+  /* v7.0 §1 — Overview "MTD as of <date>" note under the KPI grid */
+  .overview-asof-note{font-size:12px;line-height:1.5;color:var(--text-muted);margin:-8px 0 18px;padding:8px 12px;background:var(--amber-soft);border-radius:8px;}
+  .overview-asof-note:empty{display:none;margin:0;padding:0;}
+
+  /* v7.0 §2 — Department Manifest Trend panel */
+  .trend-panel{margin-top:4px;}
+  .trend-chart-wrap{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:8px;}
+  .trend-chart-wrap svg{width:100%;height:auto;display:block;overflow:visible;}
+  .trend-svg-axis{stroke:var(--line);stroke-width:1;}
+  .trend-svg-gridline{stroke:var(--line-soft);stroke-width:1;}
+  .trend-svg-axis-label{font-family:'IBM Plex Mono';font-size:10.5px;fill:var(--text-muted);}
+  .trend-svg-line{fill:none;stroke:var(--ink-3);stroke-width:2.5;}
+  .trend-svg-target{fill:none;stroke:var(--amber);stroke-width:1.5;stroke-dasharray:5 4;}
+  .trend-svg-dot{fill:var(--ink-3);stroke:#fff;stroke-width:1.5;}
+  .trend-svg-crosshair{stroke:var(--text-muted);stroke-width:1;stroke-dasharray:3 3;opacity:0;}
+  .trend-svg-hoverdot{fill:var(--amber);stroke:#fff;stroke-width:2;opacity:0;}
+  .trend-svg-overlay{fill:transparent;cursor:crosshair;}
+  .trend-tooltip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-family:'IBM Plex Mono';font-size:12px;padding:7px 10px;border-radius:7px;box-shadow:var(--shadow);opacity:0;transform:translate(-50%,-115%);transition:opacity .1s;white-space:nowrap;z-index:5;}
+  .trend-tooltip.show{opacity:1;}
+  .trend-tooltip .tt-date{color:var(--text-inverse-muted);font-size:10.5px;margin-bottom:2px;}
+  .trend-empty-note{font-size:12.5px;color:var(--text-muted);padding:24px 4px;text-align:center;}
+  /* Productivity Detail trend panel (multi-aspect, multi-district) */
+  .trend-svg-line2{fill:none;stroke-width:2.5;}
+  .chip-group{display:flex;flex-wrap:wrap;gap:6px;max-width:460px;}
+  .chip{font-family:'Inter';font-size:12px;padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:var(--panel);cursor:pointer;color:var(--text-muted);user-select:none;}
+  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .chip-toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text);cursor:pointer;padding-top:7px;}
+  .prod-trend-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:16px;}
+  .prod-trend-card h4{margin:0 0 8px;font-size:13.5px;font-weight:700;}
+  .prod-trend-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:9px;font-size:11.5px;color:var(--text-muted);}
+  .prod-trend-legend .lg-item{display:flex;align-items:center;gap:5px;}
+  .prod-trend-legend .lg-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none;}
+
   /* KPI cards */
   /* v5.0 §1 — Overview has exactly 5 KPI cells (OVERVIEW_MATRICES); tightened
      the gap and per-card padding so all 5 sit in one row on a normal desktop
@@ -632,6 +665,11 @@
         </div>
       </div>
 
+      <!-- v7.0 §1 — this date input now also drives the Overview (KPI Aspect) tab:
+           picking an earlier date recomputes that tab's "Actual" cells (KPI cards +
+           Department Manifest table) as a month-to-date figure through the chosen
+           date, for whichever KPIs have a daily history file behind them (HKTV Staff
+           Productivity, Delay Rate) — see overviewActualOverall()/overviewActualDistrict(). -->
       <div class="date-control">
         <div class="date-control-left">
           <label class="eyebrow" for="dateInput">Data Date</label>
@@ -676,6 +714,7 @@
       </div>
 
       <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="overview-asof-note" id="overviewAsOfNote"></div>
 
       <div class="section-head">
         <div>
@@ -683,14 +722,23 @@
           <div class="sub" id="tableSub">Click a column to sort · click a row for detail</div>
         </div>
         <div class="table-toolbar">
-          <div class="search-wrap">
+          <div class="search-wrap" id="deptSearchWrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
             <input type="text" id="deptSearch" placeholder="Filter districts, e.g. ETH, ETK…">
+          </div>
+          <!-- v7.0 §2 — Table / Trend switch for the Department Manifest,
+               same visual pattern as the Rank by Actual/Forecast toggle
+               above. "Trend" swaps the table for a hoverable line chart
+               (renderTrendPanel()) built from the same underlying history
+               files already loaded for other tabs — no new data source. -->
+          <div class="view-toggle" id="deptViewToggle">
+            <button data-mode="table" class="on">Table</button>
+            <button data-mode="trend">Trend</button>
           </div>
         </div>
       </div>
 
-      <div class="table-wrap">
+      <div class="table-wrap" id="deptTableWrap">
         <div class="table-scroll">
           <table id="deptTable">
             <thead><tr id="tableHead"></tr></thead>
@@ -701,10 +749,42 @@
         <div class="scroll-hint">scroll →</div>
       </div>
 
-      <div class="legend">
+      <div class="legend" id="deptLegend">
         <span><i class="dot dot-good"></i> On target</span>
         <span><i class="dot dot-warn"></i> Within 15% of target</span>
         <span><i class="dot dot-bad"></i> Off target &gt;15%</span>
+      </div>
+
+      <!-- v7.0 §2 — Trend panel, hidden unless "Trend" is selected above. -->
+      <div class="trend-panel" id="deptTrendPanel" style="display:none;">
+        <div class="prod-controls">
+          <div class="prod-field">
+            <label for="trendKpiSelect">KPI</label>
+            <select id="trendKpiSelect"></select>
+          </div>
+          <div class="prod-field">
+            <label for="trendScopeSelect">District</label>
+            <select id="trendScopeSelect"></select>
+          </div>
+          <div class="prod-field">
+            <label for="trendIntervalSelect">X-axis interval</label>
+            <select id="trendIntervalSelect">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly avg.</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+        </div>
+        <div class="trend-chart-wrap" id="trendChartWrap">
+          <svg id="trendSvg" viewBox="0 0 900 320" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="trend-tooltip" id="trendTooltip"></div>
+        </div>
+        <div class="trend-empty-note" id="trendEmptyNote"></div>
+        <div class="prod-note">
+          Daily-interval trends are built from each day's own recorded figure (not a running MTD total) so you can see
+          day-to-day movement. Poor Rating %, Missing &amp; Lost Amount and RFID Missing Tote have no daily log, so
+          their trend only ever shows one point per month. The dashed line marks that KPI's target.
+        </div>
       </div>
 
       </div>
@@ -796,6 +876,13 @@
             <label for="odsPeriodBSelect">Period B</label>
             <select id="odsPeriodBSelect"></select>
           </div>
+          <div class="prod-field">
+            <label for="odsDistrictSearch">District</label>
+            <div class="search-wrap" id="odsDistrictSearchWrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <input type="text" id="odsDistrictSearch" placeholder="Filter districts, e.g. ETH, ETK…">
+            </div>
+          </div>
         </div>
         <div class="prod-legend" id="odsLegend"></div>
 
@@ -848,13 +935,27 @@
             <label for="prodPeriodBSelect">Period B</label>
             <select id="prodPeriodBSelect"></select>
           </div>
+          <div class="prod-field">
+            <label for="prodDistrictSearch">District</label>
+            <div class="search-wrap" id="prodDistrictSearchWrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <input type="text" id="prodDistrictSearch" placeholder="Filter districts, e.g. ETH, ETK…">
+            </div>
+          </div>
         </div>
         <div class="prod-legend" id="prodLegend"></div>
 
         <div class="prod-summary" id="prodSummary"></div>
 
-        <h3 class="prod-detail-label">District Breakdown</h3>
-        <div class="table-wrap">
+        <div class="section-head">
+          <div><h3 class="prod-detail-label" style="margin:0;">District Breakdown</h3></div>
+          <div class="view-toggle" id="prodViewToggle">
+            <button data-mode="table" class="on">Table</button>
+            <button data-mode="trend">Trend</button>
+          </div>
+        </div>
+
+        <div class="table-wrap" id="prodTableWrap">
           <div class="table-scroll">
             <table id="prodTable">
               <thead id="prodTableHead"></thead>
@@ -867,6 +968,41 @@
         <div class="prod-note" id="prodNote">
           Month view: each weekday cell is the <em>average</em> of that weekday across the whole month
           (e.g. August's Saturday column averages all 5 Saturdays), matching how it was requested.
+        </div>
+
+        <!-- Trend view: multi-aspect, multi-district line charts built from the same
+             productivity_history.json records as the table above. Hidden unless "Trend"
+             is selected via prodViewToggle. -->
+        <div class="trend-panel" id="prodTrendPanel" style="display:none;">
+          <div class="prod-controls">
+            <div class="prod-field">
+              <label>Aspects (pick one or more)</label>
+              <div class="chip-group" id="prodTrendAspectChips"></div>
+            </div>
+            <div class="prod-field">
+              <label>Districts (pick one or more)</label>
+              <div class="chip-group" id="prodTrendDistrictChips"></div>
+            </div>
+            <div class="prod-field">
+              <label for="prodTrendIntervalSelect">X-axis interval</label>
+              <select id="prodTrendIntervalSelect">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly avg.</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div class="prod-field">
+              <label for="prodTrendShowTarget">&nbsp;</label>
+              <label class="chip-toggle"><input type="checkbox" id="prodTrendShowTarget" checked> Show Target line (Productivity / Cost per Order, from the Forecast tab)</label>
+            </div>
+          </div>
+          <div id="prodTrendCharts"></div>
+          <div class="trend-empty-note" id="prodTrendEmptyNote"></div>
+          <div class="prod-note">
+            Daily plots each day's own value. Weekly avg. and Monthly average the days in each bucket, same as the
+            table above. Dashed lines mark each shown district's own Target Productivity / Target Cost per Order —
+            the same finance-confirmed targets used by Suggest Headcount on the Forecast tab.
+          </div>
         </div>
       </div>
 
@@ -1241,6 +1377,13 @@
   <div class="drawer-body" id="drawerBody"></div>
 </aside>
 
+<!-- EMBEDDED_DATA_START — kpi_pipeline.py's write_dashboard_html() splices a
+     window.__EMBEDDED_DATA__ = {...}; script here when it writes dashboard.html.
+     This block stays empty in index.html itself; the pipeline never edits
+     this file. Must stay before the main <script> below, since it runs
+     unbuffered (no defer) and reads window.__EMBEDDED_DATA__ at load time. -->
+<!-- EMBEDDED_DATA_END -->
+
 <script>
 (function(){
 
@@ -1321,6 +1464,20 @@
   let selectedKpi = null;
   const delayExpandedDates = new Set(); // v5.0 §1 — Delay % dates expanded to show all 4 timeslots
   let searchTerm = '';
+  // District filter for Productivity Detail / ODS / HKTV Order Ratio tabs —
+  // same free-text, comma/space-split, case-insensitive "contains" match as
+  // the Department Manifest's deptSearch (see filterDistrictsByTerm()). The
+  // "Total" row is always kept regardless of the filter, so a filtered view
+  // still shows the network total for context.
+  let prodSearchTerm = '';
+  let odsSearchTerm = '';
+
+  function filterDistrictsByTerm(rowDistricts, term){
+    if(!term) return rowDistricts;
+    const terms = term.split(/[\s,]+/).map(t=>t.trim().toLowerCase()).filter(Boolean);
+    if(!terms.length) return rowDistricts;
+    return rowDistricts.filter(d=> d==='Total' || terms.some(t=>d.toLowerCase().includes(t)));
+  }
 
   /* ---------------- READ HELPERS ----------------
      Actual and forecast are both computed server-side by kpi_pipeline.py
@@ -1332,6 +1489,191 @@
   function getForecastOverall(key){ return matrixOf(key).forecast.overall; }
   function getActual(key, district){ return matrixOf(key).actual.districts[district] ?? null; }
   function getForecast(key, district){ return matrixOf(key).forecast.districts[district] ?? null; }
+
+  /* ---------------- v7.0 §1 (extended v27.0) — date-interactive MTD "Actual" for Overview (KPI Aspect) ----------------
+     The top "Data Date" input (dateInputEl/cur, defined further down) used to be display-only.
+     It now also drives this tab's "Actual" cells: pick an earlier date and every KPI card +
+     Department Manifest cell recomputes as a month-to-date figure through that date.
+       - HKTV Staff Productivity: sum of daily order count ÷ sum of daily manpower from
+         productivity_history.json, month-start through the chosen date (sumProductivityAsOf()) —
+         the exact same formula kpi_pipeline.py itself uses for its own MTD figure.
+       - Delay Rate, Poor Rating %, Missing & Lost Amount, RFID Missing Tote (v27.0): each of
+         these now has its own true per-day MTD-to-date log, recorded daily by kpi_pipeline.py
+         (delay_history.json's "mtdDaily", other_aspects_history.json's per-metric "daily") —
+         a direct lookup of the real figure the source system reported that day, not an
+         approximation. Before v27.0, Delay Rate fell back to a plain average of raw daily
+         values (still kept below, as mtdDailyOrAverage()'s fallback, for any date before this
+         log started) and the other three had no daily granularity at all, always showing
+         today's snapshot regardless of the date picked.
+     overviewMaxDate is set once the history files load (computeOverviewDateBounds()); picking
+     exactly that date (the default) always reads straight from data.json's own actual, so the
+     default view is byte-for-byte unchanged from before this feature existed. */
+  let overviewMaxDate = null;
+
+  function computeOverviewDateBounds(){
+    const dates = new Set();
+    Object.keys(DATA.dailyProductivity || {}).forEach(k=>dates.add(k));
+    Object.keys(DATA.delayDaily || {}).forEach(k=>dates.add(k));
+    Object.keys(DATA.delayMtdDaily || {}).forEach(k=>dates.add(k));
+    OTHER_ASPECT_KEYS.forEach(key=>{
+      const daily = (DATA.otherAspects && DATA.otherAspects[key] && DATA.otherAspects[key].daily) || {};
+      Object.keys(daily).forEach(k=>dates.add(k));
+    });
+    const sorted = Array.from(dates).sort();
+    overviewMaxDate = sorted.length ? sorted[sorted.length-1] : null;
+  }
+
+  function overviewSelectedDateStr(){
+    return `${cur.year}-${String(cur.month).padStart(2,'0')}-${String(cur.day).padStart(2,'0')}`;
+  }
+
+  /* Sums each day's orderCount/manpower (hktvStaff or odsRatio) from month-start through
+     dateStr, then divides — mirrors kpi_pipeline.py's finish_productivity_with_orders()
+     MTD formula exactly, just truncated to an earlier day. */
+  function sumProductivityAsOf(groupKey, dateStr){
+    const monthKey = dateStr.slice(0,7);
+    let totalOrder = 0, totalManpower = 0, anyData = false;
+    const distOrder = {}, distManpower = {};
+    DISTRICTS.forEach(d=>{ distOrder[d]=0; distManpower[d]=0; });
+    Object.keys(DATA.dailyProductivity || {}).forEach(dk=>{
+      if(!dk.startsWith(monthKey) || dk > dateStr) return;
+      const entry = DATA.dailyProductivity[dk] && DATA.dailyProductivity[dk][groupKey];
+      if(!entry) return;
+      anyData = true;
+      totalOrder += entry.total?.orderCount || 0;
+      totalManpower += entry.total?.manpower || 0;
+      DISTRICTS.forEach(d=>{
+        const dd = entry.districts && entry.districts[d];
+        if(dd){ distOrder[d] += dd.orderCount || 0; distManpower[d] += dd.manpower || 0; }
+      });
+    });
+    if(!anyData) return { overall:null, districts:Object.fromEntries(DISTRICTS.map(d=>[d,null])), hasData:false };
+    const overall = totalManpower ? Math.round((totalOrder/totalManpower)*100)/100 : null;
+    const districts = {};
+    DISTRICTS.forEach(d=>{ districts[d] = distManpower[d] ? Math.round((distOrder[d]/distManpower[d])*100)/100 : null; });
+    return { overall, districts, hasData:true };
+  }
+
+  /* Fallback only: plain average of each day's "Overall" Delay % from month-start through
+     dateStr — same convention the dashboard already uses to roll a closed month's daily rows
+     into one figure (see the Delay % tab's note: "the average of that timeslot's daily values
+     across the month"). Used only for a date before delay_history.json's "mtdDaily" log started
+     (v27.0) — see avgDelayAsOf() below, which tries the real recorded MTD figure first. */
+  function avgDelayFallback(dateStr){
+    const monthKey = dateStr.slice(0,7);
+    const days = Object.keys(DATA.delayDaily || {}).filter(dk=>dk.startsWith(monthKey) && dk<=dateStr).sort();
+    if(!days.length) return { overall:null, districts:Object.fromEntries(DISTRICTS.map(d=>[d,null])), hasData:false };
+    let sumOverall = 0, cntOverall = 0;
+    const sumD = {}, cntD = {};
+    DISTRICTS.forEach(d=>{ sumD[d]=0; cntD[d]=0; });
+    days.forEach(dk=>{
+      const rec = DATA.delayDaily[dk];
+      const v = rec.overall && rec.overall.Overall && rec.overall.Overall.delay;
+      if(v != null){ sumOverall += v; cntOverall++; }
+      DISTRICTS.forEach(d=>{
+        const dv = rec.districts && rec.districts[d] && rec.districts[d].Overall && rec.districts[d].Overall.delay;
+        if(dv != null){ sumD[d] += dv; cntD[d]++; }
+      });
+    });
+    const overall = cntOverall ? Math.round((sumOverall/cntOverall)*100)/100 : null;
+    const districts = {};
+    DISTRICTS.forEach(d=>{ districts[d] = cntD[d] ? Math.round((sumD[d]/cntD[d])*100)/100 : null; });
+    return { overall, districts, hasData:true };
+  }
+
+  /* v27.0 — Delay Rate MTD-through-date: prefer an EXACT-date hit in delay_history.json's
+     "mtdDaily" log (the real MTD % the source system reported that day), falling back to
+     avgDelayFallback() only for a date the log doesn't cover (before v27.0, or a day the
+     pipeline didn't run). "recorded" tells callers which path was used, purely informational. */
+  function avgDelayAsOf(dateStr){
+    const rec = DATA.delayMtdDaily && DATA.delayMtdDaily[dateStr];
+    if(rec){
+      const districts = {};
+      DISTRICTS.forEach(d=>{ districts[d] = rec.districts && rec.districts[d] != null ? rec.districts[d] : null; });
+      return { overall: rec.overall ?? null, districts, hasData: rec.overall != null, recorded:true };
+    }
+    return { ...avgDelayFallback(dateStr), recorded:false };
+  }
+
+  /* v27.0 — Poor Rating % / Missing & Lost Amount / RFID Missing Tote MTD-through-date: exact
+     lookup in other_aspects_history.json's per-metric "daily" log (poorRating/missingLostAmount:
+     that day's own true running MTD total, already recorded at the source; rfidMissingTote:
+     kpi_pipeline.py's cumulative sum of its per-day increment ledger through that day). No
+     average/estimate fallback exists for these — a date the log doesn't cover (before v27.0)
+     just has no entry, and the caller falls back to today's snapshot, same as before v27.0. */
+  const OTHER_ASPECT_KEYS = ['poorRating', 'missingLostAmount', 'rfidMissingTote'];
+  function otherAspectAsOf(key, dateStr){
+    const daily = (DATA.otherAspects && DATA.otherAspects[key] && DATA.otherAspects[key].daily) || {};
+    const rec = daily[dateStr];
+    if(!rec) return { overall:null, districts:Object.fromEntries(DISTRICTS.map(d=>[d,null])), hasData:false };
+    const districts = {};
+    DISTRICTS.forEach(d=>{ districts[d] = rec.districts && rec.districts[d] != null ? rec.districts[d] : null; });
+    return { overall: rec.overall ?? null, districts, hasData: rec.overall != null };
+  }
+
+  function overviewActualOverall(key){
+    const ds = overviewSelectedDateStr();
+    if(!overviewMaxDate || ds === overviewMaxDate) return getActualOverall(key);
+    if(key === 'hktvStaff'){
+      const r = sumProductivityAsOf('hktvStaff', ds);
+      return r.hasData ? r.overall : getActualOverall(key);
+    }
+    if(key === 'delayRate'){
+      const r = avgDelayAsOf(ds);
+      return r.hasData ? r.overall : getActualOverall(key);
+    }
+    if(OTHER_ASPECT_KEYS.includes(key)){
+      const r = otherAspectAsOf(key, ds);
+      return r.hasData ? r.overall : getActualOverall(key);
+    }
+    return getActualOverall(key);
+  }
+  function overviewActualDistrict(key, district){
+    const ds = overviewSelectedDateStr();
+    if(!overviewMaxDate || ds === overviewMaxDate) return getActual(key, district);
+    if(key === 'hktvStaff'){
+      const r = sumProductivityAsOf('hktvStaff', ds);
+      return r.hasData ? r.districts[district] : getActual(key, district);
+    }
+    if(key === 'delayRate'){
+      const r = avgDelayAsOf(ds);
+      return r.hasData ? r.districts[district] : getActual(key, district);
+    }
+    if(OTHER_ASPECT_KEYS.includes(key)){
+      const r = otherAspectAsOf(key, ds);
+      return r.hasData ? r.districts[district] : getActual(key, district);
+    }
+    return getActual(key, district);
+  }
+  function renderOverviewAsOfNote(){
+    const note = document.getElementById('overviewAsOfNote');
+    if(!note) return;
+    const ds = overviewSelectedDateStr();
+    if(!overviewMaxDate || ds === overviewMaxDate){ note.textContent = ''; return; }
+    const dObj = new Date(ds+'T00:00:00');
+    const label = isNaN(dObj) ? ds : dObj.toLocaleDateString('en-US',{month:'short', day:'numeric', year:'numeric'});
+    const hasHktv = sumProductivityAsOf('hktvStaff', ds).hasData;
+    const delayResult = avgDelayAsOf(ds);
+    const hasDelay = delayResult.hasData;
+    const otherHas = Object.fromEntries(OTHER_ASPECT_KEYS.map(k=>[k, otherAspectAsOf(k, ds).hasData]));
+    const anyOther = OTHER_ASPECT_KEYS.some(k=>otherHas[k]);
+    if(!hasHktv && !hasDelay && !anyOther){
+      note.textContent = `No daily history covers ${label} yet — every KPI below still shows its latest month-to-date figure.`;
+      return;
+    }
+    const covered = [];
+    if(hasHktv) covered.push('HKTV Staff Productivity');
+    if(hasDelay) covered.push(delayResult.recorded ? 'Delay Rate' : 'Delay Rate (estimated, pre-daily-log average)');
+    const OTHER_LABELS = { poorRating:'Poor Rating %', missingLostAmount:'Missing & Lost Amount', rfidMissingTote:'RFID Missing Tote' };
+    OTHER_ASPECT_KEYS.forEach(k=>{ if(otherHas[k]) covered.push(OTHER_LABELS[k]); });
+    const notCovered = ['HKTV Staff Productivity','Delay Rate',...OTHER_ASPECT_KEYS.map(k=>OTHER_LABELS[k])]
+      .filter(label => !covered.some(c => c === label || c.startsWith(label)));
+    let text = `${covered.join(', ')} above ${covered.length>1?'are':'is'} month-to-date through ${label}.`;
+    if(notCovered.length){
+      text += ` ${notCovered.join(', ')} ${notCovered.length>1?'have':'has'} no daily history for this date, so ${notCovered.length>1?'they':'it'} still show${notCovered.length>1?'':'s'} the latest month-to-date figure.`;
+    }
+    note.textContent = text;
+  }
 
   /* ---------------- TARGETS (overall + per-district) ----------------
      Reserved slot per matrix: data.json can optionally carry a `target`
@@ -1414,9 +1756,31 @@
     </div>`;
   }
 
+  /* v26.0 — embedded-data support for dashboard.html, kpi_pipeline.py's
+     self-contained sibling of this file (see write_dashboard_html()). Every
+     pipeline run now also emits dashboard.html: this same index.html source,
+     unmodified, with a window.__EMBEDDED_DATA__={...} script tag (see the
+     EMBEDDED_DATA_START/END markers above) spliced in between two marker
+     comments, carrying all six JSON files' parsed content keyed by filename.
+     When that global is present, fetchJSON
+     resolves from it instead of hitting the network, so dashboard.html opens
+     correctly from a double-clicked file:// path with zero fetches — file://
+     pages can't fetch relative JSON at all, which is exactly why this file
+     (index.html) still needs a real HTTP server to preview against loose
+     JSON siblings. index.html itself is never rewritten by the pipeline —
+     window.__EMBEDDED_DATA__ is simply undefined here, so every path below
+     behaves exactly as before, fetching the loose files. */
+  async function fetchJSON(filename){
+    const embedded = window.__EMBEDDED_DATA__;
+    if(embedded && Object.prototype.hasOwnProperty.call(embedded, filename)){
+      return { ok:true, json: async () => embedded[filename] };
+    }
+    return fetch('./' + filename, {cache:'no-store'});
+  }
+
   async function loadDataSource(){
     try{
-      const res = await fetch('./data.json', {cache:'no-store'});
+      const res = await fetchJSON('data.json');
       if(!res.ok) throw new Error('no data.json');
       const json = await res.json();
       if(!json.matrices) throw new Error('data.json is missing "matrices" — is this the old schema?');
@@ -1451,7 +1815,7 @@
     // and its own "not found" fallback, so there's no reason to make them
     // depend on data.json's outcome at all.
     try{
-      const res2 = await fetch('./productivity_history.json', {cache:'no-store'});
+      const res2 = await fetchJSON('productivity_history.json');
       if(!res2.ok) throw new Error('no productivity_history.json');
       const json2 = await res2.json();
       DATA.dailyProductivity = json2.daily || {};
@@ -1459,7 +1823,7 @@
       DATA.dailyProductivity = {};  // real empty state — see the on-page note in each tab
     }
     try{
-      const res3 = await fetch('./gmv_history.json', {cache:'no-store'});
+      const res3 = await fetchJSON('gmv_history.json');
       if(!res3.ok) throw new Error('no gmv_history.json');
       const json3 = await res3.json();
       DATA.gmvDaily = json3.daily || {};
@@ -1468,7 +1832,7 @@
       DATA.gmvDaily = {}; DATA.gmvMonthly = {};
     }
     try{
-      const res4 = await fetch('./manpower_distribution.json', {cache:'no-store'});
+      const res4 = await fetchJSON('manpower_distribution.json');
       if(!res4.ok) throw new Error('no manpower_distribution.json');
       const json4 = await res4.json();
       DATA.dailyManpower = json4.daily || {};
@@ -1476,17 +1840,18 @@
       DATA.dailyManpower = {};
     }
     try{
-      const res5 = await fetch('./delay_history.json', {cache:'no-store'});
+      const res5 = await fetchJSON('delay_history.json');
       if(!res5.ok) throw new Error('no delay_history.json');
       const json5 = await res5.json();
       DATA.delayDaily = json5.daily || {};
       DATA.delayMonthly = json5.monthly || {};
       DATA.delayMtd = json5.mtd || null;
+      DATA.delayMtdDaily = json5.mtdDaily || {}; // v27.0 — real per-day MTD delay%, see avgDelayAsOf()
     }catch(err){
-      DATA.delayDaily = {}; DATA.delayMonthly = {}; DATA.delayMtd = null;
+      DATA.delayDaily = {}; DATA.delayMonthly = {}; DATA.delayMtd = null; DATA.delayMtdDaily = {};
     }
     try{
-      const res6 = await fetch('./other_aspects_history.json', {cache:'no-store'});
+      const res6 = await fetchJSON('other_aspects_history.json');
       if(!res6.ok) throw new Error('no other_aspects_history.json');
       const json6 = await res6.json();
       DATA.otherAspects = json6 || {};
@@ -1494,6 +1859,7 @@
       DATA.otherAspects = {};
     }
 
+    computeOverviewDateBounds(); // v7.0 §1
     syncDateFromData();
     renderSourceBanner(); renderDate(); renderAll();
   }
@@ -1567,6 +1933,8 @@
     const [y,m,d] = e.target.value.split('-').map(Number);
     cur = {year:y, month:m, day:d};
     renderDate();
+    // v7.0 §1 — re-derive the Overview tab's date-dependent "Actual" cells
+    renderKpiCards(); renderTableBody(); renderOverviewAsOfNote();
   });
 
   /* ---------------- RENDER: KPI cards ---------------- */
@@ -1583,7 +1951,7 @@
   }
 
   function renderMatrixCard(m, interactive=true){
-    const actualAgg = getActualOverall(m.key);
+    const actualAgg = overviewActualOverall(m.key);
     const forecastAgg = getForecastOverall(m.key);
     const targetOverall = getTargetOverall(m.key);
     const st = statusFor(m, forecastAgg, targetOverall);
@@ -1649,7 +2017,7 @@
   function renderTableBodyInto(bodyEl, subEl, matrices, sortState, view){
     let rows = DISTRICTS.map(d=>{
       const vals = {};
-      matrices.forEach(m=>{ vals[m.key] = { actual:getActual(m.key,d), forecast:getForecast(m.key,d) }; });
+      matrices.forEach(m=>{ vals[m.key] = { actual:overviewActualDistrict(m.key,d), forecast:getForecast(m.key,d) }; });
       return {name:d, vals};
     });
 
@@ -1698,6 +2066,255 @@
   const overviewSort = { get key(){return sortKey;}, set key(v){sortKey=v;}, get dir(){return sortDir;}, set dir(v){sortDir=v;}, get searchTerm(){ return searchTerm; } };
   function renderTableHead(){ renderTableHeadInto(tableHead, OVERVIEW_MATRICES, overviewSort); }
   function renderTableBody(){ renderTableBodyInto(tableBody, tableSub, OVERVIEW_MATRICES, overviewSort, currentView); }
+
+  /* ================================================================================
+     v7.0 §2 — Department Manifest "Trend" view: a Table/Trend switch next to the
+     manifest's search box, matching the Rank by Actual/Forecast toggle pattern. The
+     Trend view line-charts one KPI (network overall or a single district) so leaders
+     can see it move over time and choose the x-axis grain (Daily / Weekly avg. /
+     Monthly), with a hover crosshair that reads out the exact value at any point.
+     Reuses the same history files already loaded for other tabs:
+       - hktvStaff  -> DATA.dailyProductivity (productivity_history.json), true daily
+       - delayRate  -> DATA.delayDaily (current month) + DATA.delayMonthly (closed
+                        months) (delay_history.json)
+       - poorRating / missingLostAmount / rfidMissingTote -> DATA.otherAspects[key]
+         .monthly (closed months) + .current (this month's MTD) — monthly-only,
+         since other_aspects_history.json never logs a daily figure for these.
+     No new data source or pipeline change needed for any of this.
+  ================================================================================ */
+  let deptViewMode = 'table';       // 'table' | 'trend'
+  let trendKpiKey = OVERVIEW_MATRICES[0].key;
+  let trendScope = 'Overall';       // 'Overall' or a district code
+  let trendInterval = 'daily';      // 'daily' | 'weekly' | 'monthly'
+
+  function trendMetricSupportsDaily(key){ return key === 'hktvStaff' || key === 'delayRate'; }
+
+  function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
+
+  /* Raw per-day value (NOT a cumulative MTD total) for whichever KPI has a real daily log. */
+  function trendDailySeries(key, scope){
+    if(key === 'hktvStaff'){
+      return Object.keys(DATA.dailyProductivity || {}).sort().map(dk=>{
+        const rec = DATA.dailyProductivity[dk] && DATA.dailyProductivity[dk].hktvStaff;
+        if(!rec) return null;
+        const v = scope==='Overall' ? rec.total?.productivity : rec.districts?.[scope]?.productivity;
+        return v==null ? null : { date:dk, value:v };
+      }).filter(Boolean);
+    }
+    if(key === 'delayRate'){
+      return Object.keys(DATA.delayDaily || {}).sort().map(dk=>{
+        const rec = DATA.delayDaily[dk];
+        const v = scope==='Overall' ? rec.overall?.Overall?.delay : rec.districts?.[scope]?.Overall?.delay;
+        return v==null ? null : { date:dk, value:v };
+      }).filter(Boolean);
+    }
+    return [];
+  }
+
+  function aggregateWeekly(points){
+    const buckets = {};
+    points.forEach(p=>{ (buckets[mondayOf(p.date)] ??= []).push(p.value); });
+    return Object.keys(buckets).sort().map(wk=>({ date:wk, value:avg(buckets[wk]), label:'Week of '+wk }));
+  }
+  function aggregateMonthly(points){
+    const buckets = {};
+    points.forEach(p=>{ const mk=p.date.slice(0,7); (buckets[mk] ??= []).push(p.value); });
+    return Object.keys(buckets).sort().map(mk=>({ date:mk+'-01', value:avg(buckets[mk]), label:mk }));
+  }
+
+  /* delayRate's monthly grain prefers the pipeline's own closed-month averages
+     (DATA.delayMonthly) over re-averaging the short current-month daily log, and
+     appends this month's daily average as the final "(MTD)" point. */
+  function trendMonthlySeriesForDelay(scope){
+    const out = [];
+    Object.keys(DATA.delayMonthly || {}).sort().forEach(mk=>{
+      const g = DATA.delayMonthly[mk] && DATA.delayMonthly[mk].Overall;
+      if(!g) return;
+      const v = scope==='Overall' ? g.overall : g.districts?.[scope];
+      if(v != null) out.push({ date:mk+'-01', value:v, label:mk });
+    });
+    const daily = trendDailySeries('delayRate', scope);
+    if(daily.length){
+      const mk = daily[daily.length-1].date.slice(0,7);
+      const v = avg(daily.filter(p=>p.date.startsWith(mk)).map(p=>p.value));
+      if(v != null) out.push({ date:mk+'-01', value:v, label:mk+' (MTD)' });
+    }
+    return out;
+  }
+
+  /* poorRating / missingLostAmount / rfidMissingTote: no daily log exists at all —
+     one point per CLOSED month (.monthly) plus one point for the open month (.current). */
+  function trendMonthlyFromLedger(key, scope){
+    const bucket = DATA.otherAspects && DATA.otherAspects[key];
+    if(!bucket) return [];
+    const out = [];
+    Object.keys(bucket.monthly || {}).sort().forEach(mk=>{
+      const g = bucket.monthly[mk];
+      const v = scope==='Overall' ? g.overall : g.districts?.[scope];
+      if(v != null) out.push({ date:mk+'-01', value:v, label:mk });
+    });
+    if(bucket.current){
+      const mk = bucket.current.monthKey;
+      const v = scope==='Overall' ? bucket.current.overall : bucket.current.districts?.[scope];
+      if(mk && v != null) out.push({ date:mk+'-01', value:v, label:mk+' (MTD)' });
+    }
+    return out;
+  }
+
+  function getTrendSeries(key, scope, interval){
+    if(!trendMetricSupportsDaily(key)) return trendMonthlyFromLedger(key, scope);
+    if(key === 'delayRate' && interval === 'monthly') return trendMonthlySeriesForDelay(scope);
+    const daily = trendDailySeries(key, scope);
+    if(interval === 'daily') return daily.map(p=>({ date:p.date, value:p.value, label:p.date }));
+    if(interval === 'weekly') return aggregateWeekly(daily);
+    return aggregateMonthly(daily);
+  }
+
+  function trendTargetFor(key, scope){
+    return scope === 'Overall' ? getTargetOverall(key) : getTargetForDistrict(key, scope);
+  }
+
+  function populateTrendControls(){
+    const kpiSel = document.getElementById('trendKpiSelect');
+    if(kpiSel && !kpiSel.dataset.built){
+      kpiSel.innerHTML = OVERVIEW_MATRICES.map(m=>`<option value="${m.key}">${m.label}</option>`).join('');
+      kpiSel.value = trendKpiKey;
+      kpiSel.dataset.built = '1';
+    }
+    const scopeSel = document.getElementById('trendScopeSelect');
+    if(scopeSel && !scopeSel.dataset.built){
+      scopeSel.innerHTML = `<option value="Overall">Overall (network)</option>` + DISTRICTS.map(d=>`<option value="${d}">${d}</option>`).join('');
+      scopeSel.value = trendScope;
+      scopeSel.dataset.built = '1';
+    }
+    const intervalSel = document.getElementById('trendIntervalSelect');
+    if(intervalSel){
+      const supportsDaily = trendMetricSupportsDaily(trendKpiKey);
+      intervalSel.querySelectorAll('option').forEach(opt=>{
+        opt.disabled = !supportsDaily && opt.value !== 'monthly';
+      });
+      if(!supportsDaily && trendInterval !== 'monthly'){ trendInterval = 'monthly'; }
+      intervalSel.value = trendInterval;
+    }
+  }
+
+  function drawTrendChart(series, m, scope){
+    const svg = document.getElementById('trendSvg');
+    const tooltip = document.getElementById('trendTooltip');
+    const emptyNote = document.getElementById('trendEmptyNote');
+    if(!svg) return;
+    svg.innerHTML = '';
+    if(!series.length){
+      emptyNote.textContent = `No history yet for ${m.label} (${scope}) at this interval.`;
+      tooltip.classList.remove('show');
+      return;
+    }
+    emptyNote.textContent = '';
+
+    const W = 900, H = 320, padL = 64, padR = 24, padT = 20, padB = 36;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const target = trendTargetFor(m.key, scope);
+    const values = series.map(p=>p.value).filter(v=>v!=null);
+    let vMin = Math.min(...values), vMax = Math.max(...values);
+    if(target != null){ vMin = Math.min(vMin, target); vMax = Math.max(vMax, target); }
+    if(vMin === vMax){ vMin -= 1; vMax += 1; }
+    const pad = (vMax - vMin) * 0.12;
+    vMin -= pad; vMax += pad;
+
+    const xAt = i => padL + (series.length===1 ? plotW/2 : (i/(series.length-1))*plotW);
+    const yAt = v => padT + plotH - ((v - vMin)/(vMax - vMin))*plotH;
+
+    const ns = 'http://www.w3.org/2000/svg';
+    const mk = (tag, attrs)=>{ const el=document.createElementNS(ns,tag); Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); return el; };
+
+    // gridlines + y-axis labels (5 bands)
+    const bands = 4;
+    for(let i=0;i<=bands;i++){
+      const v = vMin + (vMax-vMin)*(i/bands);
+      const y = yAt(v);
+      svg.appendChild(mk('line', {x1:padL, y1:y, x2:W-padR, y2:y, class:'trend-svg-gridline'}));
+      const t = mk('text', {x:padL-8, y:y+4, class:'trend-svg-axis-label', 'text-anchor':'end'});
+      t.textContent = m.fmt(v);
+      svg.appendChild(t);
+    }
+    svg.appendChild(mk('line', {x1:padL, y1:padT, x2:padL, y2:H-padB, class:'trend-svg-axis'}));
+    svg.appendChild(mk('line', {x1:padL, y1:H-padB, x2:W-padR, y2:H-padB, class:'trend-svg-axis'}));
+
+    // x-axis labels: first, last, and a few evenly spaced in between
+    const maxLabels = 8;
+    const step = Math.max(1, Math.ceil(series.length / maxLabels));
+    series.forEach((p,i)=>{
+      if(i % step !== 0 && i !== series.length-1) return;
+      const t = mk('text', {x:xAt(i), y:H-padB+18, class:'trend-svg-axis-label', 'text-anchor':'middle'});
+      t.textContent = p.label && p.label.length>10 ? p.date.slice(5) : (p.label || p.date);
+      svg.appendChild(t);
+    });
+
+    // target reference line
+    if(target != null){
+      svg.appendChild(mk('line', {x1:padL, y1:yAt(target), x2:W-padR, y2:yAt(target), class:'trend-svg-target'}));
+      const t = mk('text', {x:W-padR, y:yAt(target)-6, class:'trend-svg-axis-label', 'text-anchor':'end'});
+      t.textContent = `Target ${m.fmt(target)}`;
+      svg.appendChild(t);
+    }
+
+    // line + dots
+    const linePath = series.map((p,i)=> (p.value==null ? null : `${i===0?'M':'L'}${xAt(i)},${yAt(p.value)}`)).filter(Boolean).join(' ');
+    svg.appendChild(mk('path', {d:linePath, class:'trend-svg-line'}));
+    series.forEach((p,i)=>{
+      if(p.value==null) return;
+      svg.appendChild(mk('circle', {cx:xAt(i), cy:yAt(p.value), r:3.5, class:'trend-svg-dot'}));
+    });
+
+    // hover crosshair + tooltip
+    const crosshair = mk('line', {x1:0, y1:padT, x2:0, y2:H-padB, class:'trend-svg-crosshair'});
+    const hoverDot = mk('circle', {cx:0, cy:0, r:5, class:'trend-svg-hoverdot'});
+    svg.appendChild(crosshair); svg.appendChild(hoverDot);
+    const overlay = mk('rect', {x:padL, y:padT, width:plotW, height:plotH, class:'trend-svg-overlay'});
+    svg.appendChild(overlay);
+
+    function handleMove(e){
+      const rect = svg.getBoundingClientRect();
+      const scaleX = W / rect.width;
+      const localX = (e.clientX - rect.left) * scaleX;
+      let idx = series.length===1 ? 0 : Math.round(((localX - padL) / plotW) * (series.length-1));
+      idx = Math.max(0, Math.min(series.length-1, idx));
+      const p = series[idx];
+      if(p.value == null) return;
+      const x = xAt(idx), y = yAt(p.value);
+      crosshair.setAttribute('x1', x); crosshair.setAttribute('x2', x); crosshair.style.opacity = 1;
+      hoverDot.setAttribute('cx', x); hoverDot.setAttribute('cy', y); hoverDot.style.opacity = 1;
+      const wrapRect = document.getElementById('trendChartWrap').getBoundingClientRect();
+      const scaleDisp = rect.width / W;
+      tooltip.style.left = (rect.left - wrapRect.left + x*scaleDisp) + 'px';
+      tooltip.style.top = (rect.top - wrapRect.top + y*scaleDisp) + 'px';
+      tooltip.innerHTML = `<div class="tt-date">${p.label || p.date}</div><div>${m.label}: <strong>${m.fmt(p.value)}</strong></div>`;
+      tooltip.classList.add('show');
+    }
+    overlay.addEventListener('mousemove', handleMove);
+    overlay.addEventListener('mouseleave', ()=>{
+      crosshair.style.opacity = 0; hoverDot.style.opacity = 0; tooltip.classList.remove('show');
+    });
+  }
+
+  function renderTrendPanel(){
+    if(deptViewMode !== 'trend') return;
+    populateTrendControls();
+    const m = MATRICES.find(x=>x.key===trendKpiKey);
+    if(!m) return;
+    const series = getTrendSeries(trendKpiKey, trendScope, trendInterval);
+    drawTrendChart(series, m, trendScope);
+  }
+
+  function setDeptViewMode(mode){
+    deptViewMode = mode;
+    document.querySelectorAll('#deptViewToggle button').forEach(b=>b.classList.toggle('on', b.dataset.mode===mode));
+    document.getElementById('deptTableWrap').style.display = mode==='table' ? '' : 'none';
+    document.getElementById('deptLegend').style.display = mode==='table' ? '' : 'none';
+    document.getElementById('deptSearchWrap').style.display = mode==='table' ? '' : 'none';
+    document.getElementById('deptTrendPanel').style.display = mode==='trend' ? '' : 'none';
+    if(mode==='trend') renderTrendPanel();
+  }
 
   /* ---------------- Hover tooltip: full actual/forecast breakdown per cell ---------------- */
   const cellTooltip = document.getElementById('cellTooltip');
@@ -1768,6 +2385,21 @@
   });
   document.getElementById('deptSearch').addEventListener('input', e=>{
     searchTerm = e.target.value; renderTableBody();
+  });
+
+  /* v7.0 §2 — Department Manifest Table/Trend switch + trend controls */
+  document.getElementById('deptViewToggle').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    setDeptViewMode(btn.dataset.mode);
+  });
+  document.getElementById('trendKpiSelect').addEventListener('change', e=>{
+    trendKpiKey = e.target.value; renderTrendPanel();
+  });
+  document.getElementById('trendScopeSelect').addEventListener('change', e=>{
+    trendScope = e.target.value; renderTrendPanel();
+  });
+  document.getElementById('trendIntervalSelect').addEventListener('change', e=>{
+    trendInterval = e.target.value; renderTrendPanel();
   });
 
   /* ---------------- Drawer (district detail) ---------------- */
@@ -5210,6 +5842,279 @@
     document.getElementById('fcAutoTuneBtn').addEventListener('click', fcAutoTuneOverdrive);
   }
 
+  /* ================================================================================
+     PRODUCTIVITY DETAIL — TREND VIEW (multi-aspect, multi-district)
+     Table/Trend toggle mirrors the Department Manifest's (deptViewToggle/
+     renderTrendPanel above), but here the person can plot several aspects
+     (Order / Waybill / Manpower / Waybill-Order / Productivity / Cost-Order)
+     and several districts at once, each aspect getting its own small chart
+     with one line per selected district. Reuses the exact same daily records
+     (DATA.dailyProductivity, keyed by the Matrix already chosen in
+     prodMatrixSelect: hktvStaff or odsRatio) and the exact same per-cell
+     math as the table above (see renderProductivityTab's oA/wA/mA/woA/pA),
+     plus aggregateWeekly/aggregateMonthly already built for the Department
+     Manifest trend. Cost/Order has no historical actual log (same "Pending"
+     caveat as the table) — selecting it shows an explanatory empty state
+     rather than a fabricated line. Target lines use the same
+     TARGET_PRODUCTIVITY / TARGET_COST_PER_ORDER tables the Forecast tab's
+     Suggest Headcount already reads, per selected district. */
+  const PROD_TREND_ASPECTS = [
+    { key:'orderCount',   label:'Order',          fmt:intFmt,                                     hasTarget:false },
+    { key:'waybillCount', label:'Waybill',         fmt:intFmt,                                     hasTarget:false },
+    { key:'manpower',     label:'Manpower',        fmt:intFmt,                                     hasTarget:false },
+    { key:'wbPerOrder',   label:'Waybill / Order', fmt:v=>v==null?'—':v.toFixed(2),                hasTarget:false },
+    { key:'productivity', label:'Productivity',    fmt:null, /* filled from the chosen Matrix */   hasTarget:true  },
+    { key:'costPerOrder', label:'Cost / Order',    fmt:v=>v==null?'Pending':('$'+v.toFixed(2)),    hasTarget:true  },
+  ];
+  const TREND_PALETTE = ['#2f6f4f','#b0413e','#3d6cb0','#b98a2f','#7952b3','#1f9e9e','#c2528c','#5b7a3b','#a35d24','#4c5b8f'];
+  function prodTrendColorFor(district){
+    if(district==='Total') return '#1a1a2e';
+    const idx = DISTRICTS.indexOf(district);
+    return TREND_PALETTE[idx>=0 ? idx % TREND_PALETTE.length : 0];
+  }
+
+  let prodTrendMode = 'table';                 // 'table' | 'trend'
+  let prodTrendAspects = new Set(['productivity']);
+  let prodTrendDistricts = new Set(['Total']);
+  let prodTrendInterval = 'daily';
+  let prodTrendShowTarget = true;
+
+  // Same derivation as the table cells (oA/wA/mA/woA/pA in renderProductivityTab).
+  // costPerOrder has no daily actual-cost log yet, so it's always null here —
+  // never fabricated — matching the table's "Pending" cell.
+  function prodTrendRawValue(aspectKey, rec){
+    if(!rec) return null;
+    if(aspectKey==='orderCount') return rec.orderCount ?? null;
+    if(aspectKey==='waybillCount') return Number.isFinite(rec.waybillCount) ? rec.waybillCount : null;
+    if(aspectKey==='manpower') return rec.manpower ?? null;
+    if(aspectKey==='wbPerOrder') return (rec.orderCount && Number.isFinite(rec.waybillCount)) ? rec.waybillCount/rec.orderCount : null;
+    if(aspectKey==='productivity') return rec.manpower ? rec.orderCount/rec.manpower : null;
+    return null;
+  }
+
+  function prodTrendDailySeries(matrixKey, aspectKey, district){
+    return Object.keys(DATA.dailyProductivity || {}).sort().map(dk=>{
+      const grp = DATA.dailyProductivity[dk] && DATA.dailyProductivity[dk][matrixKey];
+      if(!grp) return null;
+      const rec = district==='Total' ? grp.total : (grp.districts && grp.districts[district]);
+      const v = prodTrendRawValue(aspectKey, rec);
+      return v==null ? null : { date:dk, value:v };
+    }).filter(Boolean);
+  }
+
+  function prodTrendSeriesFor(matrixKey, aspectKey, district, interval){
+    const daily = prodTrendDailySeries(matrixKey, aspectKey, district);
+    if(interval==='daily') return daily.map(p=>({ date:p.date, value:p.value, label:p.date }));
+    if(interval==='weekly') return aggregateWeekly(daily);
+    return aggregateMonthly(daily);
+  }
+
+  function prodTrendTargetFor(matrixKey, aspectKey, district){
+    if(aspectKey==='productivity') return district==='Total' ? getTargetOverall(matrixKey) : getTargetForDistrict(matrixKey, district);
+    if(aspectKey==='costPerOrder') return district==='Total' ? TARGET_COST_PER_ORDER.overall : (TARGET_COST_PER_ORDER[district] != null ? TARGET_COST_PER_ORDER[district] : TARGET_COST_PER_ORDER.overall);
+    return null;
+  }
+
+  function populateProdTrendChips(){
+    const aspectWrap = document.getElementById('prodTrendAspectChips');
+    if(aspectWrap && !aspectWrap.dataset.built){
+      aspectWrap.innerHTML = PROD_TREND_ASPECTS.map(a=>`<button type="button" class="chip" data-aspect="${a.key}">${a.label}</button>`).join('');
+      aspectWrap.dataset.built = '1';
+      aspectWrap.querySelectorAll('.chip').forEach(chip=>{
+        chip.addEventListener('click', ()=>{
+          const k = chip.dataset.aspect;
+          if(prodTrendAspects.has(k)) prodTrendAspects.delete(k); else prodTrendAspects.add(k);
+          renderProdTrendPanel();
+        });
+      });
+    }
+    if(aspectWrap) aspectWrap.querySelectorAll('.chip').forEach(chip=> chip.classList.toggle('on', prodTrendAspects.has(chip.dataset.aspect)));
+
+    const distWrap = document.getElementById('prodTrendDistrictChips');
+    if(distWrap && !distWrap.dataset.built){
+      distWrap.innerHTML = ['Total', ...DISTRICTS].map(d=>`<button type="button" class="chip" data-district="${d}">${d}</button>`).join('');
+      distWrap.dataset.built = '1';
+      distWrap.querySelectorAll('.chip').forEach(chip=>{
+        chip.addEventListener('click', ()=>{
+          const d = chip.dataset.district;
+          if(prodTrendDistricts.has(d)) prodTrendDistricts.delete(d); else prodTrendDistricts.add(d);
+          renderProdTrendPanel();
+        });
+      });
+    }
+    if(distWrap) distWrap.querySelectorAll('.chip').forEach(chip=> chip.classList.toggle('on', prodTrendDistricts.has(chip.dataset.district)));
+
+    const intervalSel = document.getElementById('prodTrendIntervalSelect');
+    if(intervalSel) intervalSel.value = prodTrendInterval;
+    const targetChk = document.getElementById('prodTrendShowTarget');
+    if(targetChk) targetChk.checked = prodTrendShowTarget;
+  }
+
+  function drawProdTrendChart(aspectKey, seriesList, targets, fmtFn){
+    const svg = document.getElementById('prodTrendSvg_'+aspectKey);
+    const tooltip = document.getElementById('prodTrendTooltip_'+aspectKey);
+    const legend = document.getElementById('prodTrendLegend_'+aspectKey);
+    const cardEmpty = document.getElementById('prodTrendCardEmpty_'+aspectKey);
+    if(!svg) return;
+    svg.innerHTML = '';
+
+    const dateLabel = {};
+    seriesList.forEach(s=> s.points.forEach(p=>{ dateLabel[p.date] = p.label || p.date; }));
+    const dates = Object.keys(dateLabel).sort();
+    let allVals = [];
+    const seriesByDate = seriesList.map(s=>{
+      const byDate = {}; s.points.forEach(p=>{ byDate[p.date] = p.value; if(p.value!=null) allVals.push(p.value); });
+      return { ...s, values: dates.map(dk=> byDate[dk] ?? null) };
+    });
+    targets.forEach(t=>{ if(t.value!=null) allVals.push(t.value); });
+
+    if(!dates.length || !allVals.length){
+      legend.innerHTML = '';
+      cardEmpty.style.display = '';
+      cardEmpty.textContent = aspectKey==='costPerOrder'
+        ? 'No actual historical Cost/Order is recorded yet — see the Forecast tab\u2019s Cost Planning portal for the planned figure.'
+        : 'No history yet for this aspect at this interval / district selection.';
+      tooltip.classList.remove('show');
+      return;
+    }
+    cardEmpty.style.display = 'none';
+
+    legend.innerHTML = seriesByDate.map(s=>`<span class="lg-item"><i class="lg-dot" style="background:${s.color}"></i>${s.district}</span>`).join('')
+      + targets.map(t=>`<span class="lg-item"><i class="lg-dot" style="background:${t.color};opacity:.5;"></i>${t.district} target</span>`).join('');
+
+    const W = 900, H = 300, padL = 64, padR = 24, padT = 20, padB = 36;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    let vMin = Math.min(...allVals), vMax = Math.max(...allVals);
+    if(vMin === vMax){ vMin -= 1; vMax += 1; }
+    const pad = (vMax - vMin) * 0.12;
+    vMin -= pad; vMax += pad;
+
+    const xAt = i => padL + (dates.length===1 ? plotW/2 : (i/(dates.length-1))*plotW);
+    const yAt = v => padT + plotH - ((v - vMin)/(vMax - vMin))*plotH;
+    const ns = 'http://www.w3.org/2000/svg';
+    const mk = (tag, attrs)=>{ const el=document.createElementNS(ns,tag); Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); return el; };
+
+    const bands = 4;
+    for(let i=0;i<=bands;i++){
+      const v = vMin + (vMax-vMin)*(i/bands);
+      const y = yAt(v);
+      svg.appendChild(mk('line', {x1:padL, y1:y, x2:W-padR, y2:y, class:'trend-svg-gridline'}));
+      const t = mk('text', {x:padL-8, y:y+4, class:'trend-svg-axis-label', 'text-anchor':'end'});
+      t.textContent = fmtFn(v);
+      svg.appendChild(t);
+    }
+    svg.appendChild(mk('line', {x1:padL, y1:padT, x2:padL, y2:H-padB, class:'trend-svg-axis'}));
+    svg.appendChild(mk('line', {x1:padL, y1:H-padB, x2:W-padR, y2:H-padB, class:'trend-svg-axis'}));
+
+    const maxLabels = 8;
+    const step = Math.max(1, Math.ceil(dates.length / maxLabels));
+    dates.forEach((dk,i)=>{
+      if(i % step !== 0 && i !== dates.length-1) return;
+      const t = mk('text', {x:xAt(i), y:H-padB+18, class:'trend-svg-axis-label', 'text-anchor':'middle'});
+      const lbl = dateLabel[dk];
+      t.textContent = lbl && lbl.length>10 ? dk.slice(5) : lbl;
+      svg.appendChild(t);
+    });
+
+    targets.forEach(t=>{
+      if(t.value==null) return;
+      svg.appendChild(mk('line', {x1:padL, y1:yAt(t.value), x2:W-padR, y2:yAt(t.value), class:'trend-svg-target', style:`stroke:${t.color};opacity:.55;`}));
+    });
+
+    seriesByDate.forEach(s=>{
+      let path = '';
+      s.values.forEach((v,i)=>{
+        if(v==null) return;
+        path += (path==='' || s.values[i-1]==null ? 'M' : 'L') + xAt(i) + ',' + yAt(v) + ' ';
+      });
+      if(path) svg.appendChild(mk('path', {d:path.trim(), class:'trend-svg-line2', style:`stroke:${s.color};`}));
+      s.values.forEach((v,i)=>{
+        if(v==null) return;
+        svg.appendChild(mk('circle', {cx:xAt(i), cy:yAt(v), r:3, style:`fill:${s.color};stroke:#fff;stroke-width:1.2;`}));
+      });
+    });
+
+    const crosshair = mk('line', {x1:0, y1:padT, x2:0, y2:H-padB, class:'trend-svg-crosshair'});
+    svg.appendChild(crosshair);
+    const overlay = mk('rect', {x:padL, y:padT, width:plotW, height:plotH, class:'trend-svg-overlay'});
+    svg.appendChild(overlay);
+
+    function handleMove(e){
+      const rect = svg.getBoundingClientRect();
+      const scaleX = W / rect.width;
+      const localX = (e.clientX - rect.left) * scaleX;
+      let idx = dates.length===1 ? 0 : Math.round(((localX - padL) / plotW) * (dates.length-1));
+      idx = Math.max(0, Math.min(dates.length-1, idx));
+      const x = xAt(idx);
+      crosshair.setAttribute('x1', x); crosshair.setAttribute('x2', x); crosshair.style.opacity = 1;
+      const wrapEl = document.getElementById('prodTrendWrap_'+aspectKey);
+      const wrapRect = wrapEl.getBoundingClientRect();
+      const scaleDisp = rect.width / W;
+      const rows = seriesByDate.map(s=> `<div>${s.district}: <strong>${s.values[idx]==null?'—':fmtFn(s.values[idx])}</strong></div>`).join('');
+      tooltip.style.left = (rect.left - wrapRect.left + x*scaleDisp) + 'px';
+      tooltip.style.top = (rect.top - wrapRect.top + padT*scaleDisp) + 'px';
+      tooltip.innerHTML = `<div class="tt-date">${dateLabel[dates[idx]]}</div>${rows}`;
+      tooltip.classList.add('show');
+    }
+    overlay.addEventListener('mousemove', handleMove);
+    overlay.addEventListener('mouseleave', ()=>{ crosshair.style.opacity = 0; tooltip.classList.remove('show'); });
+  }
+
+  function renderProdTrendPanel(){
+    if(prodTrendMode !== 'trend') return;
+    populateProdTrendChips();
+    const container = document.getElementById('prodTrendCharts');
+    const emptyNote = document.getElementById('prodTrendEmptyNote');
+    if(!container) return;
+    const matrixKey = document.getElementById('prodMatrixSelect').value;
+    const m = MATRICES.find(x=>x.key===matrixKey) || MATRICES.find(x=>x.key==='hktvStaff');
+
+    const aspects = PROD_TREND_ASPECTS.filter(a=>prodTrendAspects.has(a.key));
+    const districts = ['Total', ...DISTRICTS].filter(d=>prodTrendDistricts.has(d));
+
+    if(!aspects.length || !districts.length){
+      container.innerHTML = '';
+      emptyNote.textContent = 'Pick at least one aspect and one district above to plot a trend.';
+      return;
+    }
+    emptyNote.textContent = '';
+
+    container.innerHTML = aspects.map(a=>`
+      <div class="prod-trend-card">
+        <h4>${a.label}${a.key==='productivity' ? ` (${m.label})` : ''}</h4>
+        <div class="trend-chart-wrap" id="prodTrendWrap_${a.key}">
+          <svg id="prodTrendSvg_${a.key}" viewBox="0 0 900 300" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="trend-tooltip" id="prodTrendTooltip_${a.key}"></div>
+        </div>
+        <div class="prod-trend-legend" id="prodTrendLegend_${a.key}"></div>
+        <div class="trend-empty-note" id="prodTrendCardEmpty_${a.key}" style="display:none;"></div>
+      </div>
+    `).join('');
+
+    aspects.forEach(a=>{
+      const fmtFn = a.key==='productivity' ? m.fmt : a.fmt;
+      const seriesList = districts.map(d=>({
+        district: d,
+        color: prodTrendColorFor(d),
+        points: prodTrendSeriesFor(matrixKey, a.key, d, prodTrendInterval)
+      }));
+      const targets = (prodTrendShowTarget && a.hasTarget)
+        ? districts.map(d=>({ district:d, color:prodTrendColorFor(d), value:prodTrendTargetFor(matrixKey, a.key, d) })).filter(t=>t.value!=null)
+        : [];
+      drawProdTrendChart(a.key, seriesList, targets, fmtFn);
+    });
+  }
+
+  function setProdViewMode(mode){
+    prodTrendMode = mode;
+    document.querySelectorAll('#prodViewToggle button').forEach(b=>b.classList.toggle('on', b.dataset.mode===mode));
+    document.getElementById('prodTableWrap').style.display = mode==='table' ? '' : 'none';
+    document.getElementById('prodNote').style.display = mode==='table' ? '' : 'none';
+    document.getElementById('prodTrendPanel').style.display = mode==='trend' ? '' : 'none';
+    if(mode==='trend') renderProdTrendPanel();
+    updateScrollHints();
+  }
+
   function renderProductivityTab(){
     const head = document.getElementById('prodTableHead');
     const body = document.getElementById('prodTableBody');
@@ -5222,6 +6127,7 @@
       document.getElementById('prodPeriodASelect').innerHTML = '';
       document.getElementById('prodPeriodBSelect').innerHTML = '';
       legend.innerHTML = ''; summary.innerHTML = '';
+      renderProdTrendPanel();
       return;
     }
     populatePeriodSelectors('prod');
@@ -5262,7 +6168,7 @@
 
     head.innerHTML = `<tr><th>District</th>${WEEKDAY_LABELS.map(w=>`<th>${w}</th>`).join('')}</tr>`;
 
-    const rowDistricts = [...DISTRICTS, 'Total'];
+    const rowDistricts = filterDistrictsByTerm([...DISTRICTS, 'Total'], prodSearchTerm);
     body.innerHTML = rowDistricts.map(d=>{
       const target = getTargetForDistrict(metricKey, d);
       const rowA = periodA ? getRow(periodA, metricKey, d, 'record') : Array(7).fill(null);
@@ -5304,7 +6210,12 @@
     note.innerHTML = (granularity==='month'
       ? 'Month view: each weekday cell averages that weekday across the whole month (e.g. August\'s Saturday column averages all 5 Saturdays) — Order, Waybill and Manpower are averaged first, then Waybill/Order, Productivity and Cost/Order are derived from those averages. '
       : 'Week view: each weekday cell is that single day\'s value (Monday through Sunday). ')
-      + `Each cell shows Order, Waybill, Manpower, Waybill/Order, Productivity and Cost/Order for ${labelA} vs ${labelB}, with the % change alongside each. Cost/Order shows "Pending" until the Cost Planning portal (Full Perspective Forecast tab) has real Fixed/Variable cost figures to calculate from. Cell tint follows the Productivity change: green = up, red = down.`;
+      + `Each cell shows Order, Waybill, Manpower, Waybill/Order, Productivity and Cost/Order for ${labelA} vs ${labelB}, with the % change alongside each. Cost/Order shows "Pending" until the Cost Planning portal (Full Perspective Forecast tab) has real Fixed/Variable cost figures to calculate from. Cell tint follows the Productivity change: green = up, red = down.`
+      + (prodSearchTerm ? ` <strong>Showing ${rowDistricts.filter(d=>d!=='Total').length} of ${DISTRICTS.length} districts</strong> matching "${prodSearchTerm}" (Total row always shown).` : '');
+
+    // Matrix (hktvStaff/odsRatio) drives the trend view's productivity values
+    // and target line too, so keep it in sync whenever this tab re-renders.
+    renderProdTrendPanel();
   }
 
   function renderOdsRatioTab(){
@@ -5351,7 +6262,7 @@
 
     head.innerHTML = `<tr><th>District</th>${WEEKDAY_LABELS.map(w=>`<th>${w}</th>`).join('')}</tr>`;
 
-    const rowDistricts = [...DISTRICTS, 'Total'];
+    const rowDistricts = filterDistrictsByTerm([...DISTRICTS, 'Total'], odsSearchTerm);
     body.innerHTML = rowDistricts.map(d=>{
       const rowA = periodA ? getRow(periodA, null, d, 'orderRatio') : Array(7).fill(null);
       const rowB = periodB ? getRow(periodB, null, d, 'orderRatio') : Array(7).fill(null);
@@ -5371,7 +6282,8 @@
     note.innerHTML = (granularity==='month'
       ? 'Month view: ODS/VAN and HKTV order counts are averaged per weekday across the month first, then Order Ratio is derived from those averages. '
       : 'Week view: each weekday cell is that single day\'s value. ')
-      + `Order Ratio = ODS &amp; VAN Order Count ÷ Total Parent Order (HKTV Staff + ODS/VAN), for ${labelA} vs ${labelB}. Cell tint follows the Order Ratio change: green = up, red = down.`;
+      + `Order Ratio = ODS &amp; VAN Order Count ÷ Total Parent Order (HKTV Staff + ODS/VAN), for ${labelA} vs ${labelB}. Cell tint follows the Order Ratio change: green = up, red = down.`
+      + (odsSearchTerm ? ` <strong>Showing ${rowDistricts.filter(d=>d!=='Total').length} of ${DISTRICTS.length} districts</strong> matching "${odsSearchTerm}" (Total row always shown).` : '');
   }
 
   /* GMV / Basket Size (v3.0 §3). Rows: current month's daily entries
@@ -5669,8 +6581,24 @@
   ['prodMatrixSelect','prodGranularitySelect','prodPeriodASelect','prodPeriodBSelect'].forEach(id=>{
     document.getElementById(id).addEventListener('change', ()=>{ renderProductivityTab(); updateScrollHints(); });
   });
+  document.getElementById('prodDistrictSearch').addEventListener('input', e=>{
+    prodSearchTerm = e.target.value; renderProductivityTab(); updateScrollHints();
+  });
+  document.getElementById('prodViewToggle').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    setProdViewMode(btn.dataset.mode);
+  });
+  document.getElementById('prodTrendIntervalSelect').addEventListener('change', e=>{
+    prodTrendInterval = e.target.value; renderProdTrendPanel();
+  });
+  document.getElementById('prodTrendShowTarget').addEventListener('change', e=>{
+    prodTrendShowTarget = e.target.checked; renderProdTrendPanel();
+  });
   ['odsGranularitySelect','odsPeriodASelect','odsPeriodBSelect'].forEach(id=>{
     document.getElementById(id).addEventListener('change', ()=>{ renderOdsRatioTab(); updateScrollHints(); });
+  });
+  document.getElementById('odsDistrictSearch').addEventListener('input', e=>{
+    odsSearchTerm = e.target.value; renderOdsRatioTab(); updateScrollHints();
   });
   document.getElementById('gmvMetricSelect').addEventListener('change', ()=>{ renderGmvTab(); updateScrollHints(); });
   ['mpGroupSelect','mpGranularitySelect','mpPeriodASelect','mpPeriodBSelect'].forEach(id=>{
@@ -5704,9 +6632,9 @@
      others. */
   function renderAll(){
     const renderers = [
-      renderKpiCards, renderTableHead, renderTableBody, renderOdsRatioTab,
+      renderKpiCards, renderOverviewAsOfNote, renderTableHead, renderTableBody, renderOdsRatioTab,
       renderProductivityTab, renderForecastTab, renderGmvTab, renderManpowerTab,
-      renderDelayTab, renderOtherAspectsTab,
+      renderDelayTab, renderOtherAspectsTab, renderTrendPanel,
     ];
     for(const fn of renderers){
       try{ fn(); }

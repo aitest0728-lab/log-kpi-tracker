@@ -147,6 +147,13 @@ DELAY_HISTORY_PATH = os.environ.get("DELAY_HISTORY_PATH", "./public/delay_histor
 # amount, RFID missing tote, logged monthly in the same layout as GMV/Basket
 # Size (see build_gmv_monthly()).
 OTHER_ASPECTS_HISTORY_PATH = os.environ.get("OTHER_ASPECTS_HISTORY_PATH", "./public/other_aspects_history.json")
+# v26.0 — self-contained sibling of index.html: same page, with every JSON
+# file's parsed content burned into a window.__EMBEDDED_DATA__ script tag, so
+# it opens correctly from a double-clicked file:// path with zero fetches.
+# index.html itself is the hand-edited template and is NEVER rewritten by
+# this pipeline — see write_dashboard_html().
+INDEX_HTML_PATH = os.environ.get("INDEX_HTML_PATH", "./public/index.html")
+DASHBOARD_HTML_PATH = os.environ.get("DASHBOARD_HTML_PATH", "./public/dashboard.html")
 # How many days of raw order-count/manpower history productivity_history.json
 # carries. history.json (not this) is the durable full log, so raising this
 # later doesn't lose anything already run — it just widens the served window.
@@ -2381,6 +2388,85 @@ def save_data_json(payload):
     print(f"Wrote {DATA_JSON_PATH}")
 
 
+def write_dashboard_html():
+    """v26.0 — writes DASHBOARD_HTML_PATH ("dashboard.html"): a byte-for-byte
+    copy of INDEX_HTML_PATH ("index.html") with every JSON file this run just
+    wrote burned into a `window.__EMBEDDED_DATA__ = {...}` <script> tag,
+    spliced in between the `<!-- EMBEDDED_DATA_START -->` / `_END` marker
+    comments that index.html's own template carries for this purpose (see the
+    comment beside those markers, and the fetchJSON() shim in loadDataSource()
+    that reads from window.__EMBEDDED_DATA__ when present, falling back to a
+    real fetch() otherwise).
+
+    index.html is READ-ONLY here — this function never writes back to it, so
+    hand-editing that template is always safe even while the pipeline is
+    running on a schedule. dashboard.html is the deployable, fully
+    self-contained artifact: open it straight from disk (file://) with no
+    static file server and no loose JSON siblings required, since every fetch
+    the page would have made is answered from the embedded object instead.
+
+    Soft-fails (prints a warning, doesn't raise) if index.html is missing or
+    doesn't have the marker comments yet, or if any of the six source JSON
+    files isn't there to embed — those are the same files this run's other
+    save_*() calls just wrote, so a missing one usually just means an earlier
+    step in this run failed and already printed its own warning above."""
+    if not os.path.exists(INDEX_HTML_PATH):
+        print(f"  ⚠️ {INDEX_HTML_PATH!r} not found — skipping dashboard.html (nothing to embed data into).")
+        return
+    with open(INDEX_HTML_PATH, "r", encoding="utf-8") as f:
+        html = f.read()
+
+    start_marker = "<!-- EMBEDDED_DATA_START"
+    end_marker = "<!-- EMBEDDED_DATA_END -->"
+    start_idx = html.find(start_marker)
+    end_idx = html.find(end_marker)
+    if start_idx == -1 or end_idx == -1:
+        print(f"  ⚠️ {INDEX_HTML_PATH!r} has no EMBEDDED_DATA_START/END markers — "
+              f"skipping dashboard.html. (Markers were added in v26.0; an older "
+              f"index.html template won't have them yet.)")
+        return
+    end_idx += len(end_marker)
+
+    sources = {
+        "data.json": DATA_JSON_PATH,
+        "productivity_history.json": PRODUCTIVITY_HISTORY_PATH,
+        "gmv_history.json": GMV_HISTORY_PATH,
+        "manpower_distribution.json": MANPOWER_HISTORY_PATH,
+        "delay_history.json": DELAY_HISTORY_PATH,
+        "other_aspects_history.json": OTHER_ASPECTS_HISTORY_PATH,
+    }
+    embedded = {}
+    missing = []
+    for filename, path in sources.items():
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                embedded[filename] = json.load(f)
+        else:
+            missing.append(filename)
+    if missing:
+        print(f"  ⚠️ dashboard.html: {', '.join(missing)} not found — embedding whatever "
+              f"the rest of this run did produce; the dashboard's own fetchJSON() fallback "
+              f"will report those as not-found, same as index.html would.")
+
+    # ensure_ascii=False keeps the embedded JSON human-diffable; the '</' escape
+    # is load-bearing — the HTML tokenizer ends a <script> element on the raw
+    # byte sequence "</script" wherever it appears (comment or string alike),
+    # so any "</" inside embedded text (e.g. a URL) would otherwise truncate
+    # this script tag early. \u2028/\u2029 are valid in JSON strings but are
+    # illegal raw line terminators inside a JS string literal.
+    payload = json.dumps(embedded, ensure_ascii=False)
+    payload = (payload.replace("</", "<\\/")
+                       .replace("\u2028", "\\u2028")
+                       .replace("\u2029", "\\u2029"))
+    block = f"<script>window.__EMBEDDED_DATA__ = {payload};</script>"
+
+    dashboard_html = html[:start_idx] + block + html[end_idx:]
+    os.makedirs(os.path.dirname(DASHBOARD_HTML_PATH) or ".", exist_ok=True)
+    with open(DASHBOARD_HTML_PATH, "w", encoding="utf-8") as f:
+        f.write(dashboard_html)
+    print(f"Wrote {DASHBOARD_HTML_PATH} ({len(dashboard_html):,} bytes, self-contained)")
+
+
 def load_history():
     if os.path.exists(HISTORY_PATH):
         with open(HISTORY_PATH, "r", encoding="utf-8") as f:
@@ -2688,10 +2774,24 @@ def build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay):
         comes from delay_rate_by_zone_type's Grand-Total row, since the MTD
         delay/early file itself has no per-district Total row — see
         parse_delay_early_pct()).
+      - "mtdDaily" (v27.0; full history since v28.0) — history["delayRateMtdDaily"]
+        entries for EVERY month recorded, not just the current one: the REAL
+        MTD-to-date delay % as the source system reported it on each day it
+        was captured, keyed by that date. Lets the dashboard's "Data Date"
+        picker look up an earlier day's true MTD figure directly — including
+        a day in a month that has since closed — instead of approximating it
+        from a plain average of delayPercentDaily's raw per-day values. Only
+        exists from the day this log started (v27.0) onward — an earlier
+        date has no entry here and the dashboard falls back to the old
+        averaging approach for those. history["delayRateMtdDaily"] itself is
+        never trimmed, so this was always available; v28.0 just stopped
+        filtering it down to the current month before handing it to the
+        dashboard.
     """
     current_month = dt.date.today().strftime("%Y-%m")
     full_log = history.get("delayPercentDaily", {})
     daily_log = {k: v for k, v in full_log.items() if k[:7] == current_month}
+    mtd_daily_log = dict(history.get("delayRateMtdDaily", {}))
 
     slots = ["AM", "PM", "EV", "EV2", "Overall"]
     sums = {}  # month -> slot -> {"overall": [...], "districts": {d: [...]}}
@@ -2726,7 +2826,7 @@ def build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay):
         "overall": {**delay_early_mtd["overall"], "Overall": {"delay": mtd_overall_delay}},
         "districts": mtd_districts,
     }
-    return {"daily": daily_log, "monthly": monthly, "mtd": mtd}
+    return {"daily": daily_log, "monthly": monthly, "mtd": mtd, "mtdDaily": mtd_daily_log}
 
 
 def save_delay_history(payload):
@@ -2736,7 +2836,7 @@ def save_delay_history(payload):
     print(f"Wrote {DELAY_HISTORY_PATH}")
 
 
-def build_other_aspects_monthly(history, matrices):
+def build_other_aspects_monthly(history, matrices, payload):
     """'Other Aspects Tracking' tab: Poor Rating %, Missing & Lost Amount,
     RFID Missing Tote.
 
@@ -2765,6 +2865,32 @@ def build_other_aspects_monthly(history, matrices):
         overwritten in place every run, never accumulated as a per-day log.
       - "monthly": one permanent row per CLOSED month, keyed "YYYY-MM".
     The dashboard itself adds "(MTD)" to "current"'s label.
+
+    v27.0 §2 — "daily" (full history since v28.0): each metric's OWN true
+    MTD-to-date value as recorded on every day this pipeline ran, for EVERY
+    month on record — not just the current one — so the dashboard's "Data
+    Date" picker can look up any earlier day's real figure directly,
+    including a day in a month that has since closed, instead of falling
+    back to today's snapshot once the month rolls over. poorRating/
+    missingLostAmount already had this per-day MTD record sitting in
+    history.json the whole time, for every date ever recorded (see the
+    correction above — each entry there already IS that day's running MTD
+    total, and history[metric_key] is never trimmed); v28.0 just stopped
+    filtering it down to the current month before handing it to the
+    dashboard. rfidMissingTote has no such per-day MTD record, only a
+    per-day ledger of INCREMENTS — that ledger used to live only in
+    payload["rfidMonthly"], which is trimmed to the 2 most recent months, so
+    a closed month's day-by-day path was lost forever once it aged out.
+    v28.0 adds a second, durable copy of every increment
+    (history["rfidDailyLedger"], never trimmed) written alongside the
+    existing one; "daily" below is built by grouping that durable ledger by
+    month and summing each month's entries cumulatively in date order,
+    resetting the running total at each month's first entry (the same
+    MTD-cumulative convention the other two metrics already have natively).
+    A month that closed before v28.0 shipped only has its final total
+    (already preserved in "monthly" via rfidMonthlyClosed) — its day-by-day
+    path can't be recovered retroactively since the old ledger had already
+    been trimmed away by the time this durable copy started being written.
     """
     current_month = dt.date.today().strftime("%Y-%m")
 
@@ -2790,14 +2916,58 @@ def build_other_aspects_monthly(history, matrices):
         m = matrices.get(metric_key, {}).get("actual", {})
         return {"monthKey": current_month, "overall": m.get("overall"), "districts": m.get("districts", {})}
 
+    def full_history_daily_mtd(metric_key):
+        """poorRating/missingLostAmount, EVERY month on record: history[metric_key]
+        is already a per-day MTD-cumulative log (append_history() records the
+        day's full running total, not an increment) and is never trimmed, so
+        returning it in full — rather than filtering to the current month —
+        costs nothing and is all that's needed."""
+        series = history.get(metric_key, {})
+        return {
+            date_str: {"overall": rec.get("overall"), "districts": rec.get("districts", {})}
+            for date_str, rec in series.items()
+        }
+
+    def rfid_all_daily_mtd():
+        """rfidMissingTote, EVERY month on record: history["rfidDailyLedger"]
+        (v28.0, durable, never trimmed) holds every day's own increment,
+        keyed by the T-4 date it belongs to. Grouped by month and summed
+        cumulatively in date order, resetting to 0 at each month's first
+        entry, so each date's entry is "everything recorded up to and
+        including that day, within its own month" — matching the
+        MTD-cumulative convention the other two metrics have natively.
+        Rebuilt fresh every run straight from the ledger, so a late-arriving
+        or corrected T-4 entry is reflected at every date on or after it
+        within that same month, not just the day it was recorded."""
+        ledger = history.get("rfidDailyLedger", {})
+        by_month = {}
+        for date_str in sorted(ledger.keys()):
+            by_month.setdefault(date_str[:7], []).append(date_str)
+        out = {}
+        for month, date_strs in by_month.items():
+            running_overall = 0.0
+            running_districts = {d: 0.0 for d in DISTRICTS}
+            for date_str in date_strs:
+                day = ledger[date_str]
+                running_overall += day.get("overall") or 0
+                for d in DISTRICTS:
+                    running_districts[d] += (day.get("districts") or {}).get(d) or 0
+                out[date_str] = {
+                    "overall": round(running_overall, 2),
+                    "districts": {d: round(v, 2) for d, v in running_districts.items()},
+                }
+        return out
+
     return {
         "poorRating": {
             "current": current_from_matrix("poorRating"),
             "monthly": closed_months_from_last_snapshot("poorRating"),
+            "daily": full_history_daily_mtd("poorRating"),
         },
         "missingLostAmount": {
             "current": current_from_matrix("missingLostAmount"),
             "monthly": closed_months_from_last_snapshot("missingLostAmount"),
+            "daily": full_history_daily_mtd("missingLostAmount"),
         },
         "rfidMissingTote": {
             "current": current_from_matrix("rfidMissingTote"),
@@ -2805,6 +2975,7 @@ def build_other_aspects_monthly(history, matrices):
                 k: {"overall": v.get("overall"), "districts": v.get("districts", {})}
                 for k, v in history.get("rfidMonthlyClosed", {}).items()
             },
+            "daily": rfid_all_daily_mtd(),
         },
     }
 
@@ -2896,6 +3067,25 @@ def run_section_tableau():
 
     zone_type = parse_delay_rate_by_zone_type()          # per-district Residential/Commercial/Overall, MTD
     mtd_overall_delay = parse_mtd_overall_delay()         # single network-wide MTD headline %
+
+    # v27.0 — durable per-day record of the REAL MTD delay % this run actually
+    # saw (network-wide + per-district), keyed by today's run date. Until now
+    # this MTD figure was computed fresh every run and only ever shown for
+    # "today" — nothing kept yesterday's or last week's true MTD-to-date value
+    # around. The dashboard's "Data Date" picker (v7.0 §1) filled that gap by
+    # RE-DERIVING an approximate MTD-through-date as a plain average of the
+    # raw per-day Overall delay% (delayPercentDaily) up to the chosen date —
+    # a reasonable stand-in, but not the actual number the source system
+    # reported as of that day, since a plain average of daily percentages
+    # isn't necessarily identical to a true volume-weighted MTD rollup. Now
+    # that the real figure is captured daily, build_delay_monthly() exposes
+    # it as "mtdDaily" and the dashboard prefers a direct lookup there,
+    # falling back to the old averaging approach only for dates before this
+    # log started.
+    history.setdefault("delayRateMtdDaily", {})[today.isoformat()] = {
+        "overall": mtd_overall_delay,
+        "districts": {d: zone_type["overall"].get(d) for d in DISTRICTS},
+    }
 
     matrices["delayRate"] = {
         "actual": {"overall": mtd_overall_delay, "districts": {d: zone_type["overall"].get(d) for d in DISTRICTS}},
@@ -3005,6 +3195,15 @@ def run_section_tableau():
 
     days_ledger[t4_date.isoformat()] = rfid_increment  # overwrite, not add
 
+    # v28.0 — second, DURABLE copy of the same increment, never trimmed
+    # (unlike payload["rfidMonthly"] below, which keeps only the 2 most
+    # recent months). This is what build_other_aspects_monthly()'s
+    # rfid_all_daily_mtd() reads to give RFID Missing Tote the same
+    # every-month "daily" MTD history the other two Other Aspects metrics
+    # already have — without it, a closed month's day-by-day path would be
+    # lost forever once it aged out of payload["rfidMonthly"].
+    history.setdefault("rfidDailyLedger", {})[t4_date.isoformat()] = rfid_increment
+
     bucket["overall"] = round(sum(d["overall"] for d in days_ledger.values()), 2)
     bucket["districts"] = {
         dist: round(sum(day["districts"][dist] for day in days_ledger.values()), 2)
@@ -3062,10 +3261,11 @@ def run_section_tableau():
 
     # v4.0 §4 — "Other Aspects Tracking" tab (poor rating %, missing & lost
     # amount, RFID missing tote), monthly.
-    save_other_aspects_history(build_other_aspects_monthly(history, matrices))
+    save_other_aspects_history(build_other_aspects_monthly(history, matrices, payload))
 
     save_history(history)
     save_data_json(payload)
+    write_dashboard_html()  # v26.0 — self-contained dashboard.html, embeds the files just written above
     print("✅ 報表解析完成，已寫入 data.json")
 
 
