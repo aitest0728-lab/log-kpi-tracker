@@ -6023,14 +6023,26 @@
   }
   const MONTH_BAND_FILLS = ['rgba(59,130,246,0.10)', 'rgba(234,179,8,0.14)'];
   function fitMonthLabel(monthDate, availWidth){
+    // v29.0 — month-band label reads "Mon YYYY" (e.g. "Aug 2026"), the
+    // requested format for every band-label use (this stays as-is; it was
+    // already "Aug 2026"-style, unlike the plain monthly-grain tick below).
     const full = monthDate.toLocaleDateString('en-US',{month:'short',year:'numeric'});
     const short = monthDate.toLocaleDateString('en-US',{month:'short'});
     const candidates = [
-      {text:full, size:9}, {text:full, size:8},
-      {text:short, size:9}, {text:short, size:8}, {text:short, size:7}
+      {text:full, size:9}, {text:full, size:8}, {text:full, size:7},
+      {text:short, size:9}, {text:short, size:8}, {text:short, size:7}, {text:short, size:6}
     ];
     for(const c of candidates){ if(c.text.length * c.size * 0.62 <= availWidth) return c; }
-    return null;
+    return candidates[candidates.length-1]; // always render at the smallest size rather than skip the label entirely
+  }
+  /* v29.0 — picks the largest font size (from a candidate list, largest
+     first) whose rendered width fits availWidth, so the daily axis's
+     day-of-month and weekday labels shrink to stay inside their own
+     column instead of a fixed size bleeding into the neighbouring day or
+     past the month band. */
+  function fitAxisLabel(text, availWidth, sizes){
+    for(const size of sizes){ if(text.length * size * 0.62 <= availWidth) return size; }
+    return sizes[sizes.length-1];
   }
   /* Draws the X-axis date labels for one of the three grains, appending
      directly onto svg. grain: 'daily' | 'weekly' | 'monthly'.
@@ -6055,7 +6067,9 @@
       dateObjs.forEach((obj,i)=>{
         if(i % step !== 0 && i !== dates.length-1) return;
         const t = mk('text', {x:xAt(i), y:H-padB+18, class:'trend-svg-date-label', 'text-anchor':'middle'});
-        t.textContent = `${obj.date.getUTCFullYear()} - ${String(obj.date.getUTCMonth()+1).padStart(2,'0')}`;
+        // v29.0 — "2026 Sep" instead of "2026 - 09": short month name, no
+        // separator punctuation.
+        t.textContent = `${obj.date.getUTCFullYear()} ${obj.date.toLocaleDateString('en-US',{month:'short'})}`;
         svg.appendChild(t);
       });
       return;
@@ -6067,10 +6081,15 @@
         const x1 = bandStart===0 ? padL : (xAt(bandStart-1)+xAt(bandStart))/2;
         const x2 = endIdx===dates.length-1 ? W-padR : (xAt(endIdx)+xAt(endIdx+1))/2;
         const bw = Math.max(0, x2-x1);
-        svg.appendChild(mk('rect', {x:x1, y:H-padB, width:bw, height:padB-16, fill:MONTH_BAND_FILLS[bandIdx%2]}));
+        const bandTop = H-padB, bandBottom = H-16;
+        svg.appendChild(mk('rect', {x:x1, y:bandTop, width:bw, height:bandBottom-bandTop, fill:MONTH_BAND_FILLS[bandIdx%2]}));
         const fit = fitMonthLabel(new Date(bandMonthKey+'-01T00:00:00Z'), bw-6);
         if(fit){
-          const t = mk('text', {x:(x1+x2)/2, y:H-14, class:'trend-svg-date-label', 'text-anchor':'middle', style:`font-size:${fit.size}px;fill:var(--text-muted);`});
+          // v29.0 — was y:H-14, which sits 2px BELOW the band's own bottom
+          // edge (bandBottom = H-16), so the label (its descenders especially,
+          // e.g. the "g" in "Aug") rendered partly outside the colored band.
+          // Baseline now sits 6px above the bottom edge, safely inside it.
+          const t = mk('text', {x:(x1+x2)/2, y:bandBottom-6, class:'trend-svg-date-label', 'text-anchor':'middle', style:`font-size:${fit.size}px;fill:var(--text-muted);`});
           t.textContent = fit.text;
           svg.appendChild(t);
         }
@@ -6108,13 +6127,20 @@
     drawMonthBands();
     const maxLabels = Math.max(4, Math.floor(plotW / 22));
     const step = Math.max(1, Math.ceil(dates.length / maxLabels));
+    // v29.0 — size the day-number/weekday labels to the actual gap between
+    // rendered labels (colGap), so a longer daily range (narrower columns)
+    // shrinks them instead of letting a fixed 10.5px/9px size overlap the
+    // neighbouring day or spill past the month band.
+    const colGap = (plotW / Math.max(1, dates.length - 1)) * step;
+    const dayFontSize = fitAxisLabel('30', colGap - 4, [10, 9, 8, 7, 6]);
+    const wdFontSize = fitAxisLabel('Wed', colGap - 4, [9, 8, 7, 6]);
     dateObjs.forEach((obj,i)=>{
       if(i % step !== 0 && i !== dates.length-1) return;
       const x = xAt(i);
-      const t1 = mk('text', {x, y:H-padB+16, class:'trend-svg-date-label', 'text-anchor':'middle'});
+      const t1 = mk('text', {x, y:H-padB+16, class:'trend-svg-date-label', 'text-anchor':'middle', style:`font-size:${dayFontSize}px;`});
       t1.textContent = String(obj.date.getUTCDate());
       svg.appendChild(t1);
-      const t2 = mk('text', {x, y:H-padB+27, class:'trend-svg-date-label', 'text-anchor':'middle', style:'font-size:9px;fill:var(--text-muted);'});
+      const t2 = mk('text', {x, y:H-padB+27, class:'trend-svg-date-label', 'text-anchor':'middle', style:`font-size:${wdFontSize}px;fill:var(--text-muted);`});
       t2.textContent = obj.wd;
       svg.appendChild(t2);
     });
@@ -6679,33 +6705,21 @@
     let rows = [];
     
     if(isProductivityMetric){
-      // For productivity metrics, read from dailyProductivity and calculate monthly aggregates
+      // v29.0 — was hktvStaff alone (mislabeled "Total" while only counting
+      // HKTV Staff orders). Uses dayRecord(k,'combined',d) instead — the
+      // same HKTV Staff + ODS/VAN sum, gap-aware (null if either side has no
+      // data that day), already used everywhere else "Total Order" appears.
       const prodDailyKeys = Object.keys(DATA.dailyProductivity).sort().reverse();
+      const metricFromRec = rec => {
+        if(!rec) return null;
+        if(metric==='orderCount') return rec.orderCount;
+        if(metric==='waybillCount') return rec.waybillCount || 0;
+        return (rec.orderCount && rec.waybillCount) ? rec.waybillCount/rec.orderCount : null; // waybillPerOrder
+      };
       rows = prodDailyKeys.map(k=>{
-        const daily = DATA.dailyProductivity[k].hktvStaff;
         const districtData = {};
-        let totalOrder = 0, totalWaybill = 0;
-        
-        DISTRICTS.forEach(d=>{
-          const dc = daily.districts[d];
-          if(!dc) districtData[d] = null;
-          else {
-            const order = dc.orderCount;
-            const waybill = dc.waybillCount || 0;
-            totalOrder += order || 0;
-            totalWaybill += waybill || 0;
-            
-            if(metric==='orderCount') districtData[d] = order;
-            else if(metric==='waybillCount') districtData[d] = waybill;
-            else if(metric==='waybillPerOrder') districtData[d] = (order && waybill) ? waybill/order : null;
-          }
-        });
-        
-        let overall = null;
-        if(metric==='orderCount') overall = daily.total.orderCount;
-        else if(metric==='waybillCount') overall = daily.total.waybillCount || 0;
-        else if(metric==='waybillPerOrder') overall = (daily.total.orderCount && daily.total.waybillCount) ? daily.total.waybillCount/daily.total.orderCount : null;
-        
+        DISTRICTS.forEach(d=>{ districtData[d] = metricFromRec(dayRecord(k, 'combined', d)); });
+        const overall = metricFromRec(dayRecord(k, 'combined', 'Total'));
         return { label:k, group:{ districts:districtData, overall:overall }, isMonth:false };
       });
       
