@@ -2315,7 +2315,7 @@
         color: trendColorFor(sc),
         value: trendTargetFor(m.key, sc)
       })).filter(t=>t.value!=null);
-      drawDeptTrendChart(m.key, seriesList, targets, m.fmt);
+      drawDeptTrendChart(m.key, seriesList, targets, m.fmt, trendInterval);
     });
   }
 
@@ -5938,7 +5938,7 @@
   /* Generic dropdown-style multi-select: a <select>-styled button that opens a
      checkbox panel, used for both Aspects and Districts so the controls read
      like the rest of the row (dropdowns) instead of a wrapped row of pill chips. */
-  function setupMsDropdown(dropdownId, btnId, panelId, options, selectedSet, allLabel, onChange){
+  function setupMsDropdown(dropdownId, btnId, panelId, options, selectedSet, allLabel, onChange, maxSelect){
     const dropdown = document.getElementById(dropdownId);
     const btn = document.getElementById(btnId);
     const panel = document.getElementById(panelId);
@@ -5948,7 +5948,10 @@
       panel.dataset.built = '1';
       panel.querySelectorAll('input').forEach(cb=>{
         cb.addEventListener('change', ()=>{
-          if(cb.checked) selectedSet.add(cb.value); else selectedSet.delete(cb.value);
+          if(cb.checked){
+            if(maxSelect && selectedSet.size >= maxSelect){ cb.checked = false; return; }
+            selectedSet.add(cb.value);
+          } else selectedSet.delete(cb.value);
           onChange();
         });
       });
@@ -5958,7 +5961,11 @@
         dropdown.classList.toggle('open');
       });
     }
-    panel.querySelectorAll('input').forEach(cb=>{ cb.checked = selectedSet.has(cb.value); });
+    const atCap = !!(maxSelect && selectedSet.size >= maxSelect);
+    panel.querySelectorAll('input').forEach(cb=>{
+      cb.checked = selectedSet.has(cb.value);
+      cb.disabled = atCap && !cb.checked;
+    });
     const chosen = options.filter(o=>selectedSet.has(o.value)).map(o=>o.label);
     btn.textContent = chosen.length===0 ? `${allLabel} — none selected`
       : chosen.length<=2 ? chosen.join(', ')
@@ -5975,7 +5982,7 @@
 
   function populateProdTrendChips(){
     setupMsDropdown('prodTrendAspectDropdown', 'prodTrendAspectBtn', 'prodTrendAspectPanel',
-      PROD_TREND_ASPECTS.map(a=>({ value:a.key, label:a.label })), prodTrendAspects, 'Aspects', renderProdTrendPanel);
+      PROD_TREND_ASPECTS.map(a=>({ value:a.key, label:a.label })), prodTrendAspects, 'Aspects', renderProdTrendPanel, 2);
     setupMsDropdown('prodTrendDistrictDropdown', 'prodTrendDistrictBtn', 'prodTrendDistrictPanel',
       ['Total', ...DISTRICTS].map(d=>({ value:d, label:d })), prodTrendDistricts, 'Districts', renderProdTrendPanel);
 
@@ -5990,12 +5997,136 @@
     if(rangeSel) rangeSel.value = String(prodTrendDailyRange);
   }
 
+  /* Shared Y-axis step per data key, and a light-band/adaptive-label helper for
+     the X-axis, used by every trend chart (single-metric and dual-axis alike). */
+  const METRIC_INTERVALS = {
+    'orderCount': 5000, 'productivity': 10, 'hktvStaff': 10, 'delayRate': 2.5, 'poorRating': 0.05,
+    'missingLostAmount': 100000, 'rfidMissingTote': 50, 'waybillCount': 50000,
+    'manpower': 100, 'waybillPerOrder': 2.5, 'wbPerOrder': 2.5, 'costPerOrder': 5
+  };
+  function niceInterval(vMax){
+    const raw = vMax / 5;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw || 1)));
+    const norm = raw / mag;
+    const step = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
+    return step * mag;
+  }
+  function computeAxisScale(key, vals){
+    let vMax = Math.max(...vals, 0);
+    if(vMax === 0) vMax = 1;
+    vMax *= 1.12;
+    const interval = METRIC_INTERVALS[key] || niceInterval(vMax);
+    let ticks = [];
+    for(let v = 0; v <= vMax; v += interval) ticks.push(v);
+    if(ticks[ticks.length-1] < vMax) ticks.push(Math.ceil(vMax/interval)*interval);
+    return { vMin:0, vMax, interval, ticks };
+  }
+  const MONTH_BAND_FILLS = ['rgba(59,130,246,0.10)', 'rgba(234,179,8,0.14)'];
+  function fitMonthLabel(monthDate, availWidth){
+    const full = monthDate.toLocaleDateString('en-US',{month:'short',year:'numeric'});
+    const short = monthDate.toLocaleDateString('en-US',{month:'short'});
+    const candidates = [
+      {text:full, size:9}, {text:full, size:8},
+      {text:short, size:9}, {text:short, size:8}, {text:short, size:7}
+    ];
+    for(const c of candidates){ if(c.text.length * c.size * 0.62 <= availWidth) return c; }
+    return null;
+  }
+  /* Draws the X-axis date labels for one of the three grains, appending
+     directly onto svg. grain: 'daily' | 'weekly' | 'monthly'.
+       - daily: day-of-month number with the weekday underneath, both
+         horizontal, plus a light alternating band per calendar month.
+       - weekly: each tick's own date is that week's Monday, so grouping
+         bands by that date's month naturally colors a week that spans two
+         months using its START month, per the requested behaviour. Tick
+         label is "start–end" (day numbers, or "Mon D – Mon D" if the week
+         crosses a month).
+       - monthly: tick label is "YYYY - MM"; no bands (each tick already IS
+         one month). */
+  function renderTrendXAxis(svg, mk, xAt, dates, W, H, padL, padR, padB, plotW, grain){
+    const dateObjs = dates.map(d => {
+      const date = new Date(d + 'T00:00:00Z');
+      return { dateStr:d, date, wd:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getUTCDay()] };
+    });
+
+    if(grain === 'monthly'){
+      const maxLabels = Math.max(4, Math.floor(plotW / 44));
+      const step = Math.max(1, Math.ceil(dates.length / maxLabels));
+      dateObjs.forEach((obj,i)=>{
+        if(i % step !== 0 && i !== dates.length-1) return;
+        const t = mk('text', {x:xAt(i), y:H-padB+18, class:'trend-svg-date-label', 'text-anchor':'middle'});
+        t.textContent = `${obj.date.getUTCFullYear()} - ${String(obj.date.getUTCMonth()+1).padStart(2,'0')}`;
+        svg.appendChild(t);
+      });
+      return;
+    }
+
+    const drawMonthBands = ()=>{
+      let bandStart = 0, bandMonthKey = dateObjs[0].dateStr.slice(0,7), bandIdx = 0;
+      const flushBand = endIdx=>{
+        const x1 = bandStart===0 ? padL : (xAt(bandStart-1)+xAt(bandStart))/2;
+        const x2 = endIdx===dates.length-1 ? W-padR : (xAt(endIdx)+xAt(endIdx+1))/2;
+        const bw = Math.max(0, x2-x1);
+        svg.appendChild(mk('rect', {x:x1, y:H-padB, width:bw, height:padB-16, fill:MONTH_BAND_FILLS[bandIdx%2]}));
+        const fit = fitMonthLabel(new Date(bandMonthKey+'-01T00:00:00Z'), bw-6);
+        if(fit){
+          const t = mk('text', {x:(x1+x2)/2, y:H-14, class:'trend-svg-date-label', 'text-anchor':'middle', style:`font-size:${fit.size}px;fill:var(--text-muted);`});
+          t.textContent = fit.text;
+          svg.appendChild(t);
+        }
+        bandIdx++;
+      };
+      dateObjs.forEach((obj,i)=>{
+        const mKey = obj.dateStr.slice(0,7); // for weekly this is the week's START (Monday), so the
+                                              // band follows the start month even if the week ends
+                                              // in the next month, as requested.
+        if(mKey !== bandMonthKey){ flushBand(i-1); bandStart = i; bandMonthKey = mKey; }
+      });
+      flushBand(dates.length-1);
+    };
+
+    if(grain === 'weekly'){
+      drawMonthBands();
+      const maxLabels = Math.max(4, Math.floor(plotW / 34));
+      const step = Math.max(1, Math.ceil(dates.length / maxLabels));
+      dateObjs.forEach((obj,i)=>{
+        if(i % step !== 0 && i !== dates.length-1) return;
+        const monday = obj.date;
+        const sunday = new Date(monday); sunday.setUTCDate(monday.getUTCDate()+6);
+        const sameMonth = monday.getUTCMonth()===sunday.getUTCMonth();
+        const label = sameMonth
+          ? `${monday.getUTCDate()}-${sunday.getUTCDate()}`
+          : `${monday.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${sunday.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+        const t = mk('text', {x:xAt(i), y:H-padB+16, class:'trend-svg-date-label', 'text-anchor':'middle'});
+        t.textContent = label;
+        svg.appendChild(t);
+      });
+      return;
+    }
+
+    // daily
+    drawMonthBands();
+    const maxLabels = Math.max(4, Math.floor(plotW / 22));
+    const step = Math.max(1, Math.ceil(dates.length / maxLabels));
+    dateObjs.forEach((obj,i)=>{
+      if(i % step !== 0 && i !== dates.length-1) return;
+      const x = xAt(i);
+      const t1 = mk('text', {x, y:H-padB+16, class:'trend-svg-date-label', 'text-anchor':'middle'});
+      t1.textContent = String(obj.date.getUTCDate());
+      svg.appendChild(t1);
+      const t2 = mk('text', {x, y:H-padB+27, class:'trend-svg-date-label', 'text-anchor':'middle', style:'font-size:9px;fill:var(--text-muted);'});
+      t2.textContent = obj.wd;
+      svg.appendChild(t2);
+    });
+  }
+
   /* Generic multi-series trend chart renderer shared by the Productivity Detail
      tab's Trend view (one card per aspect, lines per district) and the Overview
      tab's Department Manifest Trend view (one card per KPI, lines per district).
      idPrefix + key select the DOM ids (idPrefix+'Svg_'+key, etc.); seriesList
-     items need {label, color, points}; targets need {label, color, value}. */
-  function drawMultiSeriesTrendChart(key, idPrefix, seriesList, targets, fmtFn, emptyText){
+     items need {label, color, points}; targets need {label, color, value};
+     grain is 'daily' | 'weekly' | 'monthly', driving the X-axis format. */
+  function drawMultiSeriesTrendChart(key, idPrefix, seriesList, targets, fmtFn, emptyText, grain){
     const svg = document.getElementById(idPrefix+'Svg_'+key);
     const tooltip = document.getElementById(idPrefix+'Tooltip_'+key);
     const legend = document.getElementById(idPrefix+'Legend_'+key);
@@ -6032,18 +6163,7 @@
     // to keep the top point clear of the plot's edge.
     const W = 900, H = 340, padL = 64, padR = 24, padT = 20, padB = 70;
     const plotW = W - padL - padR, plotH = H - padT - padB;
-    let vMin = 0, vMax = Math.max(...allVals, 0);
-    if(vMax === 0) vMax = 1;
-    vMax *= 1.12;
-
-    // Determine metric-specific interval for Y-axis
-    let interval = 1;
-    const METRIC_INTERVALS = {
-      'orderCount': 5000, 'productivity': 10, 'hktvStaff': 10, 'delayRate': 2.5, 'poorRating': 0.05,
-      'missingLostAmount': 100000, 'rfidMissingTote': 50, 'waybillCount': 50000,
-      'manpower': 100, 'waybillPerOrder': 2.5, 'costPerOrder': 5
-    };
-    if(METRIC_INTERVALS[key]) interval = METRIC_INTERVALS[key];
+    const { vMin, vMax, interval } = computeAxisScale(key, allVals);
 
     const xAt = i => padL + (dates.length===1 ? plotW/2 : (i/(dates.length-1))*plotW);
     const yAt = v => padT + plotH - ((v - vMin)/(vMax - vMin))*plotH;
@@ -6075,67 +6195,7 @@
     });
     svg.appendChild(mk('line', {x1:padL, y1:H-padB, x2:W-padR, y2:H-padB, class:'trend-svg-axis'}));
 
-    // Date labels. Daily grain: just the day-of-month number with the weekday
-    // underneath, both set horizontally, plus a light background band per
-    // calendar month so same-month days read as a group. Weekly/Monthly grain
-    // keep the original rotated "date + weekday" label — grouping by day only
-    // makes sense once each tick IS a day.
-    const dateObjs = dates.map(d => {
-      const date = new Date(d + 'T00:00:00Z');
-      return { dateStr: d, date: date, wd: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getUTCDay()] };
-    });
-    const firstLabel = dateLabel[dates[0]] || '';
-    const isDailyGrain = !firstLabel.startsWith('Week of ') && !/^\d{4}-\d{2}(\s\(MTD\))?$/.test(firstLabel);
-
-    if(isDailyGrain){
-      const maxLabels = Math.max(4, Math.floor(plotW / 22));
-      const step = Math.max(1, Math.ceil(dates.length / maxLabels));
-      const MONTH_BAND_FILLS = ['rgba(120,140,180,0.07)', 'rgba(120,140,180,0.15)'];
-      let bandStart = 0, bandMonthKey = dateObjs[0].dateStr.slice(0,7), bandIdx = 0;
-      const flushBand = endIdx=>{
-        const x1 = bandStart===0 ? padL : (xAt(bandStart-1)+xAt(bandStart))/2;
-        const x2 = endIdx===dates.length-1 ? W-padR : (xAt(endIdx)+xAt(endIdx+1))/2;
-        svg.appendChild(mk('rect', {x:x1, y:H-padB, width:Math.max(0,x2-x1), height:padB-16, fill:MONTH_BAND_FILLS[bandIdx%2]}));
-        const mDate = new Date(bandMonthKey+'-01T00:00:00Z');
-        const t = mk('text', {x:(x1+x2)/2, y:H-14, class:'trend-svg-date-label', 'text-anchor':'middle', style:'font-size:9px;fill:var(--text-muted);'});
-        t.textContent = mDate.toLocaleDateString('en-US',{month:'short',year:'numeric'});
-        svg.appendChild(t);
-        bandIdx++;
-      };
-      dateObjs.forEach((obj,i)=>{
-        const mKey = obj.dateStr.slice(0,7);
-        if(mKey !== bandMonthKey){ flushBand(i-1); bandStart = i; bandMonthKey = mKey; }
-      });
-      flushBand(dates.length-1);
-
-      dateObjs.forEach((obj,i)=>{
-        if(i % step !== 0 && i !== dates.length-1) return;
-        const x = xAt(i);
-        const t1 = mk('text', {x, y:H-padB+16, class:'trend-svg-date-label', 'text-anchor':'middle'});
-        t1.textContent = String(obj.date.getUTCDate());
-        svg.appendChild(t1);
-        const t2 = mk('text', {x, y:H-padB+27, class:'trend-svg-date-label', 'text-anchor':'middle', style:'font-size:9px;fill:var(--text-muted);'});
-        t2.textContent = obj.wd;
-        svg.appendChild(t2);
-      });
-    } else {
-      let lastMonth = null;
-      const maxLabels = Math.max(4, Math.floor(plotW / 14));
-      const step = Math.max(1, Math.ceil(dates.length / maxLabels));
-      dateObjs.forEach((obj, i)=>{
-        if(i % step !== 0 && i !== dates.length-1) return;
-        const currentMonth = obj.date.toUTCString().substring(8, 11) + ' ' + obj.date.getUTCFullYear();
-        const t = mk('text', {x:0, y:0, class:'trend-svg-date-label', 'text-anchor':'end',
-          transform:`translate(${xAt(i)},${H-padB+10}) rotate(-90)`});
-        t.textContent = obj.dateStr + ' ' + obj.wd;
-        svg.appendChild(t);
-        if(lastMonth !== currentMonth && i > 0){
-          const midX = (xAt(i) + xAt(i-1)) / 2;
-          svg.appendChild(mk('line', {x1:midX, y1:H-padB, x2:midX, y2:H-padB+4, class:'trend-svg-axis', style:'stroke:var(--line);'}));
-        }
-        lastMonth = currentMonth;
-      });
-    }
+    renderTrendXAxis(svg, mk, xAt, dates, W, H, padL, padR, padB, plotW, grain || 'daily');
 
     targets.forEach(t=>{
       if(t.value==null) return;
@@ -6181,7 +6241,7 @@
     overlay.addEventListener('mouseleave', ()=>{ crosshair.style.opacity = 0; tooltip.classList.remove('show'); });
   }
 
-  function drawProdTrendChart(aspectKey, seriesList, targets, fmtFn){
+  function drawProdTrendChart(aspectKey, seriesList, targets, fmtFn, grain){
     const emptyText = aspectKey==='costPerOrder'
       ? 'No actual historical Cost/Order is recorded yet — see the Forecast tab\u2019s Cost Planning portal for the planned figure.'
       : 'No history yet for this aspect at this interval / district selection.';
@@ -6189,12 +6249,14 @@
       aspectKey, 'prodTrend',
       seriesList.map(s=>({ ...s, label:s.district })),
       targets.map(t=>({ ...t, label:t.district })),
-      fmtFn, emptyText
+      fmtFn, emptyText, grain
     );
   }
 
-  function drawCombinedProdTrendChart(chartId, seriesList, targets){
-    // For combined aspect trends, normalize data to 0-100 scale for visualization
+  /* Dual-axis trend chart for exactly two aspects at once: each keeps its own
+     real units and its own Y-axis (aspect A on the left, aspect B on the
+     right) instead of both being squashed onto a shared 0-100% scale. */
+  function drawDualAxisTrendChart(chartId, seriesA, seriesB, fmtA, fmtB, targetA, targetB, grain){
     const svg = document.getElementById('prodTrendSvg_'+chartId);
     const tooltip = document.getElementById('prodTrendTooltip_'+chartId);
     const legend = document.getElementById('prodTrendLegend_'+chartId);
@@ -6204,28 +6266,19 @@
     svg.innerHTML = '';
 
     const dateLabel = {};
-    seriesList.forEach(s=> s.points.forEach(p=>{ dateLabel[p.date] = p.label || p.date; }));
+    seriesA.points.forEach(p=>{ dateLabel[p.date] = p.label || p.date; });
+    seriesB.points.forEach(p=>{ dateLabel[p.date] = p.label || p.date; });
     const dates = Object.keys(dateLabel).sort();
     if(rangeEl) rangeEl.textContent = trendDateRangeText(dates);
-    
-    const seriesByDate = seriesList.map(s=>{
-      const byDate = {}; s.points.forEach(p=>{ byDate[p.date] = p.value; });
-      const vals = dates.map(dk=> byDate[dk] ?? null).filter(v=>v!=null);
-      const minVal = Math.min(...vals);
-      const maxVal = Math.max(...vals);
-      return { 
-        ...s, 
-        values: dates.map(dk=> {
-          const v = byDate[dk];
-          if(v == null) return null;
-          return minVal === maxVal ? 50 : ((v - minVal) / (maxVal - minVal)) * 100;
-        }),
-        rawValues: dates.map(dk=> byDate[dk] ?? null),
-        minVal, maxVal
-      };
-    });
 
-    if(!dates.length || !seriesByDate.some(s=>s.values.some(v=>v!=null))){
+    const byDateA = {}; seriesA.points.forEach(p=>{ byDateA[p.date] = p.value; });
+    const byDateB = {}; seriesB.points.forEach(p=>{ byDateB[p.date] = p.value; });
+    const valuesA = dates.map(d=> byDateA[d] ?? null);
+    const valuesB = dates.map(d=> byDateB[d] ?? null);
+    const allA = valuesA.filter(v=>v!=null);
+    const allB = valuesB.filter(v=>v!=null);
+
+    if(!dates.length || (!allA.length && !allB.length)){
       legend.innerHTML = '';
       cardEmpty.style.display = '';
       cardEmpty.textContent = 'No history yet for this combination.';
@@ -6234,98 +6287,65 @@
     }
     cardEmpty.style.display = 'none';
 
-    legend.innerHTML = seriesByDate.map(s=>`<span class="lg-item"><i class="lg-dot" style="background:${s.color}"></i>${s.label}</span>`).join('')
-      + targets.map(t=>`<span class="lg-item lg-target" style="color:${t.color}"><i class="lg-dot"></i>${t.label}</span>`).join('');
+    legend.innerHTML =
+      `<span class="lg-item"><i class="lg-dot" style="background:${seriesA.color}"></i>${seriesA.label} (left axis)</span>` +
+      `<span class="lg-item"><i class="lg-dot" style="background:${seriesB.color}"></i>${seriesB.label} (right axis)</span>` +
+      (targetA!=null ? `<span class="lg-item lg-target" style="color:${seriesA.color}"><i class="lg-dot"></i>${seriesA.label} target</span>` : '') +
+      (targetB!=null ? `<span class="lg-item lg-target" style="color:${seriesB.color}"><i class="lg-dot"></i>${seriesB.label} target</span>` : '');
 
-    const W = 900, H = 340, padL = 64, padR = 24, padT = 20, padB = 70;
+    const W = 900, H = 340, padL = 64, padR = 64, padT = 20, padB = 70;
     const plotW = W - padL - padR, plotH = H - padT - padB;
 
+    if(targetA!=null) allA.push(targetA);
+    if(targetB!=null) allB.push(targetB);
+    const axisA = computeAxisScale(seriesA.key, allA);
+    const axisB = computeAxisScale(seriesB.key, allB);
+
     const xAt = i => padL + (dates.length===1 ? plotW/2 : (i/(dates.length-1))*plotW);
-    const yAt = v => padT + plotH - (v/100)*plotH;
+    const yAtA = v => padT + plotH - ((v - axisA.vMin)/(axisA.vMax - axisA.vMin))*plotH;
+    const yAtB = v => padT + plotH - ((v - axisB.vMin)/(axisB.vMax - axisB.vMin))*plotH;
     const ns = 'http://www.w3.org/2000/svg';
     const mk = (tag, attrs)=>{ const el=document.createElementNS(ns,tag); Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); return el; };
 
-    // Y-axis from 0-100 for normalized view. Each series has its own real units
-    // (Order, Manpower, Productivity %, …), so a single value axis can't label
-    // ticks in "the" unit — but leaving the axis with gridlines and no numbers
-    // at all reads as broken/missing. Label it as the relative position within
-    // each series' own min–max range instead, so it auto-scales with whatever
-    // is plotted rather than vanishing.
-    for(let i=0;i<=5;i++){
-      const v = (i/5)*100;
-      const y = yAt(v);
+    // Left axis: gridlines + ticks colored to match series A.
+    axisA.ticks.forEach(v=>{
+      if(v > axisA.vMax + axisA.interval/2) return;
+      const y = yAtA(v);
       svg.appendChild(mk('line', {x1:padL, y1:y, x2:W-padR, y2:y, class:'trend-svg-gridline'}));
-      const t = mk('text', {x:padL-8, y:y+4, class:'trend-svg-axis-label', 'text-anchor':'end'});
-      t.textContent = v+'%';
+      const t = mk('text', {x:padL-8, y:y+4, class:'trend-svg-axis-label', 'text-anchor':'end', style:`fill:${seriesA.color};`});
+      t.textContent = fmtA(v);
       svg.appendChild(t);
-    }
+    });
+    // Right axis: ticks colored to match series B (no gridlines, to avoid a
+    // doubled-up grid — the left axis' gridlines already mark the rows).
+    axisB.ticks.forEach(v=>{
+      if(v > axisB.vMax + axisB.interval/2) return;
+      const y = yAtB(v);
+      const t = mk('text', {x:W-padR+8, y:y+4, class:'trend-svg-axis-label', 'text-anchor':'start', style:`fill:${seriesB.color};`});
+      t.textContent = fmtB(v);
+      svg.appendChild(t);
+    });
     svg.appendChild(mk('line', {x1:padL, y1:H-padB, x2:W-padR, y2:H-padB, class:'trend-svg-axis'}));
 
-    // Date labels — same Daily-grain treatment (day number + weekday underneath,
-    // horizontal, with light month-grouping bands) as the single-aspect chart;
-    // Weekly/Monthly keep the original rotated date+weekday label.
-    const dateObjs = dates.map(d => {
-      const date = new Date(d + 'T00:00:00Z');
-      return { dateStr: d, date: date, wd: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getUTCDay()] };
-    });
-    const firstLabel = dateLabel[dates[0]] || '';
-    const isDailyGrain = !firstLabel.startsWith('Week of ') && !/^\d{4}-\d{2}(\s\(MTD\))?$/.test(firstLabel);
+    renderTrendXAxis(svg, mk, xAt, dates, W, H, padL, padR, padB, plotW, grain || 'daily');
 
-    if(isDailyGrain){
-      const maxLabels = Math.max(4, Math.floor(plotW / 22));
-      const step = Math.max(1, Math.ceil(dates.length / maxLabels));
-      const MONTH_BAND_FILLS = ['rgba(120,140,180,0.07)', 'rgba(120,140,180,0.15)'];
-      let bandStart = 0, bandMonthKey = dateObjs[0].dateStr.slice(0,7), bandIdx = 0;
-      const flushBand = endIdx=>{
-        const x1 = bandStart===0 ? padL : (xAt(bandStart-1)+xAt(bandStart))/2;
-        const x2 = endIdx===dates.length-1 ? W-padR : (xAt(endIdx)+xAt(endIdx+1))/2;
-        svg.appendChild(mk('rect', {x:x1, y:H-padB, width:Math.max(0,x2-x1), height:padB-16, fill:MONTH_BAND_FILLS[bandIdx%2]}));
-        const mDate = new Date(bandMonthKey+'-01T00:00:00Z');
-        const t = mk('text', {x:(x1+x2)/2, y:H-14, class:'trend-svg-date-label', 'text-anchor':'middle', style:'font-size:9px;fill:var(--text-muted);'});
-        t.textContent = mDate.toLocaleDateString('en-US',{month:'short',year:'numeric'});
-        svg.appendChild(t);
-        bandIdx++;
-      };
-      dateObjs.forEach((obj,i)=>{
-        const mKey = obj.dateStr.slice(0,7);
-        if(mKey !== bandMonthKey){ flushBand(i-1); bandStart = i; bandMonthKey = mKey; }
-      });
-      flushBand(dates.length-1);
+    if(targetA!=null) svg.appendChild(mk('line', {x1:padL, y1:yAtA(targetA), x2:W-padR, y2:yAtA(targetA), class:'trend-svg-target', style:`stroke:${seriesA.color};opacity:.55;`}));
+    if(targetB!=null) svg.appendChild(mk('line', {x1:padL, y1:yAtB(targetB), x2:W-padR, y2:yAtB(targetB), class:'trend-svg-target', style:`stroke:${seriesB.color};opacity:.55;`}));
 
-      dateObjs.forEach((obj,i)=>{
-        if(i % step !== 0 && i !== dates.length-1) return;
-        const x = xAt(i);
-        const t1 = mk('text', {x, y:H-padB+16, class:'trend-svg-date-label', 'text-anchor':'middle'});
-        t1.textContent = String(obj.date.getUTCDate());
-        svg.appendChild(t1);
-        const t2 = mk('text', {x, y:H-padB+27, class:'trend-svg-date-label', 'text-anchor':'middle', style:'font-size:9px;fill:var(--text-muted);'});
-        t2.textContent = obj.wd;
-        svg.appendChild(t2);
-      });
-    } else {
-      const maxLabels = Math.max(4, Math.floor(plotW / 14));
-      const step = Math.max(1, Math.ceil(dates.length / maxLabels));
-      dateObjs.forEach((obj, i)=>{
-        if(i % step !== 0 && i !== dates.length-1) return;
-        const t = mk('text', {x:0, y:0, class:'trend-svg-date-label', 'text-anchor':'end',
-          transform:`translate(${xAt(i)},${H-padB+10}) rotate(-90)`});
-        t.textContent = obj.dateStr + ' ' + obj.wd;
-        svg.appendChild(t);
-      });
-    }
-
-    seriesByDate.forEach(s=>{
+    const drawLine = (values, yAt, color)=>{
       let path = '';
-      s.values.forEach((v,i)=>{
+      values.forEach((v,i)=>{
         if(v==null) return;
-        path += (path==='' || s.values[i-1]==null ? 'M' : 'L') + xAt(i) + ',' + yAt(v) + ' ';
+        path += (path==='' || values[i-1]==null ? 'M' : 'L') + xAt(i) + ',' + yAt(v) + ' ';
       });
-      if(path) svg.appendChild(mk('path', {d:path.trim(), class:'trend-svg-line2', style:`stroke:${s.color};`}));
-      s.values.forEach((v,i)=>{
+      if(path) svg.appendChild(mk('path', {d:path.trim(), class:'trend-svg-line2', style:`stroke:${color};`}));
+      values.forEach((v,i)=>{
         if(v==null) return;
-        svg.appendChild(mk('circle', {cx:xAt(i), cy:yAt(v), r:3, style:`fill:${s.color};stroke:#fff;stroke-width:1.2;`}));
+        svg.appendChild(mk('circle', {cx:xAt(i), cy:yAt(v), r:3, style:`fill:${color};stroke:#fff;stroke-width:1.2;`}));
       });
-    });
+    };
+    drawLine(valuesA, yAtA, seriesA.color);
+    drawLine(valuesB, yAtB, seriesB.color);
 
     const crosshair = mk('line', {x1:0, y1:padT, x2:0, y2:H-padB, class:'trend-svg-crosshair'});
     svg.appendChild(crosshair);
@@ -6343,11 +6363,8 @@
       const wrapEl = document.getElementById('prodTrendWrap_'+chartId);
       const wrapRect = wrapEl.getBoundingClientRect();
       const scaleDisp = rect.width / W;
-      const rows = seriesByDate.map(s=> {
-        const raw = s.rawValues[idx];
-        const fmt = raw == null ? '—' : (raw < 100 ? raw.toFixed(2) : Math.round(raw).toLocaleString());
-        return `<div>${s.label}: <strong>${fmt}</strong></div>`;
-      }).join('');
+      const rows = `<div>${seriesA.label}: <strong>${valuesA[idx]==null?'—':fmtA(valuesA[idx])}</strong></div>` +
+                   `<div>${seriesB.label}: <strong>${valuesB[idx]==null?'—':fmtB(valuesB[idx])}</strong></div>`;
       tooltip.style.left = (rect.left - wrapRect.left + x*scaleDisp) + 'px';
       tooltip.style.top = (rect.top - wrapRect.top + padT*scaleDisp) + 'px';
       tooltip.innerHTML = `<div class="tt-date">${dateLabel[dates[idx]]}</div>${rows}`;
@@ -6357,10 +6374,10 @@
     overlay.addEventListener('mouseleave', ()=>{ crosshair.style.opacity = 0; tooltip.classList.remove('show'); });
   }
 
-  function drawDeptTrendChart(kpiKey, seriesList, targets, fmtFn){
+  function drawDeptTrendChart(kpiKey, seriesList, targets, fmtFn, grain){
     drawMultiSeriesTrendChart(
       kpiKey, 'trend', seriesList, targets, fmtFn,
-      'No history yet for this KPI at this interval / district selection.'
+      'No history yet for this KPI at this interval / district selection.', grain
     );
   }
 
@@ -6383,8 +6400,11 @@
     }
     emptyNote.textContent = '';
 
-    // If multiple aspects selected, show them in a combined view per district
+    // Aspects dropdown now caps at 2 selections (see populateProdTrendChips), so
+    // "more than one" always means exactly two — shown as a dual-axis chart with
+    // each aspect keeping its own real Y-axis (left = first pick, right = second).
     if(aspects.length > 1){
+      const [aspectA, aspectB] = aspects;
       container.innerHTML = districts.map(d=>`
         <div class="prod-trend-card">
           <h4>Combined Trends - ${d}</h4>
@@ -6398,23 +6418,24 @@
         </div>
       `).join('');
 
+      const fmtA = aspectA.key==='productivity' ? m.fmt : aspectA.fmt;
+      const fmtB = aspectB.key==='productivity' ? m.fmt : aspectB.fmt;
       districts.forEach(d=>{
-        const seriesList = aspects.map(a=>{
-          const fmtFn = a.key==='productivity' ? m.fmt : a.fmt;
-          return {
-            label: a.label + (a.key==='productivity' ? ` (${m.label})` : ''),
-            color: ['#8aa2bb', '#d6484b', '#3e9c6d', '#e2a33d', '#6f5bc9'][aspects.indexOf(a) % 5],
-            points: prodTrendSeriesFor(matrixKey, a.key, d, prodTrendInterval)
-          };
-        });
-        const targets = [];
-        aspects.forEach(a=>{
-          if(prodTrendShowTarget && a.hasTarget){
-            const v = prodTrendTargetFor(matrixKey, a.key, d);
-            if(v != null) targets.push({ label:a.label+' target', color:'#ccc', value:v });
-          }
-        });
-        drawCombinedProdTrendChart('combined_'+d, seriesList, targets);
+        const seriesA = {
+          key: aspectA.key,
+          label: aspectA.label + (aspectA.key==='productivity' ? ` (${m.label})` : ''),
+          color: '#3d6cb0',
+          points: prodTrendSeriesFor(matrixKey, aspectA.key, d, prodTrendInterval)
+        };
+        const seriesB = {
+          key: aspectB.key,
+          label: aspectB.label + (aspectB.key==='productivity' ? ` (${m.label})` : ''),
+          color: '#d6484b',
+          points: prodTrendSeriesFor(matrixKey, aspectB.key, d, prodTrendInterval)
+        };
+        const targetA = (prodTrendShowTarget && aspectA.hasTarget) ? prodTrendTargetFor(matrixKey, aspectA.key, d) : null;
+        const targetB = (prodTrendShowTarget && aspectB.hasTarget) ? prodTrendTargetFor(matrixKey, aspectB.key, d) : null;
+        drawDualAxisTrendChart('combined_'+d, seriesA, seriesB, fmtA, fmtB, targetA, targetB, prodTrendInterval);
       });
     } else {
       // Single aspect: one chart per aspect (original behavior)
@@ -6441,7 +6462,7 @@
         const targets = (prodTrendShowTarget && a.hasTarget)
           ? districts.map(d=>({ district:d, color:prodTrendColorFor(d), value:prodTrendTargetFor(matrixKey, a.key, d) })).filter(t=>t.value!=null)
           : [];
-        drawProdTrendChart(a.key, seriesList, targets, fmtFn);
+        drawProdTrendChart(a.key, seriesList, targets, fmtFn, prodTrendInterval);
       });
     }
   }
