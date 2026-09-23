@@ -800,7 +800,6 @@
             <select id="trendDailyRangeSelect">
               <option value="30">Last 30 days</option>
               <option value="60">Last 60 days</option>
-              <option value="90">Last 90 days</option>
             </select>
           </div>
         </div>
@@ -846,6 +845,9 @@
             <select id="gmvMetricSelect">
               <option value="gmv">GMV ($)</option>
               <option value="basketSize">Basket Size ($)</option>
+              <option value="orderCount">Order Count</option>
+              <option value="waybillCount">Waybill Count</option>
+              <option value="waybillPerOrder">Waybill / Order</option>
             </select>
           </div>
         </div>
@@ -1028,7 +1030,6 @@
               <select id="prodTrendDailyRangeSelect">
                 <option value="30">Last 30 days</option>
                 <option value="60">Last 60 days</option>
-                <option value="90">Last 90 days</option>
               </select>
             </div>
             <div class="prod-field">
@@ -2126,7 +2127,7 @@
   let trendKpiKeys = new Set([OVERVIEW_MATRICES[0].key]);  // one or more KPIs — one card each
   let trendScopes = new Set(['Overall']);                  // one or more districts — stacked as lines per card
   let trendInterval = 'daily';      // 'daily' | 'weekly' | 'monthly'
-  let trendDailyRange = 30;         // lookback window (days) when interval==='daily'; capped at 90
+  let trendDailyRange = 30;         // lookback window (days) when interval==='daily'; capped at 60
 
   function trendMetricSupportsDaily(key){ return key === 'hktvStaff' || key === 'delayRate'; }
 
@@ -2227,7 +2228,7 @@
     if(!trendMetricSupportsDaily(key)) return trendMonthlyFromLedger(key, scope);
     if(key === 'delayRate' && interval === 'monthly') return trendMonthlySeriesForDelay(scope);
     const daily = trendDailySeries(key, scope);
-    if(interval === 'daily') return daily.slice(-Math.min(trendDailyRange, 90)).map(p=>({ date:p.date, value:p.value, label:p.date }));
+    if(interval === 'daily') return daily.slice(-Math.min(trendDailyRange, 60)).map(p=>({ date:p.date, value:p.value, label:p.date }));
     if(interval === 'weekly') return aggregateWeekly(daily);
     return aggregateMonthly(daily);
   }
@@ -5875,7 +5876,7 @@
   let prodTrendDistricts = new Set(['Total']);
   let prodTrendInterval = 'daily';
   let prodTrendShowTarget = true;
-  let prodTrendDailyRange = 30;     // lookback window (days) when interval==='daily'; capped at 90
+  let prodTrendDailyRange = 30;     // lookback window (days) when interval==='daily'; capped at 60
 
   // Same derivation as the table cells (oA/wA/mA/woA/pA in renderProductivityTab).
   // costPerOrder has no daily actual-cost log yet, so it's always null here —
@@ -5902,7 +5903,7 @@
 
   function prodTrendSeriesFor(matrixKey, aspectKey, district, interval){
     const daily = prodTrendDailySeries(matrixKey, aspectKey, district);
-    if(interval==='daily') return daily.slice(-Math.min(prodTrendDailyRange, 90)).map(p=>({ date:p.date, value:p.value, label:p.date }));
+    if(interval==='daily') return daily.slice(-Math.min(prodTrendDailyRange, 60)).map(p=>({ date:p.date, value:p.value, label:p.date }));
     if(interval==='weekly') return aggregateWeekly(daily);
     return aggregateMonthly(daily);
   }
@@ -6014,30 +6015,67 @@
     if(vMax === 0) vMax = 1;
     vMax *= 1.12;
 
+    // Determine metric-specific interval for Y-axis
+    let interval = 1;
+    const METRIC_INTERVALS = {
+      'orderCount': 5000, 'productivity': 10, 'delayRate': 2.5, 'poorRating': 0.05,
+      'missingLostAmount': 100000, 'rfidMissingTote': 50, 'waybillCount': 50000,
+      'manpower': 100, 'waybillPerOrder': 2.5, 'costPerOrder': 5
+    };
+    if(METRIC_INTERVALS[key]) interval = METRIC_INTERVALS[key];
+
     const xAt = i => padL + (dates.length===1 ? plotW/2 : (i/(dates.length-1))*plotW);
     const yAt = v => padT + plotH - ((v - vMin)/(vMax - vMin))*plotH;
     const ns = 'http://www.w3.org/2000/svg';
     const mk = (tag, attrs)=>{ const el=document.createElementNS(ns,tag); Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); return el; };
 
-    const bands = 4;
-    for(let i=0;i<=bands;i++){
-      const v = vMin + (vMax-vMin)*(i/bands);
+    // Calculate Y-axis ticks based on metric interval
+    let ticks = [];
+    for(let v = 0; v <= vMax; v += interval){
+      if(v <= vMax) ticks.push(v);
+    }
+    if(ticks[ticks.length-1] < vMax) ticks.push(Math.ceil(vMax/interval)*interval);
+
+    // For delay and poor rating, show only multiples of 5%
+    if((key==='delayRate' || key==='poorRating') && fmtFn.toString().includes('%')){
+      ticks = ticks.filter((_, i) => i % 2 === 0 || i === ticks.length - 1);
+    }
+
+    // Draw Y-axis gridlines with labels
+    ticks.forEach(v=>{
+      if(v > vMax + interval/2) return;
       const y = yAt(v);
       svg.appendChild(mk('line', {x1:padL, y1:y, x2:W-padR, y2:y, class:'trend-svg-gridline'}));
       const t = mk('text', {x:padL-8, y:y+4, class:'trend-svg-axis-label', 'text-anchor':'end'});
       t.textContent = fmtFn(v);
       svg.appendChild(t);
-    }
+    });
     svg.appendChild(mk('line', {x1:padL, y1:H-padB, x2:W-padR, y2:H-padB, class:'trend-svg-axis'}));
 
+    // Enhanced date labels with month grouping and weekday
+    const dateObjs = dates.map(d => {
+      const date = new Date(d + 'T00:00:00Z');
+      return { dateStr: d, date: date, wd: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getUTCDay()] };
+    });
+
+    let lastMonth = null;
     const maxLabels = Math.max(4, Math.floor(plotW / 14));
     const step = Math.max(1, Math.ceil(dates.length / maxLabels));
-    dates.forEach((dk,i)=>{
+    dateObjs.forEach((obj, i)=>{
       if(i % step !== 0 && i !== dates.length-1) return;
+      const currentMonth = obj.date.toUTCString().substring(8, 11) + ' ' + obj.date.getUTCFullYear();
       const t = mk('text', {x:0, y:0, class:'trend-svg-date-label', 'text-anchor':'end',
         transform:`translate(${xAt(i)},${H-padB+10}) rotate(-90)`});
-      t.textContent = shortTickLabel(dk, dateLabel[dk]);
+      t.textContent = obj.dateStr + ' ' + obj.wd;
       svg.appendChild(t);
+      
+      // Draw month grouping line
+      if(lastMonth !== currentMonth && i > 0){
+        const prevDate = dateObjs[i-1];
+        const midX = (xAt(i) + xAt(i-1)) / 2;
+        svg.appendChild(mk('line', {x1:midX, y1:H-padB, x2:midX, y2:H-padB+4, class:'trend-svg-axis', style:'stroke:var(--line);'}));
+      }
+      lastMonth = currentMonth;
     });
 
     targets.forEach(t=>{
@@ -6096,6 +6134,124 @@
     );
   }
 
+  function drawCombinedProdTrendChart(chartId, seriesList, targets){
+    // For combined aspect trends, normalize data to 0-100 scale for visualization
+    const svg = document.getElementById('prodTrendSvg_'+chartId);
+    const tooltip = document.getElementById('prodTrendTooltip_'+chartId);
+    const legend = document.getElementById('prodTrendLegend_'+chartId);
+    const cardEmpty = document.getElementById('prodTrendCardEmpty_'+chartId);
+    const rangeEl = document.getElementById('prodTrendDateRange_'+chartId);
+    if(!svg) return;
+    svg.innerHTML = '';
+
+    const dateLabel = {};
+    seriesList.forEach(s=> s.points.forEach(p=>{ dateLabel[p.date] = p.label || p.date; }));
+    const dates = Object.keys(dateLabel).sort();
+    if(rangeEl) rangeEl.textContent = trendDateRangeText(dates);
+    
+    const seriesByDate = seriesList.map(s=>{
+      const byDate = {}; s.points.forEach(p=>{ byDate[p.date] = p.value; });
+      const vals = dates.map(dk=> byDate[dk] ?? null).filter(v=>v!=null);
+      const minVal = Math.min(...vals);
+      const maxVal = Math.max(...vals);
+      return { 
+        ...s, 
+        values: dates.map(dk=> {
+          const v = byDate[dk];
+          if(v == null) return null;
+          return minVal === maxVal ? 50 : ((v - minVal) / (maxVal - minVal)) * 100;
+        }),
+        rawValues: dates.map(dk=> byDate[dk] ?? null),
+        minVal, maxVal
+      };
+    });
+
+    if(!dates.length || !seriesByDate.some(s=>s.values.some(v=>v!=null))){
+      legend.innerHTML = '';
+      cardEmpty.style.display = '';
+      cardEmpty.textContent = 'No history yet for this combination.';
+      tooltip.classList.remove('show');
+      return;
+    }
+    cardEmpty.style.display = 'none';
+
+    legend.innerHTML = seriesByDate.map(s=>`<span class="lg-item"><i class="lg-dot" style="background:${s.color}"></i>${s.label}</span>`).join('')
+      + targets.map(t=>`<span class="lg-item lg-target" style="color:${t.color}"><i class="lg-dot"></i>${t.label}</span>`).join('');
+
+    const W = 900, H = 340, padL = 64, padR = 24, padT = 20, padB = 70;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+
+    const xAt = i => padL + (dates.length===1 ? plotW/2 : (i/(dates.length-1))*plotW);
+    const yAt = v => padT + plotH - (v/100)*plotH;
+    const ns = 'http://www.w3.org/2000/svg';
+    const mk = (tag, attrs)=>{ const el=document.createElementNS(ns,tag); Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); return el; };
+
+    // Y-axis from 0-100 for normalized view
+    for(let i=0;i<=5;i++){
+      const v = (i/5)*100;
+      const y = yAt(v);
+      svg.appendChild(mk('line', {x1:padL, y1:y, x2:W-padR, y2:y, class:'trend-svg-gridline'}));
+    }
+    svg.appendChild(mk('line', {x1:padL, y1:H-padB, x2:W-padR, y2:H-padB, class:'trend-svg-axis'}));
+
+    const dateObjs = dates.map(d => {
+      const date = new Date(d + 'T00:00:00Z');
+      return { dateStr: d, date: date, wd: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getUTCDay()] };
+    });
+
+    const maxLabels = Math.max(4, Math.floor(plotW / 14));
+    const step = Math.max(1, Math.ceil(dates.length / maxLabels));
+    dateObjs.forEach((obj, i)=>{
+      if(i % step !== 0 && i !== dates.length-1) return;
+      const t = mk('text', {x:0, y:0, class:'trend-svg-date-label', 'text-anchor':'end',
+        transform:`translate(${xAt(i)},${H-padB+10}) rotate(-90)`});
+      t.textContent = obj.dateStr + ' ' + obj.wd;
+      svg.appendChild(t);
+    });
+
+    seriesByDate.forEach(s=>{
+      let path = '';
+      s.values.forEach((v,i)=>{
+        if(v==null) return;
+        path += (path==='' || s.values[i-1]==null ? 'M' : 'L') + xAt(i) + ',' + yAt(v) + ' ';
+      });
+      if(path) svg.appendChild(mk('path', {d:path.trim(), class:'trend-svg-line2', style:`stroke:${s.color};`}));
+      s.values.forEach((v,i)=>{
+        if(v==null) return;
+        svg.appendChild(mk('circle', {cx:xAt(i), cy:yAt(v), r:3, style:`fill:${s.color};stroke:#fff;stroke-width:1.2;`}));
+      });
+    });
+
+    const crosshair = mk('line', {x1:0, y1:padT, x2:0, y2:H-padB, class:'trend-svg-crosshair'});
+    svg.appendChild(crosshair);
+    const overlay = mk('rect', {x:padL, y:padT, width:plotW, height:plotH, class:'trend-svg-overlay'});
+    svg.appendChild(overlay);
+
+    function handleMove(e){
+      const rect = svg.getBoundingClientRect();
+      const scaleX = W / rect.width;
+      const localX = (e.clientX - rect.left) * scaleX;
+      let idx = dates.length===1 ? 0 : Math.round(((localX - padL) / plotW) * (dates.length-1));
+      idx = Math.max(0, Math.min(dates.length-1, idx));
+      const x = xAt(idx);
+      crosshair.setAttribute('x1', x); crosshair.setAttribute('x2', x); crosshair.style.opacity = 1;
+      const wrapEl = document.getElementById('prodTrendWrap_'+chartId);
+      const wrapRect = wrapEl.getBoundingClientRect();
+      const scaleDisp = rect.width / W;
+      const rows = seriesByDate.map(s=> {
+        const raw = s.rawValues[idx];
+        const fmt = raw == null ? '—' : (raw < 100 ? raw.toFixed(2) : Math.round(raw).toLocaleString());
+        return `<div>${s.label}: <strong>${fmt}</strong></div>`;
+      }).join('');
+      tooltip.style.left = (rect.left - wrapRect.left + x*scaleDisp) + 'px';
+      tooltip.style.top = (rect.top - wrapRect.top + padT*scaleDisp) + 'px';
+      tooltip.innerHTML = `<div class="tt-date">${dateLabel[dates[idx]]}</div>${rows}`;
+      tooltip.classList.add('show');
+    }
+    overlay.addEventListener('mousemove', handleMove);
+    overlay.addEventListener('mouseleave', ()=>{ crosshair.style.opacity = 0; tooltip.classList.remove('show'); });
+  }
+
   function drawDeptTrendChart(kpiKey, seriesList, targets, fmtFn){
     drawMultiSeriesTrendChart(
       kpiKey, 'trend', seriesList, targets, fmtFn,
@@ -6122,31 +6278,67 @@
     }
     emptyNote.textContent = '';
 
-    container.innerHTML = aspects.map(a=>`
-      <div class="prod-trend-card">
-        <h4>${a.label}${a.key==='productivity' ? ` (${m.label})` : ''}</h4>
-        <div class="trend-daterange" id="prodTrendDateRange_${a.key}"></div>
-        <div class="trend-chart-wrap" id="prodTrendWrap_${a.key}">
-          <svg id="prodTrendSvg_${a.key}" viewBox="0 0 900 340" preserveAspectRatio="xMidYMid meet"></svg>
-          <div class="trend-tooltip" id="prodTrendTooltip_${a.key}"></div>
+    // If multiple aspects selected, show them in a combined view per district
+    if(aspects.length > 1){
+      container.innerHTML = districts.map(d=>`
+        <div class="prod-trend-card">
+          <h4>Combined Trends - ${d}</h4>
+          <div class="trend-daterange" id="prodTrendDateRange_combined_${d}"></div>
+          <div class="trend-chart-wrap" id="prodTrendWrap_combined_${d}">
+            <svg id="prodTrendSvg_combined_${d}" viewBox="0 0 900 340" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="trend-tooltip" id="prodTrendTooltip_combined_${d}"></div>
+          </div>
+          <div class="prod-trend-legend" id="prodTrendLegend_combined_${d}"></div>
+          <div class="trend-empty-note" id="prodTrendCardEmpty_combined_${d}" style="display:none;"></div>
         </div>
-        <div class="prod-trend-legend" id="prodTrendLegend_${a.key}"></div>
-        <div class="trend-empty-note" id="prodTrendCardEmpty_${a.key}" style="display:none;"></div>
-      </div>
-    `).join('');
+      `).join('');
 
-    aspects.forEach(a=>{
-      const fmtFn = a.key==='productivity' ? m.fmt : a.fmt;
-      const seriesList = districts.map(d=>({
-        district: d,
-        color: prodTrendColorFor(d),
-        points: prodTrendSeriesFor(matrixKey, a.key, d, prodTrendInterval)
-      }));
-      const targets = (prodTrendShowTarget && a.hasTarget)
-        ? districts.map(d=>({ district:d, color:prodTrendColorFor(d), value:prodTrendTargetFor(matrixKey, a.key, d) })).filter(t=>t.value!=null)
-        : [];
-      drawProdTrendChart(a.key, seriesList, targets, fmtFn);
-    });
+      districts.forEach(d=>{
+        const seriesList = aspects.map(a=>{
+          const fmtFn = a.key==='productivity' ? m.fmt : a.fmt;
+          return {
+            label: a.label + (a.key==='productivity' ? ` (${m.label})` : ''),
+            color: ['#8aa2bb', '#d6484b', '#3e9c6d', '#e2a33d', '#6f5bc9'][aspects.indexOf(a) % 5],
+            points: prodTrendSeriesFor(matrixKey, a.key, d, prodTrendInterval)
+          };
+        });
+        const targets = [];
+        aspects.forEach(a=>{
+          if(prodTrendShowTarget && a.hasTarget){
+            const v = prodTrendTargetFor(matrixKey, a.key, d);
+            if(v != null) targets.push({ label:a.label+' target', color:'#ccc', value:v });
+          }
+        });
+        drawCombinedProdTrendChart('combined_'+d, seriesList, targets);
+      });
+    } else {
+      // Single aspect: one chart per aspect (original behavior)
+      container.innerHTML = aspects.map(a=>`
+        <div class="prod-trend-card">
+          <h4>${a.label}${a.key==='productivity' ? ` (${m.label})` : ''}</h4>
+          <div class="trend-daterange" id="prodTrendDateRange_${a.key}"></div>
+          <div class="trend-chart-wrap" id="prodTrendWrap_${a.key}">
+            <svg id="prodTrendSvg_${a.key}" viewBox="0 0 900 340" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="trend-tooltip" id="prodTrendTooltip_${a.key}"></div>
+          </div>
+          <div class="prod-trend-legend" id="prodTrendLegend_${a.key}"></div>
+          <div class="trend-empty-note" id="prodTrendCardEmpty_${a.key}" style="display:none;"></div>
+        </div>
+      `).join('');
+
+      aspects.forEach(a=>{
+        const fmtFn = a.key==='productivity' ? m.fmt : a.fmt;
+        const seriesList = districts.map(d=>({
+          district: d,
+          color: prodTrendColorFor(d),
+          points: prodTrendSeriesFor(matrixKey, a.key, d, prodTrendInterval)
+        }));
+        const targets = (prodTrendShowTarget && a.hasTarget)
+          ? districts.map(d=>({ district:d, color:prodTrendColorFor(d), value:prodTrendTargetFor(matrixKey, a.key, d) })).filter(t=>t.value!=null)
+          : [];
+        drawProdTrendChart(a.key, seriesList, targets, fmtFn);
+      });
+    }
   }
 
   function setProdViewMode(mode){
@@ -6346,44 +6538,82 @@
       body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No gmv_history.json alongside this page yet — kpi_pipeline.py's Tableau section writes it automatically once the separate GMV Tableau account is configured (TABLEAU_GMV_USER/PASS) and has downloaded at least one day. This table will populate on its own.</td></tr>`;
       return;
     }
-    const metric = document.getElementById('gmvMetricSelect').value; // 'gmv' | 'basketSize'
+    const metric = document.getElementById('gmvMetricSelect').value; // 'gmv' | 'basketSize' | 'orderCount' | 'waybillCount' | 'waybillPerOrder'
+    const isProductivityMetric = ['orderCount', 'waybillCount', 'waybillPerOrder'].includes(metric);
     const dollarFmt = v => v==null ? '—' : '$'+Math.round(v).toLocaleString();
     const bsFmt = v => v==null ? '—' : '$'+v.toFixed(2);
-    const fmt = metric==='gmv' ? dollarFmt : bsFmt;
+    const intFmt = v => v==null ? '—' : Math.round(v).toLocaleString();
+    const ratioFmt = v => v==null ? '—' : v.toFixed(2);
+    let fmt;
+    if(metric==='gmv') fmt = dollarFmt;
+    else if(metric==='basketSize') fmt = bsFmt;
+    else if(metric==='waybillPerOrder') fmt = ratioFmt;
+    else fmt = intFmt;
 
-    const latestKey = dailyKeys[0];
-    const latest = latestKey ? DATA.gmvDaily[latestKey] : null;
-    const mtdGmv = dailyKeys.reduce((s,k)=> s + (DATA.gmvDaily[k].gmv.overall||0), 0);
-    // v6.0 §2 — MTD ODS Order Ratio (overall) and MTD Delay Ratio (overall),
-    // alongside the existing GMV / Basket Size cards.
-    const pctFmt1 = v => v==null ? '—' : v.toFixed(1)+'%';
-    const mtdOdsRatio = mtdOdsOrderRatioOverall();
-    const mtdDelay = DATA.delayMtd ? (DATA.delayMtd.overall.Overall && DATA.delayMtd.overall.Overall.delay) : null;
-    summary.innerHTML = `
-      <div class="gmv-summary-card">
-        <div class="label">Latest Day${latestKey?' · '+latestKey:''}</div>
-        <div class="row"><span>GMV</span><span class="v">${dollarFmt(latest?latest.gmv.overall:null)}</span></div>
-        <div class="row"><span>Basket Size</span><span class="v">${bsFmt(latest?latest.basketSize.overall:null)}</span></div>
-      </div>
-      <div class="gmv-summary-card">
-        <div class="label">Month to Date</div>
-        <div class="row"><span>GMV</span><span class="v">${dollarFmt(mtdGmv)}</span></div>
-      </div>
-      <div class="gmv-summary-card">
-        <div class="label">Month to Date · Network</div>
-        <div class="row"><span>ODS Order Ratio</span><span class="v">${pctFmt1(mtdOdsRatio)}</span></div>
-      </div>
-      <div class="gmv-summary-card">
-        <div class="label">Month to Date · Network</div>
-        <div class="row"><span>Delay Ratio</span><span class="v">${pctFmt1(mtdDelay)}</span></div>
-      </div>`;
+    let rows = [];
+    
+    if(isProductivityMetric){
+      // For productivity metrics, read from dailyProductivity and calculate monthly aggregates
+      const prodDailyKeys = Object.keys(DATA.dailyProductivity).sort().reverse();
+      rows = prodDailyKeys.map(k=>{
+        const daily = DATA.dailyProductivity[k].hktvStaff;
+        const districtData = {};
+        let totalOrder = 0, totalWaybill = 0;
+        
+        DISTRICTS.forEach(d=>{
+          const dc = daily.districts[d];
+          if(!dc) districtData[d] = null;
+          else {
+            const order = dc.orderCount;
+            const waybill = dc.waybillCount || 0;
+            totalOrder += order || 0;
+            totalWaybill += waybill || 0;
+            
+            if(metric==='orderCount') districtData[d] = order;
+            else if(metric==='waybillCount') districtData[d] = waybill;
+            else if(metric==='waybillPerOrder') districtData[d] = (order && waybill) ? waybill/order : null;
+          }
+        });
+        
+        let overall = null;
+        if(metric==='orderCount') overall = daily.total.orderCount;
+        else if(metric==='waybillCount') overall = daily.total.waybillCount || 0;
+        else if(metric==='waybillPerOrder') overall = (daily.total.orderCount && daily.total.waybillCount) ? daily.total.waybillCount/daily.total.orderCount : null;
+        
+        return { label:k, group:{ districts:districtData, overall:overall }, isMonth:false };
+      });
+      
+      head.innerHTML = `<tr><th>Date</th>${DISTRICTS.map(d=>`<th>${d}</th>`).join('')}<th>Total</th></tr>`;
+    } else {
+      // Original GMV/Basket Size logic
+      const latestKey = dailyKeys[0];
+      const latest = latestKey ? DATA.gmvDaily[latestKey] : null;
+      const mtdGmv = dailyKeys.reduce((s,k)=> s + (DATA.gmvDaily[k].gmv.overall||0), 0);
+      const pctFmt1 = v => v==null ? '—' : v.toFixed(1)+'%';
+      const mtdOdsRatio = mtdOdsOrderRatioOverall();
+      summary.innerHTML = `
+        <div class="gmv-summary-card">
+          <div class="label">Latest Day${latestKey?' · '+latestKey:''}</div>
+          <div class="row"><span>GMV</span><span class="v">${dollarFmt(latest?latest.gmv.overall:null)}</span></div>
+          <div class="row"><span>Basket Size</span><span class="v">${bsFmt(latest?latest.basketSize.overall:null)}</span></div>
+        </div>
+        <div class="gmv-summary-card">
+          <div class="label">Month to Date</div>
+          <div class="row"><span>GMV</span><span class="v">${dollarFmt(mtdGmv)}</span></div>
+        </div>
+        <div class="gmv-summary-card">
+          <div class="label">Month to Date · Network</div>
+          <div class="row"><span>ODS Order Ratio</span><span class="v">${pctFmt1(mtdOdsRatio)}</span></div>
+        </div>`;
+      
+      rows = [
+        ...dailyKeys.map(k=>({ label:k, group:DATA.gmvDaily[k][metric], isMonth:false })),
+        ...monthlyKeys.map(k=>({ label:k, group:DATA.gmvMonthly[k][metric], isMonth:true })),
+      ];
+      
+      head.innerHTML = `<tr><th>Date</th>${DISTRICTS.map(d=>`<th>${d}</th>`).join('')}<th>Total</th></tr>`;
+    }
 
-    head.innerHTML = `<tr><th>Date</th>${DISTRICTS.map(d=>`<th>${d}</th>`).join('')}<th>Total</th></tr>`;
-
-    const rows = [
-      ...dailyKeys.map(k=>({ label:k, group:DATA.gmvDaily[k][metric], isMonth:false })),
-      ...monthlyKeys.map(k=>({ label:k, group:DATA.gmvMonthly[k][metric], isMonth:true })),
-    ];
     body.innerHTML = rows.map(r=>{
       const cells = DISTRICTS.map(d=>`<td>${fmt(r.group.districts[d])}</td>`).join('');
       const rowLabel = r.isMonth ? `<strong>${r.label}</strong>` : r.label;
