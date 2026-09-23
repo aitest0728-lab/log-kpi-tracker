@@ -1643,6 +1643,27 @@
      average/estimate fallback exists for these — a date the log doesn't cover (before v27.0)
      just has no entry, and the caller falls back to today's snapshot, same as before v27.0. */
   const OTHER_ASPECT_KEYS = ['poorRating', 'missingLostAmount', 'rfidMissingTote'];
+
+  /* v28.0 — Poor Rating % has occasionally been written to other_aspects_history.json
+     at the wrong scale (e.g. 2.66 instead of 0.0266), which reads as an implausible
+     >=1% poor-rating figure against a ~0.07% target. Strip any such bad-scale record
+     out of daily/monthly/current before it ever reaches the charts or tables, no
+     matter which month it's dated — a whole-record removal (not just clamping the
+     number) since a bad overall figure means its district breakdown is equally
+     untrustworthy. */
+  const POOR_RATING_BAD_SCALE_THRESHOLD = 1;
+  function sanitizeOtherAspects(raw){
+    const bucket = raw && raw.poorRating;
+    if(!bucket) return raw;
+    const isBad = rec => rec && rec.overall != null && rec.overall >= POOR_RATING_BAD_SCALE_THRESHOLD;
+    ['daily', 'monthly'].forEach(grain=>{
+      const g = bucket[grain];
+      if(!g) return;
+      Object.keys(g).forEach(k=>{ if(isBad(g[k])) delete g[k]; });
+    });
+    if(isBad(bucket.current)) bucket.current = null;
+    return raw;
+  }
   function otherAspectAsOf(key, dateStr){
     const daily = (DATA.otherAspects && DATA.otherAspects[key] && DATA.otherAspects[key].daily) || {};
     const rec = daily[dateStr];
@@ -1895,7 +1916,7 @@
       const res6 = await fetchJSON('other_aspects_history.json');
       if(!res6.ok) throw new Error('no other_aspects_history.json');
       const json6 = await res6.json();
-      DATA.otherAspects = json6 || {};
+      DATA.otherAspects = sanitizeOtherAspects(json6 || {});
     }catch(err){
       DATA.otherAspects = {};
     }
@@ -6018,7 +6039,7 @@
     // Determine metric-specific interval for Y-axis
     let interval = 1;
     const METRIC_INTERVALS = {
-      'orderCount': 5000, 'productivity': 10, 'delayRate': 2.5, 'poorRating': 0.05,
+      'orderCount': 5000, 'productivity': 10, 'hktvStaff': 10, 'delayRate': 2.5, 'poorRating': 0.05,
       'missingLostAmount': 100000, 'rfidMissingTote': 50, 'waybillCount': 50000,
       'manpower': 100, 'waybillPerOrder': 2.5, 'costPerOrder': 5
     };
@@ -6036,8 +6057,10 @@
     }
     if(ticks[ticks.length-1] < vMax) ticks.push(Math.ceil(vMax/interval)*interval);
 
-    // For delay and poor rating, show only multiples of 5%
-    if((key==='delayRate' || key==='poorRating') && fmtFn.toString().includes('%')){
+    // Delay Rate ticks at 2.5% intervals read cleaner shown every 5% — but Poor
+    // Rating's own interval (0.05%) is the requested axis step, so it's left
+    // untouched here instead of being thinned to every other tick (0.10%).
+    if(key==='delayRate' && fmtFn.toString().includes('%')){
       ticks = ticks.filter((_, i) => i % 2 === 0 || i === ticks.length - 1);
     }
 
@@ -6052,31 +6075,67 @@
     });
     svg.appendChild(mk('line', {x1:padL, y1:H-padB, x2:W-padR, y2:H-padB, class:'trend-svg-axis'}));
 
-    // Enhanced date labels with month grouping and weekday
+    // Date labels. Daily grain: just the day-of-month number with the weekday
+    // underneath, both set horizontally, plus a light background band per
+    // calendar month so same-month days read as a group. Weekly/Monthly grain
+    // keep the original rotated "date + weekday" label — grouping by day only
+    // makes sense once each tick IS a day.
     const dateObjs = dates.map(d => {
       const date = new Date(d + 'T00:00:00Z');
       return { dateStr: d, date: date, wd: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getUTCDay()] };
     });
+    const firstLabel = dateLabel[dates[0]] || '';
+    const isDailyGrain = !firstLabel.startsWith('Week of ') && !/^\d{4}-\d{2}(\s\(MTD\))?$/.test(firstLabel);
 
-    let lastMonth = null;
-    const maxLabels = Math.max(4, Math.floor(plotW / 14));
-    const step = Math.max(1, Math.ceil(dates.length / maxLabels));
-    dateObjs.forEach((obj, i)=>{
-      if(i % step !== 0 && i !== dates.length-1) return;
-      const currentMonth = obj.date.toUTCString().substring(8, 11) + ' ' + obj.date.getUTCFullYear();
-      const t = mk('text', {x:0, y:0, class:'trend-svg-date-label', 'text-anchor':'end',
-        transform:`translate(${xAt(i)},${H-padB+10}) rotate(-90)`});
-      t.textContent = obj.dateStr + ' ' + obj.wd;
-      svg.appendChild(t);
-      
-      // Draw month grouping line
-      if(lastMonth !== currentMonth && i > 0){
-        const prevDate = dateObjs[i-1];
-        const midX = (xAt(i) + xAt(i-1)) / 2;
-        svg.appendChild(mk('line', {x1:midX, y1:H-padB, x2:midX, y2:H-padB+4, class:'trend-svg-axis', style:'stroke:var(--line);'}));
-      }
-      lastMonth = currentMonth;
-    });
+    if(isDailyGrain){
+      const maxLabels = Math.max(4, Math.floor(plotW / 22));
+      const step = Math.max(1, Math.ceil(dates.length / maxLabels));
+      const MONTH_BAND_FILLS = ['rgba(120,140,180,0.07)', 'rgba(120,140,180,0.15)'];
+      let bandStart = 0, bandMonthKey = dateObjs[0].dateStr.slice(0,7), bandIdx = 0;
+      const flushBand = endIdx=>{
+        const x1 = bandStart===0 ? padL : (xAt(bandStart-1)+xAt(bandStart))/2;
+        const x2 = endIdx===dates.length-1 ? W-padR : (xAt(endIdx)+xAt(endIdx+1))/2;
+        svg.appendChild(mk('rect', {x:x1, y:H-padB, width:Math.max(0,x2-x1), height:padB-16, fill:MONTH_BAND_FILLS[bandIdx%2]}));
+        const mDate = new Date(bandMonthKey+'-01T00:00:00Z');
+        const t = mk('text', {x:(x1+x2)/2, y:H-14, class:'trend-svg-date-label', 'text-anchor':'middle', style:'font-size:9px;fill:var(--text-muted);'});
+        t.textContent = mDate.toLocaleDateString('en-US',{month:'short',year:'numeric'});
+        svg.appendChild(t);
+        bandIdx++;
+      };
+      dateObjs.forEach((obj,i)=>{
+        const mKey = obj.dateStr.slice(0,7);
+        if(mKey !== bandMonthKey){ flushBand(i-1); bandStart = i; bandMonthKey = mKey; }
+      });
+      flushBand(dates.length-1);
+
+      dateObjs.forEach((obj,i)=>{
+        if(i % step !== 0 && i !== dates.length-1) return;
+        const x = xAt(i);
+        const t1 = mk('text', {x, y:H-padB+16, class:'trend-svg-date-label', 'text-anchor':'middle'});
+        t1.textContent = String(obj.date.getUTCDate());
+        svg.appendChild(t1);
+        const t2 = mk('text', {x, y:H-padB+27, class:'trend-svg-date-label', 'text-anchor':'middle', style:'font-size:9px;fill:var(--text-muted);'});
+        t2.textContent = obj.wd;
+        svg.appendChild(t2);
+      });
+    } else {
+      let lastMonth = null;
+      const maxLabels = Math.max(4, Math.floor(plotW / 14));
+      const step = Math.max(1, Math.ceil(dates.length / maxLabels));
+      dateObjs.forEach((obj, i)=>{
+        if(i % step !== 0 && i !== dates.length-1) return;
+        const currentMonth = obj.date.toUTCString().substring(8, 11) + ' ' + obj.date.getUTCFullYear();
+        const t = mk('text', {x:0, y:0, class:'trend-svg-date-label', 'text-anchor':'end',
+          transform:`translate(${xAt(i)},${H-padB+10}) rotate(-90)`});
+        t.textContent = obj.dateStr + ' ' + obj.wd;
+        svg.appendChild(t);
+        if(lastMonth !== currentMonth && i > 0){
+          const midX = (xAt(i) + xAt(i-1)) / 2;
+          svg.appendChild(mk('line', {x1:midX, y1:H-padB, x2:midX, y2:H-padB+4, class:'trend-svg-axis', style:'stroke:var(--line);'}));
+        }
+        lastMonth = currentMonth;
+      });
+    }
 
     targets.forEach(t=>{
       if(t.value==null) return;
@@ -6186,28 +6245,74 @@
     const ns = 'http://www.w3.org/2000/svg';
     const mk = (tag, attrs)=>{ const el=document.createElementNS(ns,tag); Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); return el; };
 
-    // Y-axis from 0-100 for normalized view
+    // Y-axis from 0-100 for normalized view. Each series has its own real units
+    // (Order, Manpower, Productivity %, …), so a single value axis can't label
+    // ticks in "the" unit — but leaving the axis with gridlines and no numbers
+    // at all reads as broken/missing. Label it as the relative position within
+    // each series' own min–max range instead, so it auto-scales with whatever
+    // is plotted rather than vanishing.
     for(let i=0;i<=5;i++){
       const v = (i/5)*100;
       const y = yAt(v);
       svg.appendChild(mk('line', {x1:padL, y1:y, x2:W-padR, y2:y, class:'trend-svg-gridline'}));
+      const t = mk('text', {x:padL-8, y:y+4, class:'trend-svg-axis-label', 'text-anchor':'end'});
+      t.textContent = v+'%';
+      svg.appendChild(t);
     }
     svg.appendChild(mk('line', {x1:padL, y1:H-padB, x2:W-padR, y2:H-padB, class:'trend-svg-axis'}));
 
+    // Date labels — same Daily-grain treatment (day number + weekday underneath,
+    // horizontal, with light month-grouping bands) as the single-aspect chart;
+    // Weekly/Monthly keep the original rotated date+weekday label.
     const dateObjs = dates.map(d => {
       const date = new Date(d + 'T00:00:00Z');
       return { dateStr: d, date: date, wd: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getUTCDay()] };
     });
+    const firstLabel = dateLabel[dates[0]] || '';
+    const isDailyGrain = !firstLabel.startsWith('Week of ') && !/^\d{4}-\d{2}(\s\(MTD\))?$/.test(firstLabel);
 
-    const maxLabels = Math.max(4, Math.floor(plotW / 14));
-    const step = Math.max(1, Math.ceil(dates.length / maxLabels));
-    dateObjs.forEach((obj, i)=>{
-      if(i % step !== 0 && i !== dates.length-1) return;
-      const t = mk('text', {x:0, y:0, class:'trend-svg-date-label', 'text-anchor':'end',
-        transform:`translate(${xAt(i)},${H-padB+10}) rotate(-90)`});
-      t.textContent = obj.dateStr + ' ' + obj.wd;
-      svg.appendChild(t);
-    });
+    if(isDailyGrain){
+      const maxLabels = Math.max(4, Math.floor(plotW / 22));
+      const step = Math.max(1, Math.ceil(dates.length / maxLabels));
+      const MONTH_BAND_FILLS = ['rgba(120,140,180,0.07)', 'rgba(120,140,180,0.15)'];
+      let bandStart = 0, bandMonthKey = dateObjs[0].dateStr.slice(0,7), bandIdx = 0;
+      const flushBand = endIdx=>{
+        const x1 = bandStart===0 ? padL : (xAt(bandStart-1)+xAt(bandStart))/2;
+        const x2 = endIdx===dates.length-1 ? W-padR : (xAt(endIdx)+xAt(endIdx+1))/2;
+        svg.appendChild(mk('rect', {x:x1, y:H-padB, width:Math.max(0,x2-x1), height:padB-16, fill:MONTH_BAND_FILLS[bandIdx%2]}));
+        const mDate = new Date(bandMonthKey+'-01T00:00:00Z');
+        const t = mk('text', {x:(x1+x2)/2, y:H-14, class:'trend-svg-date-label', 'text-anchor':'middle', style:'font-size:9px;fill:var(--text-muted);'});
+        t.textContent = mDate.toLocaleDateString('en-US',{month:'short',year:'numeric'});
+        svg.appendChild(t);
+        bandIdx++;
+      };
+      dateObjs.forEach((obj,i)=>{
+        const mKey = obj.dateStr.slice(0,7);
+        if(mKey !== bandMonthKey){ flushBand(i-1); bandStart = i; bandMonthKey = mKey; }
+      });
+      flushBand(dates.length-1);
+
+      dateObjs.forEach((obj,i)=>{
+        if(i % step !== 0 && i !== dates.length-1) return;
+        const x = xAt(i);
+        const t1 = mk('text', {x, y:H-padB+16, class:'trend-svg-date-label', 'text-anchor':'middle'});
+        t1.textContent = String(obj.date.getUTCDate());
+        svg.appendChild(t1);
+        const t2 = mk('text', {x, y:H-padB+27, class:'trend-svg-date-label', 'text-anchor':'middle', style:'font-size:9px;fill:var(--text-muted);'});
+        t2.textContent = obj.wd;
+        svg.appendChild(t2);
+      });
+    } else {
+      const maxLabels = Math.max(4, Math.floor(plotW / 14));
+      const step = Math.max(1, Math.ceil(dates.length / maxLabels));
+      dateObjs.forEach((obj, i)=>{
+        if(i % step !== 0 && i !== dates.length-1) return;
+        const t = mk('text', {x:0, y:0, class:'trend-svg-date-label', 'text-anchor':'end',
+          transform:`translate(${xAt(i)},${H-padB+10}) rotate(-90)`});
+        t.textContent = obj.dateStr + ' ' + obj.wd;
+        svg.appendChild(t);
+      });
+    }
 
     seriesByDate.forEach(s=>{
       let path = '';
