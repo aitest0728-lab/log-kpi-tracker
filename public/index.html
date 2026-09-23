@@ -106,16 +106,29 @@
   .trend-tooltip .tt-date{color:var(--text-inverse-muted);font-size:10.5px;margin-bottom:2px;}
   .trend-empty-note{font-size:12.5px;color:var(--text-muted);padding:24px 4px;text-align:center;}
   /* Productivity Detail trend panel (multi-aspect, multi-district) */
-  .trend-svg-line2{fill:none;stroke-width:2.5;}
-  .chip-group{display:flex;flex-wrap:wrap;gap:6px;max-width:460px;}
-  .chip{font-family:'Inter';font-size:12px;padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:var(--panel);cursor:pointer;color:var(--text-muted);user-select:none;}
-  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .trend-svg-line2{fill:none;stroke-width:2.75;}
   .chip-toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text);cursor:pointer;padding-top:7px;}
-  .prod-trend-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:16px;}
-  .prod-trend-card h4{margin:0 0 8px;font-size:13.5px;font-weight:700;}
-  .prod-trend-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:9px;font-size:11.5px;color:var(--text-muted);}
-  .prod-trend-legend .lg-item{display:flex;align-items:center;gap:5px;}
-  .prod-trend-legend .lg-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none;}
+  /* Dropdown-style multi-select, styled to match the <select> controls next to it
+     (same font/border/radius/min-width) rather than a row of pill chips. */
+  .ms-dropdown{position:relative;}
+  .ms-dropdown-btn{font-family:'Inter';font-size:13px;padding:9px 30px 9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);min-width:200px;max-width:260px;text-align:left;cursor:pointer;position:relative;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ms-dropdown-btn::after{content:'';position:absolute;right:13px;top:50%;width:7px;height:7px;border-right:1.5px solid var(--text-muted);border-bottom:1.5px solid var(--text-muted);transform:translateY(-70%) rotate(45deg);pointer-events:none;}
+  .ms-dropdown.open .ms-dropdown-btn{border-color:var(--ink);}
+  .ms-dropdown-panel{position:absolute;top:calc(100% + 6px);left:0;min-width:220px;max-height:260px;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:6px;z-index:30;display:none;}
+  .ms-dropdown.open .ms-dropdown-panel{display:block;}
+  .ms-dropdown-panel label{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;}
+  .ms-dropdown-panel label:hover{background:var(--line-soft);}
+  .ms-dropdown-panel input{margin:0;flex:none;}
+  /* Chart card, styled after the reference report card: title, colored-dot
+     legend row directly under it, plenty of padding, dashed horizontal
+     gridlines only, no boxed axis border. */
+  .prod-trend-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:22px 24px 18px;margin-bottom:18px;}
+  .prod-trend-card h4{margin:0 0 12px;font-size:16px;font-weight:800;letter-spacing:-.01em;}
+  .prod-trend-legend{display:flex;flex-wrap:wrap;gap:18px;margin:0 0 6px;font-size:13px;font-weight:600;color:var(--text);}
+  .prod-trend-legend .lg-item{display:flex;align-items:center;gap:6px;}
+  .prod-trend-legend .lg-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none;}
+  .prod-trend-legend .lg-item.lg-target{font-weight:500;color:var(--text-muted);font-size:11.5px;}
+  .prod-trend-legend .lg-target .lg-dot{width:14px;height:0;border-top:2px dashed currentColor;border-radius:0;background:none !important;}
 
   /* KPI cards */
   /* v5.0 §1 — Overview has exactly 5 KPI cells (OVERVIEW_MATRICES); tightened
@@ -977,11 +990,17 @@
           <div class="prod-controls">
             <div class="prod-field">
               <label>Aspects (pick one or more)</label>
-              <div class="chip-group" id="prodTrendAspectChips"></div>
+              <div class="ms-dropdown" id="prodTrendAspectDropdown">
+                <button type="button" class="ms-dropdown-btn" id="prodTrendAspectBtn"></button>
+                <div class="ms-dropdown-panel" id="prodTrendAspectPanel"></div>
+              </div>
             </div>
             <div class="prod-field">
               <label>Districts (pick one or more)</label>
-              <div class="chip-group" id="prodTrendDistrictChips"></div>
+              <div class="ms-dropdown" id="prodTrendDistrictDropdown">
+                <button type="button" class="ms-dropdown-btn" id="prodTrendDistrictBtn"></button>
+                <div class="ms-dropdown-panel" id="prodTrendDistrictPanel"></div>
+              </div>
             </div>
             <div class="prod-field">
               <label for="prodTrendIntervalSelect">X-axis interval</label>
@@ -5915,34 +5934,49 @@
     return null;
   }
 
-  function populateProdTrendChips(){
-    const aspectWrap = document.getElementById('prodTrendAspectChips');
-    if(aspectWrap && !aspectWrap.dataset.built){
-      aspectWrap.innerHTML = PROD_TREND_ASPECTS.map(a=>`<button type="button" class="chip" data-aspect="${a.key}">${a.label}</button>`).join('');
-      aspectWrap.dataset.built = '1';
-      aspectWrap.querySelectorAll('.chip').forEach(chip=>{
-        chip.addEventListener('click', ()=>{
-          const k = chip.dataset.aspect;
-          if(prodTrendAspects.has(k)) prodTrendAspects.delete(k); else prodTrendAspects.add(k);
-          renderProdTrendPanel();
+  /* Generic dropdown-style multi-select: a <select>-styled button that opens a
+     checkbox panel, used for both Aspects and Districts so the controls read
+     like the rest of the row (dropdowns) instead of a wrapped row of pill chips. */
+  function setupMsDropdown(dropdownId, btnId, panelId, options, selectedSet, allLabel, onChange){
+    const dropdown = document.getElementById(dropdownId);
+    const btn = document.getElementById(btnId);
+    const panel = document.getElementById(panelId);
+    if(!dropdown || !btn || !panel) return;
+    if(!panel.dataset.built){
+      panel.innerHTML = options.map(o=>`<label><input type="checkbox" value="${o.value}">${o.label}</label>`).join('');
+      panel.dataset.built = '1';
+      panel.querySelectorAll('input').forEach(cb=>{
+        cb.addEventListener('change', ()=>{
+          if(cb.checked) selectedSet.add(cb.value); else selectedSet.delete(cb.value);
+          onChange();
         });
       });
+      btn.addEventListener('click', e=>{
+        e.stopPropagation();
+        document.querySelectorAll('.ms-dropdown.open').forEach(d=>{ if(d!==dropdown) d.classList.remove('open'); });
+        dropdown.classList.toggle('open');
+      });
     }
-    if(aspectWrap) aspectWrap.querySelectorAll('.chip').forEach(chip=> chip.classList.toggle('on', prodTrendAspects.has(chip.dataset.aspect)));
+    panel.querySelectorAll('input').forEach(cb=>{ cb.checked = selectedSet.has(cb.value); });
+    const chosen = options.filter(o=>selectedSet.has(o.value)).map(o=>o.label);
+    btn.textContent = chosen.length===0 ? `${allLabel} — none selected`
+      : chosen.length<=2 ? chosen.join(', ')
+      : `${chosen.length} ${allLabel.toLowerCase()} selected`;
+  }
+  // Close any open dropdown panel on an outside click (registered once).
+  if(!window.__msDropdownOutsideClickBound){
+    window.__msDropdownOutsideClickBound = true;
+    document.addEventListener('click', e=>{
+      if(e.target.closest('.ms-dropdown')) return;
+      document.querySelectorAll('.ms-dropdown.open').forEach(d=>d.classList.remove('open'));
+    });
+  }
 
-    const distWrap = document.getElementById('prodTrendDistrictChips');
-    if(distWrap && !distWrap.dataset.built){
-      distWrap.innerHTML = ['Total', ...DISTRICTS].map(d=>`<button type="button" class="chip" data-district="${d}">${d}</button>`).join('');
-      distWrap.dataset.built = '1';
-      distWrap.querySelectorAll('.chip').forEach(chip=>{
-        chip.addEventListener('click', ()=>{
-          const d = chip.dataset.district;
-          if(prodTrendDistricts.has(d)) prodTrendDistricts.delete(d); else prodTrendDistricts.add(d);
-          renderProdTrendPanel();
-        });
-      });
-    }
-    if(distWrap) distWrap.querySelectorAll('.chip').forEach(chip=> chip.classList.toggle('on', prodTrendDistricts.has(chip.dataset.district)));
+  function populateProdTrendChips(){
+    setupMsDropdown('prodTrendAspectDropdown', 'prodTrendAspectBtn', 'prodTrendAspectPanel',
+      PROD_TREND_ASPECTS.map(a=>({ value:a.key, label:a.label })), prodTrendAspects, 'Aspects', renderProdTrendPanel);
+    setupMsDropdown('prodTrendDistrictDropdown', 'prodTrendDistrictBtn', 'prodTrendDistrictPanel',
+      ['Total', ...DISTRICTS].map(d=>({ value:d, label:d })), prodTrendDistricts, 'Districts', renderProdTrendPanel);
 
     const intervalSel = document.getElementById('prodTrendIntervalSelect');
     if(intervalSel) intervalSel.value = prodTrendInterval;
@@ -5980,14 +6014,16 @@
     cardEmpty.style.display = 'none';
 
     legend.innerHTML = seriesByDate.map(s=>`<span class="lg-item"><i class="lg-dot" style="background:${s.color}"></i>${s.district}</span>`).join('')
-      + targets.map(t=>`<span class="lg-item"><i class="lg-dot" style="background:${t.color};opacity:.5;"></i>${t.district} target</span>`).join('');
+      + targets.map(t=>`<span class="lg-item lg-target" style="color:${t.color}"><i class="lg-dot"></i>${t.district} target</span>`).join('');
 
+    // Y-axis always starts at 0 (every aspect here is a non-negative count,
+    // ratio or rate), with just enough headroom above the highest value/target
+    // to keep the top point clear of the plot's edge.
     const W = 900, H = 300, padL = 64, padR = 24, padT = 20, padB = 36;
     const plotW = W - padL - padR, plotH = H - padT - padB;
-    let vMin = Math.min(...allVals), vMax = Math.max(...allVals);
-    if(vMin === vMax){ vMin -= 1; vMax += 1; }
-    const pad = (vMax - vMin) * 0.12;
-    vMin -= pad; vMax += pad;
+    let vMin = 0, vMax = Math.max(...allVals, 0);
+    if(vMax === 0) vMax = 1;
+    vMax *= 1.12;
 
     const xAt = i => padL + (dates.length===1 ? plotW/2 : (i/(dates.length-1))*plotW);
     const yAt = v => padT + plotH - ((v - vMin)/(vMax - vMin))*plotH;
@@ -6003,7 +6039,6 @@
       t.textContent = fmtFn(v);
       svg.appendChild(t);
     }
-    svg.appendChild(mk('line', {x1:padL, y1:padT, x2:padL, y2:H-padB, class:'trend-svg-axis'}));
     svg.appendChild(mk('line', {x1:padL, y1:H-padB, x2:W-padR, y2:H-padB, class:'trend-svg-axis'}));
 
     const maxLabels = 8;
