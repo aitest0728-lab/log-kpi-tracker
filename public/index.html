@@ -566,6 +566,11 @@
   .fc-plan-wd-targets{grid-column:1/-1;display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:4px 6px;margin-top:2px;}
   .fc-plan-wd-targets .fc-plan-mini-field{font-size:9px;gap:2px;letter-spacing:.02em;min-width:0;}
   .fc-plan-wd-targets .fc-plan-mini-field input{width:100%;min-width:0;font-size:12.5px;padding:3px 4px;text-align:right;}
+  /* v29.0 — see flexNeedsApply in fcPlanTargetsRowHtml(): Max Flex % is a
+     ceiling for Suggest Headcount, not a live shift, so a day with a value
+     typed in but no shift applied yet gets a small callout instead of
+     silently looking like the field did nothing. */
+  .fc-flex-hint{grid-column:1/-1;font-size:9px;line-height:1.4;color:#9c6a1c;background:var(--amber-soft);border-radius:4px;padding:2px 5px;margin-top:1px;cursor:help;}
   /* v27.0 §1 — the .fc-hc-result condensed Orders/Prod/Cost-per-Order rows
      are gone from the Per-District Staff Plan cell (replaced by the full
      .fc-cell forecast table via fcCellHtml — see .fc-hc-cell > .fc-cell
@@ -5405,10 +5410,26 @@
     const odVal = odArr ? (odArr[wd] ?? '') : '';
     const flexArr = FC_ODS.byDistrict[d];
     const flexVal = flexArr ? (flexArr[wd] ?? '') : '';
+    // v29.0 — Max Flex % only ever sets a ceiling for Suggest Headcount's
+    // channel-split optimizer; typing a value here does not itself move any
+    // orders (and, per the fc-in-odsflex change handler, actively resets any
+    // previously-applied shift to 0, since the old shift may not fit the new
+    // ceiling). So "a value is set here but fcOdsShiftFor is still 0" is the
+    // normal state right after typing it, or after the ODS split toggle is
+    // off, or after Suggest Headcount ran and genuinely found no shift
+    // worth making — not a sign the field is broken. Surface that plainly
+    // instead of leaving it looking like a no-op (see the chat conversation
+    // that prompted this: a leader set Max Flex % to -10 expecting an
+    // immediate shift).
+    const flexNeedsApply = flexVal !== '' && Math.abs(fcOdsShiftFor(d, wd)) < 1;
+    const flexHint = flexNeedsApply
+      ? `<div class="fc-flex-hint" title="Max Flex % is a ceiling for Suggest Headcount's channel-split optimizer, not a live shift — it only takes effect the next time Suggest Headcount runs for ${d} (and only with the ODS split toggle on above). If Suggest Headcount has already run and this is still showing, the optimizer looked within this ceiling and found no shift was needed to clear both targets.">↳ run Suggest Headcount to apply</div>`
+      : '';
     return `<div class="fc-plan-wd-targets">
         <label class="fc-plan-mini-field" title="This weekday's own Target Productivity. Blank = ${TARGET_PRODUCTIVITY[d]} (Full_Cost_Planning.xlsx).">Target Prod<input type="number" min="0" step="0.1" class="fc-in-targetprod" data-d="${d}" data-wd="${wd}" placeholder="${TARGET_PRODUCTIVITY[d]}" value="${targetVal}"></label>
         <label class="fc-plan-mini-field" title="This weekday's own Max Productivity Overdrive ceiling for Suggest Headcount. Blank = the network default above. Suggest still applies the SMALLEST Overdrive that clears both targets — this only sets how far it may look for THIS day.">Max OD %<input type="number" min="0" max="${FC_OVERDRIVE_HARD_MAX}" step="1" class="fc-in-overdrive" data-d="${d}" data-wd="${wd}" placeholder="${fcClampOverdrive(FC_SUGGEST.overdrivePct)}" value="${odVal}"></label>
-        <label class="fc-plan-mini-field" title="This weekday's own Max ODS Volume Flex ceiling for Suggest Headcount's channel-split optimizer. Blank = the network default above. Still a commercial limit — what THIS district's ODS partner can actually absorb on THIS day. Positive = the original ± band (may move either direction). Negative = a directive that shifts HKTV orders onto ODS specifically — up to |value|% above baseline, never below it.">Max Flex %<input type="number" min="-100" max="100" step="1" class="fc-in-odsflex" data-d="${d}" data-wd="${wd}" placeholder="${fcClampFlexSigned(FC_ODS.flexPct)}" value="${flexVal}"></label>
+        <label class="fc-plan-mini-field" title="This weekday's own Max ODS Volume Flex ceiling for Suggest Headcount's channel-split optimizer. Blank = the network default above. Still a commercial limit — what THIS district's ODS partner can actually absorb on THIS day. Positive = the original ± band (may move either direction). Negative = a directive that shifts HKTV orders onto ODS specifically — up to |value|% above baseline, never below it. Only takes effect when Suggest Headcount runs — see the hint below if it doesn't.">Max Flex %<input type="number" min="-100" max="100" step="1" class="fc-in-odsflex" data-d="${d}" data-wd="${wd}" placeholder="${fcClampFlexSigned(FC_ODS.flexPct)}" value="${flexVal}"></label>
+        ${flexHint}
       </div>`;
   }
   // v26.0 §1 — HOISTED to top-level (was nested inside renderForecastTab()):
