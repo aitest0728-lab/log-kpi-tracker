@@ -1121,14 +1121,6 @@
         <div class="fc-districts" id="fcDistrictChips"></div>
 
         <h3 class="prod-detail-label">Per-District Staff Plan — by Weekday (Target Prod blank = target from Full_Cost_Planning.xlsx · Max OD % / Max Flex % blank = network default · headcounts blank = 0)</h3>
-        <div class="prod-note">
-          <b>Definition.</b> One FT Driver / FT Courier / PT Driver / PT Courier plan per weekday, per district (FTD / FTC / PTD / PTC). Blank = 0. Each column header shows how many times that weekday falls in the forecast month.<br>
-          <b>Per-weekday inputs.</b> Each weekday cell carries its own <b>Target Prod</b>, <b>Max OD %</b> (Max Productivity Overdrive) and <b>Max Flex %</b> (Max ODS Volume Flex), so a leader can tune any single day without touching the rest of the week. Blank = the default (the district's Full_Cost_Planning.xlsx target / the network default ceiling).<br>
-          <b>Cell figures (below the dashed line).</b> Σ = that day's total headcount. <b>Orders</b> = that day's forecast Total Order (HKTV shown beside it). <b>Prod</b> = that day's Productivity (HKTV Orders ÷ Σ) and its achievement rate against <i>that day's</i> target, (forecast − target) ÷ target. <b>Cost/Ord</b> = that day's Cost / Order against the district's target — green at or under target, red above.<br>
-          <b>Default = 0.</b> Every cell starts blank (= 0) and stays that way until you type a number or run Suggest Headcount. With the plan empty the forecast shows the raw picture — no headcount, no staff cost, no minimum-roster charge.<br>
-          <b>These cells are the working plan.</b> What you see here is the team the day's volume justifies, and the pill is the productivity that team is being asked for. Nothing is padded into the numbers.<br>
-          <b>FT roster pool (the 75%).</b> An FT head works about 5–6 days in 7, so the commitment is 75% of the active FT bench × days in the month, held as a <i>pool of FT man-days</i> — not a fixed roster on every date. The plan spends that pool where the volume is: fewer FT on a quiet Wednesday, up to the full bench on a peak Friday, same payroll either way. Each cell shows the FT it rosters against the bench. Any pool man-days the month's volume can't absorb are charged to Variable — Staff at FT Unit Cost as one monthly line, so cost stays whole without parking idle heads on a date that has no work for them.
-        </div>
 
         <!-- SUGGEST HEADCOUNT — v8.0. For each district, searches reasonable
              FT/PT Driver/Courier combinations and fills in the plan table
@@ -1143,8 +1135,8 @@
             <input type="number" id="fcSuggestOverdrive" min="0" max="50" step="1" value="0">
           </div>
           <div class="prod-field fc-weight">
-            <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. Only the DEFAULT: any district with its own 'Max ODS Flex %' on its card below uses that instead. Set to 20% here — the agreed contractual bound — so every district's channel-split search is capped at ±20% unless a district's own field overrides it.">Max ODS Volume Flex (±%) — default</label>
-            <input type="number" id="fcOdsFlex" min="0" max="100" step="1" value="20">
+            <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. Only the DEFAULT: any district with its own 'Max ODS Flex %' on its card below uses that instead. Set to 20% here — the agreed contractual bound — so every district's channel-split search is capped at ±20% unless a district's own field overrides it. The band is already ± (both shifting HKTV orders to ODS and shifting ODS orders back to HKTV), so a negative entry gives the same band as its positive counterpart — accepted so typing a negative number isn't blocked.">Max ODS Volume Flex (±%) — default</label>
+            <input type="number" id="fcOdsFlex" min="-100" max="100" step="1" value="20">
           </div>
           <div class="prod-field fc-weight">
             <label for="fcOdsMaxShare" title="A ceiling on what proportion of a day's Total Orders may be handled by ODS instead of in-house staff. 30 = ODS never gets more than 30 of every 100 orders that day, whatever the flex band would otherwise allow. It only ever caps ODS volume DOWNWARD — it never forces volume onto ODS. Blank = no ceiling (the ±% flex band alone applies).">Max ODS Orders as % of Total Orders</label>
@@ -1156,16 +1148,6 @@
           <button type="button" class="cost-portal-toggle fc-current-all-btn" id="fcCurrentStatusAllBtn" title="For every district, fills each weekday's plan with that district's REAL historical Courier/Driver mix (from manpower_distribution.json, averaged per weekday) scaled to fit the actual total FT manpower deployed that district ran MTD (data.json's actualManpowerDeployedMtd, weekly pool = daily avg × 7) instead of a demand-driven target — FT/PT split via the same cheapest-combo logic as Suggest, same Staff Allocation Cap bench, but the total comes from what was actually deployed, not a search. Keeps the historical ODS/HKTV split (no channel-split shift). This is a REPORT — what keeping current staffing would produce against this month's forecast volume — not an optimization, so nothing here is judged pass/fail against a target.">Keep Current Status — All Districts</button>
           <button type="button" class="cost-portal-toggle fc-autotune-btn" id="fcAutoTuneBtn" title="For each district separately, finds the SMALLEST Max Productivity Overdrive that clears both its cost and its productivity target and writes just that into that district's Max OD % on every weekday (a leader can narrow individual days afterwards). When Overdrive alone can't get there, it also tries the SMALLEST ODS Volume Flex that closes the rest of the gap and writes that into Max Flex % on every weekday instead — moving volume to/from ODS is a real cost change even where Overdrive is spent. Districts that already clear both are left where they are on both ceilings; districts neither lever can fix are left alone and reported with the lever that would actually move them (the FT bench or the target).">Auto-Tune Overdrive &amp; ODS Flex — Per District</button>
           <button type="button" class="cost-portal-toggle fc-suggest-clear-btn" id="fcSuggestClearBtn" title="Resets the whole plan to defaults: per-weekday headcounts, per-weekday Target Productivity / Max OD % / Max ODS Flex % overrides, the ODS/HKTV shift and the badges all go back to blank.">Clear Suggestions &amp; Reset Plan</button>
-        </div>
-        <div class="prod-note">
-          <b>Overdrive and ODS Flex ceilings are set per district <i>and per weekday</i> — not one of each for the network.</b> The two fields above are only the <i>defaults</i>; the <b>Max OD %</b> and <b>Max Flex %</b> fields in each weekday cell below override them for that district on that day alone. Suggest sweeps Overdrive up to the widest of a district's seven weekday ceilings, and each weekday stops climbing at its own. How much of each a district needs is a property of that district — its own bench, volume, unit rates, and ODS partner terms — so a district that needs 27% Overdrive can have it without leaning out the nine that already clear both targets at 0%, and a district whose Overdrive is spent (its team already fits inside the paid FT pool, so a leaner team changes no cost) can still be fixed by moving volume to or from ODS, which is a real cost change regardless of team size. <b>Auto-Tune Overdrive &amp; ODS Flex</b> does this for you: it probes each district for the smallest Overdrive that clears both targets; where that alone isn't enough, it probes the smallest ODS Flex (holding Overdrive at whatever the first probe left) that closes the rest; and it writes only whichever of those actually moves the number, per district, leaving alone both the districts that already pass and the districts neither lever can fix. When a district misses, its badge says which — <b>needs OD n%</b>, <b>needs ODS Flex n%</b>, or <b>OD/Flex won't help</b> (the lever there is the FT bench or the target).<br>
-          <b>Both targets drive the search, not just one.</b> A district is built at Overdrive 0% first — the leanest team that clears Target Productivity, capped by the Staff Allocation Cap. If that plan's Cost/Order already clears target too, it's used as-is. If not, Suggest re-builds the whole week at 1%, 2%, 3%… up to the Max Productivity Overdrive ceiling, and applies the <i>smallest</i> Overdrive that clears both — a leaner team both costs less and reads a higher Productivity, so the two targets pull the same way. The badge shows an <b>OD n%</b> pill whenever the search had to raise it above 0%. If nothing in the range clears both, the cheapest candidate found is applied and the badge explains why, in amber.<br>
-          <b>Per weekday, at whichever Overdrive the search is trying:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), capped by the Staff Allocation Cap. Driver : Courier = 49 : 51; already-paid FT-pool heads are used before any PT head is bought, then whichever type is cheaper.<br>
-          <b>Rostering across the week:</b> the FT pool is then spread over the seven weekdays to cover as much of that demand as possible — a first pass learns what each weekday wants, a second re-plans each day inside its slice of the pool. FT inside the pool is already paid, so it is used before any PT head is bought and it is treated as free when the ODS/HKTV split is chosen. PT appears only where the pool is exhausted.<br>
-          <b>What gets written in:</b> the deployed team from the chosen Overdrive, and only it — every head in the cells has work, so the Prod % in the badge, the cell pills and the Weekly Forecast Plan are all the same measurement. The undeployed part of the pool is reported under the badge as roster utilisation and charged as a monthly cost line, never as headcount.<br>
-          <b>ODS / HKTV split:</b> each weekday's ODS volume is chosen within ±Flex% of its forecast baseline (and under the Max ODS % ceiling, if set) to minimise <i>staff cost (actual roster) + ODS orders × Blended Cost/Order</i>. Total Order volume is unchanged, so cheapest = lowest Cost/Order.<br>
-          <b>Cost check:</b> run once per Overdrive candidate on the week — (Fixed + Staff + ODS) ÷ Est. Order Volume vs Target Cost/Order — as part of the same search, not as a separate pass afterward.<br>
-          A plan is always applied. The badge reports both achievement rates and, in amber, which target it misses.
         </div>
         <div class="fc-suggest-banner" id="fcSuggestBanner" style="display:none;"></div>
 
@@ -1188,7 +1170,6 @@
         <div class="fc-plan-wrap" id="fcPlanCardsWrap">
           <div id="fcPlanCards" class="fc-plan-cards"></div>
         </div>
-        <div class="prod-note" id="fcNote"></div>
 
         <div class="prod-legend" id="fcLegend"></div>
         <div class="prod-summary" id="fcSummary"></div>
@@ -1232,7 +1213,6 @@
                   <tbody id="costOdsTableBody"></tbody>
                 </table>
               </div>
-              <div class="prod-note"><b>Marginal HKTV Cost/Order</b> = cheapest per-head Unit Cost ÷ Target Productivity — the cost of ONE more order handled in-house, not the district's blended Cost/Order. <b>Cheaper Channel</b> = whichever of that and the ODS Blended Cost/Order is lower. This drives the ODS/HKTV split optimizer above, bounded by the Flex band.</div>
             </div>
 
             <h4 class="cost-sub-label">Estimated Weekly Cost &amp; Cost/Order per District</h4>
@@ -1244,9 +1224,57 @@
                 </table>
               </div>
             </div>
-            <div class="prod-note">
-          <b>Fixed</b> = Provision Plan daily rate × days in the forecast week. <b>Variable — Staff</b> = Σ over weekdays of (that weekday's ACTUAL scheduled FT/PT plan × Unit Cost per head/day) × that weekday's occurrences in the week. <b>Man-days /wk</b> = the same sum in heads. <b>Staff $/day (avg)</b> = Variable — Staff ÷ days in week. <b>Variable — ODS</b> = ODS orders in force (after any split shift) × Blended Cost/Order. <b>Variable — ODS Tunnel</b> = ETH &amp; WTH only (always $0 elsewhere): Σ over weekdays of (that weekday's ODS tunnel user count × $100/user) × that weekday's occurrences — the user count is that weekday's in-force ODS orders ÷ the district's own historical orders-per-ODS-user rate for that weekday, rounded up. <b>Est. Order Volume /wk</b> = Σ weekday Total Order forecast × that weekday's occurrences. <b>Cost / Order (Only Controllable Cost)</b> = (Fixed — Controllable + Variable — Staff + Variable — ODS + Variable — ODS Tunnel) ÷ Est. Order Volume — excludes Non-Controllable cost, compared against Target Cost / Order. <b>Achievement (%)</b> = (Cost/Order − Target Cost/Order) ÷ Target Cost/Order — negative is under target (green). <b>Total Cost / Order</b> = Total ($) ÷ Est. Order Volume — includes Non-Controllable cost; informational only, not compared against a target.
+          </div>
         </div>
+
+        <!-- v30.0 §1 — every "definition of terms" block on this tab, which
+             used to sit inline wherever its topic came up (right after the
+             Per-District Staff Plan heading, under the Suggest Headcount
+             controls, in the ODS cost table, under the Cost Total table, and
+             the dynamic #fcNote block that used to render just above the
+             cost portal), is now collected into one section at the very
+             bottom of the tab, under the Cost Planning table, and collapsed
+             by default — so the working inputs and tables read top-to-bottom
+             without an explanation paragraph breaking up the flow, and the
+             definitions are still one click away when needed. #fcNote is
+             still filled by renderForecastTab() (unchanged JS, just moved
+             here in the DOM) since its content is itself a glossary of the
+             plan-card figures. -->
+        <div class="fc-cost-portal">
+          <div class="section-head fc-cost-head">
+            <div>
+              <h3 class="prod-detail-label" style="margin:0;">Definitions &amp; Terms</h3>
+              <div class="sub">What every field, cell and column on this tab means.</div>
+            </div>
+            <button type="button" class="cost-portal-toggle" id="fcDefsToggle">Show ▾</button>
+          </div>
+          <div class="fc-cost-body" id="fcDefsBody" style="display:none;">
+            <div class="prod-note" id="fcNote"></div>
+            <div class="prod-note">
+              <b>Per-District Staff Plan.</b> One FT Driver / FT Courier / PT Driver / PT Courier plan per weekday, per district (FTD / FTC / PTD / PTC). Blank = 0. Each column header shows how many times that weekday falls in the forecast month.<br>
+              <b>Per-weekday inputs.</b> Each weekday cell carries its own <b>Target Prod</b>, <b>Max OD %</b> (Max Productivity Overdrive) and <b>Max Flex %</b> (Max ODS Volume Flex), so a leader can tune any single day without touching the rest of the week. Blank = the default (the district's Full_Cost_Planning.xlsx target / the network default ceiling).<br>
+              <b>Cell figures (below the dashed line).</b> Σ = that day's total headcount. <b>Orders</b> = that day's forecast Total Order (HKTV shown beside it). <b>Prod</b> = that day's Productivity (HKTV Orders ÷ Σ) and its achievement rate against <i>that day's</i> target, (forecast − target) ÷ target. <b>Cost/Ord</b> = that day's Cost / Order against the district's target — green at or under target, red above.<br>
+              <b>Default = 0.</b> Every cell starts blank (= 0) and stays that way until you type a number or run Suggest Headcount. With the plan empty the forecast shows the raw picture — no headcount, no staff cost, no minimum-roster charge.<br>
+              <b>These cells are the working plan.</b> What you see here is the team the day's volume justifies, and the pill is the productivity that team is being asked for. Nothing is padded into the numbers.<br>
+              <b>FT roster pool (the 75%).</b> An FT head works about 5–6 days in 7, so the commitment is 75% of the active FT bench × days in the month, held as a <i>pool of FT man-days</i> — not a fixed roster on every date. The plan spends that pool where the volume is: fewer FT on a quiet Wednesday, up to the full bench on a peak Friday, same payroll either way. Each cell shows the FT it rosters against the bench. Any pool man-days the month's volume can't absorb are charged to Variable — Staff at FT Unit Cost as one monthly line, so cost stays whole without parking idle heads on a date that has no work for them.
+            </div>
+            <div class="prod-note">
+              <b>Overdrive and ODS Flex ceilings are set per district <i>and per weekday</i> — not one of each for the network.</b> The two fields at the top of the tab are only the <i>defaults</i>; the <b>Max OD %</b> and <b>Max Flex %</b> fields in each weekday cell override them for that district on that day alone. Suggest sweeps Overdrive up to the widest of a district's seven weekday ceilings, and each weekday stops climbing at its own. How much of each a district needs is a property of that district — its own bench, volume, unit rates, and ODS partner terms — so a district that needs 27% Overdrive can have it without leaning out the nine that already clear both targets at 0%, and a district whose Overdrive is spent (its team already fits inside the paid FT pool, so a leaner team changes no cost) can still be fixed by moving volume to or from ODS, which is a real cost change regardless of team size. <b>Auto-Tune Overdrive &amp; ODS Flex</b> does this for you: it probes each district for the smallest Overdrive that clears both targets; where that alone isn't enough, it probes the smallest ODS Flex (holding Overdrive at whatever the first probe left) that closes the rest; and it writes only whichever of those actually moves the number, per district, leaving alone both the districts that already pass and the districts neither lever can fix. When a district misses, its badge says which — <b>needs OD n%</b>, <b>needs ODS Flex n%</b>, or <b>OD/Flex won't help</b> (the lever there is the FT bench or the target).<br>
+              <b>Both targets drive the search, not just one</b> — and, since v30.0, so does a ceiling on <i>either</i> reading too far past its own target (see the over-achievement cap note below): a district is built at Overdrive 0% first — the leanest team that clears Target Productivity without its achievement rate passing the over-achievement cap, capped by the Staff Allocation Cap. If that plan's Cost/Order already clears target (and stays inside the cap) too, it's used as-is. If not, Suggest re-builds the whole week at 1%, 2%, 3%… up to the Max Productivity Overdrive ceiling, and applies the <i>smallest</i> Overdrive that clears both without over-shooting either cap — a leaner team both costs less and reads a higher Productivity, so the two targets pull the same way. The badge shows an <b>OD n%</b> pill whenever the search had to raise it above 0%. If nothing in the range clears both within the cap, the cheapest candidate found is applied and the badge explains why, in amber.<br>
+              <b>Over-achievement cap (v30.0).</b> Suggest Headcount no longer treats "cheaper/leaner is always better" as unbounded: Target Productivity and Target Cost/Order both carry a 5% over-achievement ceiling, so the search stops preferring a candidate once it's more than 5% better than target on either measure — it no longer keeps pushing every order onto HKTV staff just because the marginal cost is cheaper there. A district landing inside the ±5% band around both targets is treated as done; the search only keeps searching past that if it still hasn't cleared the target from below. This makes the suggested plan track what a real roster would look like, not a corner solution that maxes out one channel.<br>
+              <b>Per weekday, at whichever Overdrive the search is trying:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), capped by the Staff Allocation Cap. Driver : Courier = 49 : 51; already-paid FT-pool heads are used before any PT head is bought, then whichever type is cheaper.<br>
+              <b>Rostering across the week:</b> the FT pool is then spread over the seven weekdays to cover as much of that demand as possible — a first pass learns what each weekday wants, a second re-plans each day inside its slice of the pool. FT inside the pool is already paid, so it is used before any PT head is bought and it is treated as free when the ODS/HKTV split is chosen. PT appears only where the pool is exhausted.<br>
+              <b>What gets written in:</b> the deployed team from the chosen Overdrive, and only it — every head in the cells has work, so the Prod % in the badge, the cell pills and the Weekly Forecast Plan are all the same measurement. The undeployed part of the pool is reported under the badge as roster utilisation and charged as a monthly cost line, never as headcount.<br>
+              <b>ODS / HKTV split:</b> each weekday's ODS volume is chosen within ±Flex% of its forecast baseline (and under the Max ODS % ceiling, if set) to minimise <i>staff cost (actual roster) + ODS orders × Blended Cost/Order</i>, without pushing Productivity's or Cost/Order's achievement past the over-achievement cap either. Total Order volume is unchanged, so cheapest (within the cap) = lowest Cost/Order. A negative Max ODS Volume Flex % is allowed — it shifts the baseline down, i.e. moves orders from ODS back to HKTV staff, rather than only ever flexing ODS volume upward.<br>
+              <b>Cost check:</b> run once per Overdrive candidate on the week — (Fixed + Staff + ODS) ÷ Est. Order Volume vs Target Cost/Order — as part of the same search, not as a separate pass afterward.<br>
+              A plan is always applied. The badge reports both achievement rates and, in amber, which target it misses.
+            </div>
+            <div class="prod-note">
+              <b>Marginal HKTV Cost/Order</b> = cheapest per-head Unit Cost ÷ Target Productivity — the cost of ONE more order handled in-house, not the district's blended Cost/Order. <b>Cheaper Channel</b> = whichever of that and the ODS Blended Cost/Order is lower. This drives the ODS/HKTV split optimizer above, bounded by the Flex band (and, since v30.0, the over-achievement cap).
+            </div>
+            <div class="prod-note">
+              <b>Fixed</b> = Provision Plan daily rate × days in the forecast week. <b>Variable — Staff</b> = Σ over weekdays of (that weekday's ACTUAL scheduled FT/PT plan × Unit Cost per head/day) × that weekday's occurrences in the week. <b>Man-days /wk</b> = the same sum in heads. <b>Staff $/day (avg)</b> = Variable — Staff ÷ days in week. <b>Variable — ODS</b> = ODS orders in force (after any split shift) × Blended Cost/Order. <b>Variable — ODS Tunnel</b> = ETH &amp; WTH only (always $0 elsewhere): Σ over weekdays of (that weekday's ODS tunnel user count × $100/user) × that weekday's occurrences — the user count is that weekday's in-force ODS orders ÷ the district's own historical orders-per-ODS-user rate for that weekday, rounded up. <b>Est. Order Volume /wk</b> = Σ weekday Total Order forecast × that weekday's occurrences. <b>Cost / Order (Only Controllable Cost)</b> = (Fixed — Controllable + Variable — Staff + Variable — ODS + Variable — ODS Tunnel) ÷ Est. Order Volume — excludes Non-Controllable cost, compared against Target Cost / Order. <b>Achievement (%)</b> = (Cost/Order − Target Cost/Order) ÷ Target Cost/Order — negative is under target (green). <b>Total Cost / Order</b> = Total ($) ÷ Est. Order Volume — includes Non-Controllable cost; informational only, not compared against a target.
+            </div>
           </div>
         </div>
 
@@ -3294,6 +3322,17 @@
   // discovered to be below what several districts need — a ceiling that
   // can't reach a feasible plan just hides the answer.
   const FC_OVERDRIVE_HARD_MAX = 50;
+  // v30.0 §2 — Suggest Headcount used to treat "cheaper/leaner is always
+  // better" as unbounded, which — combined with the channel-split optimizer
+  // below always taking whichever of HKTV or ODS is cheaper at the margin —
+  // pushed plans toward corner solutions (as much volume as the Flex band
+  // allowed onto whichever channel had the lower marginal cost, and as lean
+  // an in-house team as the Overdrive ceiling allowed) rather than something
+  // a real roster would look like. This caps how far a plan may land past
+  // EITHER target — Productivity above, Cost/Order below — before it's
+  // treated as good enough: see fcBuildDistrictPlan's prodOk/costOk and
+  // fcOptimizeDayPlan's cost-floor clamp below.
+  const FC_OVER_ACHIEVEMENT_CAP = 0.05;
   // v18.0 §1 — byDistrict now holds district -> [7] per-weekday ceiling
   // overrides (blank slot = the network default below), same shape as
   // FC_STATE.targetProd.
@@ -3649,8 +3688,16 @@
   // the cheapest way to cover a day's volume (fewer PT heads, or less
   // ODS needed), and each candidate here is costed on whatever it actually
   // schedules — there is no assumption that FT above the floor is free.
-  function fcOptimizeDayPlan(district, weekdayIdx, targetProd, overdrive, courierShare, ftAvail){
+  function fcOptimizeDayPlan(district, weekdayIdx, targetProd, overdrive, courierShare, ftAvail, targetCost){
     const { lo, hi, base, total } = fcOdsBoundsFor(district, weekdayIdx);
+    // v30.0 §2 — the day's own cost floor: once a candidate's Cost/Order is
+    // already FC_OVER_ACHIEVEMENT_CAP below target, further channel-shifting
+    // toward "cheaper at the margin" stops being rewarded (see the ranking
+    // below) — this is what stops the split from being pushed to the band's
+    // edge purely because HKTV (or ODS) is a little cheaper. null/0 targetCost
+    // (not known yet, e.g. while probing) disables the floor, matching the
+    // old always-take-the-cheapest behaviour.
+    const dayCostFloorPerOrder = targetCost > 0 ? targetCost * (1 - FC_OVER_ACHIEVEMENT_CAP) : null;
     const blended = odsBlendedCostFor(district);
     // v15.2 — ODS Tunnel Fee (ETH/WTH only) has to be part of the same
     // marginal-cost comparison that chooses the ODS/HKTV split, or the
@@ -3695,7 +3742,21 @@
       // onto ODS purely because the toll was invisible to it.
       const odsTunnelCost = tunnelCostForOds(ods);
       const dayCost = combo.marginalCost + ods*blended + odsTunnelCost;
-      if(!best || dayCost < best.dayCost - 1e-9){
+      // v30.0 §2 — rank on the FLOORED cost, not the raw cost: once a
+      // candidate is already past the cap (cheaper than dayCostFloorPerOrder
+      // × total), it reads no better than the floor itself, so the search
+      // stops preferring an even-more-extreme split for savings beyond the
+      // cap. Among candidates that tie at the floor, prefer the one closest
+      // to the historical baseline split (smallest |ods-base|) — the plan
+      // stays close to reality instead of drifting to whichever end of the
+      // Flex band happened to be evaluated first.
+      const floorDollarsForDay = dayCostFloorPerOrder != null ? dayCostFloorPerOrder * total : null;
+      const rankCost = floorDollarsForDay != null ? Math.max(dayCost, floorDollarsForDay) : dayCost;
+      const bestRankCost = best ? (floorDollarsForDay != null ? Math.max(best.dayCost, floorDollarsForDay) : best.dayCost) : null;
+      const better = !best
+        || rankCost < bestRankCost - 1e-9
+        || (Math.abs(rankCost - bestRankCost) <= 1e-9 && Math.abs(ods-base) < Math.abs(best.odsOrders-base));
+      if(better){
         const achievedProd = combo.total > 0 ? hktv/combo.total : null;
         best = { ...combo, odsOrders:ods, odsBaseline:base, odsShift:ods-base, hktvOrders:hktv,
           Smin, Smax, wanted, staffDailyCost: combo.dailyCost, odsDailyCost: ods*blended, odsTunnelCost, dayCost,
@@ -3791,7 +3852,7 @@
     const dayTargetProd = WEEKDAY_LABELS.map((_,i)=> fcTargetProdFor(district, i));
     const dayOverdrive = WEEKDAY_LABELS.map((_,i)=> Math.min(overdrive, fcMaxOverdriveFor(district, i)/100));
     const pass1 = WEEKDAY_LABELS.map((label,i)=>
-      fcOptimizeDayPlan(district, i, dayTargetProd[i], dayOverdrive[i], courierShare, null));
+      fcOptimizeDayPlan(district, i, dayTargetProd[i], dayOverdrive[i], courierShare, null, targetCost));
     // v23.0 §3 — REVERSED v19.0 §1 per leader request: the 75% pool is again
     // a real WEEKLY ceiling on FT spend, not just a "minimum commitment"
     // that the plan could freely exceed up to 100% bench on any given day.
@@ -3808,7 +3869,7 @@
 
     const days = WEEKDAY_LABELS.map((label,i)=>{
       const ftAvail = { ftDriver: ftDriverAlloc[i], ftCourier: ftCourierAlloc[i] };
-      const best = fcOptimizeDayPlan(district, i, dayTargetProd[i], dayOverdrive[i], courierShare, ftAvail);
+      const best = fcOptimizeDayPlan(district, i, dayTargetProd[i], dayOverdrive[i], courierShare, ftAvail, targetCost);
       return { weekdayIdx:i, label, occurrences:occ[i], ftAvail, ...best };
     });
 
@@ -3871,9 +3932,6 @@
     const missedDays = days.filter(d=>!d.meetsProd);
     const ptDays = days.filter(d=>d.ptTotal > 0);
 
-    const costOk = costPerOrder != null && costPerOrder <= targetCost;
-    const prodOk = missedDays.length === 0;
-
     // Achievement rates, v13.0 §6: (forecast − target) ÷ target. Positive is
     // GOOD for productivity (above target) and BAD for cost (over target).
     const weekHktv = days.reduce((a,d)=> a + d.hktvOrders*d.occurrences, 0);
@@ -3886,6 +3944,18 @@
     const paidProd = paidManDays > 0 ? weekHktv/paidManDays : null;
     const paidProdAchievement = paidProd != null ? (paidProd - targetProd)/targetProd : null;
     const costAchievement = costPerOrder != null ? (costPerOrder - targetCost)/targetCost : null;
+
+    // v30.0 §2 — over-achievement cap: a plan still has to clear the target
+    // (missedDays / costPerOrder<=targetCost, unchanged), but landing more
+    // than FC_OVER_ACHIEVEMENT_CAP past the target — Productivity too far
+    // above, Cost/Order too far under — is no longer treated as "feasible"
+    // either. Paired with fcOptimizeDayPlan's cost floor above, this is what
+    // stops Suggest Headcount from maxing out whichever channel is cheaper
+    // at the margin just because nothing said to stop.
+    const costOk = costPerOrder != null && costPerOrder <= targetCost
+      && costAchievement != null && costAchievement >= -FC_OVER_ACHIEVEMENT_CAP;
+    const prodOk = missedDays.length === 0
+      && (prodAchievement == null || prodAchievement <= FC_OVER_ACHIEVEMENT_CAP);
 
     return { feasible: costOk && prodOk, applied:true, costOk, prodOk, district, days, overdrive,
       targetProd, targetCost, costPerOrder, weightedProd, prodAchievement, costAchievement,
@@ -4396,6 +4466,17 @@
         const nowOpen = bodyEl.style.display === 'none';
         bodyEl.style.display = nowOpen ? '' : 'none';
         toggleBtn.textContent = nowOpen ? 'Hide ▴' : 'Show ▾';
+      });
+    }
+    // v30.0 §1 — same collapse pattern, for the "Definitions & Terms"
+    // section now consolidated at the bottom of the tab.
+    const defsToggleBtn = document.getElementById('fcDefsToggle');
+    const defsBodyEl = document.getElementById('fcDefsBody');
+    if(defsToggleBtn && defsBodyEl){
+      defsToggleBtn.addEventListener('click', ()=>{
+        const nowOpen = defsBodyEl.style.display === 'none';
+        defsBodyEl.style.display = nowOpen ? '' : 'none';
+        defsToggleBtn.textContent = nowOpen ? 'Hide ▴' : 'Show ▾';
       });
     }
     ['costOdsUserCount','costOdsOrderCount'].forEach(id=>{
@@ -4978,11 +5059,18 @@
     // FC_STATE.targetProd / FC_SUGGEST.byDistrict.
     byDistrict: {},
   };
+  // v30.0 §3 — the field is already labelled "(±%)" (fcOdsBoundsFor moves
+  // the band the same distance both above AND below baseline from a single
+  // magnitude), so a negative entry produces the identical band to its
+  // positive counterpart — Math.abs() here is what makes that true. This
+  // only drops the old floor-at-0 clamp so a leader can type a negative
+  // number (matching how "Overall Order % Change" elsewhere on this tab
+  // already accepts a sign) instead of the input silently refusing it.
   function fcMaxOdsFlexFor(district, weekdayIdx){
     const arr = FC_ODS.byDistrict[district];
     const o = arr ? arr[weekdayIdx] : null;
-    if(o != null && o !== '' && !isNaN(o)) return Math.min(100, Math.max(0, +o));
-    return Math.min(100, Math.max(0, +FC_ODS.flexPct || 0));
+    if(o != null && o !== '' && !isNaN(o)) return Math.min(100, Math.abs(+o));
+    return Math.min(100, Math.abs(+FC_ODS.flexPct || 0));
   }
   // The widest of this district's 7 per-weekday ODS Flex ceilings — same
   // role as fcMaxOverdriveAcrossWeekFor above, for the Flex dimension.
@@ -5264,7 +5352,7 @@
     return `<div class="fc-plan-wd-targets">
         <label class="fc-plan-mini-field" title="This weekday's own Target Productivity. Blank = ${TARGET_PRODUCTIVITY[d]} (Full_Cost_Planning.xlsx).">Target Prod<input type="number" min="0" step="0.1" class="fc-in-targetprod" data-d="${d}" data-wd="${wd}" placeholder="${TARGET_PRODUCTIVITY[d]}" value="${targetVal}"></label>
         <label class="fc-plan-mini-field" title="This weekday's own Max Productivity Overdrive ceiling for Suggest Headcount. Blank = the network default above. Suggest still applies the SMALLEST Overdrive that clears both targets — this only sets how far it may look for THIS day.">Max OD %<input type="number" min="0" max="${FC_OVERDRIVE_HARD_MAX}" step="1" class="fc-in-overdrive" data-d="${d}" data-wd="${wd}" placeholder="${fcClampOverdrive(FC_SUGGEST.overdrivePct)}" value="${odVal}"></label>
-        <label class="fc-plan-mini-field" title="This weekday's own Max ODS Volume Flex ceiling for Suggest Headcount's channel-split optimizer. Blank = the network default above. Still a commercial limit — what THIS district's ODS partner can actually absorb on THIS day.">Max Flex %<input type="number" min="0" max="100" step="1" class="fc-in-odsflex" data-d="${d}" data-wd="${wd}" placeholder="${Math.min(100,Math.max(0,+FC_ODS.flexPct||0))}" value="${flexVal}"></label>
+        <label class="fc-plan-mini-field" title="This weekday's own Max ODS Volume Flex ceiling for Suggest Headcount's channel-split optimizer. Blank = the network default above. Still a commercial limit — what THIS district's ODS partner can actually absorb on THIS day. The band is already ±, so a negative entry gives the same band as its positive counterpart.">Max Flex %<input type="number" min="-100" max="100" step="1" class="fc-in-odsflex" data-d="${d}" data-wd="${wd}" placeholder="${Math.min(100,Math.abs(+FC_ODS.flexPct||0))}" value="${flexVal}"></label>
       </div>`;
   }
   // v26.0 §1 — HOISTED to top-level (was nested inside renderForecastTab()):
@@ -5789,7 +5877,7 @@
           // pick, so any shift already applied is cleared, as with the
           // global ODS band inputs.
           if(v === '') slotsOf(FC_ODS.byDistrict)[wd] = '';
-          else { const c = Math.min(100, Math.max(0, +v || 0)); inp.value = c; slotsOf(FC_ODS.byDistrict)[wd] = c; }
+          else { const raw = +v || 0; const c = Math.sign(raw) * Math.min(100, Math.abs(raw)); inp.value = c; slotsOf(FC_ODS.byDistrict)[wd] = c; }
           FC_STATE.odsShift = {};
         }
       }
@@ -5838,7 +5926,12 @@
       fcOdsBandChanged();
     });
     document.getElementById('fcOdsFlex').addEventListener('change', e=>{
-      const clamped = Math.min(100, Math.max(0, +e.target.value || 0));
+      // v30.0 §3 — bound the MAGNITUDE to ±100, but keep whatever sign the
+      // leader typed; fcMaxOdsFlexFor takes the absolute value when it
+      // builds the band, so -20 and 20 behave identically — this just stops
+      // clamping a negative entry straight to 0.
+      const v = +e.target.value || 0;
+      const clamped = Math.sign(v) * Math.min(100, Math.abs(v));
       e.target.value = clamped;
       FC_ODS.flexPct = clamped;
       fcOdsBandChanged();
