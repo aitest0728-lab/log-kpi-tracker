@@ -147,13 +147,15 @@ DELAY_HISTORY_PATH = os.environ.get("DELAY_HISTORY_PATH", "./public/delay_histor
 # amount, RFID missing tote, logged monthly in the same layout as GMV/Basket
 # Size (see build_gmv_monthly()).
 OTHER_ASPECTS_HISTORY_PATH = os.environ.get("OTHER_ASPECTS_HISTORY_PATH", "./public/other_aspects_history.json")
-# v26.0 — self-contained sibling of index.html: same page, with every JSON
-# file's parsed content burned into a window.__EMBEDDED_DATA__ script tag, so
-# it opens correctly from a double-clicked file:// path with zero fetches.
-# index.html itself is the hand-edited template and is NEVER rewritten by
-# this pipeline — see write_dashboard_html().
+# v28.0 — single deployable dashboard file. Every JSON file's parsed content
+# gets burned into a window.__EMBEDDED_DATA__ script tag inside this same
+# file at the end of every "tableau" run, so it works both live off a real
+# server (fetchJSON() tries fetch() first) and opened from disk with zero
+# network calls (falls back to the embedded snapshot) — see
+# update_embedded_data(). Only the marked block between EMBEDDED_DATA_START/
+# END gets rewritten each run; hand-editing the rest of the file in between
+# runs is safe.
 INDEX_HTML_PATH = os.environ.get("INDEX_HTML_PATH", "./public/index.html")
-DASHBOARD_HTML_PATH = os.environ.get("DASHBOARD_HTML_PATH", "./public/dashboard.html")
 # How many days of raw order-count/manpower history productivity_history.json
 # carries. history.json (not this) is the durable full log, so raising this
 # later doesn't lose anything already run — it just widens the served window.
@@ -2388,22 +2390,24 @@ def save_data_json(payload):
     print(f"Wrote {DATA_JSON_PATH}")
 
 
-def write_dashboard_html():
-    """v26.0 — writes DASHBOARD_HTML_PATH ("dashboard.html"): a byte-for-byte
-    copy of INDEX_HTML_PATH ("index.html") with every JSON file this run just
-    wrote burned into a `window.__EMBEDDED_DATA__ = {...}` <script> tag,
-    spliced in between the `<!-- EMBEDDED_DATA_START -->` / `_END` marker
-    comments that index.html's own template carries for this purpose (see the
-    comment beside those markers, and the fetchJSON() shim in loadDataSource()
-    that reads from window.__EMBEDDED_DATA__ when present, falling back to a
-    real fetch() otherwise).
+def update_embedded_data():
+    """v28.0 — splices every JSON file this run just wrote into a
+    `window.__EMBEDDED_DATA__ = {...}` <script> tag, in place, inside
+    INDEX_HTML_PATH ("index.html") itself, between the
+    `<!-- EMBEDDED_DATA_START -->` / `_END` marker comments that file's
+    template carries for this purpose (see the comment beside those markers,
+    and the fetchJSON() shim in loadDataSource() that tries a real fetch()
+    first and falls back to window.__EMBEDDED_DATA__ only if that fails).
 
-    index.html is READ-ONLY here — this function never writes back to it, so
-    hand-editing that template is always safe even while the pipeline is
-    running on a schedule. dashboard.html is the deployable, fully
-    self-contained artifact: open it straight from disk (file://) with no
-    static file server and no loose JSON siblings required, since every fetch
-    the page would have made is answered from the embedded object instead.
+    v26.0–v27.x wrote this into a separate dashboard.html so a live,
+    server-fetched template (index.html) and a self-contained offline copy
+    (dashboard.html) could coexist. v28.0 merged them: index.html now does
+    both jobs itself (fetch first, embedded snapshot as fallback), so there's
+    one deployable file instead of two. This function only ever rewrites the
+    text between the two marker comments — everything else in index.html
+    (markup, CSS, the rest of the <script>) round-trips untouched, so
+    hand-editing the file between pipeline runs is still safe; the next run
+    just re-splices a fresh data block into whatever is there at the time.
 
     Soft-fails (prints a warning, doesn't raise) if index.html is missing or
     doesn't have the marker comments yet, or if any of the six source JSON
@@ -2411,7 +2415,7 @@ def write_dashboard_html():
     save_*() calls just wrote, so a missing one usually just means an earlier
     step in this run failed and already printed its own warning above."""
     if not os.path.exists(INDEX_HTML_PATH):
-        print(f"  ⚠️ {INDEX_HTML_PATH!r} not found — skipping dashboard.html (nothing to embed data into).")
+        print(f"  ⚠️ {INDEX_HTML_PATH!r} not found — skipping embedded-data update (nothing to embed data into).")
         return
     with open(INDEX_HTML_PATH, "r", encoding="utf-8") as f:
         html = f.read()
@@ -2422,8 +2426,8 @@ def write_dashboard_html():
     end_idx = html.find(end_marker)
     if start_idx == -1 or end_idx == -1:
         print(f"  ⚠️ {INDEX_HTML_PATH!r} has no EMBEDDED_DATA_START/END markers — "
-              f"skipping dashboard.html. (Markers were added in v26.0; an older "
-              f"index.html template won't have them yet.)")
+              f"skipping embedded-data update. (Markers were added in v26.0; an "
+              f"older index.html won't have them yet.)")
         return
     end_idx += len(end_marker)
 
@@ -2444,9 +2448,10 @@ def write_dashboard_html():
         else:
             missing.append(filename)
     if missing:
-        print(f"  ⚠️ dashboard.html: {', '.join(missing)} not found — embedding whatever "
-              f"the rest of this run did produce; the dashboard's own fetchJSON() fallback "
-              f"will report those as not-found, same as index.html would.")
+        print(f"  ⚠️ embedded data: {', '.join(missing)} not found — embedding whatever "
+              f"the rest of this run did produce; index.html's own fetchJSON() will "
+              f"report those as not-found (both its live fetch and its embedded "
+              f"fallback) until a future run supplies them.")
 
     # ensure_ascii=False keeps the embedded JSON human-diffable; the '</' escape
     # is load-bearing — the HTML tokenizer ends a <script> element on the raw
@@ -2460,11 +2465,10 @@ def write_dashboard_html():
                        .replace("\u2029", "\\u2029"))
     block = f"<script>window.__EMBEDDED_DATA__ = {payload};</script>"
 
-    dashboard_html = html[:start_idx] + block + html[end_idx:]
-    os.makedirs(os.path.dirname(DASHBOARD_HTML_PATH) or ".", exist_ok=True)
-    with open(DASHBOARD_HTML_PATH, "w", encoding="utf-8") as f:
-        f.write(dashboard_html)
-    print(f"Wrote {DASHBOARD_HTML_PATH} ({len(dashboard_html):,} bytes, self-contained)")
+    updated_html = html[:start_idx] + block + html[end_idx:]
+    with open(INDEX_HTML_PATH, "w", encoding="utf-8") as f:
+        f.write(updated_html)
+    print(f"Updated {INDEX_HTML_PATH} ({len(updated_html):,} bytes, embedded data refreshed)")
 
 
 def load_history():
@@ -3265,7 +3269,7 @@ def run_section_tableau():
 
     save_history(history)
     save_data_json(payload)
-    write_dashboard_html()  # v26.0 — self-contained dashboard.html, embeds the files just written above
+    update_embedded_data()  # v28.0 — refresh index.html's embedded fallback snapshot with the files just written above
     print("✅ 報表解析完成，已寫入 data.json")
 
 

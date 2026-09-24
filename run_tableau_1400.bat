@@ -49,7 +49,17 @@ REM them, so they sat as "Untracked files" forever and never reached the
 REM deployed dashboard - the Delay % / Other Aspects tabs had nothing to
 REM fetch even though the pipeline was generating their data correctly the
 REM whole time.
-for %%f in (public\data.json public\productivity_history.json public\manpower_distribution.json public\gmv_history.json public\delay_history.json public\other_aspects_history.json history.json) do (
+REM
+REM v28.0: index.html and dashboard.html merged into one file (index.html
+REM now does live-fetch-with-embedded-fallback itself, see
+REM kpi_pipeline.py's update_embedded_data()). kpi_pipeline.py now rewrites
+REM public\index.html's embedded-data block on every run, so it needs to be
+REM staged and pushed like the JSON files - added here. dashboard.html is
+REM no longer generated at all; if an old copy is still tracked in the
+REM repo, `git rm public\dashboard.html` it once by hand so it stops
+REM shipping a stale, increasingly-out-of-date snapshot alongside the
+REM merged index.html.
+for %%f in (public\data.json public\productivity_history.json public\manpower_distribution.json public\gmv_history.json public\delay_history.json public\other_aspects_history.json public\index.html history.json) do (
   if exist "%%f" (
     git add "%%f" >> pipeline_log.txt 2>&1
   ) else (

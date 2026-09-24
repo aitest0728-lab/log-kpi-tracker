@@ -1135,7 +1135,7 @@
             <input type="number" id="fcSuggestOverdrive" min="0" max="50" step="1" value="0">
           </div>
           <div class="prod-field fc-weight">
-            <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. Only the DEFAULT: any district with its own 'Max ODS Flex %' on its card below uses that instead. Set to 20% here — the agreed contractual bound — so every district's channel-split search is capped at ±20% unless a district's own field overrides it. The band is already ± (both shifting HKTV orders to ODS and shifting ODS orders back to HKTV), so a negative entry gives the same band as its positive counterpart — accepted so typing a negative number isn't blocked.">Max ODS Volume Flex (±%) — default</label>
+            <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. Only the DEFAULT: any district with its own 'Max ODS Flex %' on its card below uses that instead. Set to 20% here — the agreed contractual bound — so every district's channel-split search is capped at ±20% unless a district's own field overrides it. Positive = the original ± band (either direction). Negative = a directive that shifts HKTV orders onto ODS specifically — up to |value|% above baseline, never below it.">Max ODS Volume Flex (±%) — default</label>
             <input type="number" id="fcOdsFlex" min="-100" max="100" step="1" value="20">
           </div>
           <div class="prod-field fc-weight">
@@ -1265,7 +1265,7 @@
               <b>Per weekday, at whichever Overdrive the search is trying:</b> staff = the leanest team whose Productivity lands between Target and Target × (1 + Overdrive %), capped by the Staff Allocation Cap. Driver : Courier = 49 : 51; already-paid FT-pool heads are used before any PT head is bought, then whichever type is cheaper.<br>
               <b>Rostering across the week:</b> the FT pool is then spread over the seven weekdays to cover as much of that demand as possible — a first pass learns what each weekday wants, a second re-plans each day inside its slice of the pool. FT inside the pool is already paid, so it is used before any PT head is bought and it is treated as free when the ODS/HKTV split is chosen. PT appears only where the pool is exhausted.<br>
               <b>What gets written in:</b> the deployed team from the chosen Overdrive, and only it — every head in the cells has work, so the Prod % in the badge, the cell pills and the Weekly Forecast Plan are all the same measurement. The undeployed part of the pool is reported under the badge as roster utilisation and charged as a monthly cost line, never as headcount.<br>
-              <b>ODS / HKTV split:</b> each weekday's ODS volume is chosen within ±Flex% of its forecast baseline (and under the Max ODS % ceiling, if set) to minimise <i>staff cost (actual roster) + ODS orders × Blended Cost/Order</i>, without pushing Productivity's or Cost/Order's achievement past the over-achievement cap either. Total Order volume is unchanged, so cheapest (within the cap) = lowest Cost/Order. A negative Max ODS Volume Flex % is allowed — it shifts the baseline down, i.e. moves orders from ODS back to HKTV staff, rather than only ever flexing ODS volume upward.<br>
+              <b>ODS / HKTV split:</b> each weekday's ODS volume is chosen within its Flex band of its forecast baseline (and under the Max ODS % ceiling, if set) to minimise <i>staff cost (actual roster) + ODS orders × Blended Cost/Order</i>, without pushing Productivity's or Cost/Order's achievement past the over-achievement cap either. Total Order volume is unchanged, so cheapest (within the cap) = lowest Cost/Order. <b>Max ODS Volume Flex % is signed, not just a magnitude:</b> a positive value keeps the original ± band (the optimizer may move ODS volume either direction from baseline). A <b>negative</b> value is a directive, not a mirrored band — it pins the floor AT baseline (ODS volume is never shifted down to HKTV) and opens the ceiling up to |value|% ABOVE baseline, i.e. it's specifically for shifting HKTV orders back onto ODS.<br>
               <b>Cost check:</b> run once per Overdrive candidate on the week — (Fixed + Staff + ODS) ÷ Est. Order Volume vs Target Cost/Order — as part of the same search, not as a separate pass afterward.<br>
               A plan is always applied. The badge reports both achievement rates and, in amber, which target it misses.
             </div>
@@ -1446,11 +1446,16 @@
   <div class="drawer-body" id="drawerBody"></div>
 </aside>
 
-<!-- EMBEDDED_DATA_START — kpi_pipeline.py's write_dashboard_html() splices a
-     window.__EMBEDDED_DATA__ = {...}; script here when it writes dashboard.html.
-     This block stays empty in index.html itself; the pipeline never edits
-     this file. Must stay before the main <script> below, since it runs
-     unbuffered (no defer) and reads window.__EMBEDDED_DATA__ at load time. -->
+<!-- EMBEDDED_DATA_START — kpi_pipeline.py's update_embedded_data() splices a
+     window.__EMBEDDED_DATA__ = {...}; script here, in place, at the end of
+     every "tableau" pipeline run (see the comment beside that function).
+     This block is empty in the repo copy of this file until the pipeline
+     has run at least once; after that it holds a JSON snapshot of the six
+     public/*.json files as of the last run. It's only ever a fallback —
+     fetchJSON() below always tries a live fetch() first — so it's safe for
+     this block to go stale between runs or stay empty in local dev. Must
+     stay before the main <script> below, since it runs unbuffered (no
+     defer) and reads window.__EMBEDDED_DATA__ at load time. -->
 <!-- EMBEDDED_DATA_END -->
 
 <script>
@@ -1846,26 +1851,41 @@
     </div>`;
   }
 
-  /* v26.0 — embedded-data support for dashboard.html, kpi_pipeline.py's
-     self-contained sibling of this file (see write_dashboard_html()). Every
-     pipeline run now also emits dashboard.html: this same index.html source,
-     unmodified, with a window.__EMBEDDED_DATA__={...} script tag (see the
-     EMBEDDED_DATA_START/END markers above) spliced in between two marker
-     comments, carrying all six JSON files' parsed content keyed by filename.
-     When that global is present, fetchJSON
-     resolves from it instead of hitting the network, so dashboard.html opens
-     correctly from a double-clicked file:// path with zero fetches — file://
-     pages can't fetch relative JSON at all, which is exactly why this file
-     (index.html) still needs a real HTTP server to preview against loose
-     JSON siblings. index.html itself is never rewritten by the pipeline —
-     window.__EMBEDDED_DATA__ is simply undefined here, so every path below
-     behaves exactly as before, fetching the loose files. */
+  /* v28.0 — single-file live-or-offline data loading. This used to be split
+     across two files: index.html (live template, fetch() only) and a
+     separately-generated dashboard.html (fetch() replaced entirely by an
+     embedded snapshot, for opening from disk with zero network calls). They're
+     merged now: this one file does both, in priority order —
+       1. Try a real fetch() of the loose JSON file. This is what lets
+          index.html still work as a live template against a real HTTP
+          server with loose JSON siblings (local dev, or any server
+          deployment that updates the JSON independently), and it's also
+          what makes a manually-edited JSON file win even before the next
+          pipeline run re-embeds it.
+       2. If that fetch throws (file:// pages can't fetch relative JSON at
+          all — that's the case this exists for) or comes back !ok (file
+          missing/404), fall back to window.__EMBEDDED_DATA__, the snapshot
+          kpi_pipeline.py's update_embedded_data() splices into THIS file
+          (between the EMBEDDED_DATA_START/END markers above) at the end of
+          every "tableau" run. That's what makes a double-clicked, offline
+          copy of this same file still render real data instead of demo
+          data.
+       3. If neither source has it, return ok:false and let the caller's own
+          try/catch fall back to demo data, same as always.
+     Local dev before any pipeline run has ever populated the embedded block:
+     step 1 covers it as long as a server is fetching real loose JSON; if
+     there's no server and no embedded block yet, this correctly falls
+     through to demo mode rather than erroring. */
   async function fetchJSON(filename){
+    try{
+      const res = await fetch('./' + filename, {cache:'no-store'});
+      if(res.ok) return res;
+    }catch(err){ /* file://, offline, CORS, etc — fall through to embedded */ }
     const embedded = window.__EMBEDDED_DATA__;
     if(embedded && Object.prototype.hasOwnProperty.call(embedded, filename)){
       return { ok:true, json: async () => embedded[filename] };
     }
-    return fetch('./' + filename, {cache:'no-store'});
+    return { ok:false };
   }
 
   async function loadDataSource(){
@@ -4227,12 +4247,19 @@
     const best = chosen || cheapest;
     const searched = chosen ? steps.indexOf(chosen.overdrive*100) + 1 : steps.length;
 
-    // v14.5 §2 — only probe above the ceiling when the ceiling failed, and
-    // only for a cost miss. A productivity miss means a weekday's in-house
-    // volume can't keep even one head at target, and Overdrive only makes
-    // teams SMALLER — it can't conjure volume, so there is nothing above the
-    // ceiling to find.
-    const headroom = (!best.feasible && best.costOk === false)
+    // v30.0 §2 rev2 — a productivity MISS comes in two different shapes now
+    // that prodOk also enforces the over-achievement cap, and only one of
+    // them is fixable by Overdrive:
+    //  - missedDays.length > 0 (UNDER target): the in-house volume that day
+    //    is too small to keep even one head at target — Overdrive only ever
+    //    shrinks a team, so there's nothing above the ceiling to find.
+    //  - missedDays.length === 0 but still !prodOk (OVER the cap): every
+    //    day clears its own floor, but the FT pool/PT cap couldn't staff
+    //    enough heads to stay within the cap — raising Overdrive DOES fix
+    //    this (it raises the tolerance ceiling itself), so it's searched
+    //    below exactly like a cost miss.
+    const prodOverCapMiss = !best.prodOk && best.missedDays.length === 0;
+    const headroom = (!best.feasible && (best.costOk === false || prodOverCapMiss))
       ? fcProbeOverdriveHeadroom(district, maxOverdrivePct, best)
       : null;
     // v14.6 §2 — the second lever, probed only where the first one didn't
@@ -4255,7 +4282,14 @@
     if(!best.feasible){
       const bits = [];
       if(!best.prodOk){
-        bits.push(`${best.missedDays.length === 7 ? 'every weekday' : best.missedDays.map(l=>{ const d=best.days.find(x=>x.label===l); return `${l} (${d && d.achievedProd!=null?d.achievedProd.toFixed(1):'—'} vs ${d ? fcTargetProdFor(district, d.weekdayIdx).toFixed(1) : '—'})`; }).join(', ')} below the per-weekday productivity target (achieved/staff vs that day's target) — the in-house volume left on those days is too small to keep even one head busy at target`);
+        if(best.missedDays.length > 0){
+          bits.push(`${best.missedDays.length === 7 ? 'every weekday' : best.missedDays.map(l=>{ const d=best.days.find(x=>x.label===l); return `${l} (${d && d.achievedProd!=null?d.achievedProd.toFixed(1):'—'} vs ${d ? fcTargetProdFor(district, d.weekdayIdx).toFixed(1) : '—'})`; }).join(', ')} below the per-weekday productivity target (achieved/staff vs that day's target) — the in-house volume left on those days is too small to keep even one head busy at target`);
+        } else {
+          // v30.0 §2 rev2 — every day clears its floor; this is an
+          // OVER-achievement miss (bench/PT cap short of heads), not an
+          // under-achievement one — see prodOverCapMiss above.
+          bits.push(`Productivity ${best.weightedProd==null?'—':best.weightedProd.toFixed(1)} vs target ${best.targetProd.toFixed(1)} (${best.prodAchievement==null?'—':'+'+(best.prodAchievement*100).toFixed(1)}%) — more than ${Math.round(FC_OVER_ACHIEVEMENT_CAP*100)}% over target even at this district's current ${maxOverdrivePct}% Max Overdrive ceiling; the FT bench and PT cap can't staff enough heads to stay inside it`);
+        }
       }
       if(!best.costOk) bits.push(`Cost/Order $${best.costPerOrder==null?'—':best.costPerOrder.toFixed(2)} vs target $${best.targetCost.toFixed(2)} (${best.costAchievement==null?'—':(best.costAchievement>=0?'+':'')+(best.costAchievement*100).toFixed(1)}%)`);
       const zeroStaffCostPerOrder = best.monthlyOrderVolume>0 ? (best.fixed + best.baseOdsVolume*odsBlendedCostFor(district))/best.monthlyOrderVolume : null;
@@ -5059,24 +5093,32 @@
     // FC_STATE.targetProd / FC_SUGGEST.byDistrict.
     byDistrict: {},
   };
-  // v30.0 §3 — the field is already labelled "(±%)" (fcOdsBoundsFor moves
-  // the band the same distance both above AND below baseline from a single
-  // magnitude), so a negative entry produces the identical band to its
-  // positive counterpart — Math.abs() here is what makes that true. This
-  // only drops the old floor-at-0 clamp so a leader can type a negative
-  // number (matching how "Overall Order % Change" elsewhere on this tab
-  // already accepts a sign) instead of the input silently refusing it.
+  // v30.0 §3 rev2 — SIGNED, not symmetric: a positive value keeps the
+  // original ± band (unchanged, so every district already relying on a
+  // positive default keeps identical behaviour). A NEGATIVE value is a
+  // directive, not just a mirrored band width — it's what actually makes
+  // "shift HKTV orders back to ODS" happen; see fcOdsBoundsFor, which is
+  // where the sign is interpreted. Math.abs() here was wrong: it made a
+  // negative entry produce the IDENTICAL band to its positive counterpart,
+  // which is why typing a negative number visibly did nothing.
+  function fcClampFlexSigned(v){
+    const n = +v || 0;
+    return Math.sign(n) * Math.min(100, Math.abs(n));
+  }
   function fcMaxOdsFlexFor(district, weekdayIdx){
     const arr = FC_ODS.byDistrict[district];
     const o = arr ? arr[weekdayIdx] : null;
-    if(o != null && o !== '' && !isNaN(o)) return Math.min(100, Math.abs(+o));
-    return Math.min(100, Math.abs(+FC_ODS.flexPct || 0));
+    if(o != null && o !== '' && !isNaN(o)) return fcClampFlexSigned(o);
+    return fcClampFlexSigned(FC_ODS.flexPct);
   }
   // The widest of this district's 7 per-weekday ODS Flex ceilings — same
   // role as fcMaxOverdriveAcrossWeekFor above, for the Flex dimension.
+  // v30.0 §3 — magnitude only: this feeds the headroom probe's search
+  // range (fcProbeOdsFlexHeadroom sweeps a percentage upward), which cares
+  // how FAR the lever can move, not which direction it's currently pinned.
   function fcMaxOdsFlexAcrossWeekFor(district){
     let m = 0;
-    for(let i=0;i<7;i++) m = Math.max(m, fcMaxOdsFlexFor(district, i));
+    for(let i=0;i<7;i++) m = Math.max(m, Math.abs(fcMaxOdsFlexFor(district, i)));
     return m;
   }
 
@@ -5103,8 +5145,22 @@
     const base = fcOdsBaselineOrders(district, weekdayIdx);
     const total = fcForecastTotalOrdersAdjusted(district, weekdayIdx);
     const flex = fcMaxOdsFlexFor(district, weekdayIdx)/100; // v18.0 §1 — this weekday's own ceiling, falls back to the network default
-    let hi = base * (1 + flex);
-    let lo = base * (1 - flex);
+    let hi, lo;
+    if(flex >= 0){
+      // Unchanged: the original symmetric ± band.
+      hi = base * (1 + flex);
+      lo = base * (1 - flex);
+    } else {
+      // v30.0 §3 — a NEGATIVE Max ODS Volume Flex % is a directive to shift
+      // HKTV orders back onto ODS, not just a mirrored band width: it pins
+      // the floor AT baseline (never less ODS than baseline — no shifting
+      // toward HKTV) and opens the ceiling up to |flex|% ABOVE baseline
+      // (room to shift HKTV orders onto ODS). Positive is untouched by this
+      // — it still means the original ± band — so nothing that already
+      // relies on a positive value changes.
+      hi = base * (1 + Math.abs(flex));
+      lo = base;
+    }
     const share = FC_ODS.maxSharePct;
     if(share !== '' && share != null && !isNaN(share) && +share >= 0) hi = Math.min(hi, total * (+share/100));
     hi = Math.max(0, Math.min(hi, total));
@@ -5352,7 +5408,7 @@
     return `<div class="fc-plan-wd-targets">
         <label class="fc-plan-mini-field" title="This weekday's own Target Productivity. Blank = ${TARGET_PRODUCTIVITY[d]} (Full_Cost_Planning.xlsx).">Target Prod<input type="number" min="0" step="0.1" class="fc-in-targetprod" data-d="${d}" data-wd="${wd}" placeholder="${TARGET_PRODUCTIVITY[d]}" value="${targetVal}"></label>
         <label class="fc-plan-mini-field" title="This weekday's own Max Productivity Overdrive ceiling for Suggest Headcount. Blank = the network default above. Suggest still applies the SMALLEST Overdrive that clears both targets — this only sets how far it may look for THIS day.">Max OD %<input type="number" min="0" max="${FC_OVERDRIVE_HARD_MAX}" step="1" class="fc-in-overdrive" data-d="${d}" data-wd="${wd}" placeholder="${fcClampOverdrive(FC_SUGGEST.overdrivePct)}" value="${odVal}"></label>
-        <label class="fc-plan-mini-field" title="This weekday's own Max ODS Volume Flex ceiling for Suggest Headcount's channel-split optimizer. Blank = the network default above. Still a commercial limit — what THIS district's ODS partner can actually absorb on THIS day. The band is already ±, so a negative entry gives the same band as its positive counterpart.">Max Flex %<input type="number" min="-100" max="100" step="1" class="fc-in-odsflex" data-d="${d}" data-wd="${wd}" placeholder="${Math.min(100,Math.abs(+FC_ODS.flexPct||0))}" value="${flexVal}"></label>
+        <label class="fc-plan-mini-field" title="This weekday's own Max ODS Volume Flex ceiling for Suggest Headcount's channel-split optimizer. Blank = the network default above. Still a commercial limit — what THIS district's ODS partner can actually absorb on THIS day. Positive = the original ± band (may move either direction). Negative = a directive that shifts HKTV orders onto ODS specifically — up to |value|% above baseline, never below it.">Max Flex %<input type="number" min="-100" max="100" step="1" class="fc-in-odsflex" data-d="${d}" data-wd="${wd}" placeholder="${fcClampFlexSigned(FC_ODS.flexPct)}" value="${flexVal}"></label>
       </div>`;
   }
   // v26.0 §1 — HOISTED to top-level (was nested inside renderForecastTab()):
@@ -5877,7 +5933,7 @@
           // pick, so any shift already applied is cleared, as with the
           // global ODS band inputs.
           if(v === '') slotsOf(FC_ODS.byDistrict)[wd] = '';
-          else { const raw = +v || 0; const c = Math.sign(raw) * Math.min(100, Math.abs(raw)); inp.value = c; slotsOf(FC_ODS.byDistrict)[wd] = c; }
+          else { const c = fcClampFlexSigned(v); inp.value = c; slotsOf(FC_ODS.byDistrict)[wd] = c; }
           FC_STATE.odsShift = {};
         }
       }
@@ -5926,12 +5982,10 @@
       fcOdsBandChanged();
     });
     document.getElementById('fcOdsFlex').addEventListener('change', e=>{
-      // v30.0 §3 — bound the MAGNITUDE to ±100, but keep whatever sign the
-      // leader typed; fcMaxOdsFlexFor takes the absolute value when it
-      // builds the band, so -20 and 20 behave identically — this just stops
-      // clamping a negative entry straight to 0.
-      const v = +e.target.value || 0;
-      const clamped = Math.sign(v) * Math.min(100, Math.abs(v));
+      // v30.0 §3 rev2 — a negative value is now a DIRECTIVE (shift HKTV
+      // orders onto ODS — see fcOdsBoundsFor), not merely a mirrored band,
+      // so the sign is kept, not discarded.
+      const clamped = fcClampFlexSigned(e.target.value);
       e.target.value = clamped;
       FC_ODS.flexPct = clamped;
       fcOdsBandChanged();
