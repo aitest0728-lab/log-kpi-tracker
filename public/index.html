@@ -400,18 +400,6 @@
   .fc-cell .fc-val{font-family:'IBM Plex Mono';font-size:12px;font-weight:600;color:var(--text);}
   .fc-cell .fc-row.fc-primary{border-top:1px dashed var(--line);padding-top:5px;margin-top:1px;}
   .fc-cell .fc-row.fc-primary .fc-val{font-size:13px;}
-  /* v31.0 — manual ODS-shift override input (see fc-in-manualods /
-     odsOrdersCell in fcCellHtml): styled to sit flush in the same row a
-     plain .fc-val would occupy, with the shift-row's existing blue accent
-     (#3a5a8c, matching .fc-row.fc-shift below) as the cue that this number
-     is editable and, once changed, an active override rather than the
-     as-forecast baseline. */
-  .fc-cell .fc-row-editable{cursor:default;}
-  .fc-cell .fc-in-manualods{width:64px;text-align:right;font-family:'IBM Plex Mono';font-size:12px;font-weight:600;color:#3a5a8c;background:#eef2f8;border:1px solid #c9d6e8;border-radius:4px;padding:1px 5px;}
-  .fc-cell .fc-in-manualods:focus{outline:none;border-color:#3a5a8c;background:#fff;}
-  .fc-cell .fc-in-manualods::-webkit-outer-spin-button,
-  .fc-cell .fc-in-manualods::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
-  .fc-cell .fc-in-manualods[type=number]{-moz-appearance:textfield;}
   .fc-cell .fc-badge{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:20px;}
   .fc-cell .fc-badge.fc-auto{background:var(--line-soft);color:var(--text-muted);}
   .fc-cell .fc-badge.fc-manual{background:#e7edf5;color:#3a5a8c;}
@@ -574,15 +562,16 @@
   .fc-hc-total .p{font-family:'IBM Plex Mono';font-size:11px;padding:1px 5px;border-radius:8px;background:var(--line-soft);color:var(--text-muted);}
   .fc-hc-total .p.ok{background:var(--green-soft);color:var(--green);}
   .fc-hc-total .p.bad{background:var(--red-soft);color:var(--red);}
-  /* v18.0 §1 — per-weekday Target Prod / Max OD % / Max ODS Flex % inputs (above the dashed line); v27.0 §1 — the full forecast table (below it) replaced the condensed Orders/Prod/Cost-per-Order readout, see fcPlanCellHtml. */
+  /* v18.0 §1 — per-weekday Target Prod / Max OD % / Max ODS Flex % inputs (above the dashed line); v27.0 §1 — the full forecast table (below it) replaced the condensed Orders/Prod/Cost-per-Order readout, see fcPlanCellHtml. v33.0 — third slot is now the direct Shift % override (fc-in-shiftpct); Max Flex % itself is hidden from this row, see fcPlanTargetsRowHtml. */
   .fc-plan-wd-targets{grid-column:1/-1;display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:4px 6px;margin-top:2px;}
   .fc-plan-wd-targets .fc-plan-mini-field{font-size:9px;gap:2px;letter-spacing:.02em;min-width:0;}
   .fc-plan-wd-targets .fc-plan-mini-field input{width:100%;min-width:0;font-size:12.5px;padding:3px 4px;text-align:right;}
-  /* v29.0 — see flexNeedsApply in fcPlanTargetsRowHtml(): Max Flex % is a
-     ceiling for Suggest Headcount, not a live shift, so a day with a value
-     typed in but no shift applied yet gets a small callout instead of
-     silently looking like the field did nothing. */
-  .fc-flex-hint{grid-column:1/-1;font-size:9px;line-height:1.4;color:#9c6a1c;background:var(--amber-soft);border-radius:4px;padding:2px 5px;margin-top:1px;cursor:help;}
+  /* v33.0 — Shift % gets the same blue tint used everywhere else in this
+     tool for an active ODS/HKTV shift (.fc-row.fc-shift, the tunnel
+     readout), so it visually reads as a live lever rather than a plain
+     ceiling/target field like its two neighbours. */
+  .fc-plan-wd-targets .fc-in-shiftpct{color:#3a5a8c;background:#eef2f8;border:1px solid #c9d6e8;border-radius:4px;}
+  .fc-plan-wd-targets .fc-in-shiftpct:focus{outline:none;border-color:#3a5a8c;background:#fff;}
   /* v27.0 §1 — the .fc-hc-result condensed Orders/Prod/Cost-per-Order rows
      are gone from the Per-District Staff Plan cell (replaced by the full
      .fc-cell forecast table via fcCellHtml — see .fc-hc-cell > .fc-cell
@@ -1152,8 +1141,8 @@
             <input type="number" id="fcSuggestOverdrive" min="0" max="50" step="1" value="0">
           </div>
           <div class="prod-field fc-weight">
-            <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. Only the DEFAULT: any district with its own 'Max ODS Flex %' on its card below uses that instead. Set to 20% here — the agreed contractual bound — so every district's channel-split search is capped at ±20% unless a district's own field overrides it. Positive = the original ± band (either direction). Negative = a directive that shifts HKTV orders onto ODS specifically — up to |value|% above baseline, never below it.">Max ODS Volume Flex (±%) — default</label>
-            <input type="number" id="fcOdsFlex" min="-100" max="100" step="1" value="20">
+            <label for="fcOdsFlex" title="How far ODS order volume may move above or below its forecast baseline when Suggest Headcount optimizes the channel split. This is a commercial limit — what the ODS partner can absorb, and what volume they're owed — so it can't be derived from this data. Only the DEFAULT: any district with its own 'Max ODS Flex %' on its card below uses that instead. v33.0 — defaults to 0% (no automatic search) now that a leader can dial in a per-day shift directly (see each weekday's Shift % field below); raise this if you want Suggest Headcount/Auto-Tune to search a channel-split band on top of that. Positive = the original ± band (either direction). Negative = a directive that shifts HKTV orders onto ODS specifically — up to |value|% above baseline, never below it.">Max ODS Volume Flex (±%) — default</label>
+            <input type="number" id="fcOdsFlex" min="-100" max="100" step="1" value="0">
           </div>
           <div class="prod-field fc-weight">
             <label for="fcOdsMaxShare" title="A ceiling on what proportion of a day's Total Orders may be handled by ODS instead of in-house staff. 30 = ODS never gets more than 30 of every 100 orders that day, whatever the flex band would otherwise allow. It only ever caps ODS volume DOWNWARD — it never forces volume onto ODS. Blank = no ceiling (the ±% flex band alone applies).">Max ODS Orders as % of Total Orders</label>
@@ -5092,7 +5081,7 @@
   */
   const FC_ODS = {
     optimize: true,      // whether Suggest Headcount is allowed to move the split at all
-    flexPct: 20,         // ± band around the forecast ODS baseline — the DEFAULT; see byDistrict. v14.9 — raised to the agreed ±20% contractual bound so Suggest Headcount actually searches the channel split network-wide; still overridable per-district below and still gated by the feasibility check requiring BOTH Target Productivity and Target Cost/Order to clear before a shifted candidate is accepted
+    flexPct: 0,          // ± band around the forecast ODS baseline — the DEFAULT; see byDistrict. v33.0 — lowered from the old ±20% network default to 0: a leader now dials in a shift directly per-day (Shift %, see fcPlanTargetsRowHtml) instead of relying on Suggest Headcount to search within a standing ceiling, so the ceiling itself defaults to "don't move anything" unless Auto-Tune or this field are explicitly opened up. Still overridable here or per-district below, and Suggest Headcount/Auto-Tune still search within whatever it's set to.
     maxSharePct: '',     // optional hard ceiling on ODS's share of a day's total orders
     // v14.6 §2 — ONE FLEX BAND FOR TEN DISTRICTS WAS THE SAME MISTAKE AS THE
     // OLD SINGLE OVERDRIVE CEILING. How far ODS volume can move is itself a
@@ -5420,28 +5409,35 @@
     const targetVal = targetArr ? (targetArr[wd] ?? '') : '';
     const odArr = FC_SUGGEST.byDistrict[d];
     const odVal = odArr ? (odArr[wd] ?? '') : '';
-    const flexArr = FC_ODS.byDistrict[d];
-    const flexVal = flexArr ? (flexArr[wd] ?? '') : '';
-    // v29.0 — Max Flex % only ever sets a ceiling for Suggest Headcount's
-    // channel-split optimizer; typing a value here does not itself move any
-    // orders (and, per the fc-in-odsflex change handler, actively resets any
-    // previously-applied shift to 0, since the old shift may not fit the new
-    // ceiling). So "a value is set here but fcOdsShiftFor is still 0" is the
-    // normal state right after typing it, or after the ODS split toggle is
-    // off, or after Suggest Headcount ran and genuinely found no shift
-    // worth making — not a sign the field is broken. Surface that plainly
-    // instead of leaving it looking like a no-op (see the chat conversation
-    // that prompted this: a leader set Max Flex % to -10 expecting an
-    // immediate shift).
-    const flexNeedsApply = flexVal !== '' && Math.abs(fcOdsShiftFor(d, wd)) < 1;
-    const flexHint = flexNeedsApply
-      ? `<div class="fc-flex-hint" title="Max Flex % is a ceiling for Suggest Headcount's channel-split optimizer, not a live shift — it only takes effect the next time Suggest Headcount runs for ${d} (and only with the ODS split toggle on above). If Suggest Headcount has already run and this is still showing, the optimizer looked within this ceiling and found no shift was needed to clear both targets.">↳ run Suggest Headcount to apply</div>`
-      : '';
+    // v33.0 — Max Flex % (the per-day ceiling input that used to sit here)
+    // is HIDDEN from this table per leader request: it was a two-step,
+    // easy-to-misread control — set a ceiling, then separately have to run
+    // Suggest Headcount to see whether it did anything (see v29.0's hint
+    // above, now removed along with the field it was about). The underlying
+    // mechanism is NOT removed — FC_ODS.byDistrict, fcMaxOdsFlexFor,
+    // fcOdsBoundsFor and fcOptimizeDayPlan all still exist unchanged, so
+    // Suggest Headcount and Auto-Tune Overdrive & ODS Flex still search
+    // within a per-day ceiling exactly as before; Auto-Tune still WRITES a
+    // per-day override into FC_ODS.byDistrict when it finds one helps. It's
+    // just no longer a field a leader edits directly here. The network-wide
+    // default (id="fcOdsFlex" above) is unchanged as the fallback ceiling
+    // Auto-Tune searches within, but now defaults to 0 (see FC_ODS.flexPct)
+    // rather than the old ±20% — a leader who wants a shift now dials it in
+    // directly below instead of nudging a ceiling and hoping Suggest picks
+    // it up.
+    // In its place: the live, direct Shift % control (formerly its own row
+    // under Est. ODS Orders in fcCellHtml — moved here so it sits where
+    // leaders already look for the day's ODS lever, in the same three-field
+    // strip as Target Prod and Max OD %). It reads/writes
+    // FC_STATE.odsShift[d][wd] straight away — no ceiling, no Suggest
+    // Headcount run required, no hint needed, since there's no
+    // set-then-wait step left for one to explain.
+    const baseline = fcOdsBaselineOrders(d, wd);
+    const shiftPct = baseline > 0 ? Math.round(-100 * fcOdsShiftFor(d, wd) / baseline) : 0;
     return `<div class="fc-plan-wd-targets">
         <label class="fc-plan-mini-field" title="This weekday's own Target Productivity. Blank = ${TARGET_PRODUCTIVITY[d]} (Full_Cost_Planning.xlsx).">Target Prod<input type="number" min="0" step="0.1" class="fc-in-targetprod" data-d="${d}" data-wd="${wd}" placeholder="${TARGET_PRODUCTIVITY[d]}" value="${targetVal}"></label>
         <label class="fc-plan-mini-field" title="This weekday's own Max Productivity Overdrive ceiling for Suggest Headcount. Blank = the network default above. Suggest still applies the SMALLEST Overdrive that clears both targets — this only sets how far it may look for THIS day.">Max OD %<input type="number" min="0" max="${FC_OVERDRIVE_HARD_MAX}" step="1" class="fc-in-overdrive" data-d="${d}" data-wd="${wd}" placeholder="${fcClampOverdrive(FC_SUGGEST.overdrivePct)}" value="${odVal}"></label>
-        <label class="fc-plan-mini-field" title="This weekday's own Max ODS Volume Flex ceiling for Suggest Headcount's channel-split optimizer. Blank = the network default above. Still a commercial limit — what THIS district's ODS partner can actually absorb on THIS day. Positive = the original ± band (may move either direction). Negative = a directive that shifts HKTV orders onto ODS specifically — up to |value|% above baseline, never below it. Only takes effect when Suggest Headcount runs — see the hint below if it doesn't.">Max Flex %<input type="number" min="-100" max="100" step="1" class="fc-in-odsflex" data-d="${d}" data-wd="${wd}" placeholder="${fcClampFlexSigned(FC_ODS.flexPct)}" value="${flexVal}"></label>
-        ${flexHint}
+        <label class="fc-plan-mini-field fc-plan-mini-field-shift" title="Manually move orders between ODS and HKTV for THIS weekday — e.g. to see the effect of diverting volume for an unexpected event (weather, a courier shortage, an ODS partner ask). POSITIVE = shift orders FROM ODS TO HKTV (less ODS). NEGATIVE = shift orders FROM HKTV TO ODS (more ODS). A percentage of this day's baseline ODS volume (${intFmt(baseline)} orders). Takes effect immediately — no ceiling, no Suggest Headcount run needed — and bypasses the optimizer's cost check entirely: this can raise Cost/Order or miss Productivity if that's the right call for the situation. Clear the field (or set it to 0) to drop the override and revert to baseline. Suggest Headcount and Auto-Tune still search their own ceiling behind the scenes (Max ODS Volume Flex, no longer shown per-day here) and will overwrite this if you run them afterward.">Shift %<input type="number" step="1" class="fc-in-shiftpct" data-d="${d}" data-wd="${wd}" value="${shiftPct}"></label>
       </div>`;
   }
   // v26.0 §1 — HOISTED to top-level (was nested inside renderForecastTab()):
@@ -5486,27 +5482,16 @@
     const costTitle = isWeekly
       ? `This district's monthly Fixed + Staff (deployed FT/PT headcount only) + ODS cost ÷ its forecast order volume for the month: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is the SAME monthly figure as the Suggest Headcount pass/fail badge and this district's row in the Cost Planning portal below — they will always agree.`
       : `This weekday's Fixed + planned Staff + ODS cost ÷ this weekday's Total Order forecast: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is one day's figure, not the monthly Cost/Order in the Weekly cell or the Cost Planning portal below, which spreads the same staff cost across the whole month's occurrences — a day can look cheap here while the month still misses target.`;
-    // v31.0 — manual ODS-shift override, for a leader who needs to force a
-    // shift the optimizer wouldn't make on its own (weather, a courier
-    // shortage, an unexpected ODS partner ask, etc.) and see its real cost
-    // and staffing effect immediately, without touching Max Flex % or
-    // waiting on Suggest Headcount. Only wired up for the actual per-day,
-    // single-district cell (fcPlanCellHtml passes opts.editableOds) — never
-    // for the Weekly rollup or the network Total card, where "Est. ODS
-    // Orders" is a sum across days or districts with no single slot to
-    // write an edit back into. Typing here writes straight into the SAME
-    // FC_STATE.odsShift[d][wd] slot Suggest Headcount and this field's own
-    // Max Flex % ceiling both use (see the fc-in-manualods handler), so it
-    // fully bypasses the optimizer's cost-benefit check — nothing stops a
-    // leader from shifting orders here even where doing so raises cost,
-    // which is the point: an unexpected event can make that the right call
-    // even when the routine optimizer wouldn't pick it.
-    const odsOrdersCell = (opts && opts.editableOds)
-      ? `<input type="number" min="0" max="${Math.round(p.totalOrders)}" step="1" class="fc-in-manualods" data-d="${opts.d}" data-wd="${opts.wd}" title="Force this weekday's actual ODS order count, overriding whatever Suggest Headcount (or Max Flex %) last set — e.g. to see the staffing/cost effect of diverting orders to ODS for an unexpected event. Bypasses the optimizer's cost check entirely: this can raise Cost/Order if that's the right call for the situation. Clamped to 0–${intFmt(p.totalOrders)} (this day's Total Order). Clear the field to drop the override and revert to baseline (no shift)." value="${Math.round(p.odsOrders)}">`
-      : `<span class="fc-val">${intFmt(p.odsOrders)}</span>`;
+    // v33.0 — the manual Shift % override (v32.0) has moved OUT of this
+    // function entirely, up into fcPlanTargetsRowHtml's per-day mini-field
+    // strip, in the slot Max Flex % used to occupy (now hidden — see that
+    // function's comment). It still reads/writes the same
+    // FC_STATE.odsShift[d][wd] this cell's own Est. ODS Orders/shifted-ODS
+    // rows read below, so nothing here changed except where the control
+    // lives; this cell just displays whatever shift is in force.
     return `<div class="fc-cell">
       <div class="fc-row"><span class="fc-label">Total Order</span><span class="fc-val">${intFmt(p.totalOrders)}</span></div>
-      <div class="fc-row${opts && opts.editableOds ? ' fc-row-editable' : ''}"><span class="fc-label">Est. ODS Orders</span>${odsOrdersCell}</div>
+      <div class="fc-row"><span class="fc-label">Est. ODS Orders</span><span class="fc-val">${intFmt(p.odsOrders)}</span></div>
       <div class="fc-row fc-shift"${hasShift ? '' : ' style="visibility:hidden;"'}><span class="fc-label">↳ shifted ${p.odsShift>0?'to':'off'} ODS</span><span class="fc-val">${p.odsShift>0?'+':''}${intFmt(p.odsShift)}</span></div>
       <div class="fc-row"><span class="fc-label">HKTV Orders</span><span class="fc-val">${intFmt(p.hktvOrders)}</span></div>
       <div class="fc-row"><span class="fc-label">FT Driver</span><span class="fc-val">${intFmt(p.ftDriver)}</span></div>
@@ -5571,7 +5556,7 @@
       ${ptFields}
       ${fcPlanTargetsRowHtml(d, wd)}
       <div class="fc-hc-total"><span>Σ <span class="v">${intFmt(hc.total)}</span> staff</span></div>
-      ${fcCellHtml(pd, {editableOds:true, d, wd})}
+      ${fcCellHtml(pd)}
       ${rosterLine}
       ${tunnelLine}
     </div>`;
@@ -5962,30 +5947,27 @@
     document.getElementById('fcPlanCards').addEventListener('change', e=>{
       const inp = e.target; const d = inp.dataset.d; if(!d) return;
       const v = inp.value;
-      // v18.0 §1 — the three target/ceiling inputs are per weekday now: each
-      // carries its weekday (data-wd) and writes into that slot of the
-      // district's 7-slot array (created blank on first use). A blank slot
-      // means "use the default" — it is stored as '' rather than 0, which
-      // would be a different instruction entirely.
-      const isDayInput = inp.classList.contains('fc-in-targetprod') || inp.classList.contains('fc-in-overdrive') || inp.classList.contains('fc-in-odsflex');
+      // v18.0 §1 — the target/ceiling inputs are per weekday: each carries
+      // its weekday (data-wd) and writes into that slot of the district's
+      // 7-slot array (created blank on first use). A blank slot means "use
+      // the default" — it is stored as '' rather than 0, which would be a
+      // different instruction entirely. v33.0 — fc-in-odsflex (Max Flex %)
+      // no longer renders here (hidden per leader request — see
+      // fcPlanTargetsRowHtml), so this only covers Target Prod and Max OD %
+      // now. FC_ODS.byDistrict itself is untouched and still read by
+      // Suggest Headcount/Auto-Tune; there's just no per-day UI here to
+      // write into it anymore.
+      const isDayInput = inp.classList.contains('fc-in-targetprod') || inp.classList.contains('fc-in-overdrive');
       if(isDayInput){
         const wd = +inp.dataset.wd;
         if(!(wd >= 0 && wd <= 6)) return;
         const slotsOf = (store)=>{ if(!Array.isArray(store[d])) store[d] = WEEKDAY_LABELS.map(()=>''); return store[d]; };
         if(inp.classList.contains('fc-in-targetprod')){
           slotsOf(FC_STATE.targetProd)[wd] = v;
-        } else if(inp.classList.contains('fc-in-overdrive')){
+        } else {
           // v14.5 §2 — Overdrive ceiling (now this weekday's own).
           if(v === '') slotsOf(FC_SUGGEST.byDistrict)[wd] = '';
           else { const c = fcClampOverdrive(v); inp.value = c; slotsOf(FC_SUGGEST.byDistrict)[wd] = c; }
-        } else {
-          // v14.6 §2 — ODS Volume Flex ceiling (now this weekday's own). A
-          // band change can move which channel split the optimizer would
-          // pick, so any shift already applied is cleared, as with the
-          // global ODS band inputs.
-          if(v === '') slotsOf(FC_ODS.byDistrict)[wd] = '';
-          else { const c = fcClampFlexSigned(v); inp.value = c; slotsOf(FC_ODS.byDistrict)[wd] = c; }
-          FC_STATE.odsShift = {};
         }
       }
       // v11.0 §1 — staff inputs carry the weekday (data-wd) and bucket
@@ -5994,25 +5976,27 @@
         const wd = +inp.dataset.wd, k = inp.dataset.k;
         if(STAFF_BUCKETS.includes(k)) fcStaffSlot(d, wd)[k] = v;
       }
-      // v31.0 — manual ODS-shift override (see odsOrdersCell in
-      // fcCellHtml): writes straight into the SAME FC_STATE.odsShift[d][wd]
-      // slot Suggest Headcount and the Max Flex % ceiling both use, as a
-      // delta against the forecast baseline — exactly the convention
-      // fcApplySuggestionFor already uses, so this survives the baseline
-      // moving underneath it just like an optimizer-picked shift does.
-      // Clearing the field drops the override back to baseline (shift 0)
-      // rather than leaving whatever was there, since there's no longer a
-      // concrete number in the field to derive a shift from.
-      else if(inp.classList.contains('fc-in-manualods')){
+      // v32.0 — manual Shift % override (see shiftPctRow in fcCellHtml):
+      // writes into the SAME FC_STATE.odsShift[d][wd] slot Suggest
+      // Headcount and the Max Flex % ceiling both use, as a delta against
+      // the forecast baseline — same convention fcApplySuggestionFor
+      // already uses, so it survives the baseline moving underneath it
+      // just like an optimizer-picked shift does. Sign convention: POSITIVE
+      // input % moves orders FROM ODS TO HKTV, so it's converted to a
+      // NEGATIVE order delta (less ODS); NEGATIVE input % moves orders FROM
+      // HKTV TO ODS, converted to a POSITIVE order delta (more ODS) — the
+      // minus sign below is exactly that flip. Percentage is of this day's
+      // baseline ODS volume, the same base Max Flex % itself uses. Clearing
+      // the field (or entering 0) drops the override back to baseline.
+      else if(inp.classList.contains('fc-in-shiftpct')){
         const wd = +inp.dataset.wd;
         if(wd >= 0 && wd <= 6){
           if(!Array.isArray(FC_STATE.odsShift[d])) FC_STATE.odsShift[d] = WEEKDAY_LABELS.map(()=>0);
           if(v === ''){
             FC_STATE.odsShift[d][wd] = 0;
-          } else if(!isNaN(+v)) {
-            const total = fcForecastTotalOrdersAdjusted(d, wd);
-            const clamped = Math.max(0, Math.min(total, +v));
-            FC_STATE.odsShift[d][wd] = clamped - fcOdsBaselineOrders(d, wd);
+          } else if(!isNaN(+v)){
+            const baseline = fcOdsBaselineOrders(d, wd);
+            FC_STATE.odsShift[d][wd] = Math.round(-baseline * (+v) / 100);
           }
         }
       }
