@@ -400,6 +400,18 @@
   .fc-cell .fc-val{font-family:'IBM Plex Mono';font-size:12px;font-weight:600;color:var(--text);}
   .fc-cell .fc-row.fc-primary{border-top:1px dashed var(--line);padding-top:5px;margin-top:1px;}
   .fc-cell .fc-row.fc-primary .fc-val{font-size:13px;}
+  /* v31.0 — manual ODS-shift override input (see fc-in-manualods /
+     odsOrdersCell in fcCellHtml): styled to sit flush in the same row a
+     plain .fc-val would occupy, with the shift-row's existing blue accent
+     (#3a5a8c, matching .fc-row.fc-shift below) as the cue that this number
+     is editable and, once changed, an active override rather than the
+     as-forecast baseline. */
+  .fc-cell .fc-row-editable{cursor:default;}
+  .fc-cell .fc-in-manualods{width:64px;text-align:right;font-family:'IBM Plex Mono';font-size:12px;font-weight:600;color:#3a5a8c;background:#eef2f8;border:1px solid #c9d6e8;border-radius:4px;padding:1px 5px;}
+  .fc-cell .fc-in-manualods:focus{outline:none;border-color:#3a5a8c;background:#fff;}
+  .fc-cell .fc-in-manualods::-webkit-outer-spin-button,
+  .fc-cell .fc-in-manualods::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .fc-cell .fc-in-manualods[type=number]{-moz-appearance:textfield;}
   .fc-cell .fc-badge{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:20px;}
   .fc-cell .fc-badge.fc-auto{background:var(--line-soft);color:var(--text-muted);}
   .fc-cell .fc-badge.fc-manual{background:#e7edf5;color:#3a5a8c;}
@@ -5474,9 +5486,27 @@
     const costTitle = isWeekly
       ? `This district's monthly Fixed + Staff (deployed FT/PT headcount only) + ODS cost ÷ its forecast order volume for the month: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is the SAME monthly figure as the Suggest Headcount pass/fail badge and this district's row in the Cost Planning portal below — they will always agree.`
       : `This weekday's Fixed + planned Staff + ODS cost ÷ this weekday's Total Order forecast: ${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)} vs target $${p.targetCostPerOrder.toFixed(2)} — achievement rate = (forecast − target) ÷ target; below target is good here. This is one day's figure, not the monthly Cost/Order in the Weekly cell or the Cost Planning portal below, which spreads the same staff cost across the whole month's occurrences — a day can look cheap here while the month still misses target.`;
+    // v31.0 — manual ODS-shift override, for a leader who needs to force a
+    // shift the optimizer wouldn't make on its own (weather, a courier
+    // shortage, an unexpected ODS partner ask, etc.) and see its real cost
+    // and staffing effect immediately, without touching Max Flex % or
+    // waiting on Suggest Headcount. Only wired up for the actual per-day,
+    // single-district cell (fcPlanCellHtml passes opts.editableOds) — never
+    // for the Weekly rollup or the network Total card, where "Est. ODS
+    // Orders" is a sum across days or districts with no single slot to
+    // write an edit back into. Typing here writes straight into the SAME
+    // FC_STATE.odsShift[d][wd] slot Suggest Headcount and this field's own
+    // Max Flex % ceiling both use (see the fc-in-manualods handler), so it
+    // fully bypasses the optimizer's cost-benefit check — nothing stops a
+    // leader from shifting orders here even where doing so raises cost,
+    // which is the point: an unexpected event can make that the right call
+    // even when the routine optimizer wouldn't pick it.
+    const odsOrdersCell = (opts && opts.editableOds)
+      ? `<input type="number" min="0" max="${Math.round(p.totalOrders)}" step="1" class="fc-in-manualods" data-d="${opts.d}" data-wd="${opts.wd}" title="Force this weekday's actual ODS order count, overriding whatever Suggest Headcount (or Max Flex %) last set — e.g. to see the staffing/cost effect of diverting orders to ODS for an unexpected event. Bypasses the optimizer's cost check entirely: this can raise Cost/Order if that's the right call for the situation. Clamped to 0–${intFmt(p.totalOrders)} (this day's Total Order). Clear the field to drop the override and revert to baseline (no shift)." value="${Math.round(p.odsOrders)}">`
+      : `<span class="fc-val">${intFmt(p.odsOrders)}</span>`;
     return `<div class="fc-cell">
       <div class="fc-row"><span class="fc-label">Total Order</span><span class="fc-val">${intFmt(p.totalOrders)}</span></div>
-      <div class="fc-row"><span class="fc-label">Est. ODS Orders</span><span class="fc-val">${intFmt(p.odsOrders)}</span></div>
+      <div class="fc-row${opts && opts.editableOds ? ' fc-row-editable' : ''}"><span class="fc-label">Est. ODS Orders</span>${odsOrdersCell}</div>
       <div class="fc-row fc-shift"${hasShift ? '' : ' style="visibility:hidden;"'}><span class="fc-label">↳ shifted ${p.odsShift>0?'to':'off'} ODS</span><span class="fc-val">${p.odsShift>0?'+':''}${intFmt(p.odsShift)}</span></div>
       <div class="fc-row"><span class="fc-label">HKTV Orders</span><span class="fc-val">${intFmt(p.hktvOrders)}</span></div>
       <div class="fc-row"><span class="fc-label">FT Driver</span><span class="fc-val">${intFmt(p.ftDriver)}</span></div>
@@ -5541,7 +5571,7 @@
       ${ptFields}
       ${fcPlanTargetsRowHtml(d, wd)}
       <div class="fc-hc-total"><span>Σ <span class="v">${intFmt(hc.total)}</span> staff</span></div>
-      ${fcCellHtml(pd)}
+      ${fcCellHtml(pd, {editableOds:true, d, wd})}
       ${rosterLine}
       ${tunnelLine}
     </div>`;
@@ -5963,6 +5993,28 @@
       else if(inp.classList.contains('fc-in-staff')){
         const wd = +inp.dataset.wd, k = inp.dataset.k;
         if(STAFF_BUCKETS.includes(k)) fcStaffSlot(d, wd)[k] = v;
+      }
+      // v31.0 — manual ODS-shift override (see odsOrdersCell in
+      // fcCellHtml): writes straight into the SAME FC_STATE.odsShift[d][wd]
+      // slot Suggest Headcount and the Max Flex % ceiling both use, as a
+      // delta against the forecast baseline — exactly the convention
+      // fcApplySuggestionFor already uses, so this survives the baseline
+      // moving underneath it just like an optimizer-picked shift does.
+      // Clearing the field drops the override back to baseline (shift 0)
+      // rather than leaving whatever was there, since there's no longer a
+      // concrete number in the field to derive a shift from.
+      else if(inp.classList.contains('fc-in-manualods')){
+        const wd = +inp.dataset.wd;
+        if(wd >= 0 && wd <= 6){
+          if(!Array.isArray(FC_STATE.odsShift[d])) FC_STATE.odsShift[d] = WEEKDAY_LABELS.map(()=>0);
+          if(v === ''){
+            FC_STATE.odsShift[d][wd] = 0;
+          } else if(!isNaN(+v)) {
+            const total = fcForecastTotalOrdersAdjusted(d, wd);
+            const clamped = Math.max(0, Math.min(total, +v));
+            FC_STATE.odsShift[d][wd] = clamped - fcOdsBaselineOrders(d, wd);
+          }
+        }
       }
       renderForecastTab(); updateScrollHints();
     });
