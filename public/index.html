@@ -408,6 +408,8 @@
   .fc-cell .delta-pill.delta-flat{background:var(--line-soft);color:var(--text-muted);}
   #costTotalTable td.cost-ok{color:var(--green);font-weight:700;}
   #costTotalTable td.cost-over{color:var(--red);font-weight:700;}
+  #costTotalTable tbody tr.total-row td{font-weight:700;background:#f6f7f9;}
+  #costTotalTable tbody tr.total-row td:first-child{background:#eef0f3;}
   /* v20.1 — light background tint per cost group, so the table reads as
      five zones at a glance instead of one wall of numbers: Fixed —
      Controllable (blue), Variable — Staff (teal), Variable — ODS (purple),
@@ -4497,6 +4499,42 @@
         : `Matches the Weekly Forecast Plan's FT Driver + FT Courier + PT Driver + PT Courier total.`;
       return `<tr data-d="${d}"><td>${d}</td><td>${money(fixed)}</td><td>${money(variableStaff)}</td><td title="${manDaysTitle}">${intFmt(manDays)}</td><td>${money(avgStaffPerDay)}</td><td>${money(variableOds)}</td><td>${money(variableOdsTunnel)}</td><td title="Provision - Non-Controllable Cost (Office Team Exp., KT Warehouse, Car Fuel, Others Cost, Repair &amp; Maintenance) — included in Total ($) only, never in Cost / Order.">${money(nonControllable)}</td><td><strong>${money(total)}</strong></td><td>${intFmt(orderVolume)}</td><td class="${overCls}" title="Controllable Fixed + Variable — Staff + Variable — ODS + Variable — ODS Tunnel, ÷ Order Volume. Excludes Non-Controllable cost.">${costPerOrder==null?'—':money(costPerOrder)}</td><td>${money(target)}</td><td class="${overCls}">${fcRatePct(fcAchievementRate(costPerOrder, target))}</td><td title="Total ($) ÷ Order Volume. Includes Non-Controllable cost, unlike Cost / Order (Only Controllable Cost).">${totalCostPerOrder==null?'—':money(totalCostPerOrder)}</td></tr>`;
     }).join('');
+
+    // v31.0 — Overall network row, summed across every district (this
+    // portal has no per-district hide/filter toggle, unlike the Total card
+    // elsewhere on the tab, so this always covers all 10). Cost/Order and
+    // its Target are POOLED (Σ controllable cost ÷ Σ order volume, and
+    // Σ target×volume ÷ Σ volume) rather than averaged district-by-district
+    // — the same pooling convention already documented for the Total card
+    // (see the Weekly Forecast Plan tooltip near fcRenderCostPortal).
+    let ovFixed=0, ovNonControllable=0, ovVariableStaff=0, ovManDays=0, ovVariableOds=0,
+        ovVariableOdsTunnel=0, ovTotal=0, ovOrderVolume=0, ovControllableCost=0, ovTargetWeighted=0;
+    DISTRICTS.forEach(d=>{
+      const fixed = fcMonthlyFixedCostFor(d);
+      const nonControllable = fcMonthlyNonControllableCostFor(d);
+      const variableStaff = fcMonthlyStaffCostFor(d);
+      const manDays = fcMonthlyManDaysFor(d);
+      const odsVolume = fcMonthlyOdsOrderEstimate(d);
+      const variableOds = odsVolume * odsBlendedCostFor(d);
+      const variableOdsTunnel = fcMonthlyOdsTunnelCostFor(d);
+      const orderVolume = fcMonthlyOrderEstimate(d);
+      ovFixed += fixed;
+      ovNonControllable += nonControllable;
+      ovVariableStaff += variableStaff;
+      ovManDays += manDays;
+      ovVariableOds += variableOds;
+      ovVariableOdsTunnel += variableOdsTunnel;
+      ovTotal += fixed + nonControllable + variableStaff + variableOds + variableOdsTunnel;
+      ovOrderVolume += orderVolume;
+      ovControllableCost += fixed + variableStaff + variableOds + variableOdsTunnel;
+      ovTargetWeighted += TARGET_COST_PER_ORDER[d] * orderVolume;
+    });
+    const ovAvgStaffPerDay = fcCurrentMonthDays() > 0 ? ovVariableStaff/fcCurrentMonthDays() : 0;
+    const ovCostPerOrder = ovOrderVolume > 0 ? ovControllableCost/ovOrderVolume : null;
+    const ovTarget = ovOrderVolume > 0 ? ovTargetWeighted/ovOrderVolume : null;
+    const ovTotalCostPerOrder = ovOrderVolume > 0 ? ovTotal/ovOrderVolume : null;
+    const ovOverCls = ovCostPerOrder==null || ovTarget==null ? '' : (ovCostPerOrder <= ovTarget ? 'cost-ok' : 'cost-over');
+    totalBody.innerHTML += `<tr class="total-row"><td>Overall</td><td>${money(ovFixed)}</td><td>${money(ovVariableStaff)}</td><td>${intFmt(ovManDays)}</td><td>${money(ovAvgStaffPerDay)}</td><td>${money(ovVariableOds)}</td><td>${money(ovVariableOdsTunnel)}</td><td title="Provision - Non-Controllable Cost — included in Total ($) only, never in Cost / Order.">${money(ovNonControllable)}</td><td><strong>${money(ovTotal)}</strong></td><td>${intFmt(ovOrderVolume)}</td><td class="${ovOverCls}" title="Σ Controllable Fixed + Variable — Staff + Variable — ODS + Variable — ODS Tunnel across every district, ÷ Σ Order Volume. Excludes Non-Controllable cost.">${ovCostPerOrder==null?'—':money(ovCostPerOrder)}</td><td title="Each district's own Target Cost/Order weighted by its Est. Order Volume.">${ovTarget==null?'—':money(ovTarget)}</td><td class="${ovOverCls}">${fcRatePct(fcAchievementRate(ovCostPerOrder, ovTarget))}</td><td title="Σ Total ($) across every district ÷ Σ Order Volume. Includes Non-Controllable cost.">${ovTotalCostPerOrder==null?'—':money(ovTotalCostPerOrder)}</td></tr>`;
   }
   function fcSetupCostPortalListeners(){
     const toggleBtn = document.getElementById('costPortalToggle');
