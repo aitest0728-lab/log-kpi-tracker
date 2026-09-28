@@ -565,7 +565,7 @@
   .fc-hc-total .p.ok{background:var(--green-soft);color:var(--green);}
   .fc-hc-total .p.bad{background:var(--red-soft);color:var(--red);}
   /* v18.0 §1 — per-weekday Target Prod / Max OD % / Max ODS Flex % inputs (above the dashed line); v27.0 §1 — the full forecast table (below it) replaced the condensed Orders/Prod/Cost-per-Order readout, see fcPlanCellHtml. v33.0 — third slot is now the direct Shift % override (fc-in-shiftpct); Max Flex % itself is hidden from this row, see fcPlanTargetsRowHtml. */
-  .fc-plan-wd-targets{grid-column:1/-1;display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:4px 6px;margin-top:2px;}
+  .fc-plan-wd-targets{grid-column:1/-1;display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:4px 6px;margin-top:2px;}
   .fc-plan-wd-targets .fc-plan-mini-field{font-size:9px;gap:2px;letter-spacing:.02em;min-width:0;}
   .fc-plan-wd-targets .fc-plan-mini-field input{width:100%;min-width:0;font-size:12.5px;padding:3px 4px;text-align:right;}
   /* v33.0 — Shift % gets the same blue tint used everywhere else in this
@@ -1128,7 +1128,7 @@
 
         <div class="fc-districts" id="fcDistrictChips"></div>
 
-        <h3 class="prod-detail-label">Per-District Staff Plan — by Weekday (Target Prod blank = target from Full_Cost_Planning.xlsx · Max OD % / Max Flex % blank = network default · headcounts blank = 0)</h3>
+        <h3 class="prod-detail-label">Per-District Staff Plan — by Weekday (Target Prod blank = target from Full_Cost_Planning.xlsx · Target Prod and Shift % changes re-suggest that district's staff · headcounts blank = 0)</h3>
 
         <!-- SUGGEST HEADCOUNT — v8.0. For each district, searches reasonable
              FT/PT Driver/Courier combinations and fills in the plan table
@@ -1260,7 +1260,7 @@
             <div class="prod-note" id="fcNote"></div>
             <div class="prod-note">
               <b>Per-District Staff Plan.</b> One FT Driver / FT Courier / PT Driver / PT Courier plan per weekday, per district (FTD / FTC / PTD / PTC). Blank = 0. Each column header shows how many times that weekday falls in the forecast month.<br>
-              <b>Per-weekday inputs.</b> Each weekday cell carries its own <b>Target Prod</b>, <b>Max OD %</b> (Max Productivity Overdrive) and <b>Max Flex %</b> (Max ODS Volume Flex), so a leader can tune any single day without touching the rest of the week. Blank = the default (the district's Full_Cost_Planning.xlsx target / the network default ceiling).<br>
+              <b>Per-weekday inputs.</b> Each weekday cell carries its own <b>Target Prod</b> and <b>Shift %</b>, so a leader can tune any single day without touching the rest of the week. Blank Target Prod = the district's Full_Cost_Planning.xlsx target. Entering a <b>Shift %</b> (positive = ODS &rarr; HKTV, negative = HKTV &rarr; ODS) pins that day's ODS/HKTV split and immediately re-suggests the district's whole staff plan so Productivity and Cost/Order still clear target, both per weekday and for the Weekly rollup. The Weekly block also shows the <b>Set</b> vs <b>Adjusted</b> Target Prod so you can confirm your per-day target changes still add up to the original weekly target.<br>
               <b>Cell figures (below the dashed line).</b> Σ = that day's total headcount. <b>Orders</b> = that day's forecast Total Order (HKTV shown beside it). <b>Prod</b> = that day's Productivity (HKTV Orders ÷ Σ) and its achievement rate against <i>that day's</i> target, (forecast − target) ÷ target. <b>Cost/Ord</b> = that day's Cost / Order against the district's target — green at or under target, red above.<br>
               <b>Default = 0.</b> Every cell starts blank (= 0) and stays that way until you type a number or run Suggest Headcount. With the plan empty the forecast shows the raw picture — no headcount, no staff cost, no minimum-roster charge.<br>
               <b>These cells are the working plan.</b> What you see here is the team the day's volume justifies, and the pill is the productivity that team is being asked for. Nothing is padded into the numbers.<br>
@@ -3106,6 +3106,11 @@
     districts: new Set(DISTRICTS),                 // which districts show in the table
     staff: {},                                      // district -> [7] of {ftDriver,ftCourier,ptDriver,ptCourier} (blank = 0)
     odsShift: {},                                   // v12.0 — district -> [7] of orders moved to(+)/off(-) ODS by the optimizer
+    // v34.0 §2 — district -> [7] of booleans: true = this weekday's ODS/HKTV
+    // split was entered by hand (Shift % field) and is PINNED, i.e. Suggest
+    // Headcount / Auto-Tune must plan the staff around it instead of
+    // re-optimizing (or resetting) it. See fcOdsBoundsFor.
+    odsShiftPin: {},
     // v18.0 §1 — Target Productivity is now set PER WEEKDAY, not once for
     // the whole district: district -> [7] of manual override (blank =
     // TARGET_PRODUCTIVITY[d] for that slot). Mirrors FC_STATE.staff's
@@ -4415,6 +4420,7 @@
       STAFF_BUCKETS.forEach(k=>{ slot[k] = combo ? combo[k] : 0; });
       FC_STATE.odsShift[district][i] = 0;
     });
+    FC_STATE.odsShiftPin[district] = null; // v34.0 §2 — "current status" = historical split, nothing pinned
     FC_STATE.suggestions[district] = null; // the cells no longer reflect any Suggest search
     const result = { applied:true, district, days };
     FC_STATE.currentStatus[district] = result;
@@ -4984,13 +4990,25 @@
     });
     const total = fixed + variableStaff + variableOds + variableOdsTunnel;
     const costPerOrder = orderVolume>0 ? total/orderVolume : null;
+    // v34.0 §3 — the ORIGINAL (as-set, Full_Cost_Planning.xlsx) Target Prod,
+    // pooled with exactly the same man-day weights as the adjusted one the
+    // caller passes in (fcWeeklyPFor / fcPooledMonthlyTargetsFor: each
+    // weekday slot's headcount × occurrences). Same weights on both sides
+    // means the two are directly comparable: any gap is purely the leader's
+    // per-weekday Target Prod edits, not a difference in weighting.
+    const origProdItems = [];
+    districts.forEach(d=>{
+      const base = TARGET_PRODUCTIVITY[d] != null ? TARGET_PRODUCTIVITY[d] : TARGET_PRODUCTIVITY.overall;
+      for(let i=0;i<7;i++) origProdItems.push({ target: base, weight: fcHeadcountFor(d,i).total*occ[i] });
+    });
+    const origTargetProd = fcPooledTarget(origProdItems);
     // Productivity denominator is DEPLOYED man-days (workedManDays), not
     // paid — matches fcBuildDistrictPlan's weightedProd exactly, so the
     // Weekly Productivity pill agrees with the Suggest badge too.
     const achievedProd = workedManDays>0 ? hktvVolume/workedManDays : null;
     return { totalOrders:orderVolume, odsOrders:odsVolume, odsShift:shSum, hktvOrders:hktvVolume,
       ftDriver:fd, ftCourier:fc, ptDriver:pd, ptCourier:pc,
-      achievedProd, targetProd, costPerOrder, targetCostPerOrder,
+      achievedProd, targetProd, origTargetProd, costPerOrder, targetCostPerOrder,
       odsUserCount:0, odsTunnelCost:variableOdsTunnel,
       workedManDays, paidManDays };
   }
@@ -5178,6 +5196,17 @@
   function fcOdsBoundsFor(district, weekdayIdx){
     const base = fcOdsBaselineOrders(district, weekdayIdx);
     const total = fcForecastTotalOrdersAdjusted(district, weekdayIdx);
+    // v34.0 §2 — a hand-entered Shift % is a fixed instruction, not a
+    // starting point: the band collapses to that single ODS volume (lo = hi),
+    // so fcOptimizeDayPlan's only candidate is the user's split and the staff
+    // plan is built around it. Bypasses Flex and the Max ODS Share ceiling,
+    // matching the Shift % field's own tooltip ("no ceiling").
+    const pinArr = FC_STATE.odsShiftPin[district];
+    if(pinArr && pinArr[weekdayIdx]){
+      const shift = ((FC_STATE.odsShift[district] || [])[weekdayIdx]) || 0;
+      const fixed = Math.max(0, Math.min(total, base + shift));
+      return { lo: fixed, hi: fixed, base, total };
+    }
     const flex = fcMaxOdsFlexFor(district, weekdayIdx)/100; // v18.0 §1 — this weekday's own ceiling, falls back to the network default
     let hi, lo;
     if(flex >= 0){
@@ -5460,12 +5489,19 @@
     // FC_STATE.odsShift[d][wd] straight away — no ceiling, no Suggest
     // Headcount run required, no hint needed, since there's no
     // set-then-wait step left for one to explain.
+    // v34.0 §1 — Max OD % is now HIDDEN from this strip too (leader request:
+    // changing it had no visible effect, since Suggest Headcount / Auto-Tune
+    // always apply the SMALLEST Overdrive that clears both targets and only
+    // use this as a ceiling). Same treatment as Max Flex % in v33.0: the
+    // mechanism (FC_SUGGEST.byDistrict, fcMaxOverdriveFor, the network
+    // default field above, Auto-Tune's writes) is untouched — there is just
+    // no per-day field to edit it here any more, leaving Target Prod and
+    // Shift % as the two controls.
     const baseline = fcOdsBaselineOrders(d, wd);
     const shiftPct = baseline > 0 ? Math.round(-100 * fcOdsShiftFor(d, wd) / baseline) : 0;
     return `<div class="fc-plan-wd-targets">
         <label class="fc-plan-mini-field" title="This weekday's own Target Productivity. Blank = ${TARGET_PRODUCTIVITY[d]} (Full_Cost_Planning.xlsx).">Target Prod<input type="number" min="0" step="0.1" class="fc-in-targetprod" data-d="${d}" data-wd="${wd}" placeholder="${TARGET_PRODUCTIVITY[d]}" value="${targetVal}"></label>
-        <label class="fc-plan-mini-field" title="This weekday's own Max Productivity Overdrive ceiling for Suggest Headcount. Blank = the network default above. Suggest still applies the SMALLEST Overdrive that clears both targets — this only sets how far it may look for THIS day.">Max OD %<input type="number" min="0" max="${FC_OVERDRIVE_HARD_MAX}" step="1" class="fc-in-overdrive" data-d="${d}" data-wd="${wd}" placeholder="${fcClampOverdrive(FC_SUGGEST.overdrivePct)}" value="${odVal}"></label>
-        <label class="fc-plan-mini-field fc-plan-mini-field-shift" title="Manually move orders between ODS and HKTV for THIS weekday — e.g. to see the effect of diverting volume for an unexpected event (weather, a courier shortage, an ODS partner ask). POSITIVE = shift orders FROM ODS TO HKTV (less ODS). NEGATIVE = shift orders FROM HKTV TO ODS (more ODS). A percentage of this day's baseline ODS volume (${intFmt(baseline)} orders). Takes effect immediately — no ceiling, no Suggest Headcount run needed — and bypasses the optimizer's cost check entirely: this can raise Cost/Order or miss Productivity if that's the right call for the situation. Clear the field (or set it to 0) to drop the override and revert to baseline. Suggest Headcount and Auto-Tune still search their own ceiling behind the scenes (Max ODS Volume Flex, no longer shown per-day here) and will overwrite this if you run them afterward.">Shift %<input type="number" step="1" class="fc-in-shiftpct" data-d="${d}" data-wd="${wd}" value="${shiftPct}"></label>
+        <label class="fc-plan-mini-field fc-plan-mini-field-shift" title="Manually move orders between ODS and HKTV for THIS weekday — e.g. to see the effect of diverting volume for an unexpected event (weather, a courier shortage, an ODS partner ask). POSITIVE = shift orders FROM ODS TO HKTV (less ODS). NEGATIVE = shift orders FROM HKTV TO ODS (more ODS). A percentage of this day's baseline ODS volume (${intFmt(baseline)} orders). Takes effect immediately — no ceiling, no Suggest Headcount run needed — and bypasses the optimizer's cost check entirely: this can raise Cost/Order or miss Productivity if that's the right call for the situation. Clear the field (or set it to 0) to drop the override and revert to baseline. v34.0 — entering a Shift % also re-suggests this district's whole staff plan around it so Productivity and Cost/Order clear target per weekday and for the week. Suggest Headcount and Auto-Tune keep a hand-entered shift fixed and plan the staff around it; clear the field (or enter 0) to release it. Clear Suggestions & Reset Plan drops it.">Shift %<input type="number" step="1" class="fc-in-shiftpct" data-d="${d}" data-wd="${wd}" value="${shiftPct}"></label>
       </div>`;
   }
   // v26.0 §1 — HOISTED to top-level (was nested inside renderForecastTab()):
@@ -5517,6 +5553,28 @@
     // FC_STATE.odsShift[d][wd] this cell's own Est. ODS Orders/shifted-ODS
     // rows read below, so nothing here changed except where the control
     // lives; this cell just displays whatever shift is in force.
+    // v34.0 §3 — Weekly block only: the Target Prod the week is actually
+    // being held to (man-day-weighted pool of the 7 per-weekday targets,
+    // after any edits) next to the original set target, so a leader who
+    // shifts target between weekdays can confirm the adjusted targets still
+    // add up to at least the original. Green = adjusted >= set (0.05 slack
+    // for rounding), red = the edits have quietly lowered the week's bar.
+    let targetCheckHtml = '';
+    if(isWeekly && p.origTargetProd != null && p.targetProd != null){
+      const adjRate = fcAchievementRate(p.targetProd, p.origTargetProd);
+      const held = p.targetProd >= p.origTargetProd - 0.05;
+      const changed = Math.abs(p.targetProd - p.origTargetProd) >= 0.05;
+      targetCheckHtml = `
+      <div class="fc-row fc-primary" title="The Target Productivity as originally set (Full_Cost_Planning.xlsx), pooled over the week with the same man-day weights as the adjusted target below.">
+        <span class="fc-label">Set Target</span>
+        <span class="fc-val">${p.origTargetProd.toFixed(1)}</span>
+      </div>
+      <div class="fc-row" title="The Target Productivity the week is actually planned against: each weekday's own (possibly edited) Target Prod, weighted by that day's man-days. Pill = (adjusted − set) ÷ set. Green means your per-weekday changes still add up to at least the original weekly target${changed ? '' : ' (no per-weekday edits yet, so it equals the set target)'}; red means they have lowered it — raise another weekday's target to compensate.">
+        <span class="fc-label">Adj. Target</span>
+        <span class="fc-val">${p.targetProd.toFixed(1)}</span>
+        <span class="delta-pill ${held ? 'delta-up' : 'delta-down'}">${fcRatePct(adjRate)}</span>
+      </div>`;
+    }
     return `<div class="fc-cell">
       <div class="fc-row"><span class="fc-label">Total Order</span><span class="fc-val">${intFmt(p.totalOrders)}</span></div>
       <div class="fc-row"><span class="fc-label">Est. ODS Orders</span><span class="fc-val">${intFmt(p.odsOrders)}</span></div>
@@ -5535,7 +5593,7 @@
         <span class="fc-label">Cost/Order</span>
         <span class="fc-val">${p.costPerOrder==null?'—':'$'+p.costPerOrder.toFixed(2)}</span>
         <span class="delta-pill ${costPillCls}" title="${costTitle}">${fcRatePct(costRate)}</span>
-      </div>
+      </div>${targetCheckHtml}
     </div>`;
   }
   function fcPlanCellHtml(d, wd){
@@ -5934,6 +5992,7 @@
     FC_SUGGEST.byDistrict = {};   // v14.5 §2 — per-district Overdrive ceilings are part of the plan, so a reset clears them back to the network default
     FC_ODS.byDistrict = {};       // v14.6 §2 — same for per-district ODS Flex ceilings
     FC_STATE.odsShift = {};
+    FC_STATE.odsShiftPin = {};    // v34.0 §2
     FC_STATE.suggestions = {};
     FC_STATE.currentStatus = {}; // v19.0 §4
     const banner = document.getElementById('fcSuggestBanner');
@@ -5992,6 +6051,13 @@
         const slotsOf = (store)=>{ if(!Array.isArray(store[d])) store[d] = WEEKDAY_LABELS.map(()=>''); return store[d]; };
         if(inp.classList.contains('fc-in-targetprod')){
           slotsOf(FC_STATE.targetProd)[wd] = v;
+          // v35.0 — editing a weekday's Target Prod re-suggests the district's
+          // staff plan straight away (same routine as the Shift % handler and
+          // the district's Suggest button), so headcount, Productivity and
+          // Cost/Order are re-solved against the new target instead of left
+          // stale. Hand-entered Shift % pins are kept (see fcOdsBoundsFor).
+          // Blank (back to the default target) re-suggests too.
+          fcApplyAutoTuneFor(d);
         } else {
           // v14.5 §2 — Overdrive ceiling (now this weekday's own).
           if(v === '') slotsOf(FC_SUGGEST.byDistrict)[wd] = '';
@@ -6026,6 +6092,16 @@
             const baseline = fcOdsBaselineOrders(d, wd);
             FC_STATE.odsShift[d][wd] = Math.round(-baseline * (+v) / 100);
           }
+          // v34.0 §2 — a non-zero Shift % pins that day's split (see
+          // fcOdsBoundsFor); blank/0 releases the pin. Either way the
+          // district's staff plan is re-suggested straight away — positive
+          // OR negative — so Productivity and Cost/Order (per weekday AND
+          // the Weekly rollup) are re-solved for the new split instead of
+          // being left stale. Same routine as the district's Suggest
+          // button (Auto-Tune, then apply), just triggered by the edit.
+          if(!Array.isArray(FC_STATE.odsShiftPin[d])) FC_STATE.odsShiftPin[d] = WEEKDAY_LABELS.map(()=>false);
+          FC_STATE.odsShiftPin[d][wd] = (FC_STATE.odsShift[d][wd] || 0) !== 0;
+          fcApplyAutoTuneFor(d);
         }
       }
       renderForecastTab(); updateScrollHints();
