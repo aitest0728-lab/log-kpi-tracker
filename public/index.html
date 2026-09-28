@@ -152,6 +152,10 @@
   .kpi-row-val{font-family:'IBM Plex Mono';font-size:15px;font-weight:600;color:var(--text);flex:1;}
   .kpi-row.primary{margin:4px 0 8px;}
   .kpi-row.primary .kpi-row-val{font-size:23px;}
+  /* Overview KPI cell: Actual is the headline (large), Forecast is the small supporting figure */
+  .kpi-row.secondary .kpi-row-val{font-size:13px;font-weight:500;color:var(--text-muted);}
+  .kpi-row.secondary .kpi-row-label{font-size:10px;}
+  .kpi-row.secondary .pct{font-size:10px;}
   .kpi-row .pct{font-size:11px;font-weight:700;width:56px;text-align:right;flex:none;}
   .kpi-bar-wrap{height:5px;background:var(--line-soft);border-radius:3px;overflow:hidden;position:relative;margin-bottom:8px;}
   .kpi-bar{height:100%;border-radius:3px;}
@@ -1482,10 +1486,10 @@
      with no per-district split.
   ========================================================================== */
   const MATRICES = [
-    { key:'hktvStaff',        section:'productivity', label:'HKTV Staff Productivity',  unit:'#',  target:24,     better:'high', fmt:v=>v==null?'—':v.toFixed(2), forecastLabel:'Monthly Average' },
+    { key:'hktvStaff',        section:'productivity', label:'HKTV Staff Productivity',  unit:'#',  target:24,     better:'high', fmt:v=>v==null?'—':v.toFixed(2), forecastLabel:'Forecast' },
     { key:'odsRatio',         section:'productivity', label:'ODS / VAN Productivity',   unit:'#',  target:19,     better:'high', fmt:v=>v==null?'—':v.toFixed(2) },
-    { key:'delayRate',        section:'tableau',      label:'Delay Rate',               unit:'%',  target:4.0,    better:'low',  fmt:v=>v==null?'—':v.toFixed(2)+'%', forecastLabel:'Monthly Average' },
-    { key:'poorRating',       section:'tableau',      label:'Poor Rating %',            unit:'%',  target:0.07,   better:'low',  fmt:v=>v==null?'—':v.toFixed(3)+'%', forecastLabel:'Monthly Average' },
+    { key:'delayRate',        section:'tableau',      label:'Delay Rate',               unit:'%',  target:4.0,    better:'low',  fmt:v=>v==null?'—':v.toFixed(2)+'%', forecastLabel:'Forecast' },
+    { key:'poorRating',       section:'tableau',      label:'Poor Rating %',            unit:'%',  target:0.07,   better:'low',  fmt:v=>v==null?'—':v.toFixed(3)+'%', forecastLabel:'Forecast' },
     { key:'missingLostAmount',section:'tableau',      label:'Missing & Lost Amount',    unit:'$',  target:400000, better:'low',  fmt:v=>v==null?'—':'$'+Math.round(v).toLocaleString() },
     { key:'rfidMissingTote',  section:'tableau',      label:'RFID Missing Tote',        unit:'#',  target:146,    better:'low',  fmt:v=>v==null?'—':Math.round(v).toLocaleString() },
   ];
@@ -1558,9 +1562,9 @@
      math beyond ranking/sorting. */
   function matrixOf(key){ return (DATA.matrices && DATA.matrices[key]) || emptyMatrix(); }
   function getActualOverall(key){ return matrixOf(key).actual.overall; }
-  function getForecastOverall(key){ return matrixOf(key).forecast.overall; }
+  function getForecastOverall(key){ return OV_PROJECTED_KEYS.includes(key) ? ovProjectedMonthlyAverage(key,'Total') : matrixOf(key).forecast.overall; }
   function getActual(key, district){ return matrixOf(key).actual.districts[district] ?? null; }
-  function getForecast(key, district){ return matrixOf(key).forecast.districts[district] ?? null; }
+  function getForecast(key, district){ return OV_PROJECTED_KEYS.includes(key) ? ovProjectedMonthlyAverage(key,district) : (matrixOf(key).forecast.districts[district] ?? null); }
 
   /* ---------------- v7.0 §1 (extended v27.0) — date-interactive MTD "Actual" for Overview (KPI Aspect) ----------------
      The top "Data Date" input (dateInputEl/cur, defined further down) used to be display-only.
@@ -1624,6 +1628,21 @@
     const districts = {};
     DISTRICTS.forEach(d=>{ districts[d] = distManpower[d] ? Math.round((distOrder[d]/distManpower[d])*100)/100 : null; });
     return { overall, districts, hasData:true };
+  }
+
+  /* HKTV Staff Productivity MTD-through-date: order counts must come from Tableau, so prefer the
+     snapshot kpi_pipeline.py logged on that as-of date (productivity_history.json "mtdDaily" =
+     Tableau MTD total minus ODS/VAN, over MTD manpower — the same figure data.json shows).
+     Only a date with no snapshot falls back to summing the daily rows (an estimate, because those
+     rows can drift from Tableau's own MTD total); "recorded" tells callers which path was used. */
+  function hktvActualAsOf(dateStr){
+    const rec = DATA.productivityMtdDaily && DATA.productivityMtdDaily[dateStr];
+    if(rec && rec.overall != null){
+      const districts = {};
+      DISTRICTS.forEach(d=>{ districts[d] = rec.districts && rec.districts[d] != null ? rec.districts[d] : null; });
+      return { overall: rec.overall, districts, hasData:true, recorded:true };
+    }
+    return { ...sumProductivityAsOf('hktvStaff', dateStr), recorded:false };
   }
 
   /* Fallback only: plain average of each day's "Overall" Delay % from month-start through
@@ -1708,7 +1727,7 @@
     const ds = overviewSelectedDateStr();
     if(!overviewMaxDate || ds === overviewMaxDate) return getActualOverall(key);
     if(key === 'hktvStaff'){
-      const r = sumProductivityAsOf('hktvStaff', ds);
+      const r = hktvActualAsOf(ds);
       return r.hasData ? r.overall : getActualOverall(key);
     }
     if(key === 'delayRate'){
@@ -1725,7 +1744,7 @@
     const ds = overviewSelectedDateStr();
     if(!overviewMaxDate || ds === overviewMaxDate) return getActual(key, district);
     if(key === 'hktvStaff'){
-      const r = sumProductivityAsOf('hktvStaff', ds);
+      const r = hktvActualAsOf(ds);
       return r.hasData ? r.districts[district] : getActual(key, district);
     }
     if(key === 'delayRate'){
@@ -1738,6 +1757,177 @@
     }
     return getActual(key, district);
   }
+  /* ---------------- Forecast (projected full-month figure) for Overview (KPI Aspect) ----------------
+     "Actual" is the month-to-date figure through the as-of date. "Forecast" is now that
+     SAME MTD figure rolled forward to month-end, so it can only differ from Actual by what the
+     remaining days contribute (and equals Actual on the last day of the month). Client-side only:
+     the forecast block written by kpi_pipeline.py is no longer read for these three KPIs.
+       - HKTV Staff Productivity: (MTD orders + forecast orders for the remaining days)
+                                  / (MTD manpower + planned manpower for the remaining days).
+         MTD orders are taken as Actual x MTD manpower, so the row always anchors to the displayed
+         Actual. Remaining-day orders/manpower = same-weekday averages over the Forecast tab's valid
+         days (Sept 1 onward, holiday skip window applied), cut off at the as-of date.
+       - Delay Rate / Poor Rating %: (Actual x elapsed volume + expected remaining rate x remaining
+         volume) / total volume. Volume = Total Order (HKTV + ODS/VAN) per day: logged where it
+         exists, same-weekday average otherwise; day-count weights if volume is unavailable.
+         Expected remaining rate = volume-weighted average of the last OV_RECENT_RATE_DAYS daily
+         rates (Delay Rate: delay_history daily; Poor Rating %: backed out of the change in the
+         daily MTD log (needs 4+ logged days), bounded to 0..2x MTD to absorb 3-decimal rounding noise), else Actual.
+     Each KPI uses its OWN as-of date (matrix.asOf at the default date, the picked date otherwise),
+     rounds to Actual's precision, and falls back to Actual whenever an input is missing. */
+  const OV_PROJECTED_KEYS = ['hktvStaff', 'delayRate', 'poorRating'];
+  const OV_RECENT_RATE_DAYS = 7;
+  const OV_DECIMALS = { hktvStaff:2, delayRate:2, poorRating:3 };
+  let _ovCacheSig = null;
+
+  // The Forecast tab memoises its valid-date list; refresh it if the loaded history changed.
+  function ovSyncForecastCaches(){
+    const keys = Object.keys(DATA.dailyProductivity || {}).sort();
+    const sig = keys.length + '|' + (keys.length ? keys[keys.length-1] : '');
+    if(sig === _ovCacheSig) return;
+    _ovCacheSig = sig;
+    try { _fcValidDatesCache = null; _fcWindowStartCache = null; } catch(e){ /* not initialised yet */ }
+  }
+  function ovRound(v, dp){ const f = Math.pow(10, dp); return Math.round(v*f)/f; }
+  function ovEffectiveAsOf(key){
+    const ds = overviewSelectedDateStr();
+    if(!overviewMaxDate || ds === overviewMaxDate){
+      const m = matrixOf(key);
+      return (m && m.asOf) || ds;
+    }
+    return ds;
+  }
+  function ovRemainingDates(asOf){
+    const mk = asOf.slice(0,7);
+    const [y, mo] = mk.split('-').map(Number);
+    const last = new Date(y, mo, 0).getDate();
+    const out = [];
+    for(let d = Number(asOf.slice(8,10)) + 1; d <= last; d++) out.push(`${mk}-${String(d).padStart(2,'0')}`);
+    return out;
+  }
+  function ovWeekdayAvg(metricKey, district, field, wd, asOf){
+    const dates = fcForecastValidDates().filter(k => k <= asOf);
+    const avg = list => {
+      let sum = 0, cnt = 0;
+      list.forEach(k => {
+        const r = dayRecord(k, metricKey, district);
+        if(r && r.orderCount != null){ sum += (r[field] || 0); cnt++; }
+      });
+      return cnt ? sum/cnt : null;
+    };
+    const same = avg(dates.filter(k => weekdayIndexOf(k) === wd));
+    return same != null ? same : avg(dates);
+  }
+  function ovMtdManpowerHktv(district, asOf){
+    const mk = asOf.slice(0,7);
+    let sum = 0, any = false;
+    Object.keys(DATA.dailyProductivity || {}).forEach(k => {
+      if(!k.startsWith(mk) || k > asOf) return;
+      const r = dayRecord(k, 'hktvStaff', district);
+      if(r && r.manpower != null){ sum += r.manpower; any = true; }
+    });
+    return any ? sum : null;
+  }
+  // Total Order (HKTV + ODS/VAN) for one day: logged if we have it, else the weekday average.
+  function ovDayVolume(district, dateStr, asOf){
+    const rec = dayRecord(dateStr, 'combined', district);
+    if(rec && rec.orderCount != null && dateStr <= asOf) return rec.orderCount;
+    return ovWeekdayAvg('combined', district, 'orderCount', weekdayIndexOf(dateStr), asOf);
+  }
+  function ovVolumeOver(district, dates, asOf){
+    let sum = 0;
+    for(const d of dates){
+      const v = ovDayVolume(district, d, asOf);
+      if(v == null) return null;
+      sum += v;
+    }
+    return sum;
+  }
+  function ovDatesBetween(fromStr, toStr){
+    const out = [];
+    for(let d = fromStr; d <= toStr; d = addDays(d, 1)) out.push(d);
+    return out;
+  }
+
+  function ovProjectProductivity(district, actual, asOf){
+    const mpMtd = ovMtdManpowerHktv(district, asOf);
+    const remaining = ovRemainingDates(asOf);
+    if(actual == null || !mpMtd || !remaining.length) return actual;
+    let orders = actual * mpMtd, manpower = mpMtd;
+    for(const r of remaining){
+      const wd = weekdayIndexOf(r);
+      const o = ovWeekdayAvg('hktvStaff', district, 'orderCount', wd, asOf);
+      const m = ovWeekdayAvg('hktvStaff', district, 'manpower', wd, asOf);
+      if(o == null || m == null) return actual;
+      orders += o; manpower += m;
+    }
+    return manpower ? ovRound(orders / manpower, OV_DECIMALS.hktvStaff) : actual;
+  }
+
+  function ovRecentDelayRate(district, asOf){
+    const daily = DATA.delayDaily || {};
+    const keys = Object.keys(daily).filter(k => k <= asOf).sort().slice(-OV_RECENT_RATE_DAYS);
+    const rows = [];
+    keys.forEach(k => {
+      const rec = daily[k];
+      const v = district === 'Total'
+        ? (rec.overall && rec.overall.Overall && rec.overall.Overall.delay)
+        : (rec.districts && rec.districts[district] && rec.districts[district].Overall && rec.districts[district].Overall.delay);
+      if(v != null) rows.push({ v, w: ovDayVolume(district, k, asOf) });
+    });
+    if(!rows.length) return null;
+    if(rows.every(r => r.w != null && r.w > 0)){
+      const den = rows.reduce((a, r) => a + r.w, 0);
+      return rows.reduce((a, r) => a + r.v * r.w, 0) / den;
+    }
+    return rows.reduce((a, r) => a + r.v, 0) / rows.length;
+  }
+  function ovRecentPoorRatingRate(district, asOf){
+    const daily = (DATA.otherAspects && DATA.otherAspects.poorRating && DATA.otherAspects.poorRating.daily) || {};
+    const mk = asOf.slice(0,7);
+    const keys = Object.keys(daily).filter(k => k.startsWith(mk) && k <= asOf).sort();
+    if(keys.length < 4) return null;   // need a few days of log, or 3-decimal rounding dominates the difference
+    const t = keys[keys.length-1];
+    const s0 = keys[Math.max(0, keys.length - 1 - OV_RECENT_RATE_DAYS)];
+    const val = k => district === 'Total' ? daily[k].overall : (daily[k].districts && daily[k].districts[district]);
+    const mt = val(t), ms = val(s0);
+    if(mt == null || ms == null) return null;
+    const et = ovVolumeOver(district, ovDatesBetween(`${mk}-01`, t), asOf);
+    const es = ovVolumeOver(district, ovDatesBetween(`${mk}-01`, s0), asOf);
+    if(et == null || es == null || et - es <= 0) return null;
+    const rate = (mt*et - ms*es) / (et - es);
+    return Math.min(Math.max(rate, 0), 2*mt);
+  }
+  function ovProjectRate(key, district, actual, asOf){
+    const remaining = ovRemainingDates(asOf);
+    if(actual == null || !remaining.length) return actual;
+    const expected = key === 'delayRate' ? ovRecentDelayRate(district, asOf) : ovRecentPoorRatingRate(district, asOf);
+    if(expected == null) return actual;
+    const mk = asOf.slice(0,7);
+    let elapsed = ovVolumeOver(district, ovDatesBetween(`${mk}-01`, asOf), asOf);
+    let rest = ovVolumeOver(district, remaining, asOf);
+    if(elapsed == null || rest == null || elapsed + rest <= 0){   // no volume -> weight by day count
+      elapsed = Number(asOf.slice(8,10)); rest = remaining.length;
+    }
+    return ovRound((actual*elapsed + expected*rest) / (elapsed + rest), OV_DECIMALS[key]);
+  }
+
+  // district: a district code, or 'Total' for the overall card. Never returns a stale pipeline forecast.
+  function ovProjectedMonthlyAverage(key, district){
+    const actual = district === 'Total' ? overviewActualOverall(key) : overviewActualDistrict(key, district);
+    if(actual == null) return null;
+    try {
+      ovSyncForecastCaches();
+      const asOf = ovEffectiveAsOf(key);
+      const out = key === 'hktvStaff' ? ovProjectProductivity(district, actual, asOf)
+                                      : ovProjectRate(key, district, actual, asOf);
+      return out == null ? actual : out;
+    } catch(e){
+      console.warn('Forecast projection fell back to Actual for', key, district, e);
+      return actual;
+    }
+  }
+
   function renderOverviewAsOfNote(){
     const note = document.getElementById('overviewAsOfNote');
     if(!note) return;
@@ -1745,7 +1935,8 @@
     if(!overviewMaxDate || ds === overviewMaxDate){ note.textContent = ''; return; }
     const dObj = new Date(ds+'T00:00:00');
     const label = isNaN(dObj) ? ds : dObj.toLocaleDateString('en-US',{month:'short', day:'numeric', year:'numeric'});
-    const hasHktv = sumProductivityAsOf('hktvStaff', ds).hasData;
+    const hktvResult = hktvActualAsOf(ds);
+    const hasHktv = hktvResult.hasData;
     const delayResult = avgDelayAsOf(ds);
     const hasDelay = delayResult.hasData;
     const otherHas = Object.fromEntries(OTHER_ASPECT_KEYS.map(k=>[k, otherAspectAsOf(k, ds).hasData]));
@@ -1755,7 +1946,7 @@
       return;
     }
     const covered = [];
-    if(hasHktv) covered.push('HKTV Staff Productivity');
+    if(hasHktv) covered.push(hktvResult.recorded ? 'HKTV Staff Productivity' : 'HKTV Staff Productivity (estimated from daily rows, no Tableau snapshot for this date)');
     if(hasDelay) covered.push(delayResult.recorded ? 'Delay Rate' : 'Delay Rate (estimated, pre-daily-log average)');
     const OTHER_LABELS = { poorRating:'Poor Rating %', missingLostAmount:'Missing & Lost Amount', rfidMissingTote:'RFID Missing Tote' };
     OTHER_ASPECT_KEYS.forEach(k=>{ if(otherHas[k]) covered.push(OTHER_LABELS[k]); });
@@ -1927,8 +2118,10 @@
       if(!res2.ok) throw new Error('no productivity_history.json');
       const json2 = await res2.json();
       DATA.dailyProductivity = json2.daily || {};
+      DATA.productivityMtdDaily = json2.mtdDaily || {}; // Tableau-based MTD productivity per as-of date, see hktvActualAsOf()
     }catch(err){
       DATA.dailyProductivity = {};  // real empty state — see the on-page note in each tab
+      DATA.productivityMtdDaily = {};
     }
     try{
       const res3 = await fetchJSON('gmv_history.json');
@@ -2077,12 +2270,12 @@
         <div class="status-chip status-${st}">${st==='good'?'On target':st==='warn'?'Watch':'Critical'}</div>
       </div>
       ${m.key===RFID_KEY ? renderTrendRows(m) : ''}
-      <div class="kpi-row">
+      <div class="kpi-row primary">
         <span class="kpi-row-label">Actual</span>
         <span class="kpi-row-val">${m.fmt(actualAgg)}</span>
         <span class="pct pct-${stA}">${fmtPct(achA)}</span>
       </div>
-      <div class="kpi-row primary">
+      <div class="kpi-row secondary">
         <span class="kpi-row-label">${m.forecastLabel || 'Forecast (EOM)'}</span>
         <span class="kpi-row-val">${m.fmt(forecastAgg)}</span>
         <span class="pct pct-${st}">${fmtPct(achF)}</span>
@@ -2397,7 +2590,7 @@
       const district = td.closest('tr').dataset.dept;
       const kpiKey = td.dataset.kpi;
       const m = MATRICES.find(x=>x.key===kpiKey);
-      const av = getActual(kpiKey, district), fv = getForecast(kpiKey, district);
+      const av = overviewActualDistrict(kpiKey, district), fv = getForecast(kpiKey, district);
       const targetD = getTargetForDistrict(kpiKey, district);
       const stA = statusFor(m,av,targetD), stF = statusFor(m,fv,targetD);
       const achA = achievementPct(m,av,targetD), achF = achievementPct(m,fv,targetD);
@@ -2472,7 +2665,7 @@
     drawerTitle.textContent = district;
     drawerBody.innerHTML = MATRICES.map(m=>{
       const forecast = getForecast(m.key, district);
-      const actual = getActual(m.key, district);
+      const actual = overviewActualDistrict(m.key, district);
       const targetD = getTargetForDistrict(m.key, district);
       const st = statusFor(m, forecast, targetD);
       const achF = achievementPct(m, forecast, targetD);

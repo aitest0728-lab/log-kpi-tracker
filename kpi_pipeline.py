@@ -2365,6 +2365,14 @@ def finish_productivity_with_orders(history, matrices, staging, order_totals_t1,
                 if mp_district.get(d) and orders_district.get(d) is not None else None)
             for d in DISTRICTS
         }
+        if key == "hktvStaff":
+            # Per-day snapshot of the Tableau-based MTD productivity, so the dashboard's
+            # date picker can read the SAME figure for a past date instead of re-deriving
+            # it from summed daily order rows (which drift from Tableau's MTD total).
+            history.setdefault("productivityMtdLog", {})[target_date.isoformat()] = {
+                "overall": actual_overall,
+                "districts": dict(actual_district),
+            }
         fc_overall, fc_districts = rolling_average(history, key, 7, dt.date.today())
         matrices[key] = {
             "actual": {"overall": actual_overall, "districts": actual_district},
@@ -2483,7 +2491,14 @@ def save_history(history):
         json.dump(history, f, ensure_ascii=False, indent=2)
 
 
-def save_productivity_history(daily_dict):
+def trimmed_productivity_mtd(history, keep_days):
+    """Recent-window slice of productivityMtdLog (Tableau-based MTD productivity per
+    as-of date), same pattern as trimmed_daily_productivity()."""
+    log = history.get("productivityMtdLog", {})
+    return {d: log[d] for d in sorted(log.keys())[-keep_days:]}
+
+
+def save_productivity_history(daily_dict, mtd_daily=None):
     """Writes ./public/productivity_history.json as {"daily": {...}} — the
     exact shape the dashboard's loadDataSource() fetches. Recomputed fresh
     from history.json's full log every run (see trimmed_daily_productivity),
@@ -2491,7 +2506,7 @@ def save_productivity_history(daily_dict):
     data.json itself, never hand-edited or incrementally patched."""
     os.makedirs(os.path.dirname(PRODUCTIVITY_HISTORY_PATH) or ".", exist_ok=True)
     with open(PRODUCTIVITY_HISTORY_PATH, "w", encoding="utf-8") as f:
-        json.dump({"daily": daily_dict}, f, ensure_ascii=False, indent=2)
+        json.dump({"daily": daily_dict, "mtdDaily": mtd_daily or {}}, f, ensure_ascii=False, indent=2)
     print(f"Wrote {PRODUCTIVITY_HISTORY_PATH}")
 
 
@@ -3139,7 +3154,7 @@ def run_section_tableau():
     else:
         trimmed = finish_productivity_with_orders(history, matrices, staging, order_totals_t1,
                                                     order_totals_mtd, productivity_target_date)
-        save_productivity_history(trimmed)
+        save_productivity_history(trimmed, trimmed_productivity_mtd(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
 
     # --- Poor Rating (30-day rolling forecast, unchanged) ---
     poor = parse_poor_rating()
