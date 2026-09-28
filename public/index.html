@@ -1767,12 +1767,16 @@
          MTD orders are taken as Actual x MTD manpower, so the row always anchors to the displayed
          Actual. Remaining-day orders/manpower = same-weekday averages over the Forecast tab's valid
          days (Sept 1 onward, holiday skip window applied), cut off at the as-of date.
-       - Delay Rate / Poor Rating %: (Actual x elapsed volume + expected remaining rate x remaining
-         volume) / total volume. Volume = Total Order (HKTV + ODS/VAN) per day: logged where it
-         exists, same-weekday average otherwise; day-count weights if volume is unavailable.
-         Expected remaining rate = volume-weighted average of the last OV_RECENT_RATE_DAYS daily
-         rates (Delay Rate: delay_history daily; Poor Rating %: backed out of the change in the
-         daily MTD log (needs 4+ logged days), bounded to 0..2x MTD to absorb 3-decimal rounding noise), else Actual.
+       - Delay Rate: (Actual x elapsed volume + sum over remaining days of [that weekday's expected rate x
+         that day's volume]) / total volume. Volume = Total Order (HKTV + ODS/VAN) per day: logged where it
+         exists, same-weekday average otherwise; day-count weights if volume is unavailable. Expected rate per
+         weekday = current MTD delay x weekday index, where index = (volume-weighted average of ALL logged daily
+         delay rates on that weekday) / (same average over all logged days); a weekday with no history has index 1.
+         Bounded to 0..2x MTD. So MTD sets the level and the historical daily pattern sets the weekday shape.
+       - Poor Rating %: (Actual x elapsed volume + expected remaining rate x remaining volume) / total volume,
+         same volume rules. Expected remaining rate = volume-weighted average of the last OV_RECENT_RATE_DAYS
+         days' rates, backed out of the change in the daily MTD log (needs 4+ logged days), bounded to
+         0..2x MTD to absorb 3-decimal rounding noise, else Actual.
      Each KPI uses its OWN as-of date (matrix.asOf at the default date, the picked date otherwise),
      rounds to Actual's precision, and falls back to Actual whenever an input is missing. */
   const OV_PROJECTED_KEYS = ['hktvStaff', 'delayRate', 'poorRating'];
@@ -1864,23 +1868,37 @@
     return manpower ? ovRound(orders / manpower, OV_DECIMALS.hktvStaff) : actual;
   }
 
-  function ovRecentDelayRate(district, asOf){
+  /* Delay Rate: expected rate per WEEKDAY, learned from every logged daily delay rate up to the
+     as-of date (not just the latest week). Each weekday's rate = volume-weighted average of that
+     weekday's logged daily rates (plain average if any of its days lacks volume). A weekday with no
+     history falls back to the all-days volume-weighted average. Returns an array indexed 0=Mon..6=Sun
+     (same convention as weekdayIndexOf), or null when there is no daily history at all. */
+  function ovDelayWeekdayRates(district, asOf){
     const daily = DATA.delayDaily || {};
-    const keys = Object.keys(daily).filter(k => k <= asOf).sort().slice(-OV_RECENT_RATE_DAYS);
     const rows = [];
-    keys.forEach(k => {
+    Object.keys(daily).filter(k => k <= asOf).sort().forEach(k => {
       const rec = daily[k];
       const v = district === 'Total'
         ? (rec.overall && rec.overall.Overall && rec.overall.Overall.delay)
         : (rec.districts && rec.districts[district] && rec.districts[district].Overall && rec.districts[district].Overall.delay);
-      if(v != null) rows.push({ v, w: ovDayVolume(district, k, asOf) });
+      if(v != null) rows.push({ v, wd: weekdayIndexOf(k), w: ovDayVolume(district, k, asOf) });
     });
     if(!rows.length) return null;
-    if(rows.every(r => r.w != null && r.w > 0)){
-      const den = rows.reduce((a, r) => a + r.w, 0);
-      return rows.reduce((a, r) => a + r.v * r.w, 0) / den;
+    const avgOf = list => {
+      if(!list.length) return null;
+      if(list.every(r => r.w != null && r.w > 0)){
+        const den = list.reduce((a, r) => a + r.w, 0);
+        return list.reduce((a, r) => a + r.v * r.w, 0) / den;
+      }
+      return list.reduce((a, r) => a + r.v, 0) / list.length;
+    };
+    const overall = avgOf(rows);
+    const rates = [];
+    for(let wd = 0; wd < 7; wd++){
+      const r = avgOf(rows.filter(x => x.wd === wd));
+      rates.push(r != null ? r : overall);
     }
-    return rows.reduce((a, r) => a + r.v, 0) / rows.length;
+    return { rates, overall };
   }
   function ovRecentPoorRatingRate(district, asOf){
     const daily = (DATA.otherAspects && DATA.otherAspects.poorRating && DATA.otherAspects.poorRating.daily) || {};
@@ -1901,15 +1919,37 @@
   function ovProjectRate(key, district, actual, asOf){
     const remaining = ovRemainingDates(asOf);
     if(actual == null || !remaining.length) return actual;
-    const expected = key === 'delayRate' ? ovRecentDelayRate(district, asOf) : ovRecentPoorRatingRate(district, asOf);
-    if(expected == null) return actual;
     const mk = asOf.slice(0,7);
     let elapsed = ovVolumeOver(district, ovDatesBetween(`${mk}-01`, asOf), asOf);
-    let rest = ovVolumeOver(district, remaining, asOf);
-    if(elapsed == null || rest == null || elapsed + rest <= 0){   // no volume -> weight by day count
-      elapsed = Number(asOf.slice(8,10)); rest = remaining.length;
+    let restNum = null, rest = null;
+    if(key === 'delayRate'){
+      // Every remaining day gets its own weekday's expected rate x that day's volume.
+      // The weekday pattern is applied on top of the current MTD level: expected rate for a weekday =
+      // MTD x (that weekday's historical rate / all-days historical rate), bounded to 0..2x MTD.
+      const hist = ovDelayWeekdayRates(district, asOf);
+      if(!hist || !(hist.overall > 0)) return actual;
+      const wdRates = hist.rates.map(r => Math.min(Math.max(actual * r / hist.overall, 0), 2 * actual));
+      let num = 0, vol = 0, ok = true;
+      for(const d of remaining){
+        const v = ovDayVolume(district, d, asOf);
+        if(v == null){ ok = false; break; }
+        num += wdRates[weekdayIndexOf(d)] * v; vol += v;
+      }
+      if(ok && vol > 0 && elapsed != null && elapsed > 0){ restNum = num; rest = vol; }
+      else {   // no volume -> weight by day count
+        elapsed = Number(asOf.slice(8,10)); rest = remaining.length;
+        restNum = remaining.reduce((a, d) => a + wdRates[weekdayIndexOf(d)], 0);
+      }
+    } else {
+      const expected = ovRecentPoorRatingRate(district, asOf);
+      if(expected == null) return actual;
+      rest = ovVolumeOver(district, remaining, asOf);
+      if(elapsed == null || rest == null || elapsed + rest <= 0){   // no volume -> weight by day count
+        elapsed = Number(asOf.slice(8,10)); rest = remaining.length;
+      }
+      restNum = expected * rest;
     }
-    return ovRound((actual*elapsed + expected*rest) / (elapsed + rest), OV_DECIMALS[key]);
+    return ovRound((actual*elapsed + restNum) / (elapsed + rest), OV_DECIMALS[key]);
   }
 
   // district: a district code, or 'Total' for the overall card. Never returns a stale pipeline forecast.
