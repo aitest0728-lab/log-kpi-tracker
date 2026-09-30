@@ -1406,7 +1406,8 @@
            pattern as GMV / Delay %). Reads ./other_aspects_history.json:
              { "poorRating": {"daily":{...}, "monthly":{...}},
                "missingLostAmount": {"daily":{...}, "monthly":{...}},
-               "rfidMissingTote": {"monthly":{...}} } -->
+               "rfidMissingTote": {"monthly":{...}},
+               "fulfillmentCost": {"current":{monthKey,asOf,overall,districts}, "monthly":{...}} }   (v30.0 §2) -->
       <div class="view" id="view-otherAspects">
         <div class="section-head">
           <div>
@@ -1421,6 +1422,7 @@
               <option value="poorRating">Poor Rating %</option>
               <option value="missingLostAmount">Missing &amp; Lost Amount</option>
               <option value="rfidMissingTote">RFID Missing Tote</option>
+              <option value="fulfillmentCost">Fulfillment Cost %</option>
             </select>
           </div>
         </div>
@@ -6605,6 +6607,36 @@
     if(ticks[ticks.length-1] < vMax) ticks.push(Math.ceil(vMax/interval)*interval);
     return { vMin:0, vMax, interval, ticks };
   }
+  /* v30.0 §1 — dual-axis charts: both Y-axes must share the SAME number of
+     divisions so every tick on the right axis sits exactly on a left-axis
+     gridline (previously each axis picked its own step, e.g. Order 0-25,000 in
+     5 steps vs Productivity 0-60 in 6, so the right-hand labels floated between
+     gridlines). Tries N = 4..8 divisions; for each axis takes the smallest
+     "nice" step (1/2/2.5/5 x 10^k) with N*step >= its data max (+5%), and keeps the N that
+     wastes the least headroom across the two axes. Both axes start at 0. */
+  function computeAlignedDualAxisScale(valsA, valsB){
+    const padMax = vals => { let m = Math.max(...vals, 0); if(m === 0) m = 1; return m * 1.05; };
+    const maxA = padMax(valsA), maxB = padMax(valsB);
+    const MANT = [1, 2, 2.5, 5, 10];
+    const CLEAN = new Set(MANT);
+    const niceStep = (vMax, n) => {
+      const raw = vMax / n;
+      const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+      for(const m of MANT){ if(m * mag * n >= vMax - 1e-9) return { step:m*mag, clean:CLEAN.has(m) }; }
+      return { step:10*mag, clean:true };
+    };
+    let best = null;
+    for(let n = 4; n <= 8; n++){
+      const a = niceStep(maxA, n), b = niceStep(maxB, n);
+      const score = (a.step*n)/maxA + (b.step*n)/maxB + (a.clean?0:0.05) + (b.clean?0:0.05);
+      if(!best || score < best.score - 1e-9) best = { n, a, b, score };
+    }
+    const build = st => {
+      const ticks = []; for(let i = 0; i <= best.n; i++) ticks.push(+(i*st.step).toPrecision(12));
+      return { vMin:0, vMax:best.n*st.step, interval:st.step, ticks };
+    };
+    return { axisA:build(best.a), axisB:build(best.b) };
+  }
   const MONTH_BAND_FILLS = ['rgba(59,130,246,0.10)', 'rgba(234,179,8,0.14)'];
   function fitMonthLabel(monthDate, availWidth){
     // v29.0 — month-band label reads "Mon YYYY" (e.g. "Aug 2026"), the
@@ -6908,8 +6940,9 @@
 
     if(targetA!=null) allA.push(targetA);
     if(targetB!=null) allB.push(targetB);
-    const axisA = computeAxisScale(seriesA.key, allA);
-    const axisB = computeAxisScale(seriesB.key, allB);
+    // v30.0 §1 — one shared division count so the right-axis ticks line up with
+    // the left-axis gridlines (see computeAlignedDualAxisScale).
+    const { axisA, axisB } = computeAlignedDualAxisScale(allA, allB);
 
     const xAt = i => padL + (dates.length===1 ? plotW/2 : (i/(dates.length-1))*plotW);
     const yAtA = v => padT + plotH - ((v - axisA.vMin)/(axisA.vMax - axisA.vMin))*plotH;
@@ -6927,7 +6960,9 @@
       svg.appendChild(t);
     });
     // Right axis: ticks colored to match series B (no gridlines, to avoid a
-    // doubled-up grid — the left axis' gridlines already mark the rows).
+    // doubled-up grid — the left axis' gridlines already mark the rows; since
+    // v30.0 §1 both axes have the same number of divisions, so each right-axis
+    // label sits exactly on a left-axis gridline).
     axisB.ticks.forEach(v=>{
       if(v > axisB.vMax + axisB.interval/2) return;
       const y = yAtB(v);
@@ -7424,6 +7459,27 @@
     const current = group.current || null;               // this month's MTD-to-date snapshot, overwritten in place each run
     const monthlyKeys = Object.keys(group.monthly || {}).sort().reverse(); // closed months, newest first
 
+    // v30.0 §2 - the note under the table is metric-specific for Fulfillment Cost %; the original text is
+    // captured once and put back for every other metric.
+    const noteEl = document.getElementById('otherNote');
+    if(noteEl){
+      if(noteEl.dataset.defaultText === undefined) noteEl.dataset.defaultText = noteEl.textContent;
+      if(metric === 'fulfillmentCost'){
+        const asOf = current ? current.asOf : (monthlyKeys.length ? group.monthly[monthlyKeys[0]].asOf : null);
+        noteEl.textContent = 'Fulfillment Cost % = Total Cost \u00F7 GMV. Total Cost: Daily Cost Report \u203A Overview \u203A Total Cost (MTD, all-in), '
+          + 'Overall and per district. GMV: sum of daily GMV from the 1st of the month through the report\u2019s Last Update date'
+          + (asOf ? ' (' + asOf + ' for the latest report)' : '') + '. The month still in progress is labelled YYYY-MM (MTD); '
+          + 'a month stays as one permanent row once its report reaches month end.';
+      } else {
+        noteEl.textContent = noteEl.dataset.defaultText;
+      }
+    }
+    if(!current && monthlyKeys.length === 0 && metric === 'fulfillmentCost'){
+      head.innerHTML = '';
+      summary.innerHTML = '';
+      body.innerHTML = `<tr><td style="padding:24px;color:var(--text-muted);white-space:normal;">No Fulfillment Cost % on record yet \u2014 kpi_pipeline.py's Daily Cost Report job (--section costreport) writes it into other_aspects_history.json each time a report is downloaded.</td></tr>`;
+      return;
+    }
     if(!current && monthlyKeys.length === 0){
       head.innerHTML = '';
       summary.innerHTML = '';
@@ -7431,6 +7487,7 @@
       return;
     }
     const fmt = metric==='poorRating' ? (v=>v==null?'—':v.toFixed(3)+'%')
+              : metric==='fulfillmentCost' ? (v=>v==null?'—':v.toFixed(2)+'%')      // v30.0 §2 - stored in percent units (6.21 = 6.21%)
               : metric==='missingLostAmount' ? (v=>v==null?'—':'$'+Math.round(v).toLocaleString())
               : (v=>v==null?'—':Math.round(v).toLocaleString());
 

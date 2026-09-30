@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
 """
-LOG · KPI Tracker — Data Pipeline  (v8.0)
+LOG · KPI Tracker — Data Pipeline  (v9.0)
 ==================================
+v9.0 — Fulfillment Cost % (monthly): when the Daily Cost Report is processed, Total Cost (Overview tab,
+  'Total Cost' row, MTD column - Overall and per district) / GMV summed from the 1st of the month through the
+  report's Last Update date -> other_aspects_history.json 'fulfillmentCost' (Other Aspects Tracking tab).
+  The month still open (report not yet at month end) is shown as 'YYYY-MM (MTD)'.
+v8.2 — the WhatsApp cost-report download (`--section costreport`) no longer shows a browser window.
+  Windows/macOS: Chromium runs in Chrome's "new headless" mode (a full browser engine that WhatsApp Web
+  accepts, unlike the old headless shell) with a normal Chrome user-agent. Linux: Xvfb virtual display.
+  WA_HIDE_MODE = auto | headless | offscreen | xvfb | off  (default auto; `off` = visible window, use it to
+  re-scan the WhatsApp QR code).
+v8.1 — the "Actual Delivery - 10 Districts" Tableau sheet is no longer treated as pre-selected;
+  its thumbnail is clicked like the other Delivery Dashboard sheets.
+
 v8.0 — Adjustment in Data Fetching:
   1. ODS order / waybill counts now come from the Tableau "Delivery Dashboard"
      sheet "Actual Delivery - 10 Districts" (rows headed "包派"), not OIX.
@@ -187,6 +199,23 @@ STALE_REPORT_HOURS = float(os.environ.get("STALE_REPORT_HOURS", "2"))
 WA_SESSION_DIR = os.environ.get("WA_SESSION_DIR", "/home/chipanl/whatsapp_session_2")
 WA_TARGET_GROUP = os.environ.get("WA_TARGET_GROUP", "LOG 區頭 x Head office")
 WA_HEADLESS = os.environ.get("WA_HEADLESS", "0") == "1"   # WhatsApp Web often refuses headless; default = visible window
+# v8.2 — hide the WhatsApp Web browser window (WA_HIDE_MODE):
+#   auto      -> "headless" on Windows/macOS, "xvfb" on Linux (default)
+#   headless  -> Chromium's NEW headless mode (--headless=new): a full browser, not the old headless shell that
+#                WhatsApp Web refuses, with a normal Chrome user-agent (the new mode still says "HeadlessChrome")
+#   offscreen -> normal window parked far off-screen (fallback; may still flash in the taskbar)
+#   xvfb      -> Linux virtual display (needs `apt install xvfb`)
+#   off       -> visible window (use this to re-scan the QR code after the session expires)
+# The old WA_VIRTUAL_DISPLAY=0 switch still works and means "off".
+WA_HIDE_MODE = os.environ.get("WA_HIDE_MODE", "auto").strip().lower()
+if os.environ.get("WA_VIRTUAL_DISPLAY") == "0":
+    WA_HIDE_MODE = "off"
+if WA_HIDE_MODE == "auto":
+    WA_HIDE_MODE = "xvfb" if sys.platform.startswith("linux") else "headless"
+WA_VIRTUAL_SCREEN = os.environ.get("WA_VIRTUAL_SCREEN", "1920x1080x24")
+WA_USER_AGENT = os.environ.get(
+    "WA_USER_AGENT",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
 COST_REPORT_FOLDER = os.environ.get("COST_REPORT_FOLDER", REPORT_FOLDER)
 # "Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx" (e.g. Daily Cost Report_202609_Last Update_Sep 27.xlsx).
 # Spaces may appear as underscores once a file has been saved/renamed by a browser or chat app, so both are accepted.
@@ -409,13 +438,20 @@ TABLEAU_TARGETS = [
         "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary-MTD?:iid=1"
     },
 
-    # v8.0 §1 — Delivery Dashboard > Delivery Summary tab. Per spec this sheet is
-    # already pre-selected in the Crosstab dialog, so it must NOT be clicked again
-    # (the thumbnail list is a toggle) — same handling as "poor_rating" above.
+    # v8.0 §1 — Delivery Dashboard > Delivery Summary tab, sheet "Actual Delivery -
+    # 10 Districts" (ODS order / waybill counts).
+    #
+    # v8.1 fix — this sheet is NOT pre-selected in the Crosstab dialog. The v8.0
+    # "preselected": True flag made the loop skip the thumbnail step, so Tableau
+    # exported whatever sheet was selected by default ('Actual Delivery by TimeSlot
+    # - Others' in pipeline_log.txt) under this filename, and the parser then
+    # found no '包派' row and fell back to the OIX figures. The flag is removed, so
+    # the normal sheet-select logic runs again: skip the click only if the sheet
+    # is genuinely already aria-selected (is_sheet_already_selected), otherwise
+    # click its thumbnail (scrolled into view) before choosing CSV.
     {
         "file_key": "actual_delivery_10d",
         "sheet_name": "Actual Delivery - 10 Districts",
-        "preselected": True,
         "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary?:iid=2"
     },
 ]
@@ -3092,6 +3128,9 @@ def build_other_aspects_monthly(history, matrices, payload):
             },
             "daily": rfid_all_daily_mtd(),
         },
+        # v9.0 - Fulfillment Cost % (Total Cost / GMV), written by the Daily Cost Report job; kept here so this
+        # full rebuild of the file never drops it.
+        "fulfillmentCost": build_fulfillment_cost_block(history),
     }
 
 
@@ -3479,6 +3518,58 @@ _CR_SCAN_JS = r"""
 """
 
 
+from contextlib import contextmanager
+
+
+@contextmanager
+def virtual_display():
+    """v8.2 — starts a private Xvfb (virtual X server) and yields the DISPLAY string Chromium should use
+    (e.g. ':99'), then shuts Xvfb down again. Yields None — meaning "use whatever display already exists" —
+    when WA_HIDE_MODE is not "xvfb", on non-Linux systems, or when the
+    `Xvfb` binary is missing / fails to start; in that case the browser simply opens as before."""
+    import shutil
+    import subprocess
+    if WA_HIDE_MODE != "xvfb" or not sys.platform.startswith("linux"):
+        yield None
+        return
+    xvfb = shutil.which("Xvfb")
+    if not xvfb:
+        print("  ⚠️ Xvfb not installed (sudo apt install xvfb) — WhatsApp Chromium will use the normal display instead.")
+        yield None
+        return
+    proc, display = None, None
+    for num in range(99, 120):
+        # skip display numbers already taken by a running X server
+        if os.path.exists(f"/tmp/.X{num}-lock") or os.path.exists(f"/tmp/.X11-unix/X{num}"):
+            continue
+        cand = f":{num}"
+        proc = subprocess.Popen([xvfb, cand, "-screen", "0", WA_VIRTUAL_SCREEN, "-nolisten", "tcp"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        for _ in range(50):                       # wait up to ~5s for the X socket to appear
+            if proc.poll() is not None or os.path.exists(f"/tmp/.X11-unix/X{num}"):
+                break
+            time.sleep(0.1)
+        if proc.poll() is None and os.path.exists(f"/tmp/.X11-unix/X{num}"):
+            display = cand
+            break
+        if proc.poll() is None:
+            proc.terminate()
+        proc = None
+    if not display:
+        print("  ⚠️ Could not start Xvfb — WhatsApp Chromium will use the normal display instead.")
+        yield None
+        return
+    print(f"  🖥️ Virtual display {display} started ({WA_VIRTUAL_SCREEN}) — Chromium will not show a window.")
+    try:
+        yield display
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except Exception:
+            proc.kill()
+
+
 def fetch_cost_report_from_whatsapp():
     """v8.0 §2 / v8.1 — downloads the NEWEST 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' from the
     WhatsApp group WA_TARGET_GROUP via WhatsApp Web, using the already-logged-in persistent profile in
@@ -3499,10 +3590,23 @@ def fetch_cost_report_from_whatsapp():
             pass
 
     print(f"🚀 Opening WhatsApp Web (session {WA_SESSION_DIR!r}) for group {WA_TARGET_GROUP!r}...")
-    with sync_playwright() as p:
+    with virtual_display() as wa_display, sync_playwright() as p:
+        # v8.2 — headed Chromium, but drawn on the Xvfb virtual display (when available) so no window appears
+        launch_env = {**os.environ, "DISPLAY": wa_display} if wa_display else None
+        wa_args = ["--disable-popup-blocking"]
+        wa_kwargs = {}
+        if WA_HIDE_MODE == "headless":
+            # New headless is requested through a flag on a HEADED launch (headless=False): Playwright's own
+            # headless=True would start the old headless shell, which WhatsApp Web refuses.
+            wa_args.append("--headless=new")
+            wa_kwargs["user_agent"] = WA_USER_AGENT
+            print("  🕶️ WhatsApp Chromium: new-headless mode (no window).")
+        elif WA_HIDE_MODE == "offscreen":
+            wa_args += ["--window-position=-32000,-32000", "--window-size=1600,1000"]
+            print("  🕶️ WhatsApp Chromium: window parked off-screen.")
         ctx = p.chromium.launch_persistent_context(
-            WA_SESSION_DIR, headless=WA_HEADLESS, accept_downloads=True,
-            viewport={"width": 1600, "height": 1000}, args=["--disable-popup-blocking"])
+            WA_SESSION_DIR, headless=WA_HEADLESS, accept_downloads=True, env=launch_env,
+            viewport={"width": 1600, "height": 1000}, args=wa_args, **wa_kwargs)
         try:
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
             page.goto("https://web.whatsapp.com", wait_until="domcontentloaded")
@@ -3692,7 +3796,8 @@ def parse_cost_report(path):
     Only days up to the report's 'Last Update' date (Breakdown!B3) are used.
     Returns {"file","asOf","manpower":{date:{group:{"districts","total"}}},
              "daily":{date:{"costPerOrder":{overall,districts},"productivity":{...}}},
-             "mtd":{"costPerOrder":{...},"productivity":{...}}}."""
+             "mtd":{"costPerOrder":{...},"productivity":{...}},
+             "totalCost":{overall,districts}}   # v9.0 — Overview 'Total Cost' (MTD, col C) per section."""
     import openpyxl
     wb = openpyxl.load_workbook(path, data_only=True, read_only=False)
     names = {n.strip().lower(): n for n in wb.sheetnames}
@@ -3711,6 +3816,7 @@ def parse_cost_report(path):
     row_metric = {"Cost Per Order (Controllable)": "costPerOrder", "Staff Productivity": "productivity"}
     blank = lambda: {"overall": None, "districts": {}}
     daily, mtd = {}, {"costPerOrder": blank(), "productivity": blank()}
+    total_cost = blank()      # v9.0 — Overview 'Total Cost' row, column C (MTD), Overall + per district
     r, max_r = 1, ws_o.max_row
     while r <= max_r:
         if str(ws_o.cell(r, 3).value or "").strip() != "MTD":
@@ -3726,6 +3832,13 @@ def parse_cost_report(path):
                 date_cols[c] = v.isoformat()
         rr = r + 1
         while rr <= max_r and str(ws_o.cell(rr, 3).value or "").strip() != "MTD":
+            if key and str(ws_o.cell(rr, 1).value or "").strip() == "Total Cost":     # exact: not '...(Controllable Cost)'
+                tc = _cr_num(ws_o.cell(rr, 3).value)
+                if tc is not None and tc > 0:
+                    if key == "Overall":
+                        total_cost["overall"] = tc
+                    else:
+                        total_cost["districts"][key] = tc
             metric = row_metric.get(str(ws_o.cell(rr, 1).value or "").strip())
             if metric and key:
                 m = _cr_num(ws_o.cell(rr, 3).value)
@@ -3807,7 +3920,7 @@ def parse_cost_report(path):
         manpower[dt.date(upd.year, upd.month, day).isoformat()] = per
 
     return {"file": os.path.basename(path), "asOf": upd.isoformat(),
-            "manpower": manpower, "daily": daily, "mtd": mtd}
+            "manpower": manpower, "daily": daily, "mtd": mtd, "totalCost": total_cost}
 
 
 def reapply_cost_report_fields(history):
@@ -3868,6 +3981,89 @@ def apply_cost_report(history, report):
     return {"manpowerDays": len(report["manpower"]), "costDays": len(report["daily"]), "noProductivityLogDays": no_log}
 
 
+def compute_fulfillment_cost(history, report):
+    """v9.0 — Fulfillment Cost % for the report's month, MTD through the report's 'Last Update' day:
+         Fulfillment Cost % = Total Cost / GMV x 100
+       - Total Cost: Daily Cost Report > Overview tab > 'Total Cost' row, MTD column (col C), for Overall
+         and for each district (parse_cost_report()['totalCost']).
+       - GMV: the SUM of history['gmv'] daily figures from the 1st of that month through the report's
+         'Last Update' date (inclusive) - the same period the cost covers - overall and per district.
+       Stored durably in history['fulfillmentCostMonthly'][YYYY-MM]; a newer report for the same month
+       replaces the older one (an older file never overwrites a newer one). Returns the stored record,
+       or None when there is nothing to compute."""
+    tc = report.get("totalCost") or {}
+    if tc.get("overall") is None and not tc.get("districts"):
+        print("  ⚠️ Fulfillment Cost %: no 'Total Cost' row found in the Overview tab - skipped.")
+        return None
+    as_of = dt.date.fromisoformat(report["asOf"])
+    month = as_of.strftime("%Y-%m")
+    first = as_of.replace(day=1)
+    gmv_log = history.get("gmv", {})
+    days = sorted(d for d in gmv_log if first.isoformat() <= d <= as_of.isoformat())
+    gmv_overall = sum((gmv_log[d].get("overall") or 0) for d in days)
+    gmv_districts = {x: sum(((gmv_log[d].get("districts") or {}).get(x) or 0) for d in days) for x in DISTRICTS}
+    if len(days) < as_of.day:
+        print(f"  ⚠️ Fulfillment Cost %: GMV history covers {len(days)} of {as_of.day} day(s) "
+              f"({first.isoformat()}..{as_of.isoformat()}) - the ratio uses only those days' GMV.")
+    ratio = lambda cost, gmv: round(cost / gmv * 100, 2) if cost is not None and gmv else None
+    rec = {
+        "asOf": as_of.isoformat(), "source": report["file"],
+        "gmvDays": len(days), "expectedDays": as_of.day,
+        "totalCost": {"overall": tc.get("overall"), "districts": {x: tc.get("districts", {}).get(x) for x in DISTRICTS}},
+        "gmv": {"overall": gmv_overall, "districts": gmv_districts},
+        "overall": ratio(tc.get("overall"), gmv_overall),
+        "districts": {x: ratio(tc.get("districts", {}).get(x), gmv_districts[x]) for x in DISTRICTS},
+    }
+    dist_sum = sum(v for v in tc.get("districts", {}).values() if v)
+    if tc.get("overall") and dist_sum and abs(dist_sum - tc["overall"]) / tc["overall"] > 0.005:
+        print(f"  ⚠️ Fulfillment Cost %: district Total Costs sum to {dist_sum:,.0f} but Overall says {tc['overall']:,.0f}.")
+    store = history.setdefault("fulfillmentCostMonthly", {})
+    old = store.get(month)
+    if old and old.get("asOf", "") > rec["asOf"]:
+        print(f"  ℹ️ Fulfillment Cost %: {month} already holds a newer report (as of {old['asOf']}) - kept.")
+        return old
+    store[month] = rec
+    return rec
+
+
+def build_fulfillment_cost_block(history):
+    """v9.0 - the 'fulfillmentCost' block of other_aspects_history.json, built from
+    history['fulfillmentCostMonthly']:
+      - 'current': the latest month while its report does not yet reach the month's last day - the dashboard
+        shows it as 'YYYY-MM (MTD)';
+      - 'monthly': every other month (its report reaches month end, or a later month has a report).
+    Each row: {asOf, overall, districts} with the % in percent units (6.21 = 6.21%)."""
+    store = history.get("fulfillmentCostMonthly", {})
+    block = {"current": None, "monthly": {}}
+    if not store:
+        return block
+    latest = max(store)
+    for month in sorted(store):
+        rec = store[month]
+        row = {"asOf": rec.get("asOf"), "overall": rec.get("overall"), "districts": rec.get("districts", {})}
+        y, m = int(month[:4]), int(month[5:7])
+        month_end = (dt.date(y + (m == 12), m % 12 + 1, 1) - dt.timedelta(days=1)).isoformat()
+        if month == latest and (rec.get("asOf") or "") < month_end:
+            block["current"] = {"monthKey": month, **row}
+        else:
+            block["monthly"][month] = row
+    return block
+
+
+def write_fulfillment_cost_to_other_aspects(history):
+    """v9.0 - merges the 'fulfillmentCost' block into other_aspects_history.json WITHOUT touching the other
+    metrics (that file is rebuilt in full by the 14:00 Tableau job, which now includes this block too)."""
+    payload = {}
+    if os.path.exists(OTHER_ASPECTS_HISTORY_PATH):
+        try:
+            with open(OTHER_ASPECTS_HISTORY_PATH, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+        except (OSError, ValueError):
+            payload = {}
+    payload["fulfillmentCost"] = build_fulfillment_cost_block(history)
+    save_other_aspects_history(payload)
+
+
 def run_cost_report_section(local_file=None):
     """v8.0 §2 — the 09:00 Tuesday/Friday job: download (or read `local_file`), parse, cover the old
     manpower / Cost-per-Order / Productivity data, rewrite the served JSON files and index.html's snapshot."""
@@ -3887,6 +4083,10 @@ def run_cost_report_section(local_file=None):
 
     history = load_history()
     summary = apply_cost_report(history, report)
+    fc = compute_fulfillment_cost(history, report)        # v9.0 - Fulfillment Cost % (Total Cost / GMV)
+    if fc:
+        print(f"  💲 Fulfillment Cost % {report['asOf'][:7]} (through {fc['asOf']}): overall {fc['overall']}% "
+              f"= {fc['totalCost']['overall']:,.0f} / {fc['gmv']['overall']:,.0f}")
     if summary["noProductivityLogDays"]:
         print(f"  ℹ️ no HKTV productivity-log entry yet for {summary['noProductivityLogDays']} — their Cost/Order "
               f"& Productivity are stored and will be applied once the daily job logs those days.")
@@ -3897,6 +4097,7 @@ def run_cost_report_section(local_file=None):
         "source": report["file"], "asOf": report["asOf"], "latestDay": last_day,
         "latest": report["daily"].get(last_day),
         "mtd": report["mtd"],     # the report's own MTD column, kept for reference (Overview 'actual' is unchanged)
+        "totalCost": report.get("totalCost"),      # v9.0 - Overview 'Total Cost' (MTD), overall + per district
     }
     matrices = payload.setdefault("matrices", {})
     if "hktvStaff" in matrices:
@@ -3908,6 +4109,8 @@ def run_cost_report_section(local_file=None):
                               trimmed_productivity_mtd(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
     save_history(history)
     save_data_json(payload)
+    if fc:
+        write_fulfillment_cost_to_other_aspects(history)  # v9.0 - before update_embedded_data() so the snapshot has it
     update_embedded_data()
     print("✅ Daily Cost Report 處理完成")
 

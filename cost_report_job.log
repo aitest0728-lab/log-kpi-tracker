@@ -156,3 +156,43 @@ Traceback (most recent call last):
   File "C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker\kpi_pipeline.py", line 3521, in fetch_cost_report_from_whatsapp
     raise RuntimeError("No 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' message found in the group.")
 RuntimeError: No 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' message found in the group.
+🚀 開始處理 Daily Cost Report...
+🚀 Opening WhatsApp Web (session '/home/chipanl/whatsapp_session_2') for group 'LOG 區頭 x Head office'...
+  🔎 route 1: 2 report message(s) already loaded at the bottom of the chat
+  📎 newest cost report in the chat: 'Daily Cost Report_202609_Last Update_Sep 27.xlsx'
+  ⚠️ download icon did not start a download (Timeout 25000ms exceeded while waiting for event "download")
+  ✅ saved via file name click: C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker\Folder for KPI Dashboard\Daily Cost Report_202609_Last Update_Sep 27.xlsx
+  📄 Daily Cost Report_202609_Last Update_Sep 27.xlsx: data through 2026-09-27 — 27 day(s) of manpower, 27 day(s) of Cost/Order & Productivity
+Wrote ./public/manpower_distribution.json
+Wrote ./public/productivity_history.json
+Wrote ./public/data.json
+  ⚠️ './public/index.html' has no EMBEDDED_DATA_START/END markers — skipping embedded-data update. (Markers were added in v26.0; an older index.html won't have them yet.)
+✅ Daily Cost Report 處理完成
+🚀 開始處理 Daily Cost Report...
+🚀 Opening WhatsApp Web (session '/home/chipanl/whatsapp_session_2') for group 'LOG 區頭 x Head office'...
+  🔎 route 2: in-chat search for 'Daily Cost Report'
+  ℹ️ the in-chat search showed no report hit
+  🔎 route 3: scrolling up (at most 8 screens)
+  📎 newest cost report in the chat: 'Daily Cost Report_202609_Last Update_Sep 27.xlsx'
+  ⚠️ download icon did not start a download (Timeout 25000ms exceeded while waiting for event "download")
+  ✅ saved via file name click: C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker\Folder for KPI Dashboard\Daily Cost Report_202609_Last Update_Sep 27.xlsx
+  📄 Daily Cost Report_202609_Last Update_Sep 27.xlsx: data through 2026-09-27 — 27 day(s) of manpower, 27 day(s) of Cost/Order & Productivity
+Wrote ./public/manpower_distribution.json
+Wrote ./public/productivity_history.json
+Wrote ./public/data.json
+  ⚠️ './public/index.html' has no EMBEDDED_DATA_START/END markers — skipping embedded-data update. (Markers were added in v26.0; an older index.html won't have them yet.)
+✅ Daily Cost Report 處理完成
+🚀 開始處理 Daily Cost Report...
+🚀 Opening WhatsApp Web (session '/home/chipanl/whatsapp_session_2') for group 'LOG 區頭 x Head office'...
+  🔎 route 2: in-chat search for 'Daily Cost Report'
+  ℹ️ the in-chat search showed no report hit
+  🔎 route 3: scrolling up (at most 8 screens)
+  📎 newest cost report in the chat: 'Daily Cost Report_202609_Last Update_Sep 27.xlsx'
+  ⚠️ download icon did not start a download (Timeout 25000ms exceeded while waiting for event "download")
+  ✅ saved via file name click: C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker\Folder for KPI Dashboard\Daily Cost Report_202609_Last Update_Sep 27.xlsx
+  📄 Daily Cost Report_202609_Last Update_Sep 27.xlsx: data through 2026-09-27 — 27 day(s) of manpower, 27 day(s) of Cost/Order & Productivity
+Wrote ./public/manpower_distribution.json
+Wrote ./public/productivity_history.json
+Wrote ./public/data.json
+  ⚠️ './public/index.html' has no EMBEDDED_DATA_START/END markers — skipping embedded-data update. (Markers were added in v26.0; an older index.html won't have them yet.)
+✅ Daily Cost Report 處理完成
