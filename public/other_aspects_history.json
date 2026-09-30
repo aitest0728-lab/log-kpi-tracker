@@ -632,5 +632,25 @@
         }
       }
     }
+  },
+  "fulfillmentCost": {
+    "current": {
+      "monthKey": "2026-09",
+      "asOf": "2026-09-27",
+      "overall": 6.21,
+      "districts": {
+        "ETH": 6.76,
+        "ETK": 5.39,
+        "ETX": 6.25,
+        "NT-ST": 5.81,
+        "NT-TM": 5.72,
+        "NT-TSM": 5.73,
+        "NT-TW": 6.09,
+        "WTH": 7.1,
+        "WTK": 6.69,
+        "WTX": 6.13
+      }
+    },
+    "monthly": {}
   }
 }
