@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
 """
-LOG · KPI Tracker — Data Pipeline
+LOG · KPI Tracker — Data Pipeline  (v8.0)
 ==================================
+v8.0 — Adjustment in Data Fetching:
+  1. ODS order / waybill counts now come from the Tableau "Delivery Dashboard"
+     sheet "Actual Delivery - 10 Districts" (rows headed "包派"), not OIX.
+     HKTV order count = total order count - ODS order count.
+  2. HKTV manpower distribution (FT/PT Driver & Courier), actual Cost per Order
+     (Controllable) and Staff Productivity now come from the "Daily Cost Report"
+     Excel posted in the WhatsApp group; run with `--section costreport`
+     (scheduled 09:00 every Tuesday and Friday). The 03:00 OIX manpower job is
+     unchanged; the fetched cost-report data then covers the older figures.
 整合 Playwright 自動化下載 Tableau Crosstab 與 Pandas 數據處理。
 1. 使用 Playwright 登入 Tableau，模擬點擊 Download -> Crosstab 下載 CSV。
 2. 清洗 CSV 數據並應用 KPI 商業邏輯。
@@ -172,7 +181,20 @@ DAILY_PRODUCTIVITY_KEEP_DAYS = int(os.environ.get("DAILY_PRODUCTIVITY_KEEP_DAYS"
 # actually take to run immediately before run_section_tableau() reads them.
 STALE_REPORT_HOURS = float(os.environ.get("STALE_REPORT_HOURS", "2"))
 
+# v8.0 — WhatsApp / Daily Cost Report (see run_cost_report_section()).
+# The WhatsApp Web session is a persistent Chromium profile that has already
+# been logged in once by scanning the QR code (re-scan if the session expires).
+WA_SESSION_DIR = os.environ.get("WA_SESSION_DIR", "/home/chipanl/whatsapp_session_2")
+WA_TARGET_GROUP = os.environ.get("WA_TARGET_GROUP", "LOG 區頭 x Head office")
+WA_HEADLESS = os.environ.get("WA_HEADLESS", "0") == "1"   # WhatsApp Web often refuses headless; default = visible window
+COST_REPORT_FOLDER = os.environ.get("COST_REPORT_FOLDER", REPORT_FOLDER)
+# "Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx" (e.g. Daily Cost Report_202609_Last Update_Sep 27.xlsx).
+# Spaces may appear as underscores once a file has been saved/renamed by a browser or chat app, so both are accepted.
+COST_REPORT_NAME_RE = re.compile(
+    r"^Daily[ _]Cost[ _]Report_(\d{6})_Last[ _]Update_([A-Za-z]{3})[ _](\d{1,2})(?:\b.*)?\.xlsx$", re.IGNORECASE)
+
 os.makedirs(REPORT_FOLDER, exist_ok=True)
+os.makedirs(COST_REPORT_FOLDER, exist_ok=True)
 
 # 報表精確名稱對應
 REPORT_FILES = {
@@ -199,6 +221,11 @@ REPORT_FILES = {
     "actual_delivery_timeslot_mtd": "Actual Delivery by Timeslot - MTD - 10 Districts.csv",
     "delay_zone_type_mtd": "delay rate by zone type.csv",
     "mtd_delay_early_ontime": "MTD Actual Delivery - Delay, Early & On Time %.csv",
+
+    # v8.0 §1 — Delivery Dashboard (Delivery Summary tab), sheet "Actual Delivery -
+    # 10 Districts": source of the ODS order count (Column C "Parent Order #") and
+    # ODS waybill count (Column E "No. of Waybill") on the rows headed "包派".
+    "actual_delivery_10d": "Actual Delivery - 10 Districts.csv",
 }
 
 # v4.0 §2 — "Expected Timeslot w/ same day" raw values -> the short codes the
@@ -380,6 +407,16 @@ TABLEAU_TARGETS = [
         "file_key": "mtd_delay_early_ontime",
         "sheet_name": "MTD Actual Delivery - Delay, Early & On Time %",
         "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary-MTD?:iid=1"
+    },
+
+    # v8.0 §1 — Delivery Dashboard > Delivery Summary tab. Per spec this sheet is
+    # already pre-selected in the Crosstab dialog, so it must NOT be clicked again
+    # (the thumbnail list is a toggle) — same handling as "poor_rating" above.
+    {
+        "file_key": "actual_delivery_10d",
+        "sheet_name": "Actual Delivery - 10 Districts",
+        "preselected": True,
+        "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary?:iid=2"
     },
 ]
 
@@ -1174,6 +1211,57 @@ def parse_actual_delivery_timeslot(file_key):
         "overall": {"order": overall_order, "waybill": overall_waybill},
         "districts": {d: {"order": per_d_order[d], "waybill": per_d_waybill[d]} for d in DISTRICTS},
     }
+
+
+def _read_tableau_crosstab_raw(path):
+    """Tableau crosstab CSVs are UTF-16 / tab-separated; fall back to UTF-8 in case an export differs."""
+    try:
+        return pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str)
+    except (UnicodeError, pd.errors.ParserError):
+        return pd.read_csv(path, encoding="utf-8-sig", sep=None, engine="python", header=None, dtype=str)
+
+
+ODS_ROW_HEADER = "包派"
+
+
+def parse_ods_counts_from_delivery_dashboard():
+    """v8.0 §1 — ODS order and waybill count per district from the Tableau
+    "Actual Delivery - 10 Districts" crosstab (replaces the OIX-derived figures):
+      - Column A = district, Column B = row header, Column C = Parent Order #,
+        Column E = No. of Waybill.
+      - Only rows whose Column B is "包派" are ODS. A district with no such row
+        has ODS order count = waybill count = 0.
+    Column A is forward-filled, so it works whether or not the export repeats
+    the district label on every row. Raises if the file is stale/missing or has
+    no "包派" row at all (a real day is never all-zero) so the caller can fall
+    back to the staged OIX figures instead of silently logging zeros.
+    Returns (ods_order, ods_waybill) in the {"overall", "districts"} shape of
+    order_count_for_group() / waybill_count_for_group()."""
+    path = os.path.join(REPORT_FOLDER, REPORT_FILES["actual_delivery_10d"])
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"{path!r} not found")
+    if os.path.getmtime(path) < time.time() - STALE_REPORT_HOURS * 3600:
+        raise FileNotFoundError(f"{path!r} is older than {STALE_REPORT_HOURS}h — this run's download failed")
+    raw = _read_tableau_crosstab_raw(path)
+
+    orders = {d: 0.0 for d in DISTRICTS}
+    waybills = {d: 0.0 for d in DISTRICTS}
+    current, matched = None, 0
+    for _, row in raw.iterrows():
+        a = row.iloc[0]
+        if not pd.isna(a) and str(a).strip():
+            current = normalize_district_label(a)
+        b = "" if pd.isna(row.iloc[1]) else str(row.iloc[1]).strip()
+        if b != ODS_ROW_HEADER or current not in DISTRICTS:
+            continue
+        orders[current] += parse_number(row.iloc[2])      # Column C — Parent Order #
+        waybills[current] += parse_number(row.iloc[4])    # Column E — No. of Waybill
+        matched += 1
+    if matched == 0:
+        raise ValueError(f"no '{ODS_ROW_HEADER}' row found in {path!r} — layout may have changed")
+    ods_order = {"overall": int(round(sum(orders.values()))), "districts": {d: int(round(v)) for d, v in orders.items()}}
+    ods_waybill = {"overall": int(round(sum(waybills.values()))), "districts": {d: int(round(v)) for d, v in waybills.items()}}
+    return ods_order, ods_waybill
 
 
 def parse_delay_early_pct(file_key):
@@ -2068,6 +2156,11 @@ def append_manpower_log(history, date_str, courier_group, driver_group, ods_van_
     (defaults to None / omitted) so old callers and old log entries without
     an ODS/VAN figure keep working unchanged."""
     log = history.setdefault("manpowerDistributionLog", {})
+    # v8.0 §2 — a day already filled from the Daily Cost Report is the real figure;
+    # the OIX-based 03:00 calculation must never cover it again.
+    if log.get(date_str, {}).get("_source") == "costReport":
+        print(f"  ℹ️ {date_str} manpower distribution already comes from the Daily Cost Report — OIX figure not written.")
+        return
     entry = {"courier": courier_group, "driver": driver_group}
     if ods_van_group is not None:
         entry["odsVan"] = ods_van_group
@@ -2304,6 +2397,9 @@ def finish_productivity_with_orders(history, matrices, staging, order_totals_t1,
     # on the very first run of the month (and on every run thereafter). ---
     append_daily_productivity_log(history, target_date.isoformat(), hktv_manpower, ods_manpower,
                                    hktv_order_totals, ods_order_totals)
+    # v8.0 §2 — the line above rebuilt T-1's whole entry from OIX/Tableau; if the Daily
+    # Cost Report already covers that day, put the real Cost/Order & Productivity back.
+    reapply_cost_report_fields(history)
 
     # --- MTD actual for the Overview tab ---
     month_key = target_date.strftime("%Y-%m")
@@ -3023,7 +3119,10 @@ def run_section_tableau():
     # a GMV-account hiccup should never block the other reports that
     # already downloaded fine, so it's excluded from this hard check.
     # Also now checks *freshness*, not just existence — see STALE_REPORT_HOURS.
-    required_files = {k: v for k, v in REPORT_FILES.items() if k != "gmv"}
+    # v8.0 — "actual_delivery_10d" (ODS counts) is also soft: if its download failed the
+    # ODS figures fall back to the OIX-derived ones staged at 03:00 (see below) instead of
+    # taking the whole 15:00 job down.
+    required_files = {k: v for k, v in REPORT_FILES.items() if k not in ("gmv", "actual_delivery_10d")}
     # (v4.0: "delay_rate"/Rank_On Time.csv is retired — replaced by the 5
     # Delivery Dashboard files above, already included in REPORT_FILES.)
     cutoff_time = time.time() - STALE_REPORT_HOURS * 3600
@@ -3152,6 +3251,17 @@ def run_section_tableau():
               f"counts are for {productivity_target_date.isoformat()!r} — dates don't match "
               f"(the 03:00 job may not have run today). Skipping Productivity update this run.")
     else:
+        # v8.0 §1 — ODS order / waybill counts now come from Tableau's "Actual Delivery -
+        # 10 Districts" sheet; HKTV = Tableau total - this ODS figure (split_hktv_ods_totals()).
+        # The OIX-derived counts staged at 03:00 stay only as the fallback.
+        try:
+            ods_order_t, ods_waybill_t = parse_ods_counts_from_delivery_dashboard()
+            staging["odsOrderCount"], staging["odsWaybillCount"] = ods_order_t, ods_waybill_t
+            print(f"  ✅ ODS counts from Tableau 'Actual Delivery - 10 Districts': "
+                  f"{ods_order_t['overall']} orders / {ods_waybill_t['overall']} waybills")
+        except Exception as e:
+            print(f"  ⚠️ Could not use the Tableau ODS report ({e}) — falling back to the OIX-derived "
+                  f"ODS order/waybill counts staged at 03:00.")
         trimmed = finish_productivity_with_orders(history, matrices, staging, order_totals_t1,
                                                     order_totals_mtd, productivity_target_date)
         save_productivity_history(trimmed, trimmed_productivity_mtd(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
@@ -3288,6 +3398,401 @@ def run_section_tableau():
     print("✅ 報表解析完成，已寫入 data.json")
 
 
+# =============================================================================
+# 7. v8.0 — Daily Cost Report (WhatsApp) : manpower distribution, Cost/Order, Staff Productivity
+# =============================================================================
+_MONTH_ABBR = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+CR_FT_COST_TYPE = "Manpower Cost (FT & Leader)"
+CR_PT_COST_TYPE = "Manpower Cost (PT)"
+# Title grouping (spec §2). Cost Type + Function decide the group; the "借人" (borrowed
+# staff) row and every Leader / Sick Leave row match none of these and are ignored.
+CR_FT_DRIVER_FUNCTIONS = {"driver", "driver at", "driver c", "b shift driver c"}
+CR_GROUPS = ("ftDriver", "ftCourier", "ptDriver", "ptCourier")
+# Labels used on the report's tabs -> dashboard district code.
+CR_OVERVIEW_LABELS = {"ETH": "ETH", "ETK": "ETK", "ETX": "ETX", "TSM": "NT-TSM", "WTK": "WTK",
+                      "WTW": "NT-TW", "WTH": "WTH", "WTX": "WTX", "NT-TM": "NT-TM", "NT-ST": "NT-ST"}
+CR_BREAKDOWN_LABELS = {"ETH": "ETH", "ETK": "ETK", "ETX": "ETX", "NT-ST": "NT-ST", "NT-TM": "NT-TM",
+                       "TSM": "NT-TSM", "NT-TSM": "NT-TSM", "NT-TW": "NT-TW", "WTH": "WTH", "WTK": "WTK", "WTX": "WTX"}
+
+
+def cost_report_sort_key(filename):
+    """(year, month, day) from 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx'; None if the name doesn't match."""
+    m = COST_REPORT_NAME_RE.match(os.path.basename(filename).strip())
+    if not m:
+        return None
+    ym, mon, day = m.groups()
+    if mon.lower() not in _MONTH_ABBR:
+        return None
+    return (int(ym[:4]), _MONTH_ABBR.index(mon.lower()) + 1, int(day))
+
+
+def find_latest_local_cost_report():
+    """Newest matching Daily Cost Report already sitting in COST_REPORT_FOLDER, or None."""
+    best = None
+    for p in glob.glob(os.path.join(COST_REPORT_FOLDER, "*.xlsx")):
+        k = cost_report_sort_key(p)
+        if k and (best is None or k > best[0]):
+            best = (k, p)
+    return best[1] if best else None
+
+
+def fetch_cost_report_from_whatsapp():
+    """v8.0 §2 — downloads the newest 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' from the
+    WhatsApp group WA_TARGET_GROUP via WhatsApp Web, using the already-logged-in persistent
+    profile in WA_SESSION_DIR. Returns the saved file's path (inside COST_REPORT_FOLDER).
+
+    WhatsApp Web's markup changes often, so every step tries several selectors and a failure
+    leaves a screenshot (_debug_whatsapp_*.png) in COST_REPORT_FOLDER. If the session has
+    expired (QR code showing) the profile has to be re-linked by hand once."""
+    def shot(page, tag):
+        try:
+            p = os.path.join(COST_REPORT_FOLDER, f"_debug_whatsapp_{tag}.png")
+            page.screenshot(path=p, full_page=True)
+            print(f"  📸 screenshot: {p}")
+        except Exception:
+            pass
+
+    print(f"🚀 Opening WhatsApp Web (session {WA_SESSION_DIR!r}) for group {WA_TARGET_GROUP!r}...")
+    with sync_playwright() as p:
+        ctx = p.chromium.launch_persistent_context(
+            WA_SESSION_DIR, headless=WA_HEADLESS, accept_downloads=True,
+            viewport={"width": 1600, "height": 1000}, args=["--disable-popup-blocking"])
+        try:
+            page = ctx.pages[0] if ctx.pages else ctx.new_page()
+            page.goto("https://web.whatsapp.com", wait_until="domcontentloaded")
+            try:
+                page.wait_for_selector("#pane-side", timeout=120000)
+            except Exception:
+                shot(page, "login")
+                raise RuntimeError("WhatsApp Web never showed the chat list — the session in "
+                                   f"{WA_SESSION_DIR!r} has probably expired (QR code); re-link it once by hand.")
+            time.sleep(3)
+
+            # --- open the group ---
+            box = None
+            for sel in ['div[contenteditable="true"][data-tab="3"]', '[aria-label="Search input textbox"]',
+                        '[aria-label="Search or start a new chat"]', '#side div[role="textbox"]']:
+                loc = page.locator(sel).first
+                try:
+                    loc.wait_for(state="visible", timeout=4000)
+                    box = loc
+                    break
+                except Exception:
+                    continue
+            if box is None:
+                shot(page, "search")
+                raise RuntimeError("Could not find WhatsApp's search box.")
+            box.click()
+            box.fill(WA_TARGET_GROUP)
+            time.sleep(2)
+            title_sel = "#pane-side span[title=" + json.dumps(WA_TARGET_GROUP, ensure_ascii=False) + "]"
+            try:
+                page.locator(title_sel).first.click(timeout=15000)
+            except Exception:
+                try:
+                    page.get_by_text(WA_TARGET_GROUP, exact=True).first.click(timeout=8000)
+                except Exception:
+                    shot(page, "group")
+                    raise RuntimeError(f"Could not open the WhatsApp group {WA_TARGET_GROUP!r}.")
+            page.wait_for_selector("#main", timeout=30000)
+            time.sleep(3)
+
+            # --- find the newest matching document (scroll up until one is loaded) ---
+            def matching_titles():
+                out = []
+                loc = page.locator('#main span[title*="Cost Report"]')
+                for i in range(loc.count()):
+                    t = (loc.nth(i).get_attribute("title") or "").strip()
+                    k = cost_report_sort_key(t)
+                    if k:
+                        out.append((k, i, t))
+                return out
+
+            found = matching_titles()
+            for _ in range(30):
+                if found:
+                    break
+                page.mouse.move(900, 500)
+                page.mouse.wheel(0, -4000)
+                time.sleep(1.5)
+                found = matching_titles()
+            if not found:
+                shot(page, "nofile")
+                raise RuntimeError("No 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' message found in the group.")
+            best_key = max(k for k, _, _ in found)
+            _, idx, title = [f for f in found if f[0] == best_key][-1]   # latest of any duplicates
+            print(f"  📎 newest cost report in the chat: {title!r}")
+
+            target_path = os.path.join(COST_REPORT_FOLDER, title)
+            target = page.locator('#main span[title*="Cost Report"]').nth(idx)
+            target.scroll_into_view_if_needed()
+            row = target.locator("xpath=ancestor::div[@role='row'][1]")
+            with page.expect_download(timeout=120000) as dl_info:
+                try:
+                    row.locator('span[data-icon="audio-download"], span[data-icon="document-download"], '
+                                'span[data-icon="down"]').first.click(timeout=5000)
+                except Exception:
+                    target.click()        # already-received documents download on click
+            dl_info.value.save_as(target_path)
+            print(f"  ✅ saved: {target_path}")
+            return target_path
+        except Exception:
+            try:
+                shot(ctx.pages[0], "error")
+            except Exception:
+                pass
+            raise
+        finally:
+            ctx.close()
+
+
+def _cr_num(v):
+    """Numeric cell -> float; '#DIV/0!', text, blanks -> None."""
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return None
+    return float(v)
+
+
+def _cr_overview_district(label):
+    s = str(label or "").strip()
+    if s.lower() == "overall":
+        return "Overall"
+    for k, v in CR_OVERVIEW_LABELS.items():    # 'ETH - Chun', 'TSM (Yun)', 'WTW (Shing)', ...
+        if s == k or s.startswith(k + " ") or s.startswith(k + "("):
+            return v
+    return None
+
+
+def parse_cost_report(path):
+    """v8.0 §2 — reads the Daily Cost Report workbook.
+    Overview tab: each section (District / Overall mark in the top-left cell of its header row) has a
+    'Cost Per Order (Controllable)' and a 'Staff Productivity' row; the date columns are matched to
+    the header row's dates (shown as DD-MMM, e.g. 29-Sep). Blank / #DIV/0! / 0 = not reported yet.
+    Breakdown tab, FIRST table only (not the yellow one): per district block and per day column (DD),
+    the FT/PT Driver & Courier man-days, grouped by Cost Type + Function; row '借人' ignored.
+    Only days up to the report's 'Last Update' date (Breakdown!B3) are used.
+    Returns {"file","asOf","manpower":{date:{group:{"districts","total"}}},
+             "daily":{date:{"costPerOrder":{overall,districts},"productivity":{...}}},
+             "mtd":{"costPerOrder":{...},"productivity":{...}}}."""
+    import openpyxl
+    wb = openpyxl.load_workbook(path, data_only=True, read_only=False)
+    names = {n.strip().lower(): n for n in wb.sheetnames}
+    for need in ("overview", "breakdown"):
+        if need not in names:
+            raise ValueError(f"{os.path.basename(path)!r} has no '{need.title()}' sheet (found {wb.sheetnames})")
+    ws_o, ws_b = wb[names["overview"]], wb[names["breakdown"]]
+
+    upd = ws_b["B3"].value
+    if isinstance(upd, dt.datetime):
+        upd = upd.date()
+    if not isinstance(upd, dt.date):
+        raise ValueError("Breakdown!B3 (the report's 'Date' / last-update day) is not a date")
+
+    # ---- Overview: Cost Per Order (Controllable) + Staff Productivity ----
+    row_metric = {"Cost Per Order (Controllable)": "costPerOrder", "Staff Productivity": "productivity"}
+    blank = lambda: {"overall": None, "districts": {}}
+    daily, mtd = {}, {"costPerOrder": blank(), "productivity": blank()}
+    r, max_r = 1, ws_o.max_row
+    while r <= max_r:
+        if str(ws_o.cell(r, 3).value or "").strip() != "MTD":
+            r += 1
+            continue
+        key = _cr_overview_district(ws_o.cell(r, 1).value)
+        date_cols = {}
+        for c in range(4, ws_o.max_column + 1):
+            v = ws_o.cell(r, c).value
+            if isinstance(v, dt.datetime):
+                v = v.date()
+            if isinstance(v, dt.date) and v <= upd:
+                date_cols[c] = v.isoformat()
+        rr = r + 1
+        while rr <= max_r and str(ws_o.cell(rr, 3).value or "").strip() != "MTD":
+            metric = row_metric.get(str(ws_o.cell(rr, 1).value or "").strip())
+            if metric and key:
+                m = _cr_num(ws_o.cell(rr, 3).value)
+                if key == "Overall":
+                    mtd[metric]["overall"] = m
+                else:
+                    mtd[metric]["districts"][key] = m
+                for c, d in date_cols.items():
+                    v = _cr_num(ws_o.cell(rr, c).value)
+                    if v is not None and v <= 0:
+                        v = None                       # 0 = day not filled in yet
+                    slot = daily.setdefault(d, {"costPerOrder": blank(), "productivity": blank()})[metric]
+                    if key == "Overall":
+                        slot["overall"] = v
+                    else:
+                        slot["districts"][key] = v
+            rr += 1
+        r = rr
+    daily = {d: v for d, v in daily.items()
+             if any(v[m]["overall"] is not None or any(x is not None for x in v[m]["districts"].values())
+                    for m in ("costPerOrder", "productivity"))}
+
+    # ---- Breakdown: first table, manpower man-days per group / district / day ----
+    hdr = next((r for r in range(1, ws_b.max_row + 1) if str(ws_b.cell(r, 1).value or "").strip() == "Cost Type"), None)
+    if hdr is None:
+        raise ValueError("Breakdown tab: could not find the 'Cost Type' header row of the first table")
+    end = next((r for r in range(hdr + 1, ws_b.max_row + 1)
+                if str(ws_b.cell(r, 5).value or "").strip().startswith("Total")), ws_b.max_row + 1)
+    starts = [(c, CR_BREAKDOWN_LABELS[str(ws_b.cell(hdr - 1, c).value).strip()])
+              for c in range(1, ws_b.max_column + 1)
+              if str(ws_b.cell(hdr - 1, c).value or "").strip() in CR_BREAKDOWN_LABELS]
+    blocks = {}
+    for i, (c0, dist) in enumerate(starts):
+        c1 = starts[i + 1][0] if i + 1 < len(starts) else ws_b.max_column + 1
+        blocks[dist] = {int(ws_b.cell(hdr, c).value): c for c in range(c0, c1)
+                        if isinstance(ws_b.cell(hdr, c).value, (int, float)) and not isinstance(ws_b.cell(hdr, c).value, bool)
+                        and 1 <= int(ws_b.cell(hdr, c).value) <= 31}
+    missing = [d for d in DISTRICTS if d not in blocks]
+    if missing:
+        raise ValueError(f"Breakdown tab: district block(s) not found: {missing}")
+
+    cost_type, row_group = None, {}
+    for r in range(hdr + 1, end):
+        a = str(ws_b.cell(r, 1).value or "").strip()
+        if a:
+            cost_type = a                                   # Cost Type is only written on a block's first row
+        func = str(ws_b.cell(r, 2).value or "").strip().lower()
+        if cost_type == CR_FT_COST_TYPE:
+            if func in CR_FT_DRIVER_FUNCTIONS:
+                row_group[r] = "ftDriver"
+            elif func == "courier":
+                row_group[r] = "ftCourier"
+        elif cost_type == CR_PT_COST_TYPE:
+            if func == "driver":
+                row_group[r] = "ptDriver"
+            elif func == "courier":
+                row_group[r] = "ptCourier"
+
+    manpower = {}
+    for day in range(1, upd.day + 1):
+        per = {g: {"districts": {d: 0.0 for d in DISTRICTS}, "total": 0} for g in CR_GROUPS}
+        seen = False
+        for dist in DISTRICTS:
+            c = blocks[dist].get(day)
+            if c is None:
+                continue
+            for r, g in row_group.items():
+                v = _cr_num(ws_b.cell(r, c).value)
+                if v is not None:
+                    seen = True
+                    per[g]["districts"][dist] += v
+        if not seen:
+            continue
+        for g in CR_GROUPS:
+            per[g]["districts"] = {d: int(round(v)) for d, v in per[g]["districts"].items()}
+            per[g]["total"] = sum(per[g]["districts"].values())
+        if sum(per[g]["total"] for g in CR_GROUPS) == 0:
+            continue                                        # day exists in the sheet but nothing filled in yet
+        manpower[dt.date(upd.year, upd.month, day).isoformat()] = per
+
+    return {"file": os.path.basename(path), "asOf": upd.isoformat(),
+            "manpower": manpower, "daily": daily, "mtd": mtd}
+
+
+def reapply_cost_report_fields(history):
+    """v8.0 §2 — (re)writes the report's real Cost/Order and Staff Productivity into
+    dailyProductivityLog's hktvStaff entries (and the 7-day rolling-forecast series). Everything
+    comes from history['costReportDaily'] (the durable copy), so it can be called again after any
+    other job rebuilds a day's entry from OIX/Tableau. ODS/VAN is untouched (spec: no effect)."""
+    stored = history.get("costReportDaily", {})
+    plog = history.get("dailyProductivityLog", {})
+    series = history.setdefault("hktvStaff", {})
+    for date_str, d in stored.items():
+        prod, cost = d["productivity"], d["costPerOrder"]
+        entry = plog.get(date_str, {}).get("hktvStaff")
+        if entry:
+            for dist in DISTRICTS:
+                rec = entry.get("districts", {}).get(dist)
+                if rec is None:
+                    continue
+                if prod["districts"].get(dist) is not None:
+                    rec["productivity"] = round(prod["districts"][dist], 2)
+                    rec["productivitySource"] = "costReport"
+                if cost["districts"].get(dist) is not None:
+                    rec["costPerOrder"] = round(cost["districts"][dist], 2)
+            tot = entry.get("total")
+            if tot is not None:
+                if prod["overall"] is not None:
+                    tot["productivity"] = round(prod["overall"], 2)
+                    tot["productivitySource"] = "costReport"
+                if cost["overall"] is not None:
+                    tot["costPerOrder"] = round(cost["overall"], 2)
+        cur = series.get(date_str, {"overall": None, "districts": {}})
+        series[date_str] = {
+            "overall": round(prod["overall"], 2) if prod["overall"] is not None else cur.get("overall"),
+            "districts": {dist: (round(prod["districts"][dist], 2) if prod["districts"].get(dist) is not None
+                                 else cur.get("districts", {}).get(dist)) for dist in DISTRICTS},
+        }
+
+
+def apply_cost_report(history, report):
+    """v8.0 §2 — covers the old data with the fetched data:
+      - manpowerDistributionLog[date]: courier / driver (= Full-Time, same meaning as before) are
+        overwritten and courierPT / driverPT added; the ODS/VAN group is kept; entry tagged
+        _source='costReport' so the 03:00 OIX job won't cover it again.
+      - Cost/Order + Staff Productivity: stored durably in history['costReportDaily'] and re-applied."""
+    mlog = history.setdefault("manpowerDistributionLog", {})
+    for date_str, g in report["manpower"].items():
+        entry = dict(mlog.get(date_str, {}))
+        entry["courier"], entry["driver"] = g["ftCourier"], g["ftDriver"]
+        entry["courierPT"], entry["driverPT"] = g["ptCourier"], g["ptDriver"]
+        entry["_source"] = "costReport"
+        mlog[date_str] = entry
+    stored = history.setdefault("costReportDaily", {})
+    for date_str, d in report["daily"].items():
+        stored[date_str] = d
+    reapply_cost_report_fields(history)
+    plog = history.get("dailyProductivityLog", {})
+    no_log = sorted(d for d in report["daily"] if "hktvStaff" not in plog.get(d, {}))
+    return {"manpowerDays": len(report["manpower"]), "costDays": len(report["daily"]), "noProductivityLogDays": no_log}
+
+
+def run_cost_report_section(local_file=None):
+    """v8.0 §2 — the 09:00 Tuesday/Friday job: download (or read `local_file`), parse, cover the old
+    manpower / Cost-per-Order / Productivity data, rewrite the served JSON files and index.html's snapshot."""
+    print("🚀 開始處理 Daily Cost Report...")
+    path = local_file
+    if not path:
+        try:
+            path = fetch_cost_report_from_whatsapp()
+        except Exception as e:
+            path = find_latest_local_cost_report()
+            if not path:
+                raise
+            print(f"  ⚠️ WhatsApp download failed ({e}) — re-using the newest report already on disk: {os.path.basename(path)!r}")
+    report = parse_cost_report(path)
+    print(f"  📄 {report['file']}: data through {report['asOf']} — {len(report['manpower'])} day(s) of manpower, "
+          f"{len(report['daily'])} day(s) of Cost/Order & Productivity")
+
+    history = load_history()
+    summary = apply_cost_report(history, report)
+    if summary["noProductivityLogDays"]:
+        print(f"  ℹ️ no HKTV productivity-log entry yet for {summary['noProductivityLogDays']} — their Cost/Order "
+              f"& Productivity are stored and will be applied once the daily job logs those days.")
+
+    payload = load_data_json()
+    last_day = max(report["daily"]) if report["daily"] else report["asOf"]
+    payload["costReport"] = {
+        "source": report["file"], "asOf": report["asOf"], "latestDay": last_day,
+        "latest": report["daily"].get(last_day),
+        "mtd": report["mtd"],     # the report's own MTD column, kept for reference (Overview 'actual' is unchanged)
+    }
+    matrices = payload.setdefault("matrices", {})
+    if "hktvStaff" in matrices:
+        fc_overall, fc_districts = rolling_average(history, "hktvStaff", 7, dt.date.today())
+        matrices["hktvStaff"]["forecast"] = {"overall": fc_overall, "districts": fc_districts}
+
+    save_manpower_history(trimmed_manpower_distribution(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
+    save_productivity_history(trimmed_daily_productivity(history, DAILY_PRODUCTIVITY_KEEP_DAYS),
+                              trimmed_productivity_mtd(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
+    save_history(history)
+    save_data_json(payload)
+    update_embedded_data()
+    print("✅ Daily Cost Report 處理完成")
+
+
 def main():
     # v4.0 §1: "productivity" (03:00, OIX) now only stages MANPOWER —
     # HKTV Manpower Distribution's own file is still written directly, but
@@ -3295,8 +3800,16 @@ def main():
     # until "tableau" (14:00) supplies the new Tableau-sourced order counts.
     # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
-    parser.add_argument("--section", choices=["productivity", "tableau", "all"], required=True)
+    parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "all"], required=True)
+    parser.add_argument("--cost-report-file", default=None,
+                        help="v8.0 — with --section costreport: parse this local .xlsx instead of "
+                             "downloading from WhatsApp (manual re-run / testing).")
     args = parser.parse_args()
+
+    # v8.0 §2 — separate Task Scheduler job (09:00 every Tuesday and Friday); deliberately NOT part of "all".
+    if args.section == "costreport":
+        run_cost_report_section(args.cost_report_file)
+        return
 
     if args.section in ("productivity", "all"):
         run_productivity_section()
