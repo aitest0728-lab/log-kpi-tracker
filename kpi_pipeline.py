@@ -3436,14 +3436,60 @@ def find_latest_local_cost_report():
     return best[1] if best else None
 
 
-def fetch_cost_report_from_whatsapp():
-    """v8.0 §2 — downloads the newest 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' from the
-    WhatsApp group WA_TARGET_GROUP via WhatsApp Web, using the already-logged-in persistent
-    profile in WA_SESSION_DIR. Returns the saved file's path (inside COST_REPORT_FOLDER).
+# v8.1 — how many screens the chat may be scrolled up while hunting for the newest report, as a LAST
+# resort only (the normal routes — the already-loaded bottom of the chat, then WhatsApp's in-chat search —
+# never scroll through the history).
+WA_MAX_SCROLLS = int(os.environ.get("WA_MAX_SCROLLS", "8"))
 
-    WhatsApp Web's markup changes often, so every step tries several selectors and a failure
-    leaves a screenshot (_debug_whatsapp_*.png) in COST_REPORT_FOLDER. If the session has
-    expired (QR code showing) the profile has to be re-linked by hand once."""
+# Finds elements that carry a Daily Cost Report file name, either in their `title` attribute or in their
+# text. Matching on TEXT (not just title="…") matters: WhatsApp Web's document bubbles often have no title
+# attribute at all, which made the old title-only lookup find nothing and scroll forever.
+# mode 'main'    -> only inside the open chat (#main)
+# mode 'outside' -> only outside the chat (the in-chat search results panel)
+# Each hit is tagged data-cr-idx=N so Python can address it; returns [{i, name}] in document order.
+_CR_SCAN_JS = r"""
+(mode) => {
+  const NAME = /Daily[ _]Cost[ _]Report_\d{6}_Last[ _]Update_[A-Za-z]{3}[ _]\d{1,2}(?:\.xlsx)?/i;
+  document.querySelectorAll('[data-cr-idx]').forEach(e => e.removeAttribute('data-cr-idx'));
+  const main = document.querySelector('#main');
+  const out = [];
+  let n = 0;
+  for (const el of document.querySelectorAll('span, div, a, p')) {
+    const inMain = !!(main && main.contains(el));
+    if ((mode === 'main') !== inMain) continue;
+    if (el.closest('#pane-side')) continue;
+    let m = NAME.exec(el.getAttribute('title') || '');
+    if (!m) {
+      const t = (el.textContent || '').trim();
+      if (t.length > 300) continue;
+      m = NAME.exec(t);
+      if (m) {
+        // keep only the innermost element that holds the name
+        const child = Array.from(el.children).some(c => NAME.test(c.textContent || ''));
+        if (child) m = null;
+      }
+    }
+    if (!m) continue;
+    el.setAttribute('data-cr-idx', String(n));
+    out.push({ i: n, name: m[0] });
+    n++;
+  }
+  return out;
+}
+"""
+
+
+def fetch_cost_report_from_whatsapp():
+    """v8.0 §2 / v8.1 — downloads the NEWEST 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' from the
+    WhatsApp group WA_TARGET_GROUP via WhatsApp Web, using the already-logged-in persistent profile in
+    WA_SESSION_DIR. Returns the saved file's path (inside COST_REPORT_FOLDER).
+
+    v8.1 — never walks the whole chat history. The newest report is looked for, in order:
+      1. in the messages already loaded when the chat opens (it opens at the newest message);
+      2. through WhatsApp's own in-chat search ("Daily Cost Report"), jumping straight to a result;
+      3. only if both fail, scrolling up at most WA_MAX_SCROLLS screens, stopping at the first report seen.
+    Matching is by file-name TEXT as well as title attribute, and several download triggers are tried.
+    A failure leaves a screenshot (_debug_whatsapp_*.png) in COST_REPORT_FOLDER."""
     def shot(page, tag):
         try:
             p = os.path.join(COST_REPORT_FOLDER, f"_debug_whatsapp_{tag}.png")
@@ -3495,47 +3541,120 @@ def fetch_cost_report_from_whatsapp():
                     shot(page, "group")
                     raise RuntimeError(f"Could not open the WhatsApp group {WA_TARGET_GROUP!r}.")
             page.wait_for_selector("#main", timeout=30000)
+            try:
+                page.wait_for_selector("#main div[data-id]", timeout=20000)
+            except Exception:
+                pass
             time.sleep(3)
 
-            # --- find the newest matching document (scroll up until one is loaded) ---
-            def matching_titles():
+            # --- locate the newest report ---
+            def scan(mode):
                 out = []
-                loc = page.locator('#main span[title*="Cost Report"]')
-                for i in range(loc.count()):
-                    t = (loc.nth(i).get_attribute("title") or "").strip()
-                    k = cost_report_sort_key(t)
+                for it in page.evaluate(_CR_SCAN_JS, mode):
+                    name = it["name"].strip()
+                    if not name.lower().endswith(".xlsx"):
+                        name += ".xlsx"
+                    k = cost_report_sort_key(name)
                     if k:
-                        out.append((k, i, t))
+                        out.append((k, it["i"], name))
                 return out
 
-            found = matching_titles()
-            for _ in range(30):
-                if found:
-                    break
-                page.mouse.move(900, 500)
-                page.mouse.wheel(0, -4000)
-                time.sleep(1.5)
-                found = matching_titles()
+            found = scan("main")
+            if found:
+                print(f"  🔎 route 1: {len(found)} report message(s) already loaded at the bottom of the chat")
+
+            if not found:
+                # route 2 — WhatsApp's in-chat search; jump to a hit, no scrolling through history
+                print("  🔎 route 2: in-chat search for 'Daily Cost Report'")
+                try:
+                    opened = False
+                    for sel in ['#main header [aria-label="Search"]', '#main header [data-icon="search-refreshed"]',
+                                '#main header [data-icon="search"]', '#main header button[title="Search…"]']:
+                        try:
+                            page.locator(sel).first.click(timeout=3000)
+                            opened = True
+                            break
+                        except Exception:
+                            continue
+                    if not opened:
+                        page.keyboard.press("Control+Shift+F")
+                    time.sleep(1)
+                    page.keyboard.type("Daily Cost Report", delay=40)
+                    time.sleep(4)
+                    hits = scan("outside")
+                    if hits:
+                        best_key = max(k for k, _, _ in hits)
+                        _, i0, n0 = [h for h in hits if h[0] == best_key][0]     # results list newest first
+                        print(f"  🔎 search hit: {n0!r}")
+                        page.locator(f'[data-cr-idx="{i0}"]').first.click(timeout=5000)
+                        time.sleep(4)
+                    else:
+                        print("  ℹ️ the in-chat search showed no report hit")
+                    page.keyboard.press("Escape")
+                    time.sleep(1)
+                except Exception as e:
+                    print(f"  ⚠️ in-chat search route failed: {e}")
+                found = scan("main")
+
+            if not found:
+                # route 3 — bounded scroll up; the first report reached going up IS the newest one
+                print(f"  🔎 route 3: scrolling up (at most {WA_MAX_SCROLLS} screens)")
+                for n in range(WA_MAX_SCROLLS):
+                    page.mouse.move(900, 500)
+                    page.mouse.wheel(0, -1500)
+                    time.sleep(1.5)
+                    found = scan("main")
+                    if found:
+                        break
             if not found:
                 shot(page, "nofile")
-                raise RuntimeError("No 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' message found in the group.")
-            best_key = max(k for k, _, _ in found)
-            _, idx, title = [f for f in found if f[0] == best_key][-1]   # latest of any duplicates
-            print(f"  📎 newest cost report in the chat: {title!r}")
+                raise RuntimeError("No 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' message found in the group "
+                                   f"(tried the loaded messages, in-chat search and {WA_MAX_SCROLLS} scrolls).")
 
-            target_path = os.path.join(COST_REPORT_FOLDER, title)
-            target = page.locator('#main span[title*="Cost Report"]').nth(idx)
+            # --- pick the newest (latest of any duplicates) and download it ---
+            best_key = max(k for k, _, _ in found)
+            _, idx, name = [f for f in found if f[0] == best_key][-1]
+            print(f"  📎 newest cost report in the chat: {name!r}")
+            target = page.locator(f'[data-cr-idx="{idx}"]').first
             target.scroll_into_view_if_needed()
-            row = target.locator("xpath=ancestor::div[@role='row'][1]")
-            with page.expect_download(timeout=120000) as dl_info:
+            msg = target.locator("xpath=ancestor::div[@data-id][1]")
+            if msg.count() == 0:
+                msg = target.locator("xpath=ancestor::div[@role='row'][1]")
+            ICONS = ('span[data-icon*="download"], span[data-icon="down"], '
+                     'button[aria-label*="Download" i], [title*="Download" i]')
+
+            def a_icon():
+                msg.first.hover()
+                msg.locator(ICONS).first.click(timeout=3000)
+
+            def a_name():
+                target.click(timeout=3000)
+
+            def a_menu():
+                msg.first.hover()
+                msg.locator('span[data-icon="down-context"], span[data-icon="ic-chevron-down-menu"], '
+                            '[aria-label="Menu"], [aria-label="Message options"]').first.click(timeout=3000)
+                page.get_by_text(re.compile(r"^\s*Download\s*$", re.I)).first.click(timeout=3000)
+
+            saved = None
+            for label, act in (("download icon", a_icon), ("file name click", a_name), ("message menu", a_menu)):
                 try:
-                    row.locator('span[data-icon="audio-download"], span[data-icon="document-download"], '
-                                'span[data-icon="down"]').first.click(timeout=5000)
-                except Exception:
-                    target.click()        # already-received documents download on click
-            dl_info.value.save_as(target_path)
-            print(f"  ✅ saved: {target_path}")
-            return target_path
+                    with page.expect_download(timeout=25000) as dl_info:
+                        act()
+                    dl = dl_info.value
+                    fname = dl.suggested_filename or name
+                    if not cost_report_sort_key(fname):
+                        fname = name
+                    saved = os.path.join(COST_REPORT_FOLDER, fname)
+                    dl.save_as(saved)
+                    print(f"  ✅ saved via {label}: {saved}")
+                    break
+                except Exception as e:
+                    print(f"  ⚠️ {label} did not start a download ({str(e).splitlines()[0][:120]})")
+            if not saved:
+                shot(page, "download")
+                raise RuntimeError(f"Found {name!r} but none of the download triggers worked — see the screenshot.")
+            return saved
         except Exception:
             try:
                 shot(ctx.pages[0], "error")
