@@ -1578,7 +1578,7 @@
           coverage footprint (outer boundary of its points, ignoring flagged and abnormal ones) — it can include gaps and sea between points.
           Every point whose Latitude / Longitude lies inside Hong Kong is plotted exactly where the Excel says. Only rows with missing coordinates or
           coordinates outside Hong Kong are placed approximately within their area and listed (black-ringed) in <b>Data Check</b> below.
-          <b>Abnormal lat/long</b> (v35.0): a point far from the rest of its delivery zone (more than max(2 km, 4 &times; the zone's 90th-percentile spread); zones with fewer than 4 points are compared with their area, limit max(6 km, 5 &times;)) is hidden from the map by default (tick <b>Show abnormal lat/long</b> to reveal it as a red ring) and listed first in Data Check, and is excluded from district and zone coverage outlines, zone labels and area centres.
+          <b>Abnormal lat/long</b> (v35.0): a point far from the rest of its delivery zone (more than max(2 km, 6 &times; the zone's typical spread); zones with fewer than 4 points are compared with their area, and finally each district's outline is checked against the district centre) is hidden from the map by default (tick <b>Show abnormal lat/long</b> to reveal it as a red ring) and listed first in Data Check, and is excluded from district and zone coverage outlines, zone labels and area centres.
           <b>NT-YT</b> and <b>WTH</b> are shown together as one district, <b>NT-YT &amp; WTH</b>.
           <b>Colour by &rarr; Delivery zone</b> colours each point and outline by its Delivery Zone code (Excel Column C); zone codes label the map from zoom level 13.
         </div>
@@ -7922,7 +7922,7 @@
   });
   /* v35.0 — abnormal lat/long: a point far from its own delivery zone (or, for zones with too few peers, its area).
      Tunable thresholds. Abnormal points are still plotted as given, but excluded from every coverage / centre calculation. */
-  const ABN = {zoneMinPeers:4, zoneKm:2, zoneMul:4, areaKm:6, areaMul:5, trim:0.8};
+  const ABN = {zoneMinPeers:4, zoneKm:2, zoneMul:6, areaKm:6, areaMul:7, ddKm:10, ddMul:4, trim:0.8, q:0.75};
   const med = a => { const s=a.slice().sort((x,y)=>x-y), m=s.length>>1; return s.length? (s.length%2?s[m]:(s[m-1]+s[m])/2):null; };
   const kmBetween = (la1,ln1,la2,ln2)=> Math.hypot((la1-la2)*111, (ln1-ln2)*111*Math.cos(la1*Math.PI/180));
   const pct = (a,p)=>{ const s=a.slice().sort((x,y)=>x-y); return s.length ? s[Math.min(s.length-1, Math.round(p*(s.length-1)))] : 0; };
@@ -7937,7 +7937,7 @@
   }
   function judge(list, minKm, mul, basis){
     const c = robustCentre(list), ds = list.map(e=>kmBetween(e.lat,e.lng,c[0],c[1]));
-    const thr = Math.max(minKm, mul*pct(ds,0.9));
+    const thr = Math.max(minKm, mul*pct(ds,ABN.q));
     list.forEach((e,i)=>{ if(ds[i]>thr){ e.abn = true; e.flag = 'abn'; e.km = ds[i]; e.thr = thr; e.basis = basis; } });
   }
   const byZone = {}; E.forEach(e=>{ if(e.exact) (byZone[e.zone]||(byZone[e.zone]=[])).push(e); });
@@ -7951,10 +7951,14 @@
   Object.keys(byArea).forEach(a=>{                       /* small-zone points: judged against their area's trusted points */
     const trusted = byArea[a].filter(e=>!e.abn);
     if(trusted.length < ABN.zoneMinPeers) return;
-    const c = robustCentre(trusted), ds = trusted.map(e=>kmBetween(e.lat,e.lng,c[0],c[1])), thr = Math.max(ABN.areaKm, ABN.areaMul*pct(ds,0.9));
+    const c = robustCentre(trusted), ds = trusted.map(e=>kmBetween(e.lat,e.lng,c[0],c[1])), thr = Math.max(ABN.areaKm, ABN.areaMul*pct(ds,ABN.q));
     trusted.forEach(e=>{ if(!smallZoneAreas.has(e)) return; const d = kmBetween(e.lat,e.lng,c[0],c[1]);
       if(d>thr){ e.abn = true; e.flag = 'abn'; e.km = d; e.thr = thr; e.basis = 'area'; } });
   });
+  /* district pass: whatever still sits far from its whole delivery district would stretch the district outline */
+  D.dd.forEach((_,d)=>{ const l = E.filter(e=>e.dd===d && e.exact && !e.abn); if(l.length<ABN.zoneMinPeers) return;
+    const c = robustCentre(l), ds = l.map(e=>kmBetween(e.lat,e.lng,c[0],c[1])), thr = Math.max(ABN.ddKm, ABN.ddMul*pct(ds,ABN.q));
+    l.forEach((e,i)=>{ if(ds[i]>thr){ e.abn = true; e.flag = 'abn'; e.km = ds[i]; e.thr = thr; e.basis = 'district'; } }); });
   /* area centre = median of its real coordinates; flag points far from their area (likely wrong geocode) */
   D.areas.forEach((ar, ai)=>{
     const ex = E.filter(e=>e.a===ai && e.exact && !e.abn);
@@ -8020,7 +8024,7 @@
   const byPos = new Map();
   E.forEach(e=>{ if(!e.exact) return; const k=e.lat.toFixed(6)+','+e.lng.toFixed(6); (byPos.get(k)||byPos.set(k,[]).get(k)).push(e); });
   function flagNote(e){
-    return e.flag==='abn' ? `<div class="approx" style="color:var(--red);font-style:normal"><b>Abnormal lat/long:</b> ${e.km.toFixed(1)} km from the centre of its ${e.basis==='zone'?'delivery zone '+esc(D.zones[e.zone]):'area '+esc(niceArea(D.areas[e.a].k))} (limit ${e.thr.toFixed(1)} km). Hidden from the map by default and excluded from coverage outlines and zone shapes.</div>`
+    return e.flag==='abn' ? `<div class="approx" style="color:var(--red);font-style:normal"><b>Abnormal lat/long:</b> ${e.km.toFixed(1)} km from the centre of its ${e.basis==='zone'?'delivery zone '+esc(D.zones[e.zone]):e.basis==='district'?'district '+esc(D.dd[e.dd]):'area '+esc(niceArea(D.areas[e.a].k))} (limit ${e.thr.toFixed(1)} km). Hidden from the map by default and excluded from coverage outlines and zone shapes.</div>`
          : e.flag==='approx' ? '<div class="approx">Coordinates missing or outside Hong Kong — position approximate (placed within its area).</div>'
          : e.flag==='far' ? `<div class="approx" style="color:var(--red)">Check location: ${e.km.toFixed(1)} km from the rest of ${esc(niceArea(D.areas[e.a].k))}.</div>` : '';
   }
@@ -8151,7 +8155,7 @@
       card('Coordinates to check', fmt(nAbn+nApprox), `${fmt(nAbn)} abnormal · ${fmt(nApprox)} missing / outside HK`);
     const bn = document.getElementById('mapAbnBanner');
     bn.style.display = nAbn ? 'flex' : 'none';
-    bn.querySelector('span').innerHTML = `<b>${fmt(nAbn)} delivery points have abnormal lat/long</b> (far from their delivery zone). They are hidden from the map and left out of coverage outlines, zone shapes and area centres; tick “Show abnormal lat/long” to reveal them, or see the Data Check list below.`;
+    bn.querySelector('span').innerHTML = `<b>${fmt(nAbn)} delivery points have abnormal lat/long</b> (far from their delivery zone, area or district). They are hidden from the map and left out of coverage outlines, zone shapes and area centres; tick “Show abnormal lat/long” to reveal them, or see the Data Check list below.`;
     document.getElementById('mapSub').textContent =
       `Open delivery points as of ${D.asOf || 'latest export'} · scroll or use +/− to zoom · click a district chip to filter`;
   }
@@ -8174,7 +8178,7 @@
   }
   function renderCheck(){
     const f = E.filter(e=>e.flag).sort((a,b)=>(a.flag==='abn'?0:1)-(b.flag==='abn'?0:1) || b.km-a.km);
-    document.getElementById('mapCheckBody').innerHTML = f.length ? f.map(e=>`<tr><td class="l">${esc(e.code)}</td><td class="l" style="white-space:normal;min-width:240px">${esc(e.en)}<br><span style="color:var(--text-muted)">${esc(e.zh)}</span></td><td class="l">${esc(niceArea(D.areas[e.a].k))}</td><td class="l">${esc(D.dd[e.dd])}</td><td class="l">${e.flag==='abn'?`<span style="color:var(--red)"><b>Abnormal lat/long</b> — ${e.km.toFixed(1)} km from ${e.basis==='zone'?'zone '+esc(D.zones[e.zone]):'its area'} centre (limit ${e.thr.toFixed(1)} km) · ${e.lat.toFixed(5)}, ${e.lng.toFixed(5)}</span>`:'Missing lat-long or outside Hong Kong'}</td><td><button class="map-mini-btn" data-goto="${esc(e.code)}">Show</button></td></tr>`).join('')
+    document.getElementById('mapCheckBody').innerHTML = f.length ? f.map(e=>`<tr><td class="l">${esc(e.code)}</td><td class="l" style="white-space:normal;min-width:240px">${esc(e.en)}<br><span style="color:var(--text-muted)">${esc(e.zh)}</span></td><td class="l">${esc(niceArea(D.areas[e.a].k))}</td><td class="l">${esc(D.dd[e.dd])}</td><td class="l">${e.flag==='abn'?`<span style="color:var(--red)"><b>Abnormal lat/long</b> — ${e.km.toFixed(1)} km from ${e.basis==='zone'?'zone '+esc(D.zones[e.zone]):e.basis==='district'?'district':'its area'} centre (limit ${e.thr.toFixed(1)} km) · ${e.lat.toFixed(5)}, ${e.lng.toFixed(5)}</span>`:'Missing lat-long or outside Hong Kong'}</td><td><button class="map-mini-btn" data-goto="${esc(e.code)}">Show</button></td></tr>`).join('')
       : '<tr><td class="l" colspan="6">No issues found.</td></tr>';
     document.getElementById('mapCheckCount').textContent = f.length;
   }
