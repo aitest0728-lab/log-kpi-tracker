@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-LOG · KPI Tracker — Data Pipeline  (v9.4)
+LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v9.5 — `--section newestate` (new_estate_tracker.py): tracks newly launched private / public housing that is ready for
+  move-in -> New_Estate_Tracker.xlsx + new_estates.json (address -> lat/long). Weekly job; see the module docstring.
 v9.0 — Fulfillment Cost % (monthly): when the Daily Cost Report is processed, Total Cost (Overview tab,
   'Total Cost' row, MTD column - Overall and per district) / GMV summed from the 1st of the month through the
   report's Last Update date -> other_aspects_history.json 'fulfillmentCost' (Other Aspects Tracking tab).
@@ -4386,7 +4388,7 @@ def _find_map_excel(explicit=None):
     cands = []
     for ext in ("*.xlsx", "*.xlsm", "*.csv"):
         cands += glob.glob(os.path.join(MAP_EXCEL_FOLDER, ext))
-    cands = [p for p in cands if not os.path.basename(p).lower().startswith(("~$", "daily cost report", "oix_record"))]
+    cands = [p for p in cands if not os.path.basename(p).lower().startswith(("~$", "daily cost report", "oix_record", "new_estate_tracker"))]
     for p in sorted(cands, key=os.path.getmtime, reverse=True):   # newest first, first one with lat+lng headers
         try:
             head = pd.read_csv(p, nrows=8, header=None, dtype=str, encoding="utf-8-sig") if p.lower().endswith(".csv") \
@@ -4628,14 +4630,26 @@ def main():
     # until "tableau" (14:00) supplies the new Tableau-sourced order counts.
     # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
-    parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "map", "all"], required=True)
+    parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "map", "newestate", "all"], required=True)
     parser.add_argument("--cost-report-file", default=None,
                         help="v8.0 — with --section costreport: parse this local .xlsx instead of "
                              "downloading from WhatsApp (manual re-run / testing).")
     parser.add_argument("--map-excel", default=None,
                         help="Delivery Map v2 — with --section map: estate/address Excel (Delivery Zone in Column C, Latitude, Longitude); "
                              "default = newest matching file in MAP_EXCEL_FOLDER.")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="v9.5 — with --section newestate: read sources + match Raw only; no geocoding, no files written.")
+    parser.add_argument("--limit", type=int, default=None, help="v9.5 — with --section newestate: geocode at most N estates this run.")
+    parser.add_argument("--watchlist", default=None,
+                        help="v9.5 — with --section newestate: Zone Grouping workbook whose 'New Address…' sheet is the hand-kept watchlist.")
     args = parser.parse_args()
+
+    # v9.5 — new-estate tracker (private + public housing ready for move-in); own schedule (e.g. weekly), NOT part of \"all\".
+    if args.section == "newestate":
+        from new_estate_tracker import run as run_new_estates
+        run_new_estates(raw_loader=lambda: load_map_excel(_find_map_excel(args.map_excel)), in_hk=point_in_hk,
+                        dry_run=args.dry_run, limit=args.limit, watchlist=args.watchlist)
+        return
 
     # v8.0 §2 — separate Task Scheduler job (09:00 every Tuesday and Friday); deliberately NOT part of "all".
     if args.section == "costreport":
