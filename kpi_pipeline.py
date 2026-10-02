@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LOG · KPI Tracker — Data Pipeline  (v9.0)
+LOG · KPI Tracker — Data Pipeline  (v9.2)
 ==================================
 v9.0 — Fulfillment Cost % (monthly): when the Daily Cost Report is processed, Total Cost (Overview tab,
   'Total Cost' row, MTD column - Overall and per district) / GMV summed from the 1st of the month through the
@@ -3570,6 +3570,73 @@ def virtual_display():
             proc.kill()
 
 
+def dismiss_wa_popups(page):
+    """v9.1 - WhatsApp Web rolls out one-time promo tooltips (e.g. "View recent calls, or start a new one with up to 32
+    people." / "Voice and video calling is now available") that float over the search box. Playwright then refuses to
+    click the box ("<div> intercepts pointer events") and the run dies. Close any such tooltip/dialog first."""
+    for _ in range(4):
+        page.keyboard.press("Escape")
+        time.sleep(0.3)
+        clicked = False
+        for sel in ['[role="tooltip"] [aria-label*="Close" i]', '[role="tooltip"] [aria-label*="Dismiss" i]',
+                    '[role="dialog"] [aria-label*="Close" i]', '[role="dialog"] button:has-text("OK")',
+                    '[role="dialog"] button:has-text("Got it")',
+                    'span[data-icon="x-alt"]', 'span[data-icon="x"]:visible']:
+            try:
+                loc = page.locator(sel).first
+                if loc.is_visible():
+                    loc.click(timeout=1500)
+                    clicked = True
+                    time.sleep(0.5)
+                    break
+            except Exception:
+                continue
+        if not clicked:
+            break
+
+
+def wa_scroll_chat_to_bottom(page, rounds=8):
+    """v9.2 - a chat with unread messages does NOT open at its newest message: WhatsApp Web jumps to the first
+    unread one, and only the messages around the viewport exist in the DOM. Route 1 then "found" an OLD report and
+    never saw today's one further down. Jump to the real bottom (and let lazy-loaded messages render) first."""
+    for sel in ['#main [aria-label*="Scroll to bottom" i]', '#main [data-icon="chevron-down-circle"]',
+                '#main [data-icon="down"]', '#main button[aria-label*="bottom" i]']:
+        try:
+            loc = page.locator(sel).first
+            if loc.is_visible():
+                loc.click(timeout=1500)
+                time.sleep(1.5)
+                break
+        except Exception:
+            continue
+    last = None
+    for _ in range(rounds):
+        try:
+            h = page.evaluate("""() => {
+                const row = document.querySelector('#main div[data-id]');
+                let el = row;
+                while (el && el !== document.body) {
+                    const cs = getComputedStyle(el);
+                    if ((cs.overflowY === 'auto' || cs.overflowY === 'scroll') && el.scrollHeight > el.clientHeight) break;
+                    el = el.parentElement;
+                }
+                if (!el || el === document.body) return -1;
+                el.scrollTop = el.scrollHeight;
+                return el.scrollHeight;
+            }""")
+        except Exception:
+            h = -1
+        try:
+            page.mouse.move(900, 500)
+            page.mouse.wheel(0, 4000)
+        except Exception:
+            pass
+        time.sleep(1.2)
+        if h == last:
+            break
+        last = h
+
+
 def fetch_cost_report_from_whatsapp():
     """v8.0 §2 / v8.1 — downloads the NEWEST 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' from the
     WhatsApp group WA_TARGET_GROUP via WhatsApp Web, using the already-logged-in persistent profile in
@@ -3617,33 +3684,45 @@ def fetch_cost_report_from_whatsapp():
                 raise RuntimeError("WhatsApp Web never showed the chat list — the session in "
                                    f"{WA_SESSION_DIR!r} has probably expired (QR code); re-link it once by hand.")
             time.sleep(3)
+            dismiss_wa_popups(page)
 
             # --- open the group ---
-            box = None
-            for sel in ['div[contenteditable="true"][data-tab="3"]', '[aria-label="Search input textbox"]',
-                        '[aria-label="Search or start a new chat"]', '#side div[role="textbox"]']:
-                loc = page.locator(sel).first
-                try:
-                    loc.wait_for(state="visible", timeout=4000)
-                    box = loc
-                    break
-                except Exception:
-                    continue
-            if box is None:
-                shot(page, "search")
-                raise RuntimeError("Could not find WhatsApp's search box.")
-            box.click()
-            box.fill(WA_TARGET_GROUP)
-            time.sleep(2)
             title_sel = "#pane-side span[title=" + json.dumps(WA_TARGET_GROUP, ensure_ascii=False) + "]"
-            try:
-                page.locator(title_sel).first.click(timeout=15000)
+            opened_group = False
+            try:                                    # v9.1 - the group is normally already in the chat list: no search needed
+                page.locator(title_sel).first.click(timeout=6000)
+                opened_group = True
             except Exception:
+                dismiss_wa_popups(page)
+            if not opened_group:
+                box = None
+                for sel in ['div[contenteditable="true"][data-tab="3"]', '[aria-label="Search input textbox"]',
+                            '[aria-label="Search or start a new chat"]', '#side div[role="textbox"]']:
+                    loc = page.locator(sel).first
+                    try:
+                        loc.wait_for(state="visible", timeout=4000)
+                        box = loc
+                        break
+                    except Exception:
+                        continue
+                if box is None:
+                    shot(page, "search")
+                    raise RuntimeError("Could not find WhatsApp's search box.")
                 try:
-                    page.get_by_text(WA_TARGET_GROUP, exact=True).first.click(timeout=8000)
+                    box.click(timeout=5000)
                 except Exception:
-                    shot(page, "group")
-                    raise RuntimeError(f"Could not open the WhatsApp group {WA_TARGET_GROUP!r}.")
+                    dismiss_wa_popups(page)
+                    box.click(force=True, timeout=5000)     # v9.1 - last resort: ignore whatever floats above it
+                box.fill(WA_TARGET_GROUP)
+                time.sleep(2)
+                try:
+                    page.locator(title_sel).first.click(timeout=15000)
+                except Exception:
+                    try:
+                        page.get_by_text(WA_TARGET_GROUP, exact=True).first.click(timeout=8000)
+                    except Exception:
+                        shot(page, "group")
+                        raise RuntimeError(f"Could not open the WhatsApp group {WA_TARGET_GROUP!r}.")
             page.wait_for_selector("#main", timeout=30000)
             try:
                 page.wait_for_selector("#main div[data-id]", timeout=20000)
@@ -3663,6 +3742,7 @@ def fetch_cost_report_from_whatsapp():
                         out.append((k, it["i"], name))
                 return out
 
+            wa_scroll_chat_to_bottom(page)          # v9.2 - make sure we are looking at the NEWEST messages
             found = scan("main")
             if found:
                 print(f"  🔎 route 1: {len(found)} report message(s) already loaded at the bottom of the chat")
@@ -3716,6 +3796,7 @@ def fetch_cost_report_from_whatsapp():
                                    f"(tried the loaded messages, in-chat search and {WA_MAX_SCROLLS} scrolls).")
 
             # --- pick the newest (latest of any duplicates) and download it ---
+            print("  📋 reports visible in the chat: " + ", ".join(sorted({n for _, _, n in found})))
             best_key = max(k for k, _, _ in found)
             _, idx, name = [f for f in found if f[0] == best_key][-1]
             print(f"  📎 newest cost report in the chat: {name!r}")
