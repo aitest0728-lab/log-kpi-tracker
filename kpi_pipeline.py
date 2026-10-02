@@ -4281,6 +4281,243 @@ def run_cost_report_section(local_file=None):
     print("✅ Daily Cost Report 處理完成")
 
 
+# =============================================================================
+# 7. Delivery Map data (Delivery Map v2) — Excel -> window.__MAP_DATA__ in index.html
+# =============================================================================
+# Run:  python kpi_pipeline.py --section map [--map-excel "<estate list>.xlsx"]
+# (also runs, soft-failing, as the last step of --section all)
+#
+#   * CARTO key  — read from CARTO_KEY_FILE ("Basemaps API key: <key>"), embedded as
+#                  window.__MAP_CFG__.cartoKey; the page builds
+#                  https://basemaps.cartocdn.com/rastertiles/<style>/{z}/{x}/{y}{r}.png?key=<key>
+#                  and falls back to OpenStreetMap when no key is found.
+#   * Zone view  — Delivery Zone code = Column C of the Excel (header name is used only
+#                  when Column C does not look like zone codes).
+#   * Plotting   — a row is plotted exactly at its Latitude/Longitude whenever that point
+#                  lies inside Hong Kong (HK_POLYGON). Only rows with no usable coordinates,
+#                  or coordinates outside Hong Kong (e.g. Shenzhen), are left without
+#                  lat/lng; the page places those approximately inside their area and
+#                  lists them under "Data Check". There is NO distance-from-area rejection.
+CARTO_KEY_FILE = os.environ.get(
+    "CARTO_KEY_FILE",
+    r"C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker\Carto Map API Key.txt")
+MAP_EXCEL_PATH = os.environ.get("MAP_EXCEL_PATH", "")      # exact file; blank = auto-detect in MAP_EXCEL_FOLDER
+MAP_EXCEL_FOLDER = os.environ.get(
+    "MAP_EXCEL_FOLDER", r"C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker")
+MAP_ZONE_COLUMN_INDEX = 2    # Column C (0-based)
+
+# Coarse Hong Kong outline (lat, lng) incl. surrounding waters; the northern edge follows the
+# Shenzhen River / Sha Tau Kok border. Used only to separate Hong Kong from Shenzhen.
+HK_POLYGON = [(22.10, 113.78), (22.42, 113.78), (22.50, 113.84), (22.498, 113.93), (22.4985, 113.9435),
+              (22.5025, 114.00), (22.515, 114.068), (22.533, 114.113), (22.55, 114.125), (22.566, 114.15),
+              (22.572, 114.19), (22.562, 114.23), (22.56, 114.28), (22.57, 114.35), (22.57, 114.50),
+              (22.10, 114.50)]
+
+_MAP_HEADERS = {   # field -> accepted header names (lower-case, spaces/underscores ignored)
+    "code": ["estatecode", "estateid", "code"],
+    "en":   ["estatenameen", "estatenameenglish", "englishname", "nameen", "estatename", "estate", "name"],
+    "zh":   ["estatenamezh", "estatenamechinese", "chinesename", "namezh", "estatenamecn", "中文名稱", "中文名", "中文"],
+    "dd":   ["deliverydistrict", "dd", "district", "deliverydist"],
+    "type": ["estatetype", "deliverytype", "type", "typecode"],
+    "zone": ["deliveryzone", "deliveryzonecode", "zonecode", "zone"],
+    "area": ["area", "estatearea", "areaname", "region", "areaen"],
+    "lat":  ["latitude", "lat"],
+    "lng":  ["longitude", "lng", "lon", "long"],
+}
+_ZONE_RE = re.compile(r"^[A-Za-z]{1,4}\d+(-\d+)?$")
+
+
+def load_carto_key():
+    """Basemaps API key from CARTO_KEY_FILE ('Basemaps API key: <key>'); '' if missing."""
+    try:
+        txt = Path(CARTO_KEY_FILE).read_text(encoding="utf-8-sig", errors="ignore")
+    except OSError as e:
+        print(f"  ⚠️ CARTO key file not readable ({CARTO_KEY_FILE!r}: {e}) — map will use OpenStreetMap tiles.")
+        return ""
+    m = re.search(r"api\s*key\s*:\s*([^\s]+)", txt, re.IGNORECASE)
+    if not m:   # tolerate a file that holds just the bare key on its own line
+        toks = [t for t in re.findall(r"[A-Za-z0-9_\-\.]{16,}", txt)]
+        key = toks[-1] if toks else ""
+    else:
+        key = m.group(1).strip().strip("\"'")
+    if not key:
+        print("  ⚠️ No key found after 'Basemaps API key:' in the CARTO key file — map will use OpenStreetMap tiles.")
+    return key
+
+
+def point_in_hk(lat, lng):
+    inside, n = False, len(HK_POLYGON)
+    j = n - 1
+    for i in range(n):
+        yi, xi = HK_POLYGON[i]
+        yj, xj = HK_POLYGON[j]
+        if (yi > lat) != (yj > lat) and lng < (xj - xi) * (lat - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def _clean_coord(lat, lng):
+    """-> (lat, lng) floats, or None. Accepts '22.3,' / '22.3°N' strings; fixes swapped lat/lng."""
+    def f(v):
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return None
+        m = re.search(r"-?\d+(?:\.\d+)?", str(v).replace(",", ""))
+        return float(m.group()) if m else None
+    la, ln = f(lat), f(lng)
+    if la is None or ln is None:
+        return None
+    if 113 <= la <= 115 and 22 <= ln <= 23:       # swapped columns
+        la, ln = ln, la
+    if la == 0 or ln == 0:
+        return None
+    return la, ln
+
+
+def _norm_header(h):
+    return re.sub(r"[\s_\-\(\)（）]+", "", str(h)).lower()
+
+
+def _find_map_excel(explicit=None):
+    if explicit:
+        return explicit
+    if MAP_EXCEL_PATH:
+        return MAP_EXCEL_PATH
+    cands = []
+    for ext in ("*.xlsx", "*.xlsm", "*.csv"):
+        cands += glob.glob(os.path.join(MAP_EXCEL_FOLDER, ext))
+    cands = [p for p in cands if not os.path.basename(p).lower().startswith(("~$", "daily cost report", "oix_record"))]
+    for p in sorted(cands, key=os.path.getmtime, reverse=True):   # newest first, first one with lat+lng headers
+        try:
+            head = pd.read_csv(p, nrows=8, header=None, dtype=str, encoding="utf-8-sig") if p.lower().endswith(".csv") \
+                else pd.read_excel(p, nrows=8, header=None, dtype=str)
+        except Exception:
+            continue
+        for _, row in head.iterrows():
+            names = {_norm_header(x) for x in row.dropna()}
+            if names & set(_MAP_HEADERS["lat"]) and names & set(_MAP_HEADERS["lng"]):
+                return p
+    raise FileNotFoundError(
+        f"No estate/address list with Latitude + Longitude headers found in {MAP_EXCEL_FOLDER!r}. "
+        f"Pass --map-excel <file> or set MAP_EXCEL_PATH.")
+
+
+def load_map_excel(path):
+    """-> DataFrame with canonical columns code,en,zh,dd,type,zone,area,lat,lng (header row auto-detected)."""
+    raw = pd.read_csv(path, header=None, dtype=str, encoding="utf-8-sig") if path.lower().endswith(".csv") \
+        else pd.read_excel(path, header=None, dtype=str)
+    hdr_row = None
+    for i in range(min(10, len(raw))):
+        names = {_norm_header(x) for x in raw.iloc[i].dropna()}
+        if names & set(_MAP_HEADERS["lat"]) and names & set(_MAP_HEADERS["lng"]):
+            hdr_row = i
+            break
+    if hdr_row is None:
+        raise ValueError(f"{path}: could not find a header row with Latitude/Longitude in the first 10 rows.")
+    header = [_norm_header(x) if pd.notna(x) else "" for x in raw.iloc[hdr_row]]
+    body = raw.iloc[hdr_row + 1:].reset_index(drop=True)
+    pick = {}
+    for field, names in _MAP_HEADERS.items():
+        for nm in names:            # first alias in priority order that exists
+            if nm in header:
+                pick[field] = header.index(nm)
+                break
+    # Delivery Zone = Column C when it looks like zone codes (per spec), else the header match
+    if body.shape[1] > MAP_ZONE_COLUMN_INDEX:
+        colc = body.iloc[:, MAP_ZONE_COLUMN_INDEX].dropna().astype(str).str.strip()
+        if len(colc) and colc.map(lambda v: bool(_ZONE_RE.match(v))).mean() >= 0.5:
+            pick["zone"] = MAP_ZONE_COLUMN_INDEX
+    missing = [k for k in ("code", "zone", "lat", "lng") if k not in pick]
+    if missing:
+        raise ValueError(f"{path}: cannot locate column(s) {missing}. Headers seen: {header}")
+    print("  Map Excel columns -> " + ", ".join(f"{k}=col {chr(65 + v) if v < 26 else v}" for k, v in pick.items()))
+    out = pd.DataFrame({k: (body.iloc[:, v].fillna("").astype(str).str.strip() if k not in ("lat", "lng")
+                            else body.iloc[:, v]) for k, v in pick.items()})
+    for k in ("en", "zh", "dd", "type", "area"):
+        if k not in out:
+            out[k] = ""
+    out = out[out["code"] != ""].drop_duplicates(subset="code", keep="last").reset_index(drop=True)
+    return out
+
+
+def build_map_data(df):
+    """Excel frame -> the dict the Delivery Map tab embeds (same shape as before + hkPoly)."""
+    import statistics
+    dd_list = sorted({v for v in df["dd"] if v}) or ["(none)"]
+    type_list = sorted({v for v in df["type"] if v}) or ["-"]
+    zone_list = sorted({v for v in df["zone"] if v} | ({"(none)"} if (df["zone"] == "").any() else set()))
+    area_rows = {}
+    n_ok = n_missing = n_outside = 0
+    problems = []
+    for r in df.itertuples(index=False):
+        c = _clean_coord(r.lat, r.lng)
+        rec = [r.code, r.en or r.code, r.zh or r.en or r.code,
+               dd_list.index(r.dd) if r.dd in dd_list else 0,
+               type_list.index(r.type) if r.type in type_list else 0,
+               zone_list.index(r.zone or "(none)")]
+        if c is None:
+            n_missing += 1
+            problems.append((r.code, "missing/invalid lat-long", r.lat, r.lng))
+        elif not point_in_hk(*c):
+            n_outside += 1
+            problems.append((r.code, "outside Hong Kong", c[0], c[1]))
+        else:
+            n_ok += 1
+            rec += [round(c[0], 6), round(c[1], 6)]
+        area_rows.setdefault(r.area or "(no area)", []).append(rec)
+    areas = []
+    for key in sorted(area_rows):
+        rows = area_rows[key]
+        pts = [(x[6], x[7]) for x in rows if len(x) >= 8]
+        if pts:
+            clat, clng = statistics.median(p[0] for p in pts), statistics.median(p[1] for p in pts)
+            d = sorted(((p[0] - clat) * 111000) ** 2 + ((p[1] - clng) * 111000 * 0.92) ** 2 for p in pts)
+            rad = int(min(3000, max(300, 1.2 * d[int(0.9 * (len(d) - 1))] ** 0.5)))
+        else:
+            clat, clng, rad = 22.355, 114.15, 1500
+        areas.append({"k": key, "lat": round(clat, 4), "lng": round(clng, 4), "r": rad, "e": rows})
+    today = today_hkt()
+    data = {"asOf": f"{today:%b} {today.day}", "dd": dd_list, "types": type_list, "zones": zone_list,
+            "areas": areas, "hkPoly": [list(p) for p in HK_POLYGON]}
+    return data, {"total": len(df), "plotted": n_ok, "missing": n_missing, "outsideHK": n_outside,
+                  "zones": len(zone_list), "problems": problems}
+
+
+def inject_map_data(data, carto_key):
+    """Rewrites only the /*MAP_DATA_START*/ … /*MAP_DATA_END*/ block of index.html."""
+    if not os.path.exists(INDEX_HTML_PATH):
+        print(f"  ⚠️ {INDEX_HTML_PATH!r} not found — map data not embedded.")
+        return False
+    html = Path(INDEX_HTML_PATH).read_text(encoding="utf-8")
+    cfg = json.dumps({"cartoKey": carto_key})
+    blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+    block = f"/*MAP_DATA_START*/window.__MAP_CFG__={cfg};window.__MAP_DATA__={blob};/*MAP_DATA_END*/"
+    new, n = re.subn(r"/\*MAP_DATA_START\*/.*?/\*MAP_DATA_END\*/", lambda m: block, html, count=1, flags=re.DOTALL)
+    if n != 1:
+        print("  ⚠️ MAP_DATA_START/END markers not found in index.html — map data not embedded.")
+        return False
+    Path(INDEX_HTML_PATH).write_text(new, encoding="utf-8")
+    return True
+
+
+def run_map_section(excel_path=None):
+    print("🗺️ 開始更新 Delivery Map 數據...")
+    key = load_carto_key()
+    path = _find_map_excel(excel_path)
+    print(f"  Source: {path}")
+    data, st = build_map_data(load_map_excel(path))
+    print(f"  Estates {st['total']:,} · plotted {st['plotted']:,} · missing coords {st['missing']} · "
+          f"outside Hong Kong {st['outsideHK']} · delivery zones {st['zones']:,}")
+    for code, why, la, ln in st["problems"][:25]:
+        print(f"    - {code}: {why} ({la}, {ln})")
+    if len(st["problems"]) > 25:
+        print(f"    … +{len(st['problems']) - 25} more (listed in the dashboard's Data Check)")
+    if inject_map_data(data, key):
+        print(f"  ✅ index.html updated (CARTO key {'embedded' if key else 'NOT found — OSM fallback'})")
+        run_deploy_hook()
+
+
+
 def main():
     # v4.0 §1: "productivity" (03:00, OIX) now only stages MANPOWER —
     # HKTV Manpower Distribution's own file is still written directly, but
@@ -4288,15 +4525,22 @@ def main():
     # until "tableau" (14:00) supplies the new Tableau-sourced order counts.
     # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
-    parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "all"], required=True)
+    parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "map", "all"], required=True)
     parser.add_argument("--cost-report-file", default=None,
                         help="v8.0 — with --section costreport: parse this local .xlsx instead of "
                              "downloading from WhatsApp (manual re-run / testing).")
+    parser.add_argument("--map-excel", default=None,
+                        help="Delivery Map v2 — with --section map: estate/address Excel (Delivery Zone in Column C, Latitude, Longitude); "
+                             "default = newest matching file in MAP_EXCEL_FOLDER.")
     args = parser.parse_args()
 
     # v8.0 §2 — separate Task Scheduler job (09:00 every Tuesday and Friday); deliberately NOT part of "all".
     if args.section == "costreport":
         run_cost_report_section(args.cost_report_file)
+        return
+
+    if args.section == "map":      # Delivery Map v2 — Delivery Map data + CARTO key
+        run_map_section(args.map_excel)
         return
 
     if args.section in ("productivity", "all"):
@@ -4305,6 +4549,11 @@ def main():
         fetch_tableau_reports()  # 1. 執行 Playwright 下載 (Delivery Dashboard + Logistics KPI 報表)
         fetch_gmv_report()       # 1b. 下載 GMV 報表 (獨立帳號，v3.0 §3)
         run_section_tableau()    # 2. 執行 CSV 解析、完成 Productivity 計算並寫入
+    if args.section == "all":
+        try:
+            run_map_section()    # Delivery Map v2 — soft-fail: a missing map Excel must not break the KPI run
+        except Exception as e:
+            print(f"  ⚠️ Delivery Map update skipped: {e}")
 
 if __name__ == "__main__":
     main()
