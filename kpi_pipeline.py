@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LOG · KPI Tracker — Data Pipeline  (v9.2)
+LOG · KPI Tracker — Data Pipeline  (v9.4)
 ==================================
 v9.0 — Fulfillment Cost % (monthly): when the Daily Cost Report is processed, Total Cost (Overview tab,
   'Total Cost' row, MTD column - Overall and per district) / GMV summed from the 1st of the month through the
@@ -2565,10 +2565,19 @@ def update_embedded_data():
     start_idx = html.find(start_marker)
     end_idx = html.find(end_marker)
     if start_idx == -1 or end_idx == -1:
-        print(f"  ⚠️ {INDEX_HTML_PATH!r} has no EMBEDDED_DATA_START/END markers — "
-              f"skipping embedded-data update. (Markers were added in v26.0; an "
-              f"older index.html won't have them yet.)")
-        return
+        # v9.3 - self-heal: index.html often carries the bare `<script>window.__EMBEDDED_DATA__ = {...};</script>`
+        # block without the marker comments (they get lost when the file is re-saved/merged by hand), which made
+        # this step skip silently on EVERY run. Wrap the existing block in markers and carry on.
+        m = re.search(r"<script>\s*window\.__EMBEDDED_DATA__\s*=.*?</script>", html, re.S)
+        if not m:
+            print(f"  ⚠️ {INDEX_HTML_PATH!r} has neither EMBEDDED_DATA_START/END markers nor a "
+                  f"window.__EMBEDDED_DATA__ script block — skipping embedded-data update.")
+            return
+        html = (html[:m.start()] + "<!-- EMBEDDED_DATA_START (auto-managed by kpi_pipeline.py) -->"
+                + m.group(0) + "<!-- EMBEDDED_DATA_END -->" + html[m.end():])
+        print(f"  🔧 {INDEX_HTML_PATH!r}: EMBEDDED_DATA markers were missing - re-added around the existing data block.")
+        start_idx = html.find(start_marker)
+        end_idx = html.find(end_marker)
     end_idx += len(end_marker)
 
     sources = {
@@ -2603,7 +2612,12 @@ def update_embedded_data():
     payload = (payload.replace("</", "<\\/")
                        .replace("\u2028", "\\u2028")
                        .replace("\u2029", "\\u2029"))
-    block = f"<script>window.__EMBEDDED_DATA__ = {payload};</script>"
+    # v9.3 - the replaced span [start_idx, end_idx) INCLUDES both marker comments, so the new block must carry them
+    # again. Before, they were dropped, so only the first run after adding markers worked and every later run (03:00,
+    # 09:00, 14:00) printed "no EMBEDDED_DATA_START/END markers" and left the dashboard's snapshot stale.
+    block = ("<!-- EMBEDDED_DATA_START (auto-managed by kpi_pipeline.py; do not edit between the markers) -->"
+             f"<script>window.__EMBEDDED_DATA__ = {payload};</script>"
+             "<!-- EMBEDDED_DATA_END -->")
 
     updated_html = html[:start_idx] + block + html[end_idx:]
     with open(INDEX_HTML_PATH, "w", encoding="utf-8") as f:
@@ -3064,8 +3078,12 @@ def build_other_aspects_monthly(history, matrices, payload):
         }
 
     def current_from_matrix(metric_key):
-        m = matrices.get(metric_key, {}).get("actual", {})
-        return {"monthKey": current_month, "overall": m.get("overall"), "districts": m.get("districts", {})}
+        mm = matrices.get(metric_key, {})
+        m = mm.get("actual", {})
+        # v9.4 - RFID is a T-4 metric: its open month is the month of the T-4 date (matrix "monthKey"), which
+        # lags the calendar month for the first 4 days. The other metrics have no monthKey -> calendar month.
+        return {"monthKey": mm.get("monthKey") or current_month, "overall": m.get("overall"),
+                "districts": m.get("districts", {})}
 
     def full_history_daily_mtd(metric_key):
         """poorRating/missingLostAmount, EVERY month on record: history[metric_key]
@@ -3146,6 +3164,103 @@ def save_gmv_history(payload):
     with open(GMV_HISTORY_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     print(f"Wrote {GMV_HISTORY_PATH}")
+
+
+def update_rfid_missing_tote(payload, history, matrices, today):
+    """RFID Missing Tote - a T-4 record. The Tableau extract pulled on day D reports the records of D-4 (the Oct 1 run
+    reports Sep 27), so every record belongs to the month of its T-4 date, NOT to the month of the run date.
+
+    v9.4 - before, the bucket key was the run date's month: the Oct 1-4 runs put Sep 27-30 records into "October"
+    (the card showed Oct = 14 while September was already archived without them), and the first days of every
+    month leaked into the month before. Now:
+      * bucket / month_key = month of the T-4 date. September stays the open month until the T-4 date reaches Oct 1
+        (the Oct 5 run); only then does October start counting.
+      * stored as a per-day ledger keyed by the T-4 date, totals recomputed from it each run (re-runs overwrite
+        that day's entry instead of adding to it).
+      * one-time self-repair: ledger days filed under the wrong month bucket are moved to the right one, a month
+        that was archived too early is re-opened, and an archived month is refreshed from its ledger.
+      * forecast = actual / (days of the month the data actually covers = T-4 day-of-month) * days in the month.
+    Months that were already closed before v9.4 keep their archived total (their day-level data is gone)."""
+    t4_date = today - dt.timedelta(days=4)
+    rfid_increment = parse_rfid(t4_date)
+
+    month_key = t4_date.strftime("%Y-%m")
+    rfid_total_days = (dt.date(t4_date.year + (t4_date.month == 12), (t4_date.month % 12) + 1, 1)
+                       - dt.timedelta(days=1)).day
+    rfid_state = payload.setdefault("rfidMonthly", {})
+    closed_archive = history.setdefault("rfidMonthlyClosed", {})
+
+    # the month still being counted is, by definition, not closed - undo a premature archive entry
+    if closed_archive.pop(month_key, None) is not None:
+        print(f"  🔧 RFID: {month_key} was archived as closed too early (T-4 date {t4_date} is still in it) - re-opened.")
+
+    # move ledger days that sit in the wrong month bucket
+    moved = {}
+    for bk, b in rfid_state.items():
+        if isinstance(b.get("days"), dict):
+            for ds in [x for x in b["days"] if x[:7] != bk]:
+                moved.setdefault(ds[:7], {})[ds] = b["days"].pop(ds)
+    for mk, days in moved.items():
+        if mk in closed_archive and mk != month_key:
+            continue      # that month's total is already archived; the durable rfidDailyLedger still keeps the days
+        tgt = rfid_state.setdefault(mk, {}).setdefault("days", {})
+        for ds, v in days.items():
+            tgt.setdefault(ds, v)
+        print(f"  🔧 RFID: moved {len(days)} misfiled day(s) into {mk}: {sorted(days)}")
+
+    bucket = rfid_state.setdefault(month_key, {})
+    # One-time migration: older data.json files stored a running total with no per-day ledger; those totals can't be
+    # trusted (duplicate same-day additions), so drop them and start a fresh ledger.
+    if "overall" in bucket and "days" not in bucket:
+        print(f"  ⚠️ {month_key} had an old-style running total with no per-day ledger — resetting it. "
+              f"Starting a fresh ledger from today.")
+        bucket = {"days": {}}
+        rfid_state[month_key] = bucket
+    days_ledger = bucket.setdefault("days", {})
+    days_ledger[t4_date.isoformat()] = rfid_increment  # overwrite, not add
+
+    # v28.0 - second, DURABLE copy (never trimmed) read by build_other_aspects_monthly()'s rfid_all_daily_mtd().
+    history.setdefault("rfidDailyLedger", {})[t4_date.isoformat()] = rfid_increment
+
+    # recompute every bucket that has a ledger; drop empty ones that are not the open month
+    for bk in list(rfid_state):
+        b = rfid_state[bk]
+        if "days" not in b:
+            continue
+        if not b["days"] and bk != month_key:
+            del rfid_state[bk]
+            continue
+        b["overall"] = round(sum(d["overall"] for d in b["days"].values()), 2)
+        b["districts"] = {dist: round(sum(day["districts"][dist] for day in b["days"].values()), 2)
+                          for dist in DISTRICTS}
+    bucket = rfid_state[month_key]
+
+    matrices["rfidMissingTote"] = {
+        "actual": {"overall": bucket["overall"], "districts": bucket["districts"]},
+        "forecast": {
+            "overall": prorate_forecast(bucket["overall"], t4_date.day, rfid_total_days),
+            "districts": {d: prorate_forecast(bucket["districts"][d], t4_date.day, rfid_total_days) for d in DISTRICTS},
+        },
+        "target": RFID_TOTE_TARGETS,
+        "asOf": today.isoformat(),
+        "dataThrough": t4_date.isoformat(),      # v9.4 - last day the figures cover (T-4)
+        "monthKey": month_key,
+    }
+
+    # archive every month that is no longer the open one (refresh from its ledger - authoritative)
+    for k, v in rfid_state.items():
+        if k != month_key and "days" in v:
+            closed_archive[k] = {"overall": v.get("overall"), "districts": v.get("districts", {})}
+
+    # keep the previous month on the card during the first days of a month (when its bucket was already trimmed)
+    prev_key = (f"{t4_date.year - 1:04d}-12" if t4_date.month == 1
+                else f"{t4_date.year:04d}-{t4_date.month - 1:02d}")
+    if prev_key not in rfid_state and prev_key in closed_archive:
+        rfid_state[prev_key] = {"overall": closed_archive[prev_key].get("overall"),
+                                "districts": closed_archive[prev_key].get("districts", {})}
+
+    keep_keys = sorted(rfid_state.keys())[-2:]
+    payload["rfidMonthly"] = {k: rfid_state[k] for k in keep_keys}
 
 
 def run_section_tableau():
@@ -3340,66 +3455,7 @@ def run_section_tableau():
     # this makes reruns safe: rerunning on the same day overwrites that day's
     # entry instead of adding on top of it again. The bucket totals are always
     # recomputed fresh from the ledger, never incremented directly.
-    t4_date = today - dt.timedelta(days=4)
-    rfid_increment = parse_rfid(t4_date)
-
-    month_key = today.strftime("%Y-%m")
-    rfid_state = payload.setdefault("rfidMonthly", {})
-    bucket = rfid_state.setdefault(month_key, {})
-    days_ledger = bucket.setdefault("days", {})
-
-    # One-time migration: older data.json files (before this fix) stored a
-    # running "overall"/"districts" total directly with no day-by-day ledger,
-    # so their accumulated numbers can't be trusted (they may include
-    # duplicate same-day additions from repeated runs) — drop them and start
-    # the ledger fresh from today.
-    if "overall" in bucket and "days" not in bucket:
-        print(f"  ⚠️ {month_key} had an old-style running total with no per-day ledger — "
-              f"resetting it, since past duplicate-run inflation can't be un-mixed from it. "
-              f"Starting a fresh ledger from today.")
-        bucket = {"days": {}}
-        rfid_state[month_key] = bucket
-        days_ledger = bucket["days"]
-
-    days_ledger[t4_date.isoformat()] = rfid_increment  # overwrite, not add
-
-    # v28.0 — second, DURABLE copy of the same increment, never trimmed
-    # (unlike payload["rfidMonthly"] below, which keeps only the 2 most
-    # recent months). This is what build_other_aspects_monthly()'s
-    # rfid_all_daily_mtd() reads to give RFID Missing Tote the same
-    # every-month "daily" MTD history the other two Other Aspects metrics
-    # already have — without it, a closed month's day-by-day path would be
-    # lost forever once it aged out of payload["rfidMonthly"].
-    history.setdefault("rfidDailyLedger", {})[t4_date.isoformat()] = rfid_increment
-
-    bucket["overall"] = round(sum(d["overall"] for d in days_ledger.values()), 2)
-    bucket["districts"] = {
-        dist: round(sum(day["districts"][dist] for day in days_ledger.values()), 2)
-        for dist in DISTRICTS
-    }
-
-    matrices["rfidMissingTote"] = {
-        "actual": {"overall": bucket["overall"], "districts": bucket["districts"]},
-        "forecast": {
-            "overall": prorate_forecast(bucket["overall"], today.day, total_days),
-            "districts": {d: prorate_forecast(bucket["districts"][d], today.day, total_days) for d in DISTRICTS},
-        },
-        "target": RFID_TOTE_TARGETS,
-        "asOf": today.isoformat(),
-        "monthKey": month_key,
-    }
-
-    # v4.0 §4 — archive any month that just closed into history.json (the
-    # durable store) before data.json's rfidMonthly window gets trimmed to
-    # the last 2 months below — "Other Aspects Tracking" needs every closed
-    # month kept permanently, the same way build_gmv_monthly() does for GMV.
-    closed_archive = history.setdefault("rfidMonthlyClosed", {})
-    for k, v in rfid_state.items():
-        if k != month_key and k not in closed_archive:
-            closed_archive[k] = {"overall": v.get("overall"), "districts": v.get("districts", {})}
-
-    keep_keys = sorted(rfid_state.keys())[-2:]
-    payload["rfidMonthly"] = {k: rfid_state[k] for k in keep_keys}
+    update_rfid_missing_tote(payload, history, matrices, today)   # v9.4 - T-4 month attribution, see function
 
     # --- v3.0 §3: GMV / Basket Size — separate account/file, so handled as
     # its own soft-fail block rather than being added to the `missing` check
@@ -4145,6 +4201,34 @@ def write_fulfillment_cost_to_other_aspects(history):
     save_other_aspects_history(payload)
 
 
+def run_deploy_hook():
+    """v9.3 - push the refreshed dashboard (index.html + the JSON files) to wherever it is served from, right after
+    the 09:00 cost-report run. The command is yours, via DEPLOY_CMD (shell string, run from the project folder), e.g.
+        DEPLOY_CMD=git add -A && git commit -m "cost report" && git push
+        DEPLOY_CMD=firebase deploy --only hosting
+        DEPLOY_CMD=robocopy public \\\\server\\share\\dashboard /E
+    Never raises: a failed deploy is printed loudly but the data files are already written."""
+    import subprocess
+    cmd = os.environ.get("DEPLOY_CMD", "").strip()
+    if not cmd:
+        print("  ℹ️ DEPLOY_CMD is not set - dashboard files were refreshed locally but NOT pushed anywhere.")
+        return False
+    print(f"  🚚 deploying dashboard: {cmd}")
+    try:
+        r = subprocess.run(cmd, shell=True, cwd=os.environ.get("DEPLOY_CWD") or None,
+                           capture_output=True, text=True, timeout=int(os.environ.get("DEPLOY_TIMEOUT", "300")))
+        out = ((r.stdout or "") + (r.stderr or "")).strip()
+        if out:
+            print("     " + out.replace("\n", "\n     ")[-1500:])
+        if r.returncode == 0:
+            print("  ✅ dashboard pushed.")
+            return True
+        print(f"  ❌ deploy command exited with code {r.returncode} - dashboard NOT updated online.")
+    except Exception as e:
+        print(f"  ❌ deploy command failed: {e}")
+    return False
+
+
 def run_cost_report_section(local_file=None):
     """v8.0 §2 — the 09:00 Tuesday/Friday job: download (or read `local_file`), parse, cover the old
     manpower / Cost-per-Order / Productivity data, rewrite the served JSON files and index.html's snapshot."""
@@ -4193,6 +4277,7 @@ def run_cost_report_section(local_file=None):
     if fc:
         write_fulfillment_cost_to_other_aspects(history)  # v9.0 - before update_embedded_data() so the snapshot has it
     update_embedded_data()
+    run_deploy_hook()                                 # v9.3 - push the refreshed dashboard in the same 09:00 run
     print("✅ Daily Cost Report 處理完成")
 
 

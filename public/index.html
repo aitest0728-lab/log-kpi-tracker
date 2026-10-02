@@ -1367,7 +1367,7 @@
         <div class="section-head">
           <div>
             <h2>Delay %</h2>
-            <div class="sub">Daily rows for the current month · one accumulated row per closed month · pick a timeslot below</div>
+            <div class="sub">Daily rows for the current month · one accumulated row per closed month · click a row (Overall) to see its AM / PM / EV / EV2 delay rates</div>
           </div>
         </div>
         <div class="prod-controls">
@@ -1397,7 +1397,9 @@
         <div class="prod-note" id="delayNote">
           Rows for the current (still-open) month show that day's actual Delay % for the selected timeslot. Once a
           month closes, it collapses into a single accumulated row (labelled "YYYY-MM") — the average of that
-          timeslot's daily values across the month. The MTD summary card always reflects today's month-to-date figure.
+          timeslot's daily values across the month. In the Overall view, click any date or month row to expand it into its
+          AM / PM / EV / EV2 delay rates (the month rows show each timeslot's monthly figure). The MTD summary card always
+          reflects today's month-to-date figure.
         </div>
       </div>
 
@@ -7418,22 +7420,29 @@
 
     const rows = [
       ...dailyKeys.map(k=>({ label:k, overall:DATA.delayDaily[k].overall, districts:DATA.delayDaily[k].districts, isMonth:false })),
-      ...monthlyKeys.map(k=>({ label:k, overall:{[slot]:{delay:DATA.delayMonthly[k][slot]?.overall}}, districts:Object.fromEntries(DISTRICTS.map(d=>[d,{[slot]:{delay:DATA.delayMonthly[k][slot]?.districts[d]}}])), isMonth:true })),
+      // v31.0 - a closed-month row now carries every timeslot (not just the selected one), so in the Overall view it
+      // can be expanded into its own AM/PM/EV/EV2 monthly delay rates, exactly like a daily row.
+      ...monthlyKeys.map(k=>{
+        const SLOTS = ['Overall','AM','PM','EV','EV2'];
+        const mo = DATA.delayMonthly[k] || {};
+        return { label:k, isMonth:true,
+          overall: Object.fromEntries(SLOTS.map(sl=>[sl,{delay:mo[sl]?.overall}])),
+          districts: Object.fromEntries(DISTRICTS.map(d=>[d, Object.fromEntries(SLOTS.map(sl=>[sl,{delay:mo[sl]?.districts?.[d]}]))])) };
+      }),
     ];
     // v5.0 §1 — in the Overall timeslot, a daily row can be clicked to expand
     // into its own AM/PM/EV/EV2 breakdown (the day's data already carries all
     // 4 slots — see DATA.delayDaily[k] above — this is purely a display
-    // toggle, no new data needed). Closed-month rows aren't clickable: their
-    // per-slot figures are already just a monthly average, not a richer
-    // underlying breakdown worth expanding.
+    // toggle, no new data needed). v31.0 - closed-month rows are clickable too: their
+    // AM/PM/EV/EV2 columns show each timeslot's monthly delay rate.
     const canExpand = slot === 'Overall';
     body.innerHTML = rows.map(r=>{
       const cells = DISTRICTS.map(d=>`<td>${pctFmt(r.districts[d] && r.districts[d][slot] && r.districts[d][slot].delay)}</td>`).join('');
       const total = r.overall[slot] && r.overall[slot].delay;
-      const expandable = canExpand && !r.isMonth;
+      const expandable = canExpand;   // v31.0 - closed-month rows expand too
       const isOpen = expandable && delayExpandedDates.has(r.label);
       const caret = expandable ? `<span class="delay-caret ${isOpen?'open':''}">▸</span>` : '';
-      const rowLabel = r.isMonth ? `<strong>${r.label}</strong>` : `${caret}${r.label}`;
+      const rowLabel = r.isMonth ? `${caret}<strong>${r.label}</strong>` : `${caret}${r.label}`;
       const rowCls = [r.isMonth?'total-row':'', expandable?'delay-row-expandable':'', isOpen?'delay-row-open':''].filter(Boolean).join(' ');
       const mainRow = `<tr class="${rowCls}" ${expandable?`data-date="${r.label}"`:''}><td>${rowLabel}</td>${cells}<td><strong>${pctFmt(total)}</strong></td></tr>`;
       if(!isOpen) return mainRow;
