@@ -4375,7 +4375,7 @@ def _clean_coord(lat, lng):
 
 
 def _norm_header(h):
-    return re.sub(r"[\s_\-\(\)（）]+", "", str(h)).lower()
+    return re.sub(r"[\s_\-\(\)（）\.]+", "", str(h)).lower()
 
 
 def _find_map_excel(explicit=None):
@@ -4440,6 +4440,84 @@ def load_map_excel(path):
     return out
 
 
+MAP_LOOKUP_PATH = os.environ.get("MAP_LOOKUP_PATH", "./map_lookup.json")
+
+
+def _existing_map_lookups():
+    """Lookups used to fill columns the Excel lacks (district / type / area / names):
+    1) MAP_LOOKUP_PATH (map_lookup.json, kept next to this script and refreshed after every good build),
+    2) otherwise the map block already embedded in index.html.
+    -> (by_code {code: {en,zh,dd,type,area}}, zone_dd {zone: district}, centres [(area, lat, lng)])"""
+    from collections import Counter
+    if os.path.exists(MAP_LOOKUP_PATH):
+        try:
+            L = json.loads(Path(MAP_LOOKUP_PATH).read_text(encoding="utf-8"))
+            by_code = {c: dict(zip(("en", "zh", "dd", "type", "area"), v)) for c, v in L["codes"].items()}
+            return by_code, L["zoneDd"], [tuple(c) for c in L["centres"]]
+        except Exception as e:
+            print(f"  ⚠️ {MAP_LOOKUP_PATH} unreadable ({e}) — trying the map block in index.html.")
+    try:
+        html = Path(INDEX_HTML_PATH).read_text(encoding="utf-8")
+        m = re.search(r"window\.__MAP_DATA__=(\{.*?\});?/\*MAP_DATA_END\*/", html, re.DOTALL)
+        old = json.loads(m.group(1))
+    except Exception:
+        return {}, {}, []
+    by_code, zc, centres = {}, {}, []
+    for ar in old.get("areas", []):
+        pts = [(r[6], r[7]) for r in ar["e"] if len(r) >= 8]
+        if pts:
+            centres.append((ar["k"], sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts)))
+        for r in ar["e"]:
+            dd, ty, zn = old["dd"][r[3]], old["types"][r[4]], old["zones"][r[5]]
+            by_code[r[0]] = {"en": r[1], "zh": r[2], "dd": dd, "type": ty, "area": ar["k"]}
+            zc.setdefault(zn, Counter())[dd] += 1
+    return by_code, {z: c.most_common(1)[0][0] for z, c in zc.items()}, centres
+
+
+def save_map_lookup(data):
+    """Refreshes MAP_LOOKUP_PATH from a freshly built map dict — only when it carries real districts."""
+    if len([d for d in data["dd"] if d != "(none)"]) < 2:
+        return
+    from collections import Counter
+    codes, zc, cen = {}, {}, []
+    for ar in data["areas"]:
+        pts = [(r[6], r[7]) for r in ar["e"] if len(r) >= 8]
+        if pts:
+            cen.append([ar["k"], sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts)])
+        for r in ar["e"]:
+            codes[r[0]] = [r[1], r[2], data["dd"][r[3]], data["types"][r[4]], ar["k"]]
+            zc.setdefault(data["zones"][r[5]], Counter())[data["dd"][r[3]]] += 1
+    Path(MAP_LOOKUP_PATH).write_text(json.dumps(
+        {"_note": "refreshed by kpi_pipeline.py --section map", "codes": codes,
+         "zoneDd": {z: c.most_common(1)[0][0] for z, c in zc.items()}, "centres": cen},
+        ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+
+
+def enrich_map_frame(df):
+    """Fills blank district / type / area / names: 1) from the previous map data by estate code,
+    2) district from the delivery zone, 3) area from the nearest known area centre."""
+    by_code, zone_dd, centres = _existing_map_lookups()
+    if not by_code:
+        return df
+    before = {k: int((df[k] == "").sum()) for k in ("dd", "type", "area")}
+    def fill(row):
+        o = by_code.get(row["code"], {})
+        for k in ("en", "zh", "dd", "type", "area"):
+            if not row[k] and o.get(k):
+                row[k] = o[k]
+        if not row["dd"] and row["zone"] in zone_dd:
+            row["dd"] = zone_dd[row["zone"]]
+        if not row["area"] and centres:
+            c = _clean_coord(row["lat"], row["lng"])
+            if c and point_in_hk(*c):
+                row["area"] = min(centres, key=lambda a: (a[1] - c[0]) ** 2 + (a[2] - c[1]) ** 2)[0]
+        return row
+    df = df.apply(fill, axis=1)
+    after = {k: int((df[k] == "").sum()) for k in ("dd", "type", "area")}
+    print("  Filled from previous map data / zone: " + ", ".join(f"{k} {before[k] - after[k]:,} (still blank {after[k]:,})" for k in before))
+    return df
+
+
 def build_map_data(df):
     """Excel frame -> the dict the Delivery Map tab embeds (same shape as before + hkPoly)."""
     import statistics
@@ -4500,18 +4578,43 @@ def inject_map_data(data, carto_key):
     return True
 
 
+def _inject_map_key_only(carto_key):
+    """Updates only window.__MAP_CFG__ in index.html (map data untouched)."""
+    if not os.path.exists(INDEX_HTML_PATH):
+        print(f"  ⚠️ {INDEX_HTML_PATH!r} not found.")
+        return False
+    html = Path(INDEX_HTML_PATH).read_text(encoding="utf-8")
+    cfg = "window.__MAP_CFG__=" + json.dumps({"cartoKey": carto_key}) + ";"
+    new, n = re.subn(r"window\.__MAP_CFG__=\{[^}]*\};", lambda m: cfg, html, count=1)
+    if n != 1:
+        print("  ⚠️ window.__MAP_CFG__ not found in index.html — use the Delivery Map v2 index.html first.")
+        return False
+    Path(INDEX_HTML_PATH).write_text(new, encoding="utf-8")
+    return True
+
+
 def run_map_section(excel_path=None):
     print("🗺️ 開始更新 Delivery Map 數據...")
     key = load_carto_key()
-    path = _find_map_excel(excel_path)
+    try:
+        path = _find_map_excel(excel_path)
+    except FileNotFoundError as e:
+        # No Excel this run: still push the CARTO key into the existing map block so the
+        # Carto base maps come back; the estate/zone data already in index.html is kept.
+        print(f"  ⚠️ {e}")
+        if _inject_map_key_only(key):
+            print(f"  ✅ index.html: CARTO key {'embedded' if key else 'NOT found — OSM fallback'} (map data unchanged)")
+            run_deploy_hook()
+        return
     print(f"  Source: {path}")
-    data, st = build_map_data(load_map_excel(path))
+    data, st = build_map_data(enrich_map_frame(load_map_excel(path)))
     print(f"  Estates {st['total']:,} · plotted {st['plotted']:,} · missing coords {st['missing']} · "
           f"outside Hong Kong {st['outsideHK']} · delivery zones {st['zones']:,}")
     for code, why, la, ln in st["problems"][:25]:
         print(f"    - {code}: {why} ({la}, {ln})")
     if len(st["problems"]) > 25:
         print(f"    … +{len(st['problems']) - 25} more (listed in the dashboard's Data Check)")
+    save_map_lookup(data)
     if inject_map_data(data, key):
         print(f"  ✅ index.html updated (CARTO key {'embedded' if key else 'NOT found — OSM fallback'})")
         run_deploy_hook()
