@@ -1503,11 +1503,13 @@
           </div>
         </div>
         <div class="gmv-summary" id="mapSummary"></div>
+        <div id="mapAbnBanner" style="display:none;align-items:center;gap:12px;margin:0 0 10px;padding:8px 12px;border:1px solid var(--red);border-radius:8px;background:var(--red-soft,rgba(224,33,43,.08));font-size:12.5px"><span></span><button class="map-mini-btn" type="button" style="margin-left:auto">Review list</button></div>
         <div class="map-controls">
           <div class="map-layer-toggles">
             <label><input type="checkbox" id="mapLyrCov" checked> Coverage outlines</label>
             <label><input type="checkbox" id="mapLyrDots" checked> Delivery points</label>
             <label><input type="checkbox" id="mapLyrBub" checked> Area counts / zone labels</label>
+            <label><input type="checkbox" id="mapLyrAbn" checked> Abnormal lat/long (red rings)</label>
           </div>
           <div class="prod-field">
             <label for="mapBaseSelect">Base map</label>
@@ -1573,9 +1575,11 @@
         </div>
         <div class="prod-note" id="mapNote">
           Points are pinned at the <b>Latitude / Longitude</b> in the open-address list. The coloured outline per delivery district is its
-          coverage footprint (outer boundary of its points, ignoring flagged ones) — it can include gaps and sea between points.
+          coverage footprint (outer boundary of its points, ignoring flagged and abnormal ones) — it can include gaps and sea between points.
           Every point whose Latitude / Longitude lies inside Hong Kong is plotted exactly where the Excel says. Only rows with missing coordinates or
           coordinates outside Hong Kong are placed approximately within their area and listed (black-ringed) in <b>Data Check</b> below.
+          <b>Abnormal lat/long</b> (v35.0): a point far from the rest of its delivery zone (more than max(2 km, 4 &times; the zone's 90th-percentile spread); zones with fewer than 4 points are compared with their area, limit max(6 km, 5 &times;)) is plotted as given with a red ring and listed first in Data Check, but is excluded from district and zone coverage outlines, zone labels and area centres.
+          <b>NT-YT</b> and <b>WTH</b> are shown together as one district, <b>NT-YT &amp; WTH</b>.
           <b>Colour by &rarr; Delivery zone</b> colours each point and outline by its Delivery Zone code (Excel Column C); zone codes label the map from zoom level 13.
         </div>
         <h3 class="prod-detail-label">Data Check — coordinates to review (<span id="mapCheckCount">0</span>)</h3>
@@ -7870,7 +7874,12 @@
   const D = window.__MAP_DATA__;
   if(!D || !D.areas) return;
 
-  const PALETTE = {'ETH':'#d6484b','ETK':'#e2a33d','ETX':'#1f9d8a','NT-ST':'#2f7fd1','NT-TM':'#8e5bd6','NT-TSM':'#2cb1d6',
+  /* v35.0 — district grouping (config-driven): members share one label, colour, chip, hull and table row */
+  const DD_GROUPS = {'NT-YT':'NT-YT & WTH','WTH':'NT-YT & WTH'};
+  const gNames = [];
+  const ddMap = D.dd.map(n=>{ const g = DD_GROUPS[n] || n; let i = gNames.indexOf(g); if(i<0){ gNames.push(g); i = gNames.length-1; } return i; });
+  D.dd = gNames;
+  const PALETTE = {'NT-YT & WTH':'#e5732d','ETH':'#d6484b','ETK':'#e2a33d','ETX':'#1f9d8a','NT-ST':'#2f7fd1','NT-TM':'#8e5bd6','NT-TSM':'#2cb1d6',
                    'NT-TW':'#c2579a','NT-YT':'#8a9a2f','WTH':'#e5732d','WTK':'#3b4f8a','WTX':'#4fa34d'};
   const FALLBACK = ['#6b7a8c','#a0522d','#708090','#b8860b'];
   const ddColor = D.dd.map((d,i)=> PALETTE[d] || FALLBACK[i % FALLBACK.length]);
@@ -7906,22 +7915,56 @@
         lat = ar.lat + d*Math.cos(a)/111320;
         lng = ar.lng + d*Math.sin(a)/(111320*cosLat);
       }
-      E.push({code:r[0], en:r[1], zh:r[2], dd:r[3], ty:r[4], zone:r[5], a:ai, lat, lng, exact, far:false, km:0,
+      E.push({code:r[0], en:r[1], zh:r[2], dd:ddMap[r[3]], ty:r[4], zone:r[5], a:ai, lat, lng, exact, far:false, km:0,
               q:(r[0]+' '+r[1]+' '+r[2]).toLowerCase()});
-      areaDD[ai][r[3]]++;
+      areaDD[ai][ddMap[r[3]]]++;
     });
   });
-  /* area centre = median of its real coordinates; flag points far from their area (likely wrong geocode) */
+  /* v35.0 — abnormal lat/long: a point far from its own delivery zone (or, for zones with too few peers, its area).
+     Tunable thresholds. Abnormal points are still plotted as given, but excluded from every coverage / centre calculation. */
+  const ABN = {zoneMinPeers:4, zoneKm:2, zoneMul:4, areaKm:6, areaMul:5, trim:0.8};
   const med = a => { const s=a.slice().sort((x,y)=>x-y), m=s.length>>1; return s.length? (s.length%2?s[m]:(s[m-1]+s[m])/2):null; };
   const kmBetween = (la1,ln1,la2,ln2)=> Math.hypot((la1-la2)*111, (ln1-ln2)*111*Math.cos(la1*Math.PI/180));
+  const pct = (a,p)=>{ const s=a.slice().sort((x,y)=>x-y); return s.length ? s[Math.min(s.length-1, Math.round(p*(s.length-1)))] : 0; };
+  function robustCentre(list){            /* 2-pass trimmed median */
+    let c = [med(list.map(e=>e.lat)), med(list.map(e=>e.lng))];
+    for(let pass=0; pass<2; pass++){
+      const ds = list.map(e=>kmBetween(e.lat,e.lng,c[0],c[1])), cut = pct(ds, ABN.trim);
+      const keep = list.filter((_,i)=>ds[i]<=cut);
+      if(keep.length) c = [med(keep.map(e=>e.lat)), med(keep.map(e=>e.lng))];
+    }
+    return c;
+  }
+  function judge(list, minKm, mul, basis){
+    const c = robustCentre(list), ds = list.map(e=>kmBetween(e.lat,e.lng,c[0],c[1]));
+    const thr = Math.max(minKm, mul*pct(ds,0.9));
+    list.forEach((e,i)=>{ if(ds[i]>thr){ e.abn = true; e.flag = 'abn'; e.km = ds[i]; e.thr = thr; e.basis = basis; } });
+  }
+  const byZone = {}; E.forEach(e=>{ if(e.exact) (byZone[e.zone]||(byZone[e.zone]=[])).push(e); });
+  const byArea = {}; E.forEach(e=>{ if(e.exact) (byArea[e.a]||(byArea[e.a]=[])).push(e); });
+  const smallZoneAreas = new Set();
+  Object.keys(byZone).forEach(z=>{
+    const l = byZone[z];
+    if(l.length >= ABN.zoneMinPeers) judge(l, ABN.zoneKm, ABN.zoneMul, 'zone');
+    else l.forEach(e=>smallZoneAreas.add(e));
+  });
+  Object.keys(byArea).forEach(a=>{                       /* small-zone points: judged against their area's trusted points */
+    const trusted = byArea[a].filter(e=>!e.abn);
+    if(trusted.length < ABN.zoneMinPeers) return;
+    const c = robustCentre(trusted), ds = trusted.map(e=>kmBetween(e.lat,e.lng,c[0],c[1])), thr = Math.max(ABN.areaKm, ABN.areaMul*pct(ds,0.9));
+    trusted.forEach(e=>{ if(!smallZoneAreas.has(e)) return; const d = kmBetween(e.lat,e.lng,c[0],c[1]);
+      if(d>thr){ e.abn = true; e.flag = 'abn'; e.km = d; e.thr = thr; e.basis = 'area'; } });
+  });
+  /* area centre = median of its real coordinates; flag points far from their area (likely wrong geocode) */
   D.areas.forEach((ar, ai)=>{
-    const ex = E.filter(e=>e.a===ai && e.exact);
+    const ex = E.filter(e=>e.a===ai && e.exact && !e.abn);
     if(ex.length){ ar.clat = med(ex.map(e=>e.lat)); ar.clng = med(ex.map(e=>e.lng)); } else { ar.clat = ar.lat; ar.clng = ar.lng; }
     const ds = ex.map(e=>kmBetween(e.lat,e.lng,ar.clat,ar.clng));
     const lim = Math.max(4, 5*(med(ds)||0));
-    ex.forEach((e,i)=>{ e.far = false; /* distance-from-area check no longer blocks plotting */ e.km = ds[i]; });
+    ex.forEach((e,i)=>{ e.far = false; e.km = ds[i]; });
   });
   E.forEach(e=>{ if(!e.exact) e.flag='approx'; });
+  const nAbn = E.filter(e=>e.abn).length, nApprox = E.filter(e=>e.flag==='approx').length;
   const ddTotal = new Array(nDD).fill(0);
   E.forEach(e=>ddTotal[e.dd]++);
 
@@ -7942,17 +7985,17 @@
   /* ---- delivery-zone model (zone code = Excel Column C) ---- */
   const zoneE = D.zones.map(()=>[]); E.forEach(e=>zoneE[e.zone].push(e));
   const zoneDDs = zoneE.map(list=>{ const c={}; list.forEach(e=>c[e.dd]=(c[e.dd]||0)+1); return Object.keys(c).map(Number).sort((a,b)=>c[b]-c[a]); });
-  const zoneHull = zoneE.map(list=>{ const seen=new Set(), pts=[]; list.forEach(e=>{ if(!e.exact) return; const k=e.lat.toFixed(4)+','+e.lng.toFixed(4); if(!seen.has(k)){ seen.add(k); pts.push([e.lat,e.lng]); } }); return pts.length>=3 ? hullOf(pts) : null; });
-  const zoneCen = zoneE.map(list=>{ const ex=list.filter(e=>e.exact); return ex.length ? [med(ex.map(e=>e.lat)), med(ex.map(e=>e.lng))] : null; });
+  const zoneHull = zoneE.map(list=>{ const seen=new Set(), pts=[]; list.forEach(e=>{ if(!e.exact||e.abn) return; const k=e.lat.toFixed(4)+','+e.lng.toFixed(4); if(!seen.has(k)){ seen.add(k); pts.push([e.lat,e.lng]); } }); return pts.length>=3 ? hullOf(pts) : null; });
+  const zoneCen = zoneE.map(list=>{ const ex=list.filter(e=>e.exact&&!e.abn); return ex.length ? [med(ex.map(e=>e.lat)), med(ex.map(e=>e.lng))] : null; });
   function zoneColor(z){ return 'hsl('+((z*137.508)%360).toFixed(0)+','+(60+(z%3)*10)+'%,'+(40+(z%2)*10)+'%)'; }
 
   /* ---- state ---- */
   const active = new Set(D.dd.map((_,i)=>i));
-  const show = {cov:true, dots:true, bub:true};
+  const show = {cov:true, dots:true, bub:true, abn:true};
   let map = null, built = false, tiles = {}, curBase = ((window.__MAP_CFG__||{}).cartoKey ? 'voyager' : 'osm'), tileErrShown = false;
   let viewMode = 'dd', zoneLayer, labelLayer, zoneHi = null; const allMarkers = [];
   function colorOf(e){ return viewMode==='zone' ? zoneColor(e.zone) : ddColor[e.dd]; }
-  let covLayer, bubLayer, dotGroups = [];
+  let covLayer, bubLayer, dotGroups = [], abnGroups = [];
 
   /* ---- helpers on filtered data ---- */
   function areaCount(ai){ let n=0; active.forEach(d=>n+=areaDD[ai][d]); return n; }
@@ -7977,7 +8020,8 @@
   const byPos = new Map();
   E.forEach(e=>{ if(!e.exact) return; const k=e.lat.toFixed(6)+','+e.lng.toFixed(6); (byPos.get(k)||byPos.set(k,[]).get(k)).push(e); });
   function flagNote(e){
-    return e.flag==='approx' ? '<div class="approx">Coordinates missing or outside Hong Kong — position approximate (placed within its area).</div>'
+    return e.flag==='abn' ? `<div class="approx" style="color:var(--red);font-style:normal"><b>Abnormal lat/long:</b> ${e.km.toFixed(1)} km from the centre of its ${e.basis==='zone'?'delivery zone '+esc(D.zones[e.zone]):'area '+esc(niceArea(D.areas[e.a].k))} (limit ${e.thr.toFixed(1)} km). Plotted as given; excluded from coverage outlines and zone shapes.</div>`
+         : e.flag==='approx' ? '<div class="approx">Coordinates missing or outside Hong Kong — position approximate (placed within its area).</div>'
          : e.flag==='far' ? `<div class="approx" style="color:var(--red)">Check location: ${e.km.toFixed(1)} km from the rest of ${esc(niceArea(D.areas[e.a].k))}.</div>` : '';
   }
   function popupForEstate(e){
@@ -8041,11 +8085,14 @@
     covLayer = L.layerGroup(); bubLayer = L.layerGroup();
     covLayer._r = covR; bubLayer._r = bubR;
 
-    for(let d=0; d<nDD; d++) dotGroups.push(L.layerGroup());
+    map.createPane('abn').style.zIndex = 425;
+    const abnR = L.svg({pane:'abn'});
+    for(let d=0; d<nDD; d++){ dotGroups.push(L.layerGroup()); abnGroups.push(L.layerGroup()); }
     E.forEach(e=>{
-      const m = L.circleMarker([e.lat,e.lng], {renderer:dotR, pane:'dots', radius:e.flag?4.5:3, stroke:!!e.flag, color:'#101826', weight:1.5, fillColor:colorOf(e), fillOpacity:.85});
+      const m = e.abn ? L.circleMarker([e.lat,e.lng], {renderer:abnR, pane:'abn', radius:7, stroke:true, color:'#e0212b', weight:3, fillColor:colorOf(e), fillOpacity:.9})
+                      : L.circleMarker([e.lat,e.lng], {renderer:dotR, pane:'dots', radius:e.flag?4.5:3, stroke:!!e.flag, color:'#101826', weight:1.5, fillColor:colorOf(e), fillOpacity:.85});
       m.on('click', ev=>{ L.popup({maxWidth:320}).setLatLng(ev.latlng).setContent(popupForEstate(e)).openOn(map); });
-      m._e = e; allMarkers.push(m); dotGroups[e.dd].addLayer(m);
+      m._e = e; allMarkers.push(m); (e.abn?abnGroups:dotGroups)[e.dd].addLayer(m);
     });
     map.on('moveend zoomend', updateLabels);
     return true;
@@ -8080,6 +8127,7 @@
     put(zoneLayer, show.cov && viewMode==='zone'); put(labelLayer, show.bub && viewMode==='zone');
     updateLabels();
     dotGroups.forEach((g,d)=> put(g, show.dots && active.has(d)));
+    abnGroups.forEach((g,d)=> put(g, show.abn && active.has(d)));
   }
 
   function boundsFor(ddSet){
@@ -8100,7 +8148,10 @@
       card('Areas covered', fmt(areas), `of ${D.areas.length} estate areas`) +
       card('Delivery districts', `${active.size} / ${nDD}`, 'selected') +
       card('Delivery zones', fmt(zones.size), 'distinct zone codes') +
-      card('Coordinates to check', fmt(E.filter(e=>e.flag).length), 'flagged — see Data Check below');
+      card('Coordinates to check', fmt(nAbn+nApprox), `${fmt(nAbn)} abnormal · ${fmt(nApprox)} missing / outside HK`);
+    const bn = document.getElementById('mapAbnBanner');
+    bn.style.display = nAbn ? 'flex' : 'none';
+    bn.querySelector('span').innerHTML = `<b>${fmt(nAbn)} delivery points have abnormal lat/long</b> (far from their delivery zone). They show as red rings and are left out of coverage outlines, zone shapes and area centres.`;
     document.getElementById('mapSub').textContent =
       `Open delivery points as of ${D.asOf || 'latest export'} · scroll or use +/− to zoom · click a district chip to filter`;
   }
@@ -8122,8 +8173,8 @@
     }).join('');
   }
   function renderCheck(){
-    const f = E.filter(e=>e.flag).sort((a,b)=>(a.flag==='approx'?0:1)-(b.flag==='approx'?0:1) || b.km-a.km);
-    document.getElementById('mapCheckBody').innerHTML = f.length ? f.map(e=>`<tr><td class="l">${esc(e.code)}</td><td class="l" style="white-space:normal;min-width:240px">${esc(e.en)}<br><span style="color:var(--text-muted)">${esc(e.zh)}</span></td><td class="l">${esc(niceArea(D.areas[e.a].k))}</td><td class="l">${esc(D.dd[e.dd])}</td><td class="l">${e.flag==='approx'?'Missing lat-long or outside Hong Kong':''}</td><td><button class="map-mini-btn" data-goto="${esc(e.code)}">Show</button></td></tr>`).join('')
+    const f = E.filter(e=>e.flag).sort((a,b)=>(a.flag==='abn'?0:1)-(b.flag==='abn'?0:1) || b.km-a.km);
+    document.getElementById('mapCheckBody').innerHTML = f.length ? f.map(e=>`<tr><td class="l">${esc(e.code)}</td><td class="l" style="white-space:normal;min-width:240px">${esc(e.en)}<br><span style="color:var(--text-muted)">${esc(e.zh)}</span></td><td class="l">${esc(niceArea(D.areas[e.a].k))}</td><td class="l">${esc(D.dd[e.dd])}</td><td class="l">${e.flag==='abn'?`<span style="color:var(--red)"><b>Abnormal lat/long</b> — ${e.km.toFixed(1)} km from ${e.basis==='zone'?'zone '+esc(D.zones[e.zone]):'its area'} centre (limit ${e.thr.toFixed(1)} km) · ${e.lat.toFixed(5)}, ${e.lng.toFixed(5)}</span>`:'Missing lat-long or outside Hong Kong'}</td><td><button class="map-mini-btn" data-goto="${esc(e.code)}">Show</button></td></tr>`).join('')
       : '<tr><td class="l" colspan="6">No issues found.</td></tr>';
     document.getElementById('mapCheckCount').textContent = f.length;
   }
@@ -8166,7 +8217,7 @@
     if(!active.has(zoneDDs[zi][0])){ zoneDDs[zi].forEach(d=>active.add(d)); refreshAll(); }
     if(viewMode!=='zone') setViewMode('zone');
     if(zoneHi){ map.removeLayer(zoneHi); zoneHi=null; }
-    const ex = zoneE[zi].filter(e=>e.exact);
+    const ex = zoneE[zi].filter(e=>e.exact&&!e.abn);
     if(!ex.length) return;
     const bb = L.latLngBounds(ex.map(e=>[e.lat,e.lng]));
     if(zoneHull[zi]) zoneHi = L.polygon(zoneHull[zi], {pane:'zone', renderer:zoneLayer._r, color:'#101826', weight:3, fill:false, interactive:false}).addTo(map);
@@ -8242,8 +8293,9 @@
       const bb = boundsFor(new Set([i])); if(bb) map.fitBounds(bb);
       document.querySelector('#view-map .map-frame').scrollIntoView({behavior:'smooth', block:'center'});
     });
+    document.getElementById('mapAbnBanner').addEventListener('click', ev=>{ if(ev.target.closest('button')) document.getElementById('mapCheckBody').closest('table').scrollIntoView({behavior:'smooth', block:'start'}); });
     document.getElementById('mapCheckBody').addEventListener('click', ev=>{ const b=ev.target.closest('[data-goto]'); if(!b) return; document.querySelector('#view-map .map-frame').scrollIntoView({behavior:'smooth',block:'center'}); gotoEstate(b.dataset.goto); });
-    [['mapLyrCov','cov'],['mapLyrDots','dots'],['mapLyrBub','bub']].forEach(([id,k])=>{
+    [['mapLyrCov','cov'],['mapLyrDots','dots'],['mapLyrBub','bub'],['mapLyrAbn','abn']].forEach(([id,k])=>{
       document.getElementById(id).addEventListener('change', e=>{ show[k]=e.target.checked; syncLayerVisibility(); });
     });
     document.getElementById('mapBaseSelect').addEventListener('change', e=>{
