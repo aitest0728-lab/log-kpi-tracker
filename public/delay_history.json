@@ -1,5 +1,287 @@
 {
-  "daily": {},
+  "daily": {
+    "2026-10-01": {
+      "overall": {
+        "Overall": {
+          "delay": 4.6,
+          "early": 20.9,
+          "onTime": 74.6
+        }
+      },
+      "districts": {
+        "ETH": {
+          "Overall": {
+            "delay": 2.1,
+            "early": 38.4,
+            "onTime": 59.6
+          },
+          "AM": {
+            "delay": 4.4,
+            "early": 0.7,
+            "onTime": 94.9
+          },
+          "PM": {
+            "delay": 3.0,
+            "early": 37.2,
+            "onTime": 59.7
+          },
+          "EV": {
+            "delay": 0.0,
+            "early": 62.9,
+            "onTime": 37.1
+          },
+          "EV2": {
+            "delay": 0.0,
+            "early": 37.6,
+            "onTime": 62.4
+          }
+        },
+        "ETK": {
+          "Overall": {
+            "delay": 3.3,
+            "early": 17.0,
+            "onTime": 79.7
+          },
+          "AM": {
+            "delay": 8.3,
+            "early": 0.0,
+            "onTime": 91.7
+          },
+          "PM": {
+            "delay": 2.0,
+            "early": 12.8,
+            "onTime": 85.2
+          },
+          "EV": {
+            "delay": 0.2,
+            "early": 34.4,
+            "onTime": 65.4
+          },
+          "EV2": {
+            "delay": 0.6,
+            "early": 38.1,
+            "onTime": 61.3
+          }
+        },
+        "ETX": {
+          "Overall": {
+            "delay": 7.2,
+            "early": 6.7,
+            "onTime": 86.1
+          },
+          "AM": {
+            "delay": 4.8,
+            "early": 0.3,
+            "onTime": 94.9
+          },
+          "PM": {
+            "delay": 8.8,
+            "early": 9.3,
+            "onTime": 82.0
+          },
+          "EV": {
+            "delay": 5.2,
+            "early": 4.4,
+            "onTime": 90.4
+          },
+          "EV2": {
+            "delay": 8.2,
+            "early": 8.9,
+            "onTime": 82.9
+          }
+        },
+        "NT-ST": {
+          "Overall": {
+            "delay": 3.9,
+            "early": 13.1,
+            "onTime": 83.0
+          },
+          "AM": {
+            "delay": 9.0,
+            "early": 0.0,
+            "onTime": 91.0
+          },
+          "PM": {
+            "delay": 3.6,
+            "early": 10.6,
+            "onTime": 85.7
+          },
+          "EV": {
+            "delay": 0.0,
+            "early": 33.5,
+            "onTime": 66.5
+          },
+          "EV2": {
+            "delay": 1.5,
+            "early": 0.7,
+            "onTime": 97.8
+          }
+        },
+        "NT-TM": {
+          "Overall": {
+            "delay": 13.7,
+            "early": 5.6,
+            "onTime": 80.7
+          },
+          "AM": {
+            "delay": 19.7,
+            "early": 0.0,
+            "onTime": 80.3
+          },
+          "PM": {
+            "delay": 12.2,
+            "early": 2.6,
+            "onTime": 85.2
+          },
+          "EV": {
+            "delay": 9.5,
+            "early": 18.5,
+            "onTime": 72.1
+          },
+          "EV2": {
+            "delay": 7.7,
+            "early": 7.2,
+            "onTime": 85.1
+          }
+        },
+        "NT-TSM": {
+          "Overall": {
+            "delay": 1.0,
+            "early": 22.4,
+            "onTime": 76.6
+          },
+          "AM": {
+            "delay": 0.8,
+            "early": 0.0,
+            "onTime": 99.2
+          },
+          "PM": {
+            "delay": 0.9,
+            "early": 13.4,
+            "onTime": 85.6
+          },
+          "EV": {
+            "delay": 1.3,
+            "early": 48.6,
+            "onTime": 50.3
+          },
+          "EV2": {
+            "delay": 1.0,
+            "early": 12.6,
+            "onTime": 86.4
+          }
+        },
+        "NT-TW": {
+          "Overall": {
+            "delay": 7.1,
+            "early": 18.4,
+            "onTime": 74.5
+          },
+          "AM": {
+            "delay": 13.1,
+            "early": 0.0,
+            "onTime": 86.9
+          },
+          "PM": {
+            "delay": 6.0,
+            "early": 14.4,
+            "onTime": 79.5
+          },
+          "EV": {
+            "delay": 3.8,
+            "early": 36.6,
+            "onTime": 59.7
+          },
+          "EV2": {
+            "delay": 6.5,
+            "early": 18.6,
+            "onTime": 74.9
+          }
+        },
+        "WTH": {
+          "Overall": {
+            "delay": 2.3,
+            "early": 32.6,
+            "onTime": 65.1
+          },
+          "AM": {
+            "delay": 2.5,
+            "early": 0.0,
+            "onTime": 97.5
+          },
+          "PM": {
+            "delay": 4.3,
+            "early": 30.1,
+            "onTime": 65.6
+          },
+          "EV": {
+            "delay": 0.0,
+            "early": 59.2,
+            "onTime": 40.8
+          },
+          "EV2": {
+            "delay": 0.0,
+            "early": 4.0,
+            "onTime": 96.0
+          }
+        },
+        "WTK": {
+          "Overall": {
+            "delay": 0.6,
+            "early": 36.2,
+            "onTime": 63.3
+          },
+          "AM": {
+            "delay": 0.3,
+            "early": 0.0,
+            "onTime": 99.7
+          },
+          "PM": {
+            "delay": 0.6,
+            "early": 36.2,
+            "onTime": 63.3
+          },
+          "EV": {
+            "delay": 0.7,
+            "early": 57.0,
+            "onTime": 42.4
+          },
+          "EV2": {
+            "delay": 0.5,
+            "early": 2.9,
+            "onTime": 96.7
+          }
+        },
+        "WTX": {
+          "Overall": {
+            "delay": 4.0,
+            "early": 17.6,
+            "onTime": 78.4
+          },
+          "AM": {
+            "delay": 11.2,
+            "early": 0.2,
+            "onTime": 88.6
+          },
+          "PM": {
+            "delay": 3.5,
+            "early": 10.6,
+            "onTime": 85.9
+          },
+          "EV": {
+            "delay": 1.1,
+            "early": 36.7,
+            "onTime": 62.2
+          },
+          "EV2": {
+            "delay": 2.7,
+            "early": 5.7,
+            "onTime": 91.6
+          }
+        }
+      }
+    }
+  },
   "monthly": {
     "2026-09": {
       "AM": {
@@ -82,308 +364,258 @@
   "mtd": {
     "overall": {
       "Overall": {
-        "delay": 8.7
+        "delay": 4.6
       }
     },
     "districts": {
       "ETH": {
         "AM": {
-          "delay": 9.6,
+          "delay": 4.4,
           "early": 0.7,
-          "onTime": 89.7
+          "onTime": 94.9
         },
         "PM": {
-          "delay": 3.8,
-          "early": 25.5,
-          "onTime": 70.7
+          "delay": 3.0,
+          "early": 37.2,
+          "onTime": 59.7
         },
         "EV": {
-          "delay": 1.6,
-          "early": 43.9,
-          "onTime": 54.5
-        },
-        "nan": {
           "delay": 0.0,
-          "early": 0.0,
-          "onTime": 100.0
+          "early": 62.9,
+          "onTime": 37.1
         },
         "EV2": {
-          "delay": 1.3,
-          "early": 30.3,
-          "onTime": 68.3
+          "delay": 0.0,
+          "early": 37.6,
+          "onTime": 62.4
         },
         "Overall": {
-          "delay": 4.1
+          "delay": 2.06
         }
       },
       "ETK": {
         "AM": {
-          "delay": 6.2,
-          "early": 0.4,
-          "onTime": 93.4
+          "delay": 8.3,
+          "early": 0.0,
+          "onTime": 91.7
         },
         "PM": {
-          "delay": 3.2,
-          "early": 14.6,
-          "onTime": 82.2
+          "delay": 2.0,
+          "early": 12.8,
+          "onTime": 85.2
         },
         "EV": {
-          "delay": 0.9,
-          "early": 33.9,
-          "onTime": 65.2
-        },
-        "nan": {
-          "delay": 0.0,
-          "early": 0.0,
-          "onTime": 100.0
+          "delay": 0.2,
+          "early": 34.4,
+          "onTime": 65.4
         },
         "EV2": {
-          "delay": 3.3,
-          "early": 32.5,
-          "onTime": 64.3
+          "delay": 0.6,
+          "early": 38.1,
+          "onTime": 61.3
         },
         "Overall": {
-          "delay": 3.39
+          "delay": 3.32
         }
       },
       "ETX": {
         "AM": {
-          "delay": 19.0,
-          "early": 0.8,
-          "onTime": 80.3
+          "delay": 4.8,
+          "early": 0.3,
+          "onTime": 94.9
         },
         "PM": {
-          "delay": 18.5,
-          "early": 7.3,
-          "onTime": 74.3
+          "delay": 8.8,
+          "early": 9.3,
+          "onTime": 82.0
         },
         "EV": {
-          "delay": 11.6,
-          "early": 9.9,
-          "onTime": 78.5
-        },
-        "nan": {
-          "delay": 0.0,
-          "early": 0.0,
-          "onTime": 100.0
+          "delay": 5.2,
+          "early": 4.4,
+          "onTime": 90.4
         },
         "EV2": {
-          "delay": 10.9,
-          "early": 9.5,
-          "onTime": 79.7
+          "delay": 8.2,
+          "early": 8.9,
+          "onTime": 82.9
         },
         "Overall": {
-          "delay": 16.37
+          "delay": 7.22
         }
       },
       "NT-ST": {
         "AM": {
-          "delay": 14.1,
-          "early": 0.2,
-          "onTime": 85.8
+          "delay": 9.0,
+          "early": 0.0,
+          "onTime": 91.0
         },
         "PM": {
-          "delay": 5.6,
-          "early": 12.2,
-          "onTime": 82.3
+          "delay": 3.6,
+          "early": 10.6,
+          "onTime": 85.7
         },
         "EV": {
-          "delay": 0.8,
-          "early": 35.8,
-          "onTime": 63.4
-        },
-        "nan": {
           "delay": 0.0,
-          "early": 0.0,
-          "onTime": 100.0
+          "early": 33.5,
+          "onTime": 66.5
         },
         "EV2": {
-          "delay": 2.0,
-          "early": 2.8,
-          "onTime": 95.2
+          "delay": 1.5,
+          "early": 0.7,
+          "onTime": 97.8
         },
         "Overall": {
-          "delay": 6.24
+          "delay": 3.9
         }
       },
       "NT-TM": {
         "AM": {
-          "delay": 17.4,
-          "early": 0.2,
-          "onTime": 82.4
-        },
-        "PM": {
-          "delay": 10.2,
-          "early": 9.5,
+          "delay": 19.7,
+          "early": 0.0,
           "onTime": 80.3
         },
-        "EV": {
-          "delay": 4.8,
-          "early": 34.5,
-          "onTime": 60.8
+        "PM": {
+          "delay": 12.2,
+          "early": 2.6,
+          "onTime": 85.2
         },
-        "nan": {
-          "delay": 0.0,
-          "early": 0.0,
-          "onTime": 100.0
+        "EV": {
+          "delay": 9.5,
+          "early": 18.5,
+          "onTime": 72.1
         },
         "EV2": {
-          "delay": 5.4,
-          "early": 17.9,
-          "onTime": 76.7
+          "delay": 7.7,
+          "early": 7.2,
+          "onTime": 85.1
         },
         "Overall": {
-          "delay": 10.7
+          "delay": 13.67
         }
       },
       "NT-TSM": {
         "AM": {
-          "delay": 22.1,
+          "delay": 0.8,
           "early": 0.0,
-          "onTime": 77.9
+          "onTime": 99.2
         },
         "PM": {
-          "delay": 8.6,
-          "early": 7.6,
-          "onTime": 83.9
+          "delay": 0.9,
+          "early": 13.4,
+          "onTime": 85.6
         },
         "EV": {
-          "delay": 2.9,
-          "early": 31.6,
-          "onTime": 65.6
-        },
-        "nan": {
-          "delay": 0.0,
-          "early": 0.0,
-          "onTime": 100.0
+          "delay": 1.3,
+          "early": 48.6,
+          "onTime": 50.3
         },
         "EV2": {
-          "delay": 5.2,
-          "early": 7.5,
-          "onTime": 87.4
+          "delay": 1.0,
+          "early": 12.6,
+          "onTime": 86.4
         },
         "Overall": {
-          "delay": 9.96
+          "delay": 1.02
         }
       },
       "NT-TW": {
         "AM": {
-          "delay": 17.4,
-          "early": 0.1,
-          "onTime": 82.5
+          "delay": 13.1,
+          "early": 0.0,
+          "onTime": 86.9
         },
         "PM": {
-          "delay": 9.1,
-          "early": 9.2,
-          "onTime": 81.7
+          "delay": 6.0,
+          "early": 14.4,
+          "onTime": 79.5
         },
         "EV": {
-          "delay": 3.2,
-          "early": 28.9,
-          "onTime": 67.9
-        },
-        "nan": {
-          "delay": 0.0,
-          "early": 0.0,
-          "onTime": 100.0
+          "delay": 3.8,
+          "early": 36.6,
+          "onTime": 59.7
         },
         "EV2": {
-          "delay": 5.7,
-          "early": 10.0,
-          "onTime": 84.3
+          "delay": 6.5,
+          "early": 18.6,
+          "onTime": 74.9
         },
         "Overall": {
-          "delay": 9.43
+          "delay": 7.1
         }
       },
       "WTH": {
         "AM": {
-          "delay": 17.4,
-          "early": 0.3,
-          "onTime": 82.3
+          "delay": 2.5,
+          "early": 0.0,
+          "onTime": 97.5
         },
         "PM": {
-          "delay": 10.2,
-          "early": 20.4,
-          "onTime": 69.5
+          "delay": 4.3,
+          "early": 30.1,
+          "onTime": 65.6
         },
         "EV": {
-          "delay": 2.2,
-          "early": 41.6,
-          "onTime": 56.3
-        },
-        "nan": {
           "delay": 0.0,
-          "early": 0.0,
-          "onTime": 100.0
+          "early": 59.2,
+          "onTime": 40.8
         },
         "EV2": {
-          "delay": 2.5,
-          "early": 2.0,
-          "onTime": 95.5
+          "delay": 0.0,
+          "early": 4.0,
+          "onTime": 96.0
         },
         "Overall": {
-          "delay": 7.7
+          "delay": 2.55
         }
       },
       "WTK": {
         "AM": {
-          "delay": 14.1,
+          "delay": 0.3,
           "early": 0.0,
-          "onTime": 85.9
+          "onTime": 99.7
         },
         "PM": {
-          "delay": 9.9,
-          "early": 10.9,
-          "onTime": 79.1
+          "delay": 0.6,
+          "early": 36.3,
+          "onTime": 63.3
         },
         "EV": {
-          "delay": 4.0,
-          "early": 28.7,
-          "onTime": 67.4
-        },
-        "nan": {
-          "delay": 0.0,
-          "early": 0.0,
-          "onTime": 100.0
+          "delay": 0.7,
+          "early": 57.0,
+          "onTime": 42.4
         },
         "EV2": {
-          "delay": 6.6,
+          "delay": 0.5,
           "early": 2.9,
-          "onTime": 90.5
+          "onTime": 96.7
         },
         "Overall": {
-          "delay": 8.7
+          "delay": 0.59
         }
       },
       "WTX": {
         "AM": {
-          "delay": 20.0,
+          "delay": 11.2,
           "early": 0.2,
-          "onTime": 79.8
+          "onTime": 88.6
         },
         "PM": {
-          "delay": 9.8,
-          "early": 8.3,
-          "onTime": 81.9
+          "delay": 3.5,
+          "early": 10.6,
+          "onTime": 85.9
         },
         "EV": {
-          "delay": 3.7,
-          "early": 31.8,
-          "onTime": 64.5
-        },
-        "nan": {
-          "delay": 0.0,
-          "early": 0.0,
-          "onTime": 100.0
+          "delay": 1.1,
+          "early": 36.7,
+          "onTime": 62.2
         },
         "EV2": {
-          "delay": 5.3,
-          "early": 10.1,
-          "onTime": 84.6
+          "delay": 2.7,
+          "early": 5.7,
+          "onTime": 91.6
         },
         "Overall": {
-          "delay": 10.13
+          "delay": 4.04
         }
       }
     }
@@ -522,6 +754,21 @@
         "WTH": 7.7,
         "WTK": 8.7,
         "WTX": 10.13
+      }
+    },
+    "2026-10-02": {
+      "overall": 4.6,
+      "districts": {
+        "ETH": 2.06,
+        "ETK": 3.32,
+        "ETX": 7.22,
+        "NT-ST": 3.9,
+        "NT-TM": 13.67,
+        "NT-TSM": 1.02,
+        "NT-TW": 7.1,
+        "WTH": 2.55,
+        "WTK": 0.59,
+        "WTX": 4.04
       }
     }
   }
