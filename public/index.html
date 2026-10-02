@@ -1509,7 +1509,7 @@
             <label><input type="checkbox" id="mapLyrCov" checked> Coverage outlines</label>
             <label><input type="checkbox" id="mapLyrDots" checked> Delivery points</label>
             <label><input type="checkbox" id="mapLyrBub" checked> Area counts / zone labels</label>
-            <label><input type="checkbox" id="mapLyrAbn" checked> Abnormal lat/long (red rings)</label>
+            <label><input type="checkbox" id="mapLyrAbn"> Show abnormal lat/long (red rings)</label>
           </div>
           <div class="prod-field">
             <label for="mapBaseSelect">Base map</label>
@@ -1578,7 +1578,7 @@
           coverage footprint (outer boundary of its points, ignoring flagged and abnormal ones) — it can include gaps and sea between points.
           Every point whose Latitude / Longitude lies inside Hong Kong is plotted exactly where the Excel says. Only rows with missing coordinates or
           coordinates outside Hong Kong are placed approximately within their area and listed (black-ringed) in <b>Data Check</b> below.
-          <b>Abnormal lat/long</b> (v35.0): a point far from the rest of its delivery zone (more than max(2 km, 4 &times; the zone's 90th-percentile spread); zones with fewer than 4 points are compared with their area, limit max(6 km, 5 &times;)) is plotted as given with a red ring and listed first in Data Check, but is excluded from district and zone coverage outlines, zone labels and area centres.
+          <b>Abnormal lat/long</b> (v35.0): a point far from the rest of its delivery zone (more than max(2 km, 4 &times; the zone's 90th-percentile spread); zones with fewer than 4 points are compared with their area, limit max(6 km, 5 &times;)) is hidden from the map by default (tick <b>Show abnormal lat/long</b> to reveal it as a red ring) and listed first in Data Check, and is excluded from district and zone coverage outlines, zone labels and area centres.
           <b>NT-YT</b> and <b>WTH</b> are shown together as one district, <b>NT-YT &amp; WTH</b>.
           <b>Colour by &rarr; Delivery zone</b> colours each point and outline by its Delivery Zone code (Excel Column C); zone codes label the map from zoom level 13.
         </div>
@@ -7991,7 +7991,7 @@
 
   /* ---- state ---- */
   const active = new Set(D.dd.map((_,i)=>i));
-  const show = {cov:true, dots:true, bub:true, abn:true};
+  const show = {cov:true, dots:true, bub:true, abn:false};
   let map = null, built = false, tiles = {}, curBase = ((window.__MAP_CFG__||{}).cartoKey ? 'voyager' : 'osm'), tileErrShown = false;
   let viewMode = 'dd', zoneLayer, labelLayer, zoneHi = null; const allMarkers = [];
   function colorOf(e){ return viewMode==='zone' ? zoneColor(e.zone) : ddColor[e.dd]; }
@@ -8020,7 +8020,7 @@
   const byPos = new Map();
   E.forEach(e=>{ if(!e.exact) return; const k=e.lat.toFixed(6)+','+e.lng.toFixed(6); (byPos.get(k)||byPos.set(k,[]).get(k)).push(e); });
   function flagNote(e){
-    return e.flag==='abn' ? `<div class="approx" style="color:var(--red);font-style:normal"><b>Abnormal lat/long:</b> ${e.km.toFixed(1)} km from the centre of its ${e.basis==='zone'?'delivery zone '+esc(D.zones[e.zone]):'area '+esc(niceArea(D.areas[e.a].k))} (limit ${e.thr.toFixed(1)} km). Plotted as given; excluded from coverage outlines and zone shapes.</div>`
+    return e.flag==='abn' ? `<div class="approx" style="color:var(--red);font-style:normal"><b>Abnormal lat/long:</b> ${e.km.toFixed(1)} km from the centre of its ${e.basis==='zone'?'delivery zone '+esc(D.zones[e.zone]):'area '+esc(niceArea(D.areas[e.a].k))} (limit ${e.thr.toFixed(1)} km). Hidden from the map by default and excluded from coverage outlines and zone shapes.</div>`
          : e.flag==='approx' ? '<div class="approx">Coordinates missing or outside Hong Kong — position approximate (placed within its area).</div>'
          : e.flag==='far' ? `<div class="approx" style="color:var(--red)">Check location: ${e.km.toFixed(1)} km from the rest of ${esc(niceArea(D.areas[e.a].k))}.</div>` : '';
   }
@@ -8151,7 +8151,7 @@
       card('Coordinates to check', fmt(nAbn+nApprox), `${fmt(nAbn)} abnormal · ${fmt(nApprox)} missing / outside HK`);
     const bn = document.getElementById('mapAbnBanner');
     bn.style.display = nAbn ? 'flex' : 'none';
-    bn.querySelector('span').innerHTML = `<b>${fmt(nAbn)} delivery points have abnormal lat/long</b> (far from their delivery zone). They show as red rings and are left out of coverage outlines, zone shapes and area centres.`;
+    bn.querySelector('span').innerHTML = `<b>${fmt(nAbn)} delivery points have abnormal lat/long</b> (far from their delivery zone). They are hidden from the map and left out of coverage outlines, zone shapes and area centres; tick “Show abnormal lat/long” to reveal them, or see the Data Check list below.`;
     document.getElementById('mapSub').textContent =
       `Open delivery points as of ${D.asOf || 'latest export'} · scroll or use +/− to zoom · click a district chip to filter`;
   }
@@ -8275,6 +8275,7 @@
   function gotoEstate(code){
     const e = E.find(x=>x.code===code); if(!e || !map) return;
     if(!active.has(e.dd)){ active.add(e.dd); refreshAll(); }
+    if(e.abn && !show.abn){ show.abn = true; document.getElementById('mapLyrAbn').checked = true; syncLayerVisibility(); }
     map.flyTo([e.lat,e.lng], 17, {duration:.8});
     map.once('moveend', ()=> L.popup({maxWidth:340}).setLatLng([e.lat,e.lng]).setContent(popupForEstate(e)).openOn(map));
   }
