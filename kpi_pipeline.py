@@ -2,6 +2,12 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v10.4 — a backfilled OIX day now ALSO refreshes everything that is calculated from that day's manpower, not just the
+  Manpower Distribution tab: dailyProductivityLog (HKTV Staff manpower with leader-exclusion + ODS/VAN manpower, and each
+  row's productivity = orders / manpower; Cost-Report productivity is kept), the 7-day rolling series, every month-to-date
+  productivityMtdLog snapshot from the corrected day onward, data.json's HKTV Staff / ODS Ratio actual + forecast,
+  manpower_staging.json (when the corrected day is the staged T-1), productivity_history.json and the embedded snapshot.
+  See apply_manpower_corrections(). The 14:00 job also runs the backfill before it reads the staging file.
 v10.3 — OIX manpower backfill: a day's HKTV Manpower Distribution is recomputed whenever its OIX_Record file is new or has
   been UPDATED since it was last processed (SHA-1 fingerprint in history.json "oixManpowerProcessed"). Runs inside the
   on demand via `--section oixbackfill` [--oix-days N] [--force-oix], by default for OIX_Record files whose file
@@ -2148,13 +2154,15 @@ def run_productivity_section():
     if written:
         mark_oix_processed(history, target_date.isoformat(), path, raw_rows,
                            courier_driver=(wrote_cd or history["manpowerDistributionLog"][target_date.isoformat()].get("_source") == "costReport"))
+        history["oixManpowerProcessed"][target_date.isoformat()]["hktvLeaderExcluded"] = bool(position_map)   # v10.4
     else:
         print(f"  ⚠️ {target_date.isoformat()}: staff list unreadable and no earlier Courier/Driver on record — "
               f"Manpower Distribution not written; the OIX backfill will fill it once the staff list is readable.")
     # v10.3 — T-1 itself was just written above and fingerprinted. Any OTHER OIX_Record file that was modified
     # today (or, if OIX_BACKFILL_DAYS is set, any file of the last N days) is re-checked here too.
-    backfill_manpower_from_oix(history, position_map=position_map, skip_dates={target_date.isoformat()})
+    res = backfill_manpower_from_oix(history, position_map=position_map, skip_dates={target_date.isoformat()})
     save_manpower_history(trimmed_manpower_distribution(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
+    persist_manpower_corrections(history, res)       # v10.4 — productivity / MTD / data.json follow the corrected manpower
     save_history(history)
     print("✅ Manpower 數據處理完成，已寫入 staging 檔案（Productivity 將於 14:00 Tableau job 完成）")
 
@@ -2348,7 +2356,7 @@ def backfill_manpower_from_oix(history, position_map=_UNSET, days=None, force=Fa
     days = OIX_BACKFILL_DAYS if days is None else days     # None = "modified today" mode
     today = as_of or dt.date.today()
     skip_dates = set(skip_dates or ())
-    result = {"updated": [], "unchanged": [], "skipped": []}
+    result = {"updated": [], "unchanged": [], "skipped": [], "manpower": {}}   # v10.4: "manpower" = corrections for apply_manpower_corrections()
     files = list_oix_files()
     if days is None:     # default: files whose modified time is today (T+0)
         candidates = sorted(d for d, pth in files.items()
@@ -2397,6 +2405,8 @@ def backfill_manpower_from_oix(history, position_map=_UNSET, days=None, force=Fa
             reasons.append("OIX file updated")
         if rec is not None and not rec.get("courierDriver") and not is_cost and get_position_map():
             reasons.append("Courier/Driver were not classified last time")
+        if rec is not None and rec.get("hktvLeaderExcluded") is False and get_position_map():   # v10.4
+            reasons.append("HKTV manpower had no leader-exclusion last time")
         if entry is None or "odsVan" not in entry:
             reasons.append("log entry missing or without ODS/VAN")
         if not reasons:
@@ -2418,7 +2428,7 @@ def backfill_manpower_from_oix(history, position_map=_UNSET, days=None, force=Fa
             result["skipped"].append(date_str)
             continue
 
-        positions = get_position_map() if not is_cost else None     # cost-report days never use Position
+        positions = get_position_map()     # v10.4: also needed on cost-report days — HKTV leader-exclusion uses Position
         have_positions = bool(positions)
         before = _manpower_totals(entry)
         df = process_oix(df_raw, positions)
@@ -2429,11 +2439,237 @@ def backfill_manpower_from_oix(history, position_map=_UNSET, days=None, force=Fa
             result["skipped"].append(date_str)
             continue
         mark_oix_processed(history, date_str, path, rows, courier_driver=(wrote_cd or is_cost), fp=fp)
+        history["oixManpowerProcessed"][date_str]["hktvLeaderExcluded"] = have_positions
+        result["manpower"][date_str] = oix_manpower_correction(df, df_raw, have_positions)
         after = _manpower_totals(log[date_str])
         diff = ", ".join(f"{g} {before.get(g)}→{after[g]}" for g in after if before.get(g) != after[g]) or "figures unchanged"
         print(f"  🩹 OIX manpower backfill {date_str} [{'; '.join(reasons)}]: {diff}")
         result["updated"].append(date_str)
     return result
+
+
+# -----------------------------------------------------------------------------
+# v10.4 — everything calculated from a day's manpower follows an OIX backfill.
+# -----------------------------------------------------------------------------
+def oix_manpower_correction(df, df_raw, have_positions):
+    """The corrected manpower of ONE OIX day (df = process_oix() output), in the shapes the stores below use.
+    HKTV Staff manpower needs the leader-exclusion, i.e. the staff list: without it (have_positions False)
+    hktvStaff / courier / driver are None and the HKTV figures already on record are left alone — writing the
+    un-excluded headcount would inflate the denominator and understate productivity (the original bug)."""
+    hktv = manpower_for_group(df, ("LF", "LP"), exclude_positions=LEADER_EXCLUDE_POSITIONS) if have_positions else None
+    return {
+        "hktvStaff": hktv,
+        "odsRatio": manpower_for_group(df, ("ODS", "VAN")),
+        "courier": manpower_distribution_for_group(df, "courier") if have_positions else None,
+        "driver": manpower_distribution_for_group(df, "driver") if have_positions else None,
+        # fallback-only order / waybill counts (Tableau is the primary source) — only used for manpower_staging.json
+        "odsOrderCount": order_count_for_group(df, ("ODS", "VAN")),
+        "odsWaybillCount": waybill_count_for_group(df, ("ODS", "VAN")),
+    }
+
+
+def _plog_manpower(entry, group):
+    g = (entry or {}).get(group) or {}
+    return {"overall": (g.get("total") or {}).get("manpower"),
+            "districts": {d: (g.get("districts", {}).get(d) or {}).get("manpower") for d in DISTRICTS}}
+
+
+def _mtd_manpower(log, group, month_key, up_to, override=None):
+    """Sum of a group's logged daily manpower from the 1st of month_key through up_to (inclusive).
+    `override` {date: manpower dict} swaps in a day's figure (used to price the 'before' picture)."""
+    overall, per_d, any_data = 0, {d: 0 for d in DISTRICTS}, False
+    for ds, entry in log.items():
+        if not ds.startswith(month_key) or ds > up_to:
+            continue
+        mp = (override or {}).get(ds) or _plog_manpower(entry, group)
+        if mp["overall"] is None and all(v is None for v in mp["districts"].values()):
+            continue
+        overall += mp["overall"] or 0
+        for d in DISTRICTS:
+            per_d[d] += mp["districts"].get(d) or 0
+        any_data = True
+    return (overall, per_d) if any_data else (None, {d: None for d in DISTRICTS})
+
+
+def _rewrite_group_manpower(group_entry, mp):
+    """Puts a corrected manpower into one dailyProductivityLog group entry and re-derives productivity =
+    orderCount / manpower for it. A hktvStaff day whose productivity comes from the Daily Cost Report
+    (productivitySource == 'costReport') keeps that real figure. Returns True when anything changed."""
+    changed = False
+    def apply(rec, manpower):
+        nonlocal changed
+        if rec is None:
+            return
+        if rec.get("manpower") != manpower:
+            rec["manpower"] = manpower
+            changed = True
+        if rec.get("productivitySource") == "costReport":
+            return
+        orders = rec.get("orderCount")
+        new_prod = round(orders / manpower, 2) if manpower and orders is not None else None
+        if rec.get("productivity") != new_prod:
+            rec["productivity"] = new_prod
+            changed = True
+    for d in DISTRICTS:
+        apply(group_entry.get("districts", {}).get(d), mp["districts"].get(d, 0))
+    apply(group_entry.get("total"), sum(mp["districts"].get(d, 0) for d in DISTRICTS))
+    return changed
+
+
+def apply_manpower_corrections(history, corrections, matrices=None, staging=None):
+    """v10.4 — propagates OIX-backfilled manpower (corrections = {date: oix_manpower_correction()}) through every
+    figure that is calculated from manpower. Mutates `history`, `matrices` (data.json's, optional) and `staging`
+    (manpower_staging.json's dict, optional); the caller saves. Returns a summary dict.
+
+      1. dailyProductivityLog[date]  hktvStaff / odsRatio  manpower + productivity (orders / manpower)
+      2. the 7-day rolling series history['hktvStaff'|'odsRatio'][date] (Cost-Report days: reapply_cost_report_fields)
+      3. productivityMtdLog — every month-to-date snapshot from the earliest corrected day of its month onward.
+         HKTV: MTD productivity = Tableau MTD orders / MTD manpower. Manpower is the only thing that changed, so the
+         MTD ORDER numerator is held fixed — read from history['productivityMtdBasis'] (stored since v10.4), or, for
+         snapshots older than that, backed out as  stored productivity x the manpower sum as it was BEFORE this
+         correction — and divided by the corrected MTD manpower.
+      4. matrices (data.json): HKTV Staff actual (= the as-of day's snapshot) + forecast, ODS Ratio actual (MTD log
+         orders / MTD log manpower) + forecast
+      5. staging: if the staged T-1 is a corrected day, its manpower (and fallback ODS counts) are replaced
+    A day with no dailyProductivityLog entry is skipped here: backfill_productivity_log() builds it from the fresh
+    OIX file at the next 14:00 run."""
+    summary = {"days": [], "mtdSnapshots": [], "staging": False, "noLogEntry": []}
+    corrections = {ds: c for ds, c in (corrections or {}).items() if c}
+    plog = history.setdefault("dailyProductivityLog", {})
+
+    # --- the 'before' picture of every group's per-day manpower, taken BEFORE anything is overwritten
+    old_mp = {g: {ds: _plog_manpower(e, g) for ds, e in plog.items()} for g in ("hktvStaff", "odsRatio")}
+
+    # --- 1. per-day rows
+    for ds in sorted(corrections):
+        corr, entry, did = corrections[ds], plog.get(ds), False
+        if not entry:
+            summary["noLogEntry"].append(ds)
+            continue
+        for g in ("hktvStaff", "odsRatio"):
+            mp = corr.get(g)
+            if mp is not None and entry.get(g):
+                did = _rewrite_group_manpower(entry[g], mp) or did
+        if did:
+            summary["days"].append(ds)
+            print(f"  🩹 Productivity log {ds}: HKTV manpower {old_mp['hktvStaff'][ds]['overall']}→{_plog_manpower(entry, 'hktvStaff')['overall']}, "
+                  f"ODS/VAN manpower {old_mp['odsRatio'][ds]['overall']}→{_plog_manpower(entry, 'odsRatio')['overall']} "
+                  f"(productivity re-derived)")
+
+    # --- 2. 7-day rolling series
+    for ds in summary["days"]:
+        for g in ("hktvStaff", "odsRatio"):
+            ge = plog[ds].get(g) or {}
+            if g == "hktvStaff" and ds in history.get("costReportDaily", {}):
+                continue                       # real Cost-Report productivity — put back below
+            tot = ge.get("total") or {}
+            if tot.get("productivity") is None and tot.get("orderCount") is None:
+                continue                       # nothing to derive from (HKTV order count unrecoverable) — leave the series as is
+            history.setdefault(g, {})[ds] = {
+                "overall": tot.get("productivity"),
+                "districts": {d: (ge.get("districts", {}).get(d) or {}).get("productivity") for d in DISTRICTS},
+            }
+    if history.get("costReportDaily"):
+        reapply_cost_report_fields(history)
+
+    # --- 3. month-to-date snapshots (HKTV)
+    mtd_log = history.setdefault("productivityMtdLog", {})
+    basis = history.setdefault("productivityMtdBasis", {})
+    first_changed = {}
+    for ds in summary["days"]:
+        first_changed.setdefault(ds[:7], ds)
+    for month_key, first_ds in first_changed.items():
+        for snap in sorted(s for s in mtd_log if s.startswith(month_key) and s >= first_ds):
+            old_overall, old_d = _mtd_manpower(plog, "hktvStaff", month_key, snap, override=old_mp["hktvStaff"])
+            new_overall, new_d = _mtd_manpower(plog, "hktvStaff", month_key, snap)
+            stored = mtd_log[snap]
+            b = basis.get(snap)
+            if b is not None:               # exact numerator stored by the 14:00 job (v10.4+)
+                o_overall, o_d = b.get("overall"), b.get("districts") or {}
+            else:                           # older snapshot: back the numerator out of the stored ratio
+                def back_out(prod, m_old):
+                    return prod * m_old if prod is not None and m_old else None
+                o_overall = back_out(stored.get("overall"), old_overall)
+                o_d = {d: back_out(stored.get("districts", {}).get(d), old_d.get(d)) for d in DISTRICTS}
+                basis[snap] = {"overall": o_overall, "districts": o_d}      # keep it so the next refresh is exact
+            before_overall = stored.get("overall")
+            stored["overall"] = round(o_overall / new_overall, 2) if o_overall is not None and new_overall else None
+            stored["districts"] = {d: (round(o_d[d] / new_d[d], 2) if o_d.get(d) is not None and new_d.get(d) else None)
+                                   for d in DISTRICTS}
+            summary["mtdSnapshots"].append(snap)
+            print(f"  🩹 MTD productivity snapshot {snap}: overall {before_overall}→{stored['overall']}")
+
+    # --- 4. data.json matrices
+    if matrices is not None and summary["days"]:
+        refresh_productivity_matrices(history, matrices)
+
+    # --- 5. staging
+    if staging is not None and staging.get("date") in corrections:
+        c = corrections[staging["date"]]
+        if c.get("hktvStaff") is not None:
+            staging["hktvStaffManpower"] = c["hktvStaff"]
+            staging["courierGroup"], staging["driverGroup"] = c["courier"], c["driver"]
+        staging["odsRatioManpower"] = c["odsRatio"]
+        staging["odsOrderCount"], staging["odsWaybillCount"] = c["odsOrderCount"], c["odsWaybillCount"]
+        summary["staging"] = True
+        print(f"  🩹 {MANPOWER_STAGING_PATH} ({staging['date']}) refreshed from the updated OIX file")
+    return summary
+
+
+def refresh_productivity_matrices(history, matrices):
+    """Re-derives data.json's HKTV Staff / ODS Ratio matrices from the (corrected) history: the as-of day's
+    month-to-date actual + the 7-day rolling forecast (same as finish_productivity_with_orders())."""
+    plog = history.get("dailyProductivityLog", {})
+    for key in ("hktvStaff", "odsRatio"):
+        m = matrices.get(key)
+        if not m or not m.get("asOf"):
+            continue
+        as_of, month_key = m["asOf"], m["asOf"][:7]
+        if key == "hktvStaff":
+            snap = history.get("productivityMtdLog", {}).get(as_of)
+            if snap:
+                m["actual"] = {"overall": snap["overall"], "districts": dict(snap["districts"])}
+        else:       # ODS/VAN: MTD orders from the log / MTD manpower from the log — exactly how the 14:00 job builds it
+            mp_overall, mp_d = _mtd_manpower(plog, "odsRatio", month_key, as_of)
+            o_overall, o_d, any_o = 0, {d: 0 for d in DISTRICTS}, False
+            for ds, e in plog.items():
+                if ds.startswith(month_key) and ds <= as_of:
+                    g = e.get("odsRatio") or {}
+                    o_overall += (g.get("total") or {}).get("orderCount") or 0
+                    for d in DISTRICTS:
+                        o_d[d] += (g.get("districts", {}).get(d) or {}).get("orderCount") or 0
+                    any_o = True
+            if any_o:
+                m["actual"] = {
+                    "overall": round(o_overall / mp_overall, 2) if mp_overall else None,
+                    "districts": {d: (round(o_d[d] / mp_d[d], 2) if mp_d.get(d) else None) for d in DISTRICTS},
+                }
+        fc_overall, fc_districts = rolling_average(history, key, 7, dt.date.today())
+        m["forecast"] = {"overall": fc_overall, "districts": fc_districts}
+
+
+def persist_manpower_corrections(history, res):
+    """Runs apply_manpower_corrections() for a backfill result and writes every file it touched (the callers
+    save history.json themselves): productivity_history.json, data.json, manpower_staging.json."""
+    corrections = (res or {}).get("manpower") or {}
+    if not corrections:
+        return None
+    payload = load_data_json()
+    staging = load_manpower_staging()
+    summary = apply_manpower_corrections(history, corrections, matrices=payload.get("matrices"), staging=staging)
+    if summary["days"]:
+        save_productivity_history(trimmed_daily_productivity(history, DAILY_PRODUCTIVITY_KEEP_DAYS),
+                                  trimmed_productivity_mtd(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
+        if payload.get("matrices"):
+            save_data_json(payload)
+    if summary["staging"]:
+        with open(MANPOWER_STAGING_PATH, "w", encoding="utf-8") as f:
+            json.dump(staging, f, ensure_ascii=False, indent=2)
+        print(f"Wrote {MANPOWER_STAGING_PATH}")
+    if summary["noLogEntry"]:
+        print(f"  ℹ️ No productivity-log entry yet for {summary['noLogEntry']} — the 14:00 job builds them from the updated OIX file.")
+    return summary
+
 
 
 def run_oix_backfill_section(days=None, force=False):
@@ -2448,10 +2684,11 @@ def run_oix_backfill_section(days=None, force=False):
         save_history(history)       # a first-time fingerprint record may still have been added
         return
     save_manpower_history(trimmed_manpower_distribution(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
+    persist_manpower_corrections(history, res)       # v10.4 — productivity / MTD / data.json follow the corrected manpower
     save_history(history)
     update_embedded_data()
     run_deploy_hook()
-    print(f"✅ Manpower Distribution backfilled for {len(res['updated'])} day(s): {res['updated']}")
+    print(f"✅ Manpower Distribution + dependent productivity figures backfilled for {len(res['updated'])} day(s): {res['updated']}")
 
 
 # =============================================================================
@@ -2746,6 +2983,12 @@ def finish_productivity_with_orders(history, matrices, staging, order_totals_t1,
             history.setdefault("productivityMtdLog", {})[target_date.isoformat()] = {
                 "overall": actual_overall,
                 "districts": dict(actual_district),
+            }
+            # v10.4 — the MTD ORDER numerator behind that figure, so a later OIX manpower backfill can re-divide it
+            # by the corrected manpower exactly (see apply_manpower_corrections()).
+            history.setdefault("productivityMtdBasis", {})[target_date.isoformat()] = {
+                "overall": orders_overall,
+                "districts": dict(orders_district),
             }
         fc_overall, fc_districts = rolling_average(history, key, 7, dt.date.today())
         matrices[key] = {
@@ -3637,6 +3880,20 @@ def run_section_tableau():
     order_totals_t1 = parse_actual_delivery_timeslot("actual_delivery_timeslot")
     order_totals_mtd = parse_actual_delivery_timeslot("actual_delivery_timeslot_mtd")
     productivity_target_date = today - dt.timedelta(days=1)  # T-1, matches the OIX staging date
+    # v10.4 — an OIX_Record updated since the 03:00 run is picked up here, BEFORE staging is read, so T-1's staged
+    # manpower and every earlier day's manpower-based figures are current when today's productivity is finished.
+    try:
+        _res = backfill_manpower_from_oix(history)
+        if _res.get("updated"):
+            apply_manpower_corrections(history, _res["manpower"], matrices=matrices, staging=None)
+            _stg = load_manpower_staging()
+            if _stg is not None and _stg.get("date") in _res["manpower"]:
+                apply_manpower_corrections({}, {_stg["date"]: _res["manpower"][_stg["date"]]}, staging=_stg)
+                with open(MANPOWER_STAGING_PATH, "w", encoding="utf-8") as _f:
+                    json.dump(_stg, _f, ensure_ascii=False, indent=2)
+            save_manpower_history(trimmed_manpower_distribution(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
+    except Exception as e:
+        print(f"  ⚠️ OIX manpower backfill before productivity skipped: {e}")
     staging = load_manpower_staging()
     if staging is None:
         print(f"  ⚠️ {MANPOWER_STAGING_PATH!r} not found — the 03:00 Manpower job hasn't run yet "
