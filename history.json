@@ -13520,16 +13520,16 @@
         "districts": {
           "ETH": 18,
           "ETK": 10,
-          "ETX": 23,
+          "ETX": 24,
           "NT-ST": 13,
           "NT-TM": 7,
-          "NT-TSM": 18,
+          "NT-TSM": 19,
           "NT-TW": 14,
           "WTH": 13,
           "WTK": 20,
           "WTX": 19
         },
-        "total": 155
+        "total": 157
       },
       "driver": {
         "districts": {
@@ -13537,76 +13537,76 @@
           "ETK": 15,
           "ETX": 16,
           "NT-ST": 17,
-          "NT-TM": 18,
+          "NT-TM": 19,
           "NT-TSM": 16,
           "NT-TW": 15,
           "WTH": 12,
           "WTK": 15,
           "WTX": 19
         },
-        "total": 163
+        "total": 164
       },
       "odsVan": {
         "districts": {
-          "ETH": 0,
-          "ETK": 0,
+          "ETH": 16,
+          "ETK": 2,
           "ETX": 0,
-          "NT-ST": 6,
-          "NT-TM": 2,
+          "NT-ST": 10,
+          "NT-TM": 6,
           "NT-TSM": 0,
-          "NT-TW": 0,
-          "WTH": 14,
-          "WTK": 0,
-          "WTX": 0
+          "NT-TW": 6,
+          "WTH": 30,
+          "WTK": 2,
+          "WTX": 5
         },
-        "total": 22
+        "total": 77
       }
     },
     "2026-10-03": {
       "courier": {
         "districts": {
-          "ETH": 14,
-          "ETK": 12,
-          "ETX": 19,
-          "NT-ST": 12,
-          "NT-TM": 7,
-          "NT-TSM": 21,
-          "NT-TW": 13,
-          "WTH": 10,
-          "WTK": 21,
-          "WTX": 22
+          "ETH": 22,
+          "ETK": 16,
+          "ETX": 22,
+          "NT-ST": 13,
+          "NT-TM": 10,
+          "NT-TSM": 27,
+          "NT-TW": 16,
+          "WTH": 18,
+          "WTK": 22,
+          "WTX": 23
         },
-        "total": 151
+        "total": 189
       },
       "driver": {
         "districts": {
-          "ETH": 14,
-          "ETK": 17,
-          "ETX": 15,
-          "NT-ST": 14,
-          "NT-TM": 18,
-          "NT-TSM": 16,
-          "NT-TW": 14,
-          "WTH": 7,
-          "WTK": 15,
+          "ETH": 19,
+          "ETK": 19,
+          "ETX": 18,
+          "NT-ST": 18,
+          "NT-TM": 22,
+          "NT-TSM": 20,
+          "NT-TW": 15,
+          "WTH": 12,
+          "WTK": 16,
           "WTX": 20
         },
-        "total": 150
+        "total": 179
       },
       "odsVan": {
         "districts": {
-          "ETH": 11,
-          "ETK": 7,
-          "ETX": 1,
-          "NT-ST": 5,
-          "NT-TM": 0,
-          "NT-TSM": 0,
-          "NT-TW": 1,
-          "WTH": 15,
-          "WTK": 0,
-          "WTX": 3
+          "ETH": 26,
+          "ETK": 11,
+          "ETX": 18,
+          "NT-ST": 16,
+          "NT-TM": 6,
+          "NT-TSM": 14,
+          "NT-TW": 18,
+          "WTH": 39,
+          "WTK": 17,
+          "WTX": 24
         },
-        "total": 43
+        "total": 189
       }
     },
     "2026-10-04": {
@@ -13615,45 +13615,45 @@
           "ETH": 22,
           "ETK": 12,
           "ETX": 18,
-          "NT-ST": 10,
-          "NT-TM": 13,
-          "NT-TSM": 24,
-          "NT-TW": 13,
-          "WTH": 12,
+          "NT-ST": 11,
+          "NT-TM": 14,
+          "NT-TSM": 25,
+          "NT-TW": 14,
+          "WTH": 19,
           "WTK": 15,
-          "WTX": 20
+          "WTX": 21
         },
-        "total": 159
+        "total": 171
       },
       "driver": {
         "districts": {
-          "ETH": 16,
-          "ETK": 16,
-          "ETX": 14,
-          "NT-ST": 19,
-          "NT-TM": 20,
-          "NT-TSM": 19,
-          "NT-TW": 13,
-          "WTH": 10,
+          "ETH": 19,
+          "ETK": 19,
+          "ETX": 15,
+          "NT-ST": 20,
+          "NT-TM": 22,
+          "NT-TSM": 20,
+          "NT-TW": 14,
+          "WTH": 14,
           "WTK": 14,
-          "WTX": 15
+          "WTX": 16
         },
-        "total": 156
+        "total": 173
       },
       "odsVan": {
         "districts": {
-          "ETH": 13,
+          "ETH": 21,
           "ETK": 5,
-          "ETX": 0,
-          "NT-ST": 4,
-          "NT-TM": 0,
-          "NT-TSM": 2,
-          "NT-TW": 3,
-          "WTH": 10,
-          "WTK": 3,
-          "WTX": 7
+          "ETX": 18,
+          "NT-ST": 15,
+          "NT-TM": 5,
+          "NT-TSM": 11,
+          "NT-TW": 13,
+          "WTH": 25,
+          "WTK": 13,
+          "WTX": 19
         },
-        "total": 47
+        "total": 145
       }
     }
   },
@@ -22536,6 +22536,32 @@
         "WTK": 6.65,
         "WTX": 5.9
       }
+    }
+  },
+  "oixManpowerProcessed": {
+    "2026-10-02": {
+      "file": "OIX_Record_20261002.csv",
+      "size": 38704397,
+      "sha1": "aa168451dd5871449f9c4ec318efc8cbf1f71cfb",
+      "rows": 116672,
+      "courierDriver": true,
+      "processedAt": "2026-10-05T10:24:33"
+    },
+    "2026-10-03": {
+      "file": "OIX_Record_20261003.csv",
+      "size": 65466554,
+      "sha1": "18ee22167ad204a5eeb2d49b5055f4205eb157b0",
+      "rows": 197143,
+      "courierDriver": true,
+      "processedAt": "2026-10-05T10:24:34"
+    },
+    "2026-10-04": {
+      "file": "OIX_Record_20261004.csv",
+      "size": 60138961,
+      "sha1": "9d93d531301211b9bac9d56f832c7b2e2a6740be",
+      "rows": 181761,
+      "courierDriver": true,
+      "processedAt": "2026-10-05T10:24:35"
     }
   }
 }

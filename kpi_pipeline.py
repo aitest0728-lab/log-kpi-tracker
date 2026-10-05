@@ -2,6 +2,11 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v10.3 — OIX manpower backfill: a day's HKTV Manpower Distribution is recomputed whenever its OIX_Record file is new or has
+  been UPDATED since it was last processed (SHA-1 fingerprint in history.json "oixManpowerProcessed"). Runs inside the
+  on demand via `--section oixbackfill` [--oix-days N] [--force-oix], by default for OIX_Record files whose file
+  modified time is today (T+0); older days are covered by the Daily Cost Report. The 03:00 `productivity` job
+  fingerprints its T-1 file and also handles any other file modified today. Cost-Report days keep their real Courier/Driver; only ODS/VAN is refreshed.
 v9.5 — `--section newestate` (new_estate_tracker.py): tracks newly launched private / public housing that is ready for
   move-in -> New_Estate_Tracker.xlsx + new_estates.json (address -> lat/long). Weekly job; see the module docstring.
 v9.0 — Fulfillment Cost % (monthly): when the Daily Cost Report is processed, Total Cost (Overview tab,
@@ -36,6 +41,7 @@ import re
 import sys
 import json
 import glob
+import hashlib
 import time
 import argparse
 import datetime as dt
@@ -155,6 +161,15 @@ GMV_HISTORY_PATH = os.environ.get("GMV_HISTORY_PATH", "./public/gmv_history.json
 # v3.0 §4: HKTV Manpower Distribution tab's data file — same daily-log /
 # trimmed-window pattern as PRODUCTIVITY_HISTORY_PATH.
 MANPOWER_HISTORY_PATH = os.environ.get("MANPOWER_HISTORY_PATH", "./public/manpower_distribution.json")
+# v10.3 — OIX manpower backfill. An OIX_Record export is often picked up while it only holds PART of the
+# day's records (e.g. 2026-10-02..10-04 were first logged with ODS/VAN = 22 / 43 / 47 and the completed
+# files give 77 / 189 / 145). Whenever the file for a day later turns out to be different (updated), the
+# day's manpower distribution is recomputed from it. Default: only OIX_Record files whose FILE MODIFIED TIME
+# is today (T+0) are looked at, whatever date is in their name; older, untouched files are left alone (the
+# Daily Cost Report covers those days). Set OIX_BACKFILL_DAYS (or use --oix-days N) to instead re-check every
+# file of the last N days regardless of modified time; the check itself is cheap (one SHA-1 per file).
+OIX_BACKFILL_DAYS = int(os.environ["OIX_BACKFILL_DAYS"]) if os.environ.get("OIX_BACKFILL_DAYS", "").strip() else None
+OIX_FILE_RE = re.compile(r"^OIX_Record_(\d{8})\.(xlsx|csv)$", re.IGNORECASE)
 # v4.0 §1: Productivity now needs BOTH manpower (from OIX, available at
 # 03:00) and parent order counts (from the Tableau "Delivery Dashboard"
 # report, only downloaded in the 14:00 Tableau job — see run_tableau_1400.*).
@@ -2088,6 +2103,7 @@ def run_productivity_section():
     target_date = dt.date.today() - dt.timedelta(days=1)  # T-1
     path = find_oix_file(target_date)
     df = load_oix(path)
+    raw_rows = len(df)      # v10.3 — recorded with the file fingerprint, see mark_oix_processed()
 
     # v3.0 §4 / §4.1: without a position_map, process_oix() still runs fine
     # (Position column just stays blank) — HKTV Staff Productivity falls
@@ -2124,7 +2140,20 @@ def run_productivity_section():
     # v3.0 §4: HKTV Manpower Distribution — independent of order counts,
     # still written straight from the 03:00 run as before.
     history = load_history()
-    append_manpower_log(history, target_date.isoformat(), courier_group, driver_group, ods_van_group)
+    # v10.3 — written through write_oix_manpower_entry() instead of append_manpower_log(): it keeps the
+    # figures already on record when the staff list was unreadable (append_manpower_log wrote all-zero
+    # Courier/Driver headcounts in that case), refreshes ODS/VAN on Daily-Cost-Report days, and the
+    # file's fingerprint is remembered so a later UPDATE of this OIX file is detected.
+    written, wrote_cd = write_oix_manpower_entry(history, target_date.isoformat(), df, have_positions=bool(position_map))
+    if written:
+        mark_oix_processed(history, target_date.isoformat(), path, raw_rows,
+                           courier_driver=(wrote_cd or history["manpowerDistributionLog"][target_date.isoformat()].get("_source") == "costReport"))
+    else:
+        print(f"  ⚠️ {target_date.isoformat()}: staff list unreadable and no earlier Courier/Driver on record — "
+              f"Manpower Distribution not written; the OIX backfill will fill it once the staff list is readable.")
+    # v10.3 — T-1 itself was just written above and fingerprinted. Any OTHER OIX_Record file that was modified
+    # today (or, if OIX_BACKFILL_DAYS is set, any file of the last N days) is re-checked here too.
+    backfill_manpower_from_oix(history, position_map=position_map, skip_dates={target_date.isoformat()})
     save_manpower_history(trimmed_manpower_distribution(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
     save_history(history)
     print("✅ Manpower 數據處理完成，已寫入 staging 檔案（Productivity 將於 14:00 Tableau job 完成）")
@@ -2212,6 +2241,217 @@ def trimmed_manpower_distribution(history, keep_days):
     log = history.get("manpowerDistributionLog", {})
     recent_dates = sorted(log.keys())[-keep_days:]
     return {d: log[d] for d in recent_dates}
+
+
+# -----------------------------------------------------------------------------
+# v10.3 — OIX manpower backfill (re-computes the HKTV Manpower Distribution for any
+# day whose OIX_Record file has been updated since it was last processed).
+# -----------------------------------------------------------------------------
+_UNSET = object()
+
+
+def _oix_fingerprint(path):
+    """Content fingerprint of an OIX_Record file: size + SHA-1. Deliberately NOT the modified time —
+    copying/re-downloading an identical file changes the mtime without changing a single record,
+    and an updated file can in principle keep an old mtime."""
+    h = hashlib.sha1()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return {"file": os.path.basename(path), "size": os.path.getsize(path), "sha1": h.hexdigest()}
+
+
+def list_oix_files(folder=None):
+    """{date: path} for every OIX_Record_YYYYMMDD.(xlsx|csv) in `folder`. If a day has both an .xlsx and a
+    .csv, the more recently modified one wins (the updated export is the one to trust)."""
+    folder = folder or OIX_FOLDER
+    found = {}
+    for p in glob.glob(os.path.join(folder, "OIX_Record_*")):
+        m = OIX_FILE_RE.match(os.path.basename(p))
+        if not m:
+            continue
+        try:
+            d = dt.datetime.strptime(m.group(1), "%Y%m%d").date()
+        except ValueError:
+            continue
+        if d not in found or os.path.getmtime(p) > os.path.getmtime(found[d]):
+            found[d] = p
+    return found
+
+
+def write_oix_manpower_entry(history, date_str, df, have_positions):
+    """Writes one day's OIX-derived figures into history["manpowerDistributionLog"][date_str] and returns
+    (written, courier_driver_written). `df` must come from process_oix().
+
+      - odsVan comes straight from the unique ODS/VAN users and needs no staff list, so it is always refreshed.
+      - courier / driver need the Position tags (staff list). Without them (have_positions False) the figures
+        already on record are KEPT — the old code wrote all-zero Courier/Driver headcounts in that case.
+      - A day whose _source is 'costReport' keeps the Daily Cost Report's courier / driver / courierPT /
+        driverPT (the real figures); only its odsVan, which the cost report doesn't carry, is refreshed.
+      - A day with no courier/driver to show (no staff list and nothing on record) is not created at all
+        rather than half-created; it is picked up on a later run once the staff list is readable."""
+    log = history.setdefault("manpowerDistributionLog", {})
+    entry = dict(log.get(date_str, {}))
+    is_cost = entry.get("_source") == "costReport"
+    wrote_cd = False
+    if not is_cost and have_positions:
+        entry["courier"] = manpower_distribution_for_group(df, "courier")
+        entry["driver"] = manpower_distribution_for_group(df, "driver")
+        wrote_cd = True
+    if "courier" not in entry or "driver" not in entry:
+        return False, False
+    entry["odsVan"] = odsvan_manpower_group(manpower_for_group(df, ("ODS", "VAN")))
+    log[date_str] = entry
+    return True, wrote_cd
+
+
+def mark_oix_processed(history, date_str, path, rows, courier_driver, fp=None):
+    """Remembers which version of the OIX file a day's manpower figures were computed from."""
+    rec = dict(fp) if fp else _oix_fingerprint(path)
+    rec.update({"rows": int(rows), "courierDriver": bool(courier_driver),
+                "processedAt": dt.datetime.now().isoformat(timespec="seconds")})
+    history.setdefault("oixManpowerProcessed", {})[date_str] = rec
+
+
+def _manpower_totals(entry):
+    return {g: (entry.get(g) or {}).get("total") for g in ("courier", "driver", "odsVan")} if entry else {}
+
+
+def backfill_manpower_from_oix(history, position_map=_UNSET, days=None, force=False, skip_dates=None, as_of=None):
+    """v10.3 — re-computes the HKTV Manpower Distribution for the days whose OIX_Record file is new or has been
+    UPDATED since it was last processed.
+
+    Which files are looked at: by default (days=None) only files whose file MODIFIED TIME is today (T+0),
+    whatever date is in the file name — a file named for an earlier day but touched today is a file that was
+    updated today; untouched older files are left to the Daily Cost Report. A file named for today or a
+    later day is never used (that day is still running). With days=N, every file of the last N days up to T-1
+    is checked instead, regardless of modified time.
+
+    A day is (re)processed when its file exists in OIX_FOLDER and any of these holds:
+      * it was never processed by this logic (no history["oixManpowerProcessed"] record — covers every
+        day logged before v10.3, whose figures may have come from a partial export);
+      * the file's SHA-1 differs from the processed one (the file was updated / replaced);
+      * its Courier/Driver could not be classified last time (no staff list) and the staff list is
+        readable now;
+      * the day has no log entry yet or its entry has no odsVan;
+      * force=True.
+    Guards:
+      * costReport days keep their Cost-Report courier/driver (see write_oix_manpower_entry);
+      * a changed file with FEWER rows than the one already processed is skipped with a warning (an old /
+        partial export copied over a complete one must not shrink the figures) unless force=True;
+      * a file that fails to parse is skipped without touching the day.
+    `position_map`: pass the already-loaded Staff ID -> Position map (None = it could not be loaded);
+    left unset, it is loaded lazily from the staff master sheet, and only if a day needs it.
+    `skip_dates`: ISO dates handled by the caller (the 03:00 job's own T-1 write).
+    Mutates `history` only (the caller saves). Returns {"updated": [...], "unchanged": [...],
+    "skipped": [...]}; every refreshed day also prints old -> new totals."""
+    days = OIX_BACKFILL_DAYS if days is None else days     # None = "modified today" mode
+    today = as_of or dt.date.today()
+    skip_dates = set(skip_dates or ())
+    result = {"updated": [], "unchanged": [], "skipped": []}
+    files = list_oix_files()
+    if days is None:     # default: files whose modified time is today (T+0)
+        candidates = sorted(d for d, pth in files.items()
+                            if d < today and d.isoformat() not in skip_dates
+                            and dt.date.fromtimestamp(os.path.getmtime(pth)) == today)
+        scope = "modified today"
+    else:                # explicit window: last N days up to T-1, regardless of modified time
+        window = [today - dt.timedelta(days=n) for n in range(days, 0, -1)]
+        candidates = [d for d in window if d in files and d.isoformat() not in skip_dates]
+        scope = f"of the last {days} day(s)"
+    if not candidates:
+        print(f"  ℹ️ OIX manpower backfill: no OIX_Record file {scope} in {OIX_FOLDER!r} to check.")
+        return result
+
+    log = history.setdefault("manpowerDistributionLog", {})
+    processed = history.setdefault("oixManpowerProcessed", {})
+    pm = {"map": position_map}
+
+    def get_position_map():
+        if pm["map"] is _UNSET:
+            try:
+                pm["map"] = load_staff_position_map()
+            except FileNotFoundError as e:
+                print(f"  ⚠️ OIX manpower backfill: {e} — Courier/Driver of refreshed days stay as they are; "
+                      f"only ODS/VAN is refreshed until the staff list can be read.")
+                pm["map"] = None
+        return pm["map"]
+
+    for d in candidates:
+        date_str, path = d.isoformat(), files[d]
+        entry, rec = log.get(date_str), processed.get(date_str)
+        is_cost = bool(entry) and entry.get("_source") == "costReport"
+        try:
+            fp = _oix_fingerprint(path)
+        except OSError as e:
+            print(f"  ⚠️ OIX manpower backfill: cannot read {os.path.basename(path)!r} ({e}) — {date_str} skipped.")
+            result["skipped"].append(date_str)
+            continue
+
+        reasons = []
+        if force:
+            reasons.append("forced")
+        if rec is None:
+            reasons.append("not processed before (may have been logged from a partial export)")
+        elif rec.get("sha1") != fp["sha1"]:
+            reasons.append("OIX file updated")
+        if rec is not None and not rec.get("courierDriver") and not is_cost and get_position_map():
+            reasons.append("Courier/Driver were not classified last time")
+        if entry is None or "odsVan" not in entry:
+            reasons.append("log entry missing or without ODS/VAN")
+        if not reasons:
+            result["unchanged"].append(date_str)
+            continue
+
+        try:
+            df_raw = load_oix(path)
+            rows = len(df_raw)
+        except Exception as e:
+            print(f"  ⚠️ OIX manpower backfill: {os.path.basename(path)!r} failed to parse ({e}) — {date_str} skipped.")
+            result["skipped"].append(date_str)
+            continue
+        if (rec is not None and not force and rec.get("sha1") != fp["sha1"]
+                and rows < (rec.get("rows") or 0)):
+            print(f"  ⚠️ OIX manpower backfill: {os.path.basename(path)!r} has {rows:,} rows but the version already "
+                  f"processed had {rec['rows']:,} — looks like an older/partial export, {date_str} NOT updated "
+                  f"(use --force-oix to override).")
+            result["skipped"].append(date_str)
+            continue
+
+        positions = get_position_map() if not is_cost else None     # cost-report days never use Position
+        have_positions = bool(positions)
+        before = _manpower_totals(entry)
+        df = process_oix(df_raw, positions)
+        written, wrote_cd = write_oix_manpower_entry(history, date_str, df, have_positions)
+        if not written:
+            print(f"  ⚠️ OIX manpower backfill: {date_str} has no Courier/Driver on record and the staff list is "
+                  f"unavailable — left for a later run.")
+            result["skipped"].append(date_str)
+            continue
+        mark_oix_processed(history, date_str, path, rows, courier_driver=(wrote_cd or is_cost), fp=fp)
+        after = _manpower_totals(log[date_str])
+        diff = ", ".join(f"{g} {before.get(g)}→{after[g]}" for g in after if before.get(g) != after[g]) or "figures unchanged"
+        print(f"  🩹 OIX manpower backfill {date_str} [{'; '.join(reasons)}]: {diff}")
+        result["updated"].append(date_str)
+    return result
+
+
+def run_oix_backfill_section(days=None, force=False):
+    """v10.3 — `--section oixbackfill`: run the OIX manpower backfill on its own — run it (or schedule it) after
+    an OIX_Record file has been updated on T+0. By default only files whose modified time is today are checked;
+    it refreshes the served JSON files and the dashboard snapshot."""
+    print("🚀 檢查 OIX Record 是否有更新，回補 HKTV Manpower Distribution...")
+    history = load_history()
+    res = backfill_manpower_from_oix(history, days=days, force=force)
+    if not res["updated"]:
+        print(f"✅ Nothing to backfill ({len(res['unchanged'])} day(s) up to date, {len(res['skipped'])} skipped).")
+        save_history(history)       # a first-time fingerprint record may still have been added
+        return
+    save_manpower_history(trimmed_manpower_distribution(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
+    save_history(history)
+    update_embedded_data()
+    run_deploy_hook()
+    print(f"✅ Manpower Distribution backfilled for {len(res['updated'])} day(s): {res['updated']}")
 
 
 # =============================================================================
@@ -4630,10 +4870,16 @@ def main():
     # until "tableau" (14:00) supplies the new Tableau-sourced order counts.
     # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
-    parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "map", "newestate", "all"], required=True)
+    parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "oixbackfill", "map", "newestate", "all"], required=True)
     parser.add_argument("--cost-report-file", default=None,
                         help="v8.0 — with --section costreport: parse this local .xlsx instead of "
                              "downloading from WhatsApp (manual re-run / testing).")
+    parser.add_argument("--oix-days", type=int, default=None,
+                        help="v10.3 — with --section oixbackfill: check every OIX_Record file of the last N days (from T-1) "
+                             "regardless of modified time (default: only files whose modified time is today).")
+    parser.add_argument("--force-oix", action="store_true",
+                        help="v10.3 — with --section oixbackfill: recompute every day in the window even if its OIX file "
+                             "is unchanged (also overrides the 'fewer rows than before' guard).")
     parser.add_argument("--map-excel", default=None,
                         help="Delivery Map v2 — with --section map: estate/address Excel (Delivery Zone in Column C, Latitude, Longitude); "
                              "default = newest matching file in MAP_EXCEL_FOLDER.")
@@ -4649,6 +4895,11 @@ def main():
         from new_estate_tracker import run as run_new_estates
         run_new_estates(raw_loader=lambda: load_map_excel(_find_map_excel(args.map_excel)), in_hk=point_in_hk,
                         dry_run=args.dry_run, limit=args.limit, watchlist=args.watchlist)
+        return
+
+    # v10.3 — OIX manpower backfill on its own (run it after an updated OIX_Record has been dropped in OIX_FOLDER).
+    if args.section == "oixbackfill":
+        run_oix_backfill_section(days=args.oix_days, force=args.force_oix)
         return
 
     # v8.0 §2 — separate Task Scheduler job (09:00 every Tuesday and Friday); deliberately NOT part of "all".
