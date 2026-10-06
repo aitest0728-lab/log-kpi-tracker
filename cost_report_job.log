@@ -324,3 +324,20 @@ Wrote ./public/data.json
 Wrote ./public/other_aspects_history.json
   ⚠️ './public/index.html' has no EMBEDDED_DATA_START/END markers — skipping embedded-data update. (Markers were added in v26.0; an older index.html won't have them yet.)
 ✅ Daily Cost Report 處理完成
+🚀 開始處理 Daily Cost Report...
+🚀 Opening WhatsApp Web (session '/home/chipanl/whatsapp_session_2') for group 'LOG 區頭 x Head office'...
+  🕶️ WhatsApp Chromium: new-headless mode (no window).
+  🔎 route 1: 2 report message(s) already loaded at the bottom of the chat
+  📋 reports visible in the chat: Daily Cost Report_202610_Last Update_Oct 4.xlsx
+  📎 newest cost report in the chat: 'Daily Cost Report_202610_Last Update_Oct 4.xlsx'
+  ⚠️ download icon did not start a download (Timeout 25000ms exceeded while waiting for event "download")
+  ✅ saved via file name click: C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker\Folder for KPI Dashboard\Daily Cost Report_202610_Last Update_Oct 4.xlsx
+  📄 Daily Cost Report_202610_Last Update_Oct 4.xlsx: data through 2026-10-04 — 4 day(s) of manpower, 4 day(s) of Cost/Order & Productivity
+  💲 Fulfillment Cost % 2026-10 (through 2026-10-04): overall 6.88% = 4,536,944 / 65,970,979
+Wrote ./public/manpower_distribution.json
+Wrote ./public/productivity_history.json
+Wrote ./public/data.json
+Wrote ./public/other_aspects_history.json
+Updated ./public/index.html (5,073,777 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - dashboard files were refreshed locally but NOT pushed anywhere.
+✅ Daily Cost Report 處理完成
