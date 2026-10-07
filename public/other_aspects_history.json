@@ -2,18 +2,18 @@
   "poorRating": {
     "current": {
       "monthKey": "2026-10",
-      "overall": 0.084,
+      "overall": 0.08,
       "districts": {
-        "ETH": 0.067,
-        "ETK": 0.024,
-        "ETX": 0.165,
-        "NT-ST": 0.092,
-        "NT-TM": 0.115,
-        "NT-TSM": 0.069,
-        "NT-TW": 0.083,
-        "WTH": 0.037,
-        "WTK": 0.08,
-        "WTX": 0.11
+        "ETH": 0.065,
+        "ETK": 0.032,
+        "ETX": 0.135,
+        "NT-ST": 0.089,
+        "NT-TM": 0.098,
+        "NT-TSM": 0.064,
+        "NT-TW": 0.097,
+        "WTH": 0.033,
+        "WTK": 0.077,
+        "WTX": 0.115
       }
     },
     "monthly": {
@@ -273,24 +273,39 @@
           "WTK": 0.08,
           "WTX": 0.11
         }
+      },
+      "2026-10-07": {
+        "overall": 0.08,
+        "districts": {
+          "ETH": 0.065,
+          "ETK": 0.032,
+          "ETX": 0.135,
+          "NT-ST": 0.089,
+          "NT-TM": 0.098,
+          "NT-TSM": 0.064,
+          "NT-TW": 0.097,
+          "WTH": 0.033,
+          "WTK": 0.077,
+          "WTX": 0.115
+        }
       }
     }
   },
   "missingLostAmount": {
     "current": {
       "monthKey": "2026-10",
-      "overall": 83191.0,
+      "overall": 103328.0,
       "districts": {
-        "ETH": 7658.0,
-        "ETK": 2986.0,
-        "ETX": 12129.0,
-        "NT-ST": 7161.0,
-        "NT-TM": 8241.0,
-        "NT-TSM": 4378.0,
-        "NT-TW": 6644.0,
-        "WTH": 10623.0,
-        "WTK": 4963.0,
-        "WTX": 8998.0
+        "ETH": 9494.0,
+        "ETK": 3915.0,
+        "ETX": 15698.0,
+        "NT-ST": 8046.0,
+        "NT-TM": 9933.0,
+        "NT-TSM": 4862.0,
+        "NT-TW": 7814.0,
+        "WTH": 12865.0,
+        "WTK": 7285.0,
+        "WTX": 10795.0
       }
     },
     "monthly": {
@@ -685,24 +700,39 @@
           "WTK": 4963.0,
           "WTX": 8998.0
         }
+      },
+      "2026-10-07": {
+        "overall": 103328.0,
+        "districts": {
+          "ETH": 9494.0,
+          "ETK": 3915.0,
+          "ETX": 15698.0,
+          "NT-ST": 8046.0,
+          "NT-TM": 9933.0,
+          "NT-TSM": 4862.0,
+          "NT-TW": 7814.0,
+          "WTH": 12865.0,
+          "WTK": 7285.0,
+          "WTX": 10795.0
+        }
       }
     }
   },
   "rfidMissingTote": {
     "current": {
       "monthKey": "2026-10",
-      "overall": 35.0,
+      "overall": 46.0,
       "districts": {
         "ETH": 1.0,
         "ETK": 3.0,
         "ETX": 3.0,
-        "NT-ST": 1.0,
+        "NT-ST": 6.0,
         "NT-TM": 15.0,
         "NT-TSM": 2.0,
-        "NT-TW": 4.0,
-        "WTH": 1.0,
-        "WTK": 0.0,
-        "WTX": 5.0
+        "NT-TW": 5.0,
+        "WTH": 3.0,
+        "WTK": 1.0,
+        "WTX": 7.0
       }
     },
     "monthly": {
@@ -946,6 +976,21 @@
           "WTH": 1.0,
           "WTK": 0.0,
           "WTX": 5.0
+        }
+      },
+      "2026-10-03": {
+        "overall": 46.0,
+        "districts": {
+          "ETH": 1.0,
+          "ETK": 3.0,
+          "ETX": 3.0,
+          "NT-ST": 6.0,
+          "NT-TM": 15.0,
+          "NT-TSM": 2.0,
+          "NT-TW": 5.0,
+          "WTH": 3.0,
+          "WTK": 1.0,
+          "WTX": 7.0
         }
       }
     }
