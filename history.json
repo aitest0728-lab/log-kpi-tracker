@@ -14612,6 +14612,53 @@
         },
         "total": 198
       }
+    },
+    "2026-10-07": {
+      "courier": {
+        "districts": {
+          "ETH": 18,
+          "ETK": 12,
+          "ETX": 22,
+          "NT-ST": 13,
+          "NT-TM": 14,
+          "NT-TSM": 26,
+          "NT-TW": 19,
+          "WTH": 20,
+          "WTK": 21,
+          "WTX": 25
+        },
+        "total": 190
+      },
+      "driver": {
+        "districts": {
+          "ETH": 24,
+          "ETK": 20,
+          "ETX": 19,
+          "NT-ST": 19,
+          "NT-TM": 24,
+          "NT-TSM": 17,
+          "NT-TW": 17,
+          "WTH": 14,
+          "WTK": 14,
+          "WTX": 17
+        },
+        "total": 185
+      },
+      "odsVan": {
+        "districts": {
+          "ETH": 27,
+          "ETK": 10,
+          "ETX": 23,
+          "NT-ST": 16,
+          "NT-TM": 8,
+          "NT-TSM": 12,
+          "NT-TW": 14,
+          "WTH": 45,
+          "WTK": 16,
+          "WTX": 21
+        },
+        "total": 192
+      }
     }
   },
   "delayPercentDaily": {
@@ -24754,6 +24801,15 @@
       "rows": 244271,
       "courierDriver": true,
       "processedAt": "2026-10-07T03:00:09",
+      "hktvLeaderExcluded": true
+    },
+    "2026-10-07": {
+      "file": "OIX_Record_20261007.csv",
+      "size": 65715147,
+      "sha1": "5d2bf41ba59c651eff85463a3a5a73e541e4ae62",
+      "rows": 198223,
+      "courierDriver": true,
+      "processedAt": "2026-10-08T03:00:09",
       "hktvLeaderExcluded": true
     }
   },
