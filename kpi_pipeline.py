@@ -2,6 +2,10 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v10.5 — Delivery Map: temporary delivery points. `--section maptemp` (also run by `--section map` / `all`) reads the Google Sheet
+  "交收點地址 Checking List" > "Tracking of Delivery Address Status" (written by address_tracking.py) and embeds every
+  still-open change (Reopen Date, Column K, blank) as window.__MAP_TEMP__ in index.html; the Delivery Map tab rings those
+  addresses in amber and shows the temporary point + Remarks + ticket + photo link.
 v10.4 — a backfilled OIX day now ALSO refreshes everything that is calculated from that day's manpower, not just the
   Manpower Distribution tab: dailyProductivityLog (HKTV Staff manpower with leader-exclusion + ODS/VAN manpower, and each
   row's productivity = orders / manpower; Cost-Report productivity is kept), the 7-day rolling series, every month-to-date
@@ -5092,6 +5096,82 @@ def _inject_map_key_only(carto_key):
     return True
 
 
+# ---- v10.5 — temporary delivery points (Google Sheet "Tracking of Delivery Address Status") -> Delivery Map ----------
+ADDR_TRACK_SHEET_ID = os.environ.get("ADDR_TRACK_SHEET_ID", "1-RgKgnUIg9JaO0UcjXowjmtkhjPi91R-73PLpv2yvCo")
+ADDR_TRACK_TAB = os.environ.get("ADDR_TRACK_TAB", "Tracking of Delivery Address Status")
+
+
+def temp_points_from_rows(values):
+    """Tracking-tab rows (header first) -> the compact list the map embeds. Columns: A Ticket, B District, C Zone,
+    D Estate Code, E Name EN, F Name ZH, G Type, H Lat, I Long, J Request Date, K Reopen Date, L Temporary point,
+    M Remarks, N Photo. A change is still in force while Reopen Date (K) is blank."""
+    out = []
+    for r in values[1:]:
+        r = [str(c).strip() for c in (list(r) + [""] * 14)[:14]]
+        tk, dd, zone, code, en, zh, _typ, lat, lng, req, reopen, point, remark, photo = r
+        if not code or not point or code.lower().startswith("estate code"):
+            continue
+        if reopen:
+            continue
+        out.append({"tk": tk, "c": code, "en": en, "zh": zh, "dd": dd, "z": zone, "la": lat, "ln": lng,
+                    "rq": req, "pt": point, "rm": remark, "ph": photo if photo.lower().startswith("http") else ""})
+    return out
+
+
+def load_temp_delivery_points():
+    try:
+        import gspread
+        from google.oauth2.service_account import Credentials
+    except ImportError as e:
+        raise FileNotFoundError("gspread / google-auth not installed — run: pip install gspread google-auth --break-system-packages") from e
+    if not os.path.exists(GOOGLE_CREDENTIAL_JSON):
+        raise FileNotFoundError(f"Google service-account credential not found at {GOOGLE_CREDENTIAL_JSON!r}")
+    try:
+        creds = Credentials.from_service_account_file(
+            GOOGLE_CREDENTIAL_JSON, scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"])
+        ws = gspread.authorize(creds).open_by_key(ADDR_TRACK_SHEET_ID).worksheet(ADDR_TRACK_TAB)
+        values = ws.get_all_values()
+    except Exception as e:
+        raise FileNotFoundError(f"Could not read '{ADDR_TRACK_TAB}': {e}") from e
+    return temp_points_from_rows(values)
+
+
+def inject_map_temp(points):
+    """Rewrites only the /*MAP_TEMP_START*/ … /*MAP_TEMP_END*/ block of index.html (inserted after the map data block if absent)."""
+    if not os.path.exists(INDEX_HTML_PATH):
+        print(f"  ⚠️ {INDEX_HTML_PATH!r} not found — temporary delivery points not embedded.")
+        return False
+    html = Path(INDEX_HTML_PATH).read_text(encoding="utf-8")
+    blob = json.dumps(points, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+    block = f"/*MAP_TEMP_START*/window.__MAP_TEMP__={blob};/*MAP_TEMP_END*/"
+    new, n = re.subn(r"/\*MAP_TEMP_START\*/.*?/\*MAP_TEMP_END\*/", lambda m: block, html, count=1, flags=re.DOTALL)
+    if n != 1:
+        new, n = re.subn(r"/\*MAP_DATA_END\*/", lambda m: "/*MAP_DATA_END*/" + block, html, count=1)
+    if n != 1:
+        print("  ⚠️ MAP_DATA_END marker not found in index.html — temporary delivery points not embedded.")
+        return False
+    Path(INDEX_HTML_PATH).write_text(new, encoding="utf-8")
+    return True
+
+
+def _inject_temp_softfail():
+    """Never lets a sheet problem break the map / KPI run."""
+    try:
+        pts = load_temp_delivery_points()
+        if inject_map_temp(pts):
+            print(f"  ✅ index.html: {len(pts)} temporary delivery point(s) embedded")
+    except Exception as e:
+        print(f"  ⚠️ Temporary delivery points skipped (previous list kept): {e}")
+
+
+def run_map_temp_section():
+    print("📍 更新 Delivery Map 臨時交收點...")
+    pts = load_temp_delivery_points()
+    if inject_map_temp(pts):
+        print(f"  ✅ index.html updated — {len(pts)} open temporary delivery point(s)")
+        run_deploy_hook()
+
+
 def run_map_section(excel_path=None):
     print("🗺️ 開始更新 Delivery Map 數據...")
     key = load_carto_key()
@@ -5103,6 +5183,7 @@ def run_map_section(excel_path=None):
         print(f"  ⚠️ {e}")
         if _inject_map_key_only(key):
             print(f"  ✅ index.html: CARTO key {'embedded' if key else 'NOT found — OSM fallback'} (map data unchanged)")
+            _inject_temp_softfail()
             run_deploy_hook()
         return
     print(f"  Source: {path}")
@@ -5116,6 +5197,7 @@ def run_map_section(excel_path=None):
     save_map_lookup(data)
     if inject_map_data(data, key):
         print(f"  ✅ index.html updated (CARTO key {'embedded' if key else 'NOT found — OSM fallback'})")
+        _inject_temp_softfail()
         run_deploy_hook()
 
 
@@ -5127,7 +5209,7 @@ def main():
     # until "tableau" (14:00) supplies the new Tableau-sourced order counts.
     # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
-    parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "oixbackfill", "map", "newestate", "all"], required=True)
+    parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "oixbackfill", "map", "maptemp", "newestate", "all"], required=True)
     parser.add_argument("--cost-report-file", default=None,
                         help="v8.0 — with --section costreport: parse this local .xlsx instead of "
                              "downloading from WhatsApp (manual re-run / testing).")
@@ -5162,6 +5244,10 @@ def main():
     # v8.0 §2 — separate Task Scheduler job (09:00 every Tuesday and Friday); deliberately NOT part of "all".
     if args.section == "costreport":
         run_cost_report_section(args.cost_report_file)
+        return
+
+    if args.section == "maptemp":  # v10.5 — only the temporary delivery points (fast; run after address_tracking.py)
+        run_map_temp_section()
         return
 
     if args.section == "map":      # Delivery Map v2 — Delivery Map data + CARTO key
