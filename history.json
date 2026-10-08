@@ -22755,6 +22755,26 @@
           "delay": 5.1,
           "early": 18.4,
           "onTime": 76.4
+        },
+        "AM": {
+          "delay": 9.47,
+          "delayOrders": 577,
+          "orders": 6096
+        },
+        "PM": {
+          "delay": 6.14,
+          "delayOrders": 699,
+          "orders": 11392
+        },
+        "EV": {
+          "delay": 1.16,
+          "delayOrders": 105,
+          "orders": 9019
+        },
+        "EV2": {
+          "delay": 2.41,
+          "delayOrders": 19,
+          "orders": 788
         }
       },
       "districts": {
