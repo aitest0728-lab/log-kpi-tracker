@@ -2,6 +2,19 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v10.7 — overall timeslot delay rate on the Delay % tab. The 08:30 job (and the 14:00 job) now also download the Tableau sheet
+  "Actual Delivery - District" (DeliverySummary view, pre-selected, no thumbnail click) and, per timeslot, compute
+  sum(district Delay orders, col C) / sum(district Grand Total orders, col F) -> overall AM/PM/EV/EV2 delay % (e.g. AM 577/6,096
+  = 9.47%), stored in delay_history.json daily[date].overall[slot] (+ delayOrders / orders) and shown in the Total column of the
+  expanded date row. Blank Delay cell = 0. Soft-fail: a bad/missing sheet never blocks the rest of the update.
+v10.6 (Dashboard Version 9.1) — daily Delay Rate update at 08:30 + WhatsApp post.
+  `--section delay`       downloads ONLY the T-1 "Actual Delivery - Delay & Early %" sheet and updates the dashboard
+                          (history.json, delay_history.json, data.json forecast, index.html snapshot); the MTD block is left
+                          to the 14:00 job. Refuses a stale download or a record identical to T-2's (--force overrides).
+  `--section delayreport` screenshots the Delay % tab (T-1 row expanded to AM/PM/EV/EV2) via delay_report.py and posts it with
+                          the caption "Daily update on <Mon d> delay rate by 10區 🙇‍♀️ / Overall x% delay / districts above
+                          the 4% target + main timeslots" to WA_TARGET_GROUP through wa_send.py. [--date YYYY-MM-DD] [--force]
+                          [--dry-run]. Wrapper: run_delay_0830.sh (fetch -> git push -> WhatsApp).
 v10.5 — Delivery Map: temporary delivery points. `--section maptemp` (also run by `--section map` / `all`) reads the Google Sheet
   "交收點地址 Checking List" > "Tracking of Delivery Address Status" (written by address_tracking.py) and embeds every
   still-open change (Reopen Date, Column K, blank) as window.__MAP_TEMP__ in index.html; the Delivery Map tab rings those
@@ -274,6 +287,9 @@ REPORT_FILES = {
     #                                             delay_zone_type_mtd, mtd_delay_early_ontime
     "actual_delivery_timeslot": "Actual Delivery by Timeslot.csv",
     "delay_early": "Actual Delivery - Delay & Early %.csv",
+    # v10.7 — DeliverySummary view, sheet "Actual Delivery - District" (pre-selected in the Crosstab dialog): per district x
+    # timeslot Delay order count (Col C) and Grand Total order count (Col F) -> network-wide AM/PM/EV/EV2 delay rate.
+    "actual_delivery_district": "Actual Delivery - District.csv",
     "actual_delivery_timeslot_mtd": "Actual Delivery by Timeslot - MTD - 10 Districts.csv",
     "delay_zone_type_mtd": "delay rate by zone type.csv",
     "mtd_delay_early_ontime": "MTD Actual Delivery - Delay, Early & On Time %.csv",
@@ -445,6 +461,15 @@ TABLEAU_TARGETS = [
     {
         "file_key": "delay_early",
         "sheet_name": "Actual Delivery - Delay & Early %",
+        "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary?:iid=1"
+    },
+    # v10.7 — "Actual Delivery - District". NOT flagged "preselected": the first trial run showed the dialog's default
+    # selection is another sheet (the export had no Delay/Grand Total header), so the normal sheet-select logic runs:
+    # the thumbnail is clicked ONLY if it is not already selected (is_sheet_already_selected), never toggled off.
+    # parse_district_timeslot_delay() still checks the header of what was exported (the v8.1 failure mode).
+    {
+        "file_key": "actual_delivery_district",
+        "sheet_name": "Actual Delivery - District",
         "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary?:iid=1"
     },
 
@@ -760,10 +785,14 @@ def smart_click_with_scroll(page, selectors, timeout_sec=15):
         time.sleep(1)
     return False
 
-def fetch_tableau_reports():
-    """使用 Playwright 自動登入 Tableau 並下載所有目標 Crosstab CSV"""
+def fetch_tableau_reports(only_keys=None):
+    """使用 Playwright 自動登入 Tableau 並下載所有目標 Crosstab CSV
+
+    v10.6 — `only_keys` (optional set of REPORT_FILES keys) restricts the run to those TABLEAU_TARGETS entries;
+    the 08:30 `--section delay` job passes {"delay_early", "actual_delivery_district"} (the T-1 Delay & Early % and District sheets)."""
     print("🚀 啟動 Tableau 自動化下載程序...")
-    
+    targets = [t for t in TABLEAU_TARGETS if t["file_key"] in only_keys] if only_keys else TABLEAU_TARGETS
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--disable-popup-blocking"])
         context = browser.new_context(accept_downloads=True)
@@ -801,7 +830,7 @@ def fetch_tableau_reports():
         #       呼叫 page.goto()，所以實際上是在「上一輪導航留下的最後一頁」
         #       上操作，而不是對應到當下這個報表。合併成一個迴圈，確保每次
         #       點擊 Download 之前，頁面一定是剛導航到的那個正確報表。)
-        for target in TABLEAU_TARGETS:
+        for target in targets:
             sheet_name = target["sheet_name"]
             report_url = target["url"]
             target_filename = REPORT_FILES[target["file_key"]]
@@ -1363,6 +1392,125 @@ def parse_delay_early_pct(file_key):
         elif label in DISTRICTS:
             districts[label][slot] = rec
     return {"overall": overall, "districts": districts}
+
+
+DELAY_SLOT_ORDER = ("AM", "PM", "EV", "EV2")
+
+
+def _district_int(v):
+    """'1,138' -> 1138; blank / NaN -> 0 (a blank Delay cell means 0 delayed orders for that district + timeslot)."""
+    s = str(v).replace(",", "").strip()
+    if not s or s.lower() == "nan":
+        return 0
+    return int(round(float(s)))
+
+
+def parse_district_timeslot_delay(path=None):
+    """v10.7 — parses 'Actual Delivery - District.csv' (Tableau crosstab, UTF-16 TSV, T-1) into the NETWORK-WIDE delay rate
+    of each timeslot:
+
+        overall <slot> delay % = sum over the 10 districts of Delay order count (col C)
+                                 / sum over the 10 districts of Grand Total order count (col F)
+
+    Layout: row 1 = measure group, row 2 = header (District1 (group) | Expected Timeslot w/ same day | Delay | Early | On Time |
+    Grand Total), then 'Grand Total' / per-district 'Total' rows and, per district, the 4 timeslot rows
+    1000-1400 (AM), 1400-1800 (PM), 1800-2200 (EV), same day EV (EV2). 'NT-YT & WTH' is WTH. Counts carry thousands
+    separators; a blank Delay cell = 0.  Example (2026-10-07 file): AM = 577 / 6,096 = 9.47 %.
+
+    Raises ValueError if the file is not this sheet (no header with Delay + Grand Total + 'Expected Timeslot', or no district
+    rows) so a wrongly exported sheet can never feed the dashboard.
+    Returns {slot: {"delayOrders": int, "orders": int, "delay": float|None}} for AM/PM/EV/EV2."""
+    path = path or os.path.join(REPORT_FOLDER, REPORT_FILES["actual_delivery_district"])
+    raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str, keep_default_na=False)
+    hdr = None
+    for i in range(min(6, len(raw))):
+        cells = [str(c).strip() for c in raw.iloc[i].tolist()]
+        if "Delay" in cells and "Grand Total" in cells and any(c.lower().startswith("expected timeslot") for c in cells):
+            hdr = i
+            break
+    if hdr is None:
+        first = " | ".join(str(c).strip() for c in raw.iloc[min(1, len(raw) - 1)].tolist())[:120] if len(raw) else "(empty file)"
+        raise ValueError(f"{os.path.basename(path)!r} has no 'Delay' / 'Grand Total' header row - Tableau probably exported a "
+                         f"different sheet than 'Actual Delivery - District', or the layout changed. Its header row reads: {first}")
+    cells = [str(c).strip() for c in raw.iloc[hdr].tolist()]
+    delay_col, total_col = cells.index("Delay"), cells.index("Grand Total")      # spec: Column C and Column F
+    if (delay_col, total_col) != (2, 5):
+        print(f"  i District sheet: Delay is column {delay_col + 1}, Grand Total column {total_col + 1} (spec: C and F) - using the header names.")
+
+    acc = {sl: {"delayOrders": 0, "orders": 0} for sl in DELAY_SLOT_ORDER}
+    seen, check_total, per_district = set(), {}, {}
+    last_label = None
+    for i in range(hdr + 1, len(raw)):
+        row = [str(c).strip() for c in raw.iloc[i].tolist()]
+        label = normalize_district_label(row[0]) if row[0] else last_label      # Tableau may leave repeated labels blank
+        last_label = label
+        slot = DELAY_TIMESLOT_MAP.get(row[1], row[1])
+        if label not in DISTRICTS:                                              # 'Grand Total' row, or something unexpected
+            continue
+        if slot == "Overall":                                                   # the district's own 'Total' row: kept for a cross-check only
+            check_total[label] = _district_int(row[delay_col])
+            continue
+        if slot not in acc:
+            continue
+        dn = _district_int(row[delay_col])
+        acc[slot]["delayOrders"] += dn
+        acc[slot]["orders"] += _district_int(row[total_col])
+        per_district[label] = per_district.get(label, 0) + dn
+        seen.add(label)
+    if not seen:
+        raise ValueError(f"{os.path.basename(path)!r}: no district rows (ETH ... WTX) found - wrong sheet / layout changed.")
+    if len(seen) < len(DISTRICTS):
+        print(f"  ⚠️ District sheet is missing {sorted(set(DISTRICTS) - seen)} - the overall timeslot rates exclude them.")
+    for d, tot in check_total.items():       # sanity: a district's 4 timeslot rows should add up to its own 'Total' row
+        if per_district.get(d, 0) != tot:
+            print(f"  ⚠️ District sheet: {d} timeslot delay rows add up to {per_district.get(d, 0)} but its Total row says {tot}.")
+    out = {}
+    for sl in DELAY_SLOT_ORDER:
+        n, dn = acc[sl]["orders"], acc[sl]["delayOrders"]
+        out[sl] = {"delayOrders": dn, "orders": n, "delay": round(dn / n * 100, 2) if n else None}
+    return out
+
+
+def apply_overall_timeslot_delay(history, date_str, rec, tolerance_pp=0.3):
+    """v10.7 — fills rec["overall"][AM|PM|EV|EV2] (the 'Total' column of the Delay % tab's expanded AM/PM/EV/EV2 rows, and the
+    closed-month rollup) from 'Actual Delivery - District.csv'. `rec` is parse_delay_early_pct()'s T-1 record, changed in place.
+
+    Soft-fail: a missing / stale / wrong-sheet file never blocks the rest of the delay update. The slots are then carried over
+    from any record already filed for `date_str` (e.g. this morning's 08:30 figures when the 14:00 download is the one that
+    failed) and a warning says so. Returns True if fresh figures were applied."""
+    path = os.path.join(REPORT_FOLDER, REPORT_FILES["actual_delivery_district"])
+    fresh, why = None, None
+    if not os.path.exists(path):
+        why = "not downloaded"
+    else:
+        age_h = (time.time() - os.path.getmtime(path)) / 3600
+        if age_h > STALE_REPORT_HOURS:
+            why = f"{age_h:.1f}h old (> {STALE_REPORT_HOURS}h) - leftover from an earlier run"
+        else:
+            try:
+                fresh = parse_district_timeslot_delay(path)
+            except Exception as e:
+                why = str(e)
+    ov = rec.setdefault("overall", {})
+    if fresh:
+        for sl, v in fresh.items():
+            ov[sl] = {**ov.get(sl, {}), "delay": v["delay"], "delayOrders": v["delayOrders"], "orders": v["orders"]}
+        print("  ✅ overall timeslot delay (Actual Delivery - District): " + ", ".join(
+            f"{sl} {v['delayOrders']}/{v['orders']} = {v['delay']}%" if v["delay"] is not None else f"{sl} n/a" for sl, v in fresh.items()))
+        tot_o = sum(v["orders"] for v in fresh.values())
+        implied = round(sum(v["delayOrders"] for v in fresh.values()) / tot_o * 100, 2) if tot_o else None
+        official = (ov.get("Overall") or {}).get("delay")
+        if implied is not None and official is not None and abs(implied - official) > tolerance_pp:
+            print(f"  ⚠️ the District sheet implies {implied}% overall delay but 'Delay & Early %' says {official}% - "
+                  f"are both sheets on the same date? Check the Tableau filters.")
+        return True
+    prev = (history.get("delayPercentDaily", {}).get(date_str) or {}).get("overall", {})
+    kept = [sl for sl in DELAY_SLOT_ORDER if sl in prev and sl not in ov]
+    for sl in kept:
+        ov[sl] = prev[sl]
+    print(f"  ⚠️ overall timeslot delay NOT updated - {why}"
+          + (f" | kept the figures already filed for {date_str}." if kept else " | the Delay % tab shows '—' in the AM/PM/EV/EV2 Total cells."))
+    return False
 
 
 def parse_delay_rate_by_zone_type():
@@ -3411,7 +3559,7 @@ def migrate_delay_t1_keys(history):
     return bool(daily)
 
 
-def build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay):
+def build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay, mtd_override=None):
     """v4.0 §2 — 'Delay %' tab data:
       - "daily": delayPercentDaily entries for the CURRENT (still-open) month
         only — the full log stays in history.json (same disposable/derived
@@ -3471,15 +3619,19 @@ def build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay):
             districts = {d: (round(sum(vs) / len(vs), 2) if (vs := vals["districts"][d]) else None) for d in DISTRICTS}
             monthly[month][s] = {"overall": overall, "districts": districts}
 
-    mtd_districts = {}
-    for d in DISTRICTS:
-        entry = dict(delay_early_mtd["districts"].get(d, {}))
-        entry["Overall"] = {"delay": zone_type["overall"].get(d)}
-        mtd_districts[d] = entry
-    mtd = {
-        "overall": {**delay_early_mtd["overall"], "Overall": {"delay": mtd_overall_delay}},
-        "districts": mtd_districts,
-    }
+    if mtd_override is not None:
+        # v10.6 — the 08:30 delay-only job has no MTD download: keep whatever MTD snapshot the 14:00 job last wrote.
+        mtd = mtd_override
+    else:
+        mtd_districts = {}
+        for d in DISTRICTS:
+            entry = dict(delay_early_mtd["districts"].get(d, {}))
+            entry["Overall"] = {"delay": zone_type["overall"].get(d)}
+            mtd_districts[d] = entry
+        mtd = {
+            "overall": {**delay_early_mtd["overall"], "Overall": {"delay": mtd_overall_delay}},
+            "districts": mtd_districts,
+        }
     return {"daily": daily_log, "monthly": monthly, "mtd": mtd, "mtdDaily": mtd_daily_log}
 
 
@@ -3765,7 +3917,7 @@ def run_section_tableau():
     # v8.0 — "actual_delivery_10d" (ODS counts) is also soft: if its download failed the
     # ODS figures fall back to the OIX-derived ones staged at 03:00 (see below) instead of
     # taking the whole 15:00 job down.
-    required_files = {k: v for k, v in REPORT_FILES.items() if k not in ("gmv", "actual_delivery_10d")}
+    required_files = {k: v for k, v in REPORT_FILES.items() if k not in ("gmv", "actual_delivery_10d", "actual_delivery_district")}  # v10.7: district sheet is soft too (see apply_overall_timeslot_delay)
     # (v4.0: "delay_rate"/Rank_On Time.csv is retired — replaced by the 5
     # Delivery Dashboard files above, already included in REPORT_FILES.)
     cutoff_time = time.time() - STALE_REPORT_HOURS * 3600
@@ -3821,6 +3973,7 @@ def run_section_tableau():
     # productivity_target_date and the GMV write below.
     delay_data_date = today - dt.timedelta(days=1)
     delay_early_t1 = parse_delay_early_pct("delay_early")
+    apply_overall_timeslot_delay(history, delay_data_date.isoformat(), delay_early_t1)   # v10.7 — overall AM/PM/EV/EV2 (soft-fail)
     t1_overall_delay = delay_early_t1["overall"].get("Overall", {}).get("delay")
     t1_district_delay = {d: delay_early_t1["districts"][d].get("Overall", {}).get("delay") for d in DISTRICTS}
     append_history(history, "delayRate", delay_data_date.isoformat(), t1_overall_delay, t1_district_delay)
@@ -3994,6 +4147,112 @@ def run_section_tableau():
     save_data_json(payload)
     update_embedded_data()  # v28.0 — refresh index.html's embedded fallback snapshot with the files just written above
     print("✅ 報表解析完成，已寫入 data.json")
+
+
+# =============================================================================
+# 6b. v10.6 (Dashboard Version 9.1) — 08:30 daily Delay Rate update + WhatsApp post
+#     `--section delay`        : download ONLY the T-1 "Actual Delivery - Delay & Early %" sheet, update the dashboard
+#     `--section delayreport`  : screenshot the Delay % tab + caption -> WhatsApp group (separate step, so a WhatsApp
+#                                problem can never block the dashboard update/deploy; re-runnable with --force)
+# =============================================================================
+DELAY_REPORT_SENT_DIR = os.environ.get("DELAY_REPORT_DIR", "./logs/delay_report")
+
+
+def run_section_delay(force=False):
+    """v10.6 — the 08:30 job. Leaders want the latest figures in the morning, so this runs ahead of the 14:00 job and
+    fetches only the T-1 (yesterday) Delay & Early % report (one Tableau sheet instead of ~12 downloads).
+
+    Writes exactly what the 14:00 job writes for the same T-1 day, so the later run simply overwrites it with the same
+    (or a final) figure:
+      history.json     delayPercentDaily[T-1] and delayRate[T-1] (the 30-day-forecast series)
+      delay_history.json  daily / monthly rollup rebuilt from the log; the 'mtd' block is KEPT as the 14:00 job left it
+                          (this job has no MTD download)
+      data.json        matrices.delayRate.forecast only (it is rolled up from the T-1 series); the MTD 'actual' stays put
+      index.html       embedded snapshot refreshed (update_embedded_data)
+    Guards: the CSV must have been downloaded just now (a failed download can't leave yesterday's file in place), the
+    network-wide Overall must be present, and a record identical to T-2's is treated as 'Tableau has not refreshed yet'
+    and refused unless force=True."""
+    print("🚀 開始處理 T-1 Delay Rate（08:30 job）...")
+    path = os.path.join(REPORT_FOLDER, REPORT_FILES["delay_early"])
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"{path!r} was not downloaded — check pipeline_log.txt for the Tableau download error.")
+    age_h = (time.time() - os.path.getmtime(path)) / 3600
+    if age_h > STALE_REPORT_HOURS:
+        raise FileNotFoundError(f"{path!r} is {age_h:.1f}h old (> {STALE_REPORT_HOURS}h): this run's download failed "
+                                f"and it is a leftover from an earlier run — refusing to publish stale delay figures.")
+
+    today = today_hkt()
+    t1 = today - dt.timedelta(days=1)
+    history = load_history()
+    migrate_delay_t1_keys(history)
+    rec = parse_delay_early_pct("delay_early")
+    t1_overall = rec["overall"].get("Overall", {}).get("delay")
+    if t1_overall is None:
+        raise ValueError("The Delay & Early % export has no network-wide 'Grand Total' row — Tableau layout changed?")
+    t1_districts = {d: rec["districts"][d].get("Overall", {}).get("delay") for d in DISTRICTS}
+    missing = [d for d, v in t1_districts.items() if v is None]
+    if missing:
+        print(f"  ⚠️ no per-district 'Total' delay % for: {', '.join(missing)}")
+
+    prev = history.get("delayPercentDaily", {}).get((t1 - dt.timedelta(days=1)).isoformat())
+    core = lambda r: ((r.get("overall") or {}).get("Overall"), r.get("districts"))    # v10.7: compare the Delay & Early % part only
+    if prev is not None and core(prev) == core(rec) and not force:
+        raise RuntimeError(f"The downloaded T-1 record is identical to {(t1 - dt.timedelta(days=1)).isoformat()}'s — "
+                           f"Tableau has probably not refreshed yet. Nothing was changed (re-run later, or use --force).")
+
+    append_history(history, "delayRate", t1.isoformat(), t1_overall, t1_districts)
+    apply_overall_timeslot_delay(history, t1.isoformat(), rec)     # v10.7 — overall AM/PM/EV/EV2 from 'Actual Delivery - District'
+    append_delay_history(history, t1.isoformat(), rec)
+
+    old = {}
+    if os.path.exists(DELAY_HISTORY_PATH):
+        try:
+            with open(DELAY_HISTORY_PATH, "r", encoding="utf-8") as f:
+                old = json.load(f)
+        except (OSError, ValueError):
+            old = {}
+    save_delay_history(build_delay_monthly(history, None, None, None,
+                                           mtd_override=old.get("mtd") or {"overall": {}, "districts": {}}))
+
+    payload = load_data_json()
+    dr = payload.get("matrices", {}).get("delayRate")
+    if dr is not None:
+        fc_o, fc_d = rolling_average(history, "delayRate", 30, today)
+        dr["forecast"] = {"overall": fc_o, "districts": fc_d}
+    save_history(history)
+    save_data_json(payload)
+    update_embedded_data()
+    print(f"✅ T-1 ({t1.isoformat()}) Delay Rate 已更新: overall {t1_overall}%")
+    return t1
+
+
+def run_delay_report_section(day=None, force=False, dry_run=False):
+    """v10.6 — screenshot of the Delay % tab (T-1 row expanded into AM/PM/EV/EV2) + caption, posted to WA_TARGET_GROUP.
+    `day` defaults to T-1. A 'sent' flag file per day stops the same day being posted twice (e.g. cron re-run after a
+    crash); --force overrides it, --dry-run only renders the PNG + caption and prints them (no WhatsApp)."""
+    import delay_report
+    import wa_send
+    day = day or (today_hkt() - dt.timedelta(days=1))
+    delay_report.PUBLIC_DIR = Path(os.path.dirname(INDEX_HTML_PATH) or ".")
+    delay_report.OUT_DIR = Path(DELAY_REPORT_SENT_DIR)
+    flag = Path(DELAY_REPORT_SENT_DIR) / f"sent_{day:%Y%m%d}.flag"
+    if flag.exists() and not force and not dry_run:
+        print(f"  ℹ️ {day.isoformat()} was already posted to WhatsApp ({flag.read_text().strip()}). Use --force to post again.")
+        return False
+    # v10.7 — the picture now includes the TOTAL column (overall delay rate of the day and of each AM/PM/EV/EV2 timeslot);
+    # DELAY_REPORT_HIDE_TOTAL=1 brings back the old picture without it
+    png, caption = delay_report.prepare(day, hide_total=os.environ.get("DELAY_REPORT_HIDE_TOTAL", "0") == "1")
+    print("---- caption ----\n" + caption + f"\n---- screenshot: {png} ----")
+    if dry_run:
+        print("  ℹ️ --dry-run: nothing was sent.")
+        return False
+    wa_send.send_image_with_caption(str(png), caption, group=WA_TARGET_GROUP, session_dir=WA_SESSION_DIR,
+                                    hide_mode=WA_HIDE_MODE, headless=WA_HEADLESS, user_agent=WA_USER_AGENT,
+                                    virtual_screen=WA_VIRTUAL_SCREEN, debug_dir=DELAY_REPORT_SENT_DIR)
+    flag.parent.mkdir(parents=True, exist_ok=True)
+    flag.write_text(dt.datetime.now().isoformat(timespec="seconds"), encoding="utf-8")
+    print(f"✅ Delay report for {day.isoformat()} sent to WhatsApp group {WA_TARGET_GROUP!r}.")
+    return True
 
 
 # =============================================================================
@@ -4216,7 +4475,8 @@ def fetch_cost_report_from_whatsapp():
             pass
 
     print(f"🚀 Opening WhatsApp Web (session {WA_SESSION_DIR!r}) for group {WA_TARGET_GROUP!r}...")
-    with virtual_display() as wa_display, sync_playwright() as p:
+    import wa_send   # v10.6 — the 08:30 delay post shares this Chromium profile; only one job may hold it at a time
+    with wa_send.wa_session_lock(), virtual_display() as wa_display, sync_playwright() as p:
         # v8.2 — headed Chromium, but drawn on the Xvfb virtual display (when available) so no window appears
         launch_env = {**os.environ, "DISPLAY": wa_display} if wa_display else None
         wa_args = ["--disable-popup-blocking"]
@@ -5209,7 +5469,13 @@ def main():
     # until "tableau" (14:00) supplies the new Tableau-sourced order counts.
     # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
-    parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "oixbackfill", "map", "maptemp", "newestate", "all"], required=True)
+    parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "oixbackfill", "map", "maptemp", "newestate",
+                                              "delay", "delayreport", "all"], required=True)
+    parser.add_argument("--date", default=None,
+                        help="v10.6 — with --section delayreport: the data date YYYY-MM-DD to report (default: T-1).")
+    parser.add_argument("--force", action="store_true",
+                        help="v10.6 — with --section delay: accept a T-1 record identical to T-2's; with --section delayreport: "
+                             "post again even if that day was already sent.")
     parser.add_argument("--cost-report-file", default=None,
                         help="v8.0 — with --section costreport: parse this local .xlsx instead of "
                              "downloading from WhatsApp (manual re-run / testing).")
@@ -5244,6 +5510,22 @@ def main():
     # v8.0 §2 — separate Task Scheduler job (09:00 every Tuesday and Friday); deliberately NOT part of "all".
     if args.section == "costreport":
         run_cost_report_section(args.cost_report_file)
+        return
+
+    # v10.6 (Dashboard Version 9.1) — 08:30 job: T-1 delay rate only. Deliberately NOT part of "all".
+    if args.section == "delay":
+        for _k in ("delay_early", "actual_delivery_district"):   # a stale CSV from an earlier run must never be mistaken for this morning's download
+            try:
+                os.remove(os.path.join(REPORT_FOLDER, REPORT_FILES[_k]))
+            except OSError:
+                pass
+        fetch_tableau_reports(only_keys={"delay_early", "actual_delivery_district"})
+        run_section_delay(force=args.force)
+        return
+
+    if args.section == "delayreport":   # v10.6 — screenshot + caption -> WhatsApp group (run after `delay` + deploy)
+        day = dt.datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else None
+        run_delay_report_section(day, force=args.force, dry_run=args.dry_run)
         return
 
     if args.section == "maptemp":  # v10.5 — only the temporary delivery points (fast; run after address_tracking.py)
