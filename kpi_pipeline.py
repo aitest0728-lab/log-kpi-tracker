@@ -2,6 +2,17 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v11.0 (Dashboard Version 10.0) — the 08:30 delay-rate WhatsApp post (`--section delayreport`) now goes to every group in WA_DELAY_GROUPS (default:
+  WA_TARGET_GROUP + "Logistic Management Team"; env WA_DELAY_GROUPS = names separated by | ), each with its own once-per-day sent flag.
+v11.0 (Dashboard Version 10.0) — Delivery Map: Estate Code / Zone Code performance. `--section mapperf` downloads three MONTHLY Tableau reports
+  (\"Estate Code Basis\" + \"Zone Code Basis\" from \"AI Fetching for Estate Performance (LOG)\", \"Homepass\" from \"Homepass for AI Fetching\"; all
+  pre-selected single-sheet reports, Crosstab -> CSV) and embeds them as window.__MAP_PERF__ in index.html (/*MAP_PERF_START*/ ... /*MAP_PERF_END*/);
+  the Delivery Map tab joins them to the open-estate list by estate code / zone code. Column mapping follows the CSV headers (Estate Code Basis:
+  D code, E name, F Parent Order Count, G Waybill Count, H GMV; Zone Code Basis: C zone, D/E/F; Homepass: A code, F flat code, G customer pkey,
+  H homepass, I penetration). Basket Size = GMV / Parent Orders, Waybill / Order = Waybills / Parent Orders (calculated on the page).
+  Schedule: 1st of every month 09:10   ->   10 9 1 * *  python3 kpi_pipeline.py --section mapperf
+  The three reports are downloaded with the TABLEAU_GMV_USER / TABLEAU_GMV_PASS account (same login as the GMV report), not TABLEAU_USER.
+  Not part of `all`. `--no-download` re-parses the CSVs already in REPORT_FOLDER; `--perf-date YYYY-MM-DD` overrides the date shown on the tab.
 v10.8 (Dashboard Version 9.2) — (1) "Last Received by Customer" time per district on the Delay % tab. While the T-1 delay rate is
   processed, the T-1 OIX_Record_YYYYMMDD report (OIX_FOLDER) is read: only users starting LF/LP/ODS/VAN, rows dated before the file date
   dropped, Received-by-Customer rows only, one row per Parent Order, district from 送貨車號 (Domo_Jai.py mapping), and the LATEST
@@ -22,7 +33,7 @@ v10.6 (Dashboard Version 9.1) — daily Delay Rate update at 08:30 + WhatsApp po
                           to the 14:00 job. Refuses a stale download or a record identical to T-2's (--force overrides).
   `--section delayreport` screenshots the Delay % tab (T-1 row expanded to AM/PM/EV/EV2) via delay_report.py and posts it with
                           the caption "Daily update on <Mon d> delay rate by 10區 🙇‍♀️ / Overall x% delay / districts above
-                          the 4% target + main timeslots" to WA_TARGET_GROUP through wa_send.py. [--date YYYY-MM-DD] [--force]
+                          the 4% target + main timeslots" to WA_DELAY_GROUPS (LOG 區頭 x Head office + Logistic Management Team) through wa_send.py. [--date YYYY-MM-DD] [--force]
                           [--dry-run]. Wrapper: run_delay_0830.sh (fetch -> git push -> WhatsApp).
 v10.5 — Delivery Map: temporary delivery points. `--section maptemp` (also run by `--section map` / `all`) reads the Google Sheet
   "交收點地址 Checking List" > "Tracking of Delivery Address Status" (written by address_tracking.py) and embeds every
@@ -260,6 +271,8 @@ STALE_REPORT_HOURS = float(os.environ.get("STALE_REPORT_HOURS", "2"))
 # been logged in once by scanning the QR code (re-scan if the session expires).
 WA_SESSION_DIR = os.environ.get("WA_SESSION_DIR", "/home/chipanl/whatsapp_session_2")
 WA_TARGET_GROUP = os.environ.get("WA_TARGET_GROUP", "LOG 區頭 x Head office")
+# v11.0 — groups that receive the 08:30 delay-rate post (--section delayreport). WA_TARGET_GROUP stays the single group the Daily Cost Report is read from.
+WA_DELAY_GROUPS = [g.strip() for g in os.environ.get("WA_DELAY_GROUPS", WA_TARGET_GROUP + "|Logistic Management Team").split("|") if g.strip()]
 WA_HEADLESS = os.environ.get("WA_HEADLESS", "0") == "1"   # WhatsApp Web often refuses headless; default = visible window
 # v8.2 — hide the WhatsApp Web browser window (WA_HIDE_MODE):
 #   auto      -> "headless" on Windows/macOS, "xvfb" on Linux (default)
@@ -320,6 +333,11 @@ REPORT_FILES = {
     # 10 Districts": source of the ODS order count (Column C "Parent Order #") and
     # ODS waybill count (Column E "No. of Waybill") on the rows headed "包派".
     "actual_delivery_10d": "Actual Delivery - 10 Districts.csv",
+
+    # v11.0 — MONTHLY Delivery Map performance reports (see run_map_perf_section()); never part of the daily downloads.
+    "estate_perf": "Estate Code Basis.csv",
+    "zone_perf": "Zone Code Basis.csv",
+    "homepass": "Homepass.csv",
 }
 
 # v4.0 §2 — "Expected Timeslot w/ same day" raw values -> the short codes the
@@ -527,6 +545,31 @@ TABLEAU_TARGETS = [
         "file_key": "actual_delivery_10d",
         "sheet_name": "Actual Delivery - 10 Districts",
         "url": "https://inhouse-analytics.hktv.com.hk/#/views/DeliveryDashboard/DeliverySummary?:iid=2"
+    },
+
+    # v11.0 (Dashboard Version 10.0) — monthly Delivery Map performance reports. Each workbook has ONE sheet and it is pre-selected in the
+    # Crosstab dialog, so `preselected` skips the thumbnail click. "monthly" keeps them out of the daily 08:30 / `all` downloads: they are
+    # only fetched by `--section mapperf` (1st of the month, 09:10).
+    {
+        "file_key": "estate_perf",
+        "sheet_name": "Estate Code Basis",
+        "preselected": True,
+        "monthly": True,
+        "url": "https://inhouse-analytics.hktv.com.hk/#/views/AIFetchingforEstatePerformanceLOG/EstatePerformance?:iid=3"
+    },
+    {
+        "file_key": "zone_perf",
+        "sheet_name": "Zone Code Basis",
+        "preselected": True,
+        "monthly": True,
+        "url": "https://inhouse-analytics.hktv.com.hk/#/views/AIFetchingforEstatePerformanceLOG/ZoneCodeBasis?:iid=2"
+    },
+    {
+        "file_key": "homepass",
+        "sheet_name": "Homepass",
+        "preselected": True,
+        "monthly": True,
+        "url": "https://inhouse-analytics.hktv.com.hk/#/views/HomepassForAIFetching/Hompass?:iid=1"
     },
 ]
 
@@ -807,13 +850,18 @@ def smart_click_with_scroll(page, selectors, timeout_sec=15):
         time.sleep(1)
     return False
 
-def fetch_tableau_reports(only_keys=None):
+def fetch_tableau_reports(only_keys=None, user=None, password=None, login_url=None):
     """使用 Playwright 自動登入 Tableau 並下載所有目標 Crosstab CSV
 
     v10.6 — `only_keys` (optional set of REPORT_FILES keys) restricts the run to those TABLEAU_TARGETS entries;
-    the 08:30 `--section delay` job passes {"delay_early", "actual_delivery_district"} (the T-1 Delay & Early % and District sheets)."""
+    the 08:30 `--section delay` job passes {"delay_early", "actual_delivery_district"} (the T-1 Delay & Early % and District sheets).
+
+    v11.0 — `user` / `password` / `login_url` (default TABLEAU_USER / TABLEAU_PASS / TABLEAU_URL) let a job log in with another account:
+    the monthly Delivery Map reports (--section mapperf) use TABLEAU_GMV_USER / TABLEAU_GMV_PASS."""
+    user, password, login_url = user or TABLEAU_USER, password or TABLEAU_PASS, login_url or TABLEAU_URL
     print("🚀 啟動 Tableau 自動化下載程序...")
-    targets = [t for t in TABLEAU_TARGETS if t["file_key"] in only_keys] if only_keys else TABLEAU_TARGETS
+    # v11.0 — "monthly" targets (Delivery Map performance) are only fetched when asked for by key (--section mapperf).
+    targets = [t for t in TABLEAU_TARGETS if t["file_key"] in only_keys] if only_keys else [t for t in TABLEAU_TARGETS if not t.get("monthly")]
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--disable-popup-blocking"])
@@ -825,10 +873,10 @@ def fetch_tableau_reports(only_keys=None):
 
         # 1. 登入 Tableau
         print("  🌐 導航至 Tableau 登入頁面...")
-        page.goto(TABLEAU_URL)
+        page.goto(login_url)
         page.wait_for_selector("input[type='text'], input[name='username']", timeout=30000)
-        page.locator("input[type='text'], input[name='username']").first.fill(TABLEAU_USER)
-        page.locator("input[type='password'], input[name='password']").first.fill(TABLEAU_PASS)
+        page.locator("input[type='text'], input[name='username']").first.fill(user)
+        page.locator("input[type='password'], input[name='password']").first.fill(password)
         page.locator("button:has-text('Sign In'), [aria-label='Sign In']").first.click()
 
         # 登入後 Tableau 會自己非同步跳轉到預設頁面
@@ -840,7 +888,7 @@ def fetch_tableau_reports(only_keys=None):
         print("  ⏳ 等待登入後的跳轉完成...")
         page.wait_for_load_state("networkidle", timeout=60000)
         try:
-            page.wait_for_url("**/#/user/**", timeout=30000)
+            page.wait_for_url(re.compile(r".*/#/(user|explore)\b.*"), timeout=30000)   # v11.0: the GMV account lands on /#/explore
             print(f"  ✅ 已到達登入後預設頁面: {page.url}")
         except Exception:
             print(f"  ⚠ 未偵測到預期的 /#/user/ 跳轉，目前網址: {page.url}（仍會繼續嘗試導航）")
@@ -4445,23 +4493,39 @@ def run_delay_report_section(day=None, force=False, dry_run=False):
     day = day or (today_hkt() - dt.timedelta(days=1))
     delay_report.PUBLIC_DIR = Path(os.path.dirname(INDEX_HTML_PATH) or ".")
     delay_report.OUT_DIR = Path(DELAY_REPORT_SENT_DIR)
-    flag = Path(DELAY_REPORT_SENT_DIR) / f"sent_{day:%Y%m%d}.flag"
-    if flag.exists() and not force and not dry_run:
-        print(f"  ℹ️ {day.isoformat()} was already posted to WhatsApp ({flag.read_text().strip()}). Use --force to post again.")
+    # v11.0 — one sent-flag per group, so a re-run after a crash only posts to the group(s) that did not get it. The first group keeps the
+    # old flag name (sent_YYYYMMDD.flag); the others add a short hash of the group name.
+    def _flag(i, group):
+        return Path(DELAY_REPORT_SENT_DIR) / (f"sent_{day:%Y%m%d}.flag" if i == 0 else f"sent_{day:%Y%m%d}_{hashlib.md5(group.encode('utf-8')).hexdigest()[:8]}.flag")
+    pending = [(i, g) for i, g in enumerate(WA_DELAY_GROUPS) if force or dry_run or not _flag(i, g).exists()]
+    for i, g in enumerate(WA_DELAY_GROUPS):
+        if (i, g) not in pending:
+            print(f"  ℹ️ {day.isoformat()} was already posted to {g!r} ({_flag(i, g).read_text().strip()}). Use --force to post again.")
+    if not pending and not dry_run:
         return False
     # v10.7 — the picture now includes the TOTAL column (overall delay rate of the day and of each AM/PM/EV/EV2 timeslot);
     # DELAY_REPORT_HIDE_TOTAL=1 brings back the old picture without it
     png, caption = delay_report.prepare(day, hide_total=os.environ.get("DELAY_REPORT_HIDE_TOTAL", "0") == "1")
     print("---- caption ----\n" + caption + f"\n---- screenshot: {png} ----")
     if dry_run:
-        print("  ℹ️ --dry-run: nothing was sent.")
+        print(f"  ℹ️ --dry-run: nothing was sent (would post to {WA_DELAY_GROUPS}).")
         return False
-    wa_send.send_image_with_caption(str(png), caption, group=WA_TARGET_GROUP, session_dir=WA_SESSION_DIR,
-                                    hide_mode=WA_HIDE_MODE, headless=WA_HEADLESS, user_agent=WA_USER_AGENT,
-                                    virtual_screen=WA_VIRTUAL_SCREEN, debug_dir=DELAY_REPORT_SENT_DIR)
-    flag.parent.mkdir(parents=True, exist_ok=True)
-    flag.write_text(dt.datetime.now().isoformat(timespec="seconds"), encoding="utf-8")
-    print(f"✅ Delay report for {day.isoformat()} sent to WhatsApp group {WA_TARGET_GROUP!r}.")
+    failed = []
+    for i, g in pending:
+        try:
+            wa_send.send_image_with_caption(str(png), caption, group=g, session_dir=WA_SESSION_DIR,
+                                            hide_mode=WA_HIDE_MODE, headless=WA_HEADLESS, user_agent=WA_USER_AGENT,
+                                            virtual_screen=WA_VIRTUAL_SCREEN, debug_dir=DELAY_REPORT_SENT_DIR)
+        except Exception as e:      # one group failing must not stop the others
+            print(f"  ❌ Could not post the delay report to {g!r}: {e}")
+            failed.append(g)
+            continue
+        f = _flag(i, g)
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(dt.datetime.now().isoformat(timespec="seconds"), encoding="utf-8")
+        print(f"✅ Delay report for {day.isoformat()} sent to WhatsApp group {g!r}.")
+    if failed:
+        raise RuntimeError(f"Delay report NOT delivered to: {failed} (the other group(s) got it; re-run `--section delayreport` to retry only these).")
     return True
 
 
@@ -5675,6 +5739,199 @@ def run_map_section(excel_path=None):
 
 
 
+# =============================================================================
+# 8. v11.0 (Dashboard Version 10.0) — Delivery Map: Estate Code / Zone Code performance (monthly Tableau reports)
+# =============================================================================
+PERF_KEYS = {"estate_perf", "zone_perf", "homepass"}
+
+
+def _perf_path(key):
+    """The downloaded CSV for `key`; also accepts the underscore spelling a browser/OS may give it (and 'Hompass', the Tableau view's name)."""
+    base = REPORT_FILES[key]
+    names = [base, base.replace(" ", "_")] + (["Hompass.csv"] if key == "homepass" else [])
+    for nm in names:
+        p = os.path.join(REPORT_FOLDER, nm)
+        if os.path.exists(p):
+            return p
+    return None
+
+
+def _pnum(v):
+    """'12,358.06' / '39.8%' / '' -> float | None"""
+    if v is None:
+        return None
+    t = str(v).strip().replace(",", "").replace("%", "")
+    if t == "" or t.lower() == "nan":
+        return None
+    try:
+        return float(t)
+    except ValueError:
+        return None
+
+
+def _pcol(header, keywords, fallback):
+    """Column index by header keyword (case-insensitive); the documented position when no header matches."""
+    for i, h in enumerate(header):
+        if any(k in str(h).lower() for k in keywords):
+            return i
+    return fallback
+
+
+def _perf_rows(key):
+    """-> (header, rows) of a Tableau crosstab CSV (UTF-16 TSV)."""
+    path = _perf_path(key)
+    if not path:
+        raise FileNotFoundError(f"{REPORT_FILES[key]!r} not found in {REPORT_FOLDER!r}")
+    raw = _read_tableau_crosstab_raw(path).fillna("")
+    header = [str(x).strip() for x in raw.iloc[0]]
+    return header, raw.iloc[1:].values.tolist()
+
+
+def parse_estate_performance():
+    """'Estate Code Basis.csv' -> {estate_code: {zh, dd, zone, o, w, g}}. Columns by header name, else D code / E name / F orders / G waybills / H GMV."""
+    h, rows = _perf_rows("estate_perf")
+    c = dict(dd=_pcol(h, ("delivery_district",), 0), zone=_pcol(h, ("delivery_zone_id",), 2), code=_pcol(h, ("estate_code",), 3),
+             zh=_pcol(h, ("estate_name",), 4), o=_pcol(h, ("order",), 5), w=_pcol(h, ("waybill",), 6), g=_pcol(h, ("total_price", "gmv"), 7))
+    print("  Estate Code Basis columns -> " + ", ".join(f"{k}=col {chr(65 + v)}" for k, v in c.items()))
+    out = {}
+    for r in rows:
+        code = str(r[c["code"]]).strip()
+        if not code or code.lower().startswith("grand total"):
+            continue
+        d = out.setdefault(code, {"zh": str(r[c["zh"]]).strip(), "dd": str(r[c["dd"]]).strip(), "zone": str(r[c["zone"]]).strip(), "o": 0, "w": 0, "g": 0.0})
+        d["o"] += _pnum(r[c["o"]]) or 0
+        d["w"] += _pnum(r[c["w"]]) or 0
+        d["g"] += _pnum(r[c["g"]]) or 0
+    return out
+
+
+def parse_zone_performance():
+    """'Zone Code Basis.csv' -> {zone_code: {dd, o, w, g}}. Columns by header name, else C zone / D orders / E waybills / F GMV."""
+    h, rows = _perf_rows("zone_perf")
+    c = dict(dd=_pcol(h, ("delivery_district",), 0), zone=_pcol(h, ("delivery_zone_id", "zone_id"), 2), o=_pcol(h, ("order",), 3),
+             w=_pcol(h, ("waybill",), 4), g=_pcol(h, ("total_price", "gmv"), 5))
+    print("  Zone Code Basis columns -> " + ", ".join(f"{k}=col {chr(65 + v)}" for k, v in c.items()))
+    out = {}
+    for r in rows:
+        z = str(r[c["zone"]]).strip()
+        if not z or z.lower().startswith("grand total"):
+            continue
+        d = out.setdefault(z, {"dd": str(r[c["dd"]]).strip(), "o": 0, "w": 0, "g": 0.0})
+        d["o"] += _pnum(r[c["o"]]) or 0
+        d["w"] += _pnum(r[c["w"]]) or 0
+        d["g"] += _pnum(r[c["g"]]) or 0
+    return out
+
+
+def parse_homepass():
+    """'Homepass.csv' -> {estate_code: {fl, cu, hp, pr}}: A code / F No. of flat code / G Customer Pkey count / H Homepass / I Penetration Rate.
+    The 'Grand Total' row is skipped. An estate code that appears on several rows (name variants such as '... (只限地面交收)') is merged: flat and
+    customer counts are summed, homepass is the (identical) per-code figure, and the penetration rate is recomputed as flat / homepass
+    (the Tableau definition - it matches every single-row estate)."""
+    h, rows = _perf_rows("homepass")
+    c = dict(code=_pcol(h, ("estate_code",), 0), fl=_pcol(h, ("flat",), 5), cu=_pcol(h, ("customer",), 6), hp=_pcol(h, ("homepass",), 7),
+             pr=_pcol(h, ("pene",), 8))
+    print("  Homepass columns -> " + ", ".join(f"{k}=col {chr(65 + v)}" for k, v in c.items()))
+    acc = {}
+    for r in rows:
+        code = str(r[c["code"]]).strip()
+        if not code or code.lower().startswith("grand total"):
+            continue
+        a = acc.setdefault(code, {"fl": 0, "cu": 0, "hp": 0, "n": 0, "pr": None})
+        a["fl"] += _pnum(r[c["fl"]]) or 0
+        a["cu"] += _pnum(r[c["cu"]]) or 0
+        a["hp"] = max(a["hp"], _pnum(r[c["hp"]]) or 0)
+        a["pr"] = _pnum(r[c["pr"]])
+        a["n"] += 1
+    for a in acc.values():
+        if a["n"] > 1 or a["pr"] is None:
+            a["pr"] = (a["fl"] / a["hp"] * 100) if a["hp"] else None
+    return acc
+
+
+def build_map_perf(as_of, known_codes=None, known_zones=None):
+    """Compact block the Delivery Map tab joins to its estate list:
+         est  {code: [orders, waybills, gmv, customerPkey, flatCodes, homepass, penetration%]}   (customer..penetration null when not in Homepass)
+         zone {zone: [orders, waybills, gmv]}
+         xe   [[code, zh, district]]   estates in the Tableau report that are NOT in the map's list (kept so totals reconcile)
+         xz   [[zone, district]]       zones in the Tableau report that are NOT in the map's list
+       Basket Size and Waybill / Order are calculated on the page."""
+    est, zone, hp = parse_estate_performance(), parse_zone_performance(), parse_homepass()
+    keep_hp = set(hp) if not known_codes else set(hp) & set(known_codes)
+    codes = set(est) | keep_hp
+    out_est = {}
+    for code in sorted(codes):
+        e, a = est.get(code), hp.get(code)
+        out_est[code] = [int(e["o"]) if e else 0, int(e["w"]) if e else 0, round(e["g"], 2) if e else 0,
+                         int(a["cu"]) if a else None, int(a["fl"]) if a else None, int(a["hp"]) if a else None,
+                         round(a["pr"], 1) if a and a["pr"] is not None else None]
+    out_zone = {z: [int(v["o"]), int(v["w"]), round(v["g"], 2)] for z, v in sorted(zone.items())}
+    xe = [[c, v["zh"], v["dd"]] for c, v in sorted(est.items()) if known_codes and c not in known_codes]
+    xz = [[z, v["dd"]] for z, v in sorted(zone.items()) if known_zones and z not in known_zones]
+    tot_e = (sum(v["o"] for v in est.values()), sum(v["w"] for v in est.values()), sum(v["g"] for v in est.values()))
+    tot_z = (sum(v["o"] for v in zone.values()), sum(v["w"] for v in zone.values()), sum(v["g"] for v in zone.values()))
+    problems = []
+    for lbl, a, b in zip(("Parent orders", "Waybills", "GMV"), tot_e, tot_z):
+        if b and abs(a - b) / b > 0.005:
+            problems.append(f"{lbl}: Estate report {a:,.2f} vs Zone report {b:,.2f}")
+    data = {"asOf": as_of, "est": out_est, "zone": out_zone, "xe": xe, "xz": xz}
+    st = {"estates": len(est), "zones": len(zone), "homepass": len(hp), "rows": len(out_est), "xe": len(xe), "xz": len(xz),
+          "orders": tot_e[0], "waybills": tot_e[1], "gmv": tot_e[2], "problems": problems}
+    return data, st
+
+
+def inject_map_perf(perf):
+    """Rewrites only the /*MAP_PERF_START*/ ... /*MAP_PERF_END*/ block of index.html (inserted right after the temporary-points block if absent)."""
+    if not os.path.exists(INDEX_HTML_PATH):
+        print(f"  ⚠️ {INDEX_HTML_PATH!r} not found — map performance figures not embedded.")
+        return False
+    html = Path(INDEX_HTML_PATH).read_text(encoding="utf-8")
+    blob = json.dumps(perf, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+    block = f"/*MAP_PERF_START*/window.__MAP_PERF__={blob};/*MAP_PERF_END*/"
+    new, n = re.subn(r"/\*MAP_PERF_START\*/.*?/\*MAP_PERF_END\*/", lambda m: block, html, count=1, flags=re.DOTALL)
+    if n != 1:
+        new, n = re.subn(r"/\*MAP_TEMP_END\*/", lambda m: "/*MAP_TEMP_END*/" + block, html, count=1)
+    if n != 1:
+        new, n = re.subn(r"/\*MAP_DATA_END\*/", lambda m: "/*MAP_DATA_END*/" + block, html, count=1)
+    if n != 1:
+        print("  ⚠️ MAP_TEMP_END / MAP_DATA_END marker not found in index.html — map performance figures not embedded.")
+        return False
+    Path(INDEX_HTML_PATH).write_text(new, encoding="utf-8")
+    return True
+
+
+def run_map_perf_section(download=True, perf_date=None):
+    """v11.0 — monthly job (1st of the month, 09:10): download the 3 reports, parse, embed, deploy. A failed download keeps the previous figures."""
+    print("📊 更新 Delivery Map 業績數據 (Estate Code / Zone Code)...")
+    if download:
+        for k in PERF_KEYS:          # a CSV left over from last month must never be mistaken for this month's download
+            for nm in {REPORT_FILES[k], REPORT_FILES[k].replace(" ", "_"), "Hompass.csv" if k == "homepass" else REPORT_FILES[k]}:
+                try:
+                    os.remove(os.path.join(REPORT_FOLDER, nm))
+                except OSError:
+                    pass
+        if not TABLEAU_GMV_USER or not TABLEAU_GMV_PASS:
+            print("  ❌ TABLEAU_GMV_USER / TABLEAU_GMV_PASS are not set (.env) — the monthly Delivery Map reports use that account. Map performance NOT updated.")
+            return
+        fetch_tableau_reports(only_keys=PERF_KEYS, user=TABLEAU_GMV_USER, password=TABLEAU_GMV_PASS, login_url=TABLEAU_GMV_URL)
+    missing = [REPORT_FILES[k] for k in sorted(PERF_KEYS) if not _perf_path(k)]
+    if missing:
+        print(f"  ❌ Missing report(s): {missing} — map performance NOT updated (previous figures kept).")
+        return
+    by_code, zone_dd, _ = _existing_map_lookups()
+    day = perf_date or today_hkt()
+    data, st = build_map_perf(f"{day:%b} {day.day}", known_codes=set(by_code) or None, known_zones=set(zone_dd) or None)
+    print(f"  Estate report {st['estates']:,} estates · Zone report {st['zones']:,} zones · Homepass {st['homepass']:,} estates · embedded rows {st['rows']:,}")
+    print(f"  Parent orders {st['orders']:,.0f} · waybills {st['waybills']:,.0f} · GMV ${st['gmv']:,.2f}")
+    if st["xe"] or st["xz"]:
+        print(f"  ℹ️ Not in the map's estate list: {st['xe']} estate code(s), {st['xz']} zone code(s) — still shown in the tables so totals reconcile.")
+    for pr in st["problems"]:
+        print(f"  ⚠️ Estate vs Zone report differ: {pr}")
+    if inject_map_perf(data):
+        print("  ✅ index.html updated — Delivery Map estate / zone performance")
+        run_deploy_hook()
+
+
 def main():
     # v4.0 §1: "productivity" (03:00, OIX) now only stages MANPOWER —
     # HKTV Manpower Distribution's own file is still written directly, but
@@ -5683,7 +5940,7 @@ def main():
     # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
     parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "oixbackfill", "map", "maptemp", "newestate",
-                                              "delay", "delayreport", "lastreceived", "all"], required=True)
+                                              "delay", "delayreport", "lastreceived", "mapperf", "all"], required=True)
     parser.add_argument("--date", default=None,
                         help="v10.6 — with --section delayreport: the data date YYYY-MM-DD to report (default: T-1).")
     parser.add_argument("--force", action="store_true",
@@ -5701,6 +5958,10 @@ def main():
     parser.add_argument("--map-excel", default=None,
                         help="Delivery Map v2 — with --section map: estate/address Excel (Delivery Zone in Column C, Latitude, Longitude); "
                              "default = newest matching file in MAP_EXCEL_FOLDER.")
+    parser.add_argument("--no-download", action="store_true",
+                        help="v11.0 — with --section mapperf: skip the Tableau download and re-parse the CSVs already in REPORT_FOLDER.")
+    parser.add_argument("--perf-date", default=None,
+                        help="v11.0 — with --section mapperf: the date shown on the Delivery Map performance tables (default: today, HKT).")
     parser.add_argument("--dry-run", action="store_true",
                         help="v9.5 — with --section newestate: read sources + match Raw only; no geocoding, no files written.")
     parser.add_argument("--limit", type=int, default=None, help="v9.5 — with --section newestate: geocode at most N estates this run.")
@@ -5743,6 +6004,11 @@ def main():
     if args.section == "delayreport":   # v10.6 — screenshot + caption -> WhatsApp group (run after `delay` + deploy)
         day = dt.datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else None
         run_delay_report_section(day, force=args.force, dry_run=args.dry_run)
+        return
+
+    if args.section == "mapperf":  # v11.0 (Dashboard Version 10.0) — monthly estate / zone performance (1st of the month, 09:10)
+        run_map_perf_section(download=not args.no_download,
+                             perf_date=dt.datetime.strptime(args.perf_date, "%Y-%m-%d").date() if args.perf_date else None)
         return
 
     if args.section == "maptemp":  # v10.5 — only the temporary delivery points (fast; run after address_tracking.py)
