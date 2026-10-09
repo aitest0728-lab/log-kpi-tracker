@@ -4,10 +4,13 @@ backfill_last_received.py — backfill the "Last Received by Customer" time for 
 
 Put this file in the SAME folder as kpi_pipeline.py and run it from there:
 
-    python backfill_last_received.py                          # every day from 1st of this month to T-1 that has no value yet
+    python backfill_last_received.py                          # (re)compute every day from the 1st of this month to T-1
     python backfill_last_received.py --start 2026-10-01 --end 2026-10-07
-    python backfill_last_received.py --force                  # recompute days that already have a value
-    python backfill_last_received.py --dry-run                # compute + print only, write nothing
+    python backfill_last_received.py --only-missing           # leave days that already have a value alone
+    python backfill_last_received.py --dry-run                # compute + print old -> new, write nothing
+
+v10.9: users counted are LF/LP + ODS/VAN (same set as the delay rate), so existing days are RECOMPUTED by default and the old
+LF/LP-only values are overwritten (the summary prints old -> new network time per day).
 
 It reuses kpi_pipeline.compute_last_received() (same OIX_Record_YYYYMMDD logic as the 08:30 job), so results are identical to
 `kpi_pipeline.py --section lastreceived --date D` run once per day — but history / delay_history.json / index.html are
@@ -31,7 +34,7 @@ def main():
     ap = argparse.ArgumentParser(description="Backfill Last Received by Customer time for several days.")
     ap.add_argument("--start", type=parse_day, help="first day (default: 1st of the current month)")
     ap.add_argument("--end", type=parse_day, help="last day (default: T-1)")
-    ap.add_argument("--force", action="store_true", help="recompute days that already have a value")
+    ap.add_argument("--only-missing", action="store_true", help="skip days that already have a value (default: recompute them)")
     ap.add_argument("--dry-run", action="store_true", help="compute and print only; write nothing")
     args = ap.parse_args()
 
@@ -45,22 +48,28 @@ def main():
     existing = history.get("lastReceivedDaily", {})
 
     days = [start + dt.timedelta(days=i) for i in range((end - start).days + 1)]
-    done, skipped_have, failed = [], [], []
+    done, skipped_have, failed, changes = [], [], [], []
     for day in days:
         key = day.isoformat()
-        if key in existing and not args.force:
+        if key in existing and args.only_missing:
             skipped_have.append(key)
             continue
         print(f"\n== {key} ==")
         # apply_last_received is soft-fail: prints the reason and returns False on a missing file / no rows
+        old_o = (existing.get(key) or {}).get("overall")
+        old_txt = f"{old_o['date']} {old_o['time']}" if old_o else "-"
         if kp.apply_last_received(history, day):
+            new_o = history["lastReceivedDaily"][key]["overall"]
+            changes.append(f"{key}: {old_txt}  ->  {new_o['date']} {new_o['time']}")
             done.append(key)
         else:
             failed.append(key)
 
     print("\n---------------- summary ----------------")
-    print(f"filled   ({len(done)}): {', '.join(done) or '-'}")
-    print(f"already had a value, left alone ({len(skipped_have)}): {', '.join(skipped_have) or '-'}  (use --force to redo)")
+    print(f"written  ({len(done)}) — network last-received, old -> new:")
+    for c in changes:
+        print("   " + c)
+    print(f"left alone, already had a value ({len(skipped_have)}): {', '.join(skipped_have) or '-'}")
     print(f"skipped / no data ({len(failed)}): {', '.join(failed) or '-'}")
 
     if not done:

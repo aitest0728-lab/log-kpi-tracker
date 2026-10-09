@@ -100,7 +100,7 @@ def _serve(directory):
     return srv
 
 
-# Keep only the T-1 row and its AM/PM/EV/EV2 sub-rows; the Total column (overall delay rate) is kept unless hideTotal.
+# Keep only the T-1 row and its sub-rows (AM/PM/EV/EV2 and the bottom 'Last Received' row - all tr.delay-subrow); the Total column (overall delay rate) is kept unless hideTotal.
 _TRIM_JS = """([date, hideTotal]) => {
     const rows = [...document.querySelectorAll('#delayTableBody tr')];
     let keep = false;
@@ -120,8 +120,10 @@ _TRIM_JS = """([date, hideTotal]) => {
 }"""
 
 
-def render_delay_screenshot(day, out_path, hide_total=False, url=None):
-    """Screenshot the Delay % table with `day` expanded. Raises if the day's row is not on the dashboard."""
+def render_delay_screenshot(day, out_path, hide_total=False, url=None, expect_lr=False):
+    """Screenshot the Delay % table with `day` expanded. Raises if the day's row is not on the dashboard.
+    expect_lr=True (the day's record has a lastReceived block): the bottom "Last Received" row (date + time per district) must be
+    in the picture too, otherwise this raises and prepare() falls back to the data-drawn table, which always includes it."""
     from playwright.sync_api import sync_playwright
     day_s = day.isoformat()
     out_path = Path(out_path)
@@ -156,8 +158,10 @@ def render_delay_screenshot(day, out_path, hide_total=False, url=None):
                     row.first.click()
                     page.wait_for_selector(f'#delayTableBody tr[data-date="{day_s}"].delay-row-open', timeout=10000)
                 n = page.evaluate(_TRIM_JS, [day_s, hide_total])
-                if n < 5:                                         # date row + AM/PM/EV/EV2
-                    raise RuntimeError(f"Expected 5 rows for {day_s}, found {n}")
+                need = 6 if expect_lr else 5                      # date row + AM/PM/EV/EV2 (+ Last Received)
+                if n < need:
+                    raise RuntimeError(f"Expected {need} rows for {day_s}, found {n}"
+                                       + (" - the dashboard shows no 'Last Received' row for that day" if expect_lr else ""))
                 page.locator("#delayTable").screenshot(path=str(out_path))
             finally:
                 browser.close()
@@ -194,7 +198,8 @@ _FALLBACK_CSS = (
     "body{margin:0;background:#fff;font-family:'Noto Sans CJK TC','Microsoft JhengHei',Inter,Arial,sans-serif;font-size:14px}"
     "table{border-collapse:collapse;min-width:1500px}th,td{padding:9px 14px;text-align:right;border:1px solid #e5e7eb}"
     "th{background:#0f172a;color:#cbd5e1;font-size:12px;letter-spacing:.06em}th:first-child,td:first-child{text-align:left}"
-    "tr.main td{background:#f1f3f6;font-weight:600}tr.sub td{background:#fafbfc;color:#64748b}tr.sub td:first-child{padding-left:28px;font-weight:600;color:#111}")
+    "tr.main td{background:#f1f3f6;font-weight:600}tr.sub td{background:#fafbfc;color:#64748b}tr.sub td:first-child{padding-left:28px;font-weight:600;color:#111}"
+    "tr.lr td{background:#fafbfc;color:#64748b;font-size:12.5px;text-align:center;border-top:2px solid #e5e7eb}tr.lr td:first-child{text-align:left;padding-left:28px;font-weight:600;color:#111}")
 
 
 def render_fallback_table(day, rec, out_path, hide_total=False):
@@ -208,6 +213,12 @@ def render_fallback_table(day, rec, out_path, hide_total=False):
         tot = "" if hide_total else f"<td>{f(((rec.get('overall') or {}).get(slot) or {}).get('delay'))}</td>"
         return (f'<tr class="{cls}"><td>{label}</td>' + "".join(f"<td>{f(_delay(rec, d, slot))}</td>" for d in DISTRICTS) + tot + "</tr>")
     body = row(f"▾ {day.isoformat()}", "Overall", "main") + "".join(row(s, s, "sub") for s in SLOTS)
+    lr = rec.get("lastReceived")
+    if lr:                                                  # bottom row: date on top, time below (as on the dashboard)
+        cell = lambda v: f"<td>{v['date']}<br><b>{v['time']}</b></td>" if v else "<td>—</td>"
+        lr_d = lr.get("districts") or {}
+        body += ('<tr class="lr"><td>Last Received</td>' + "".join(cell(lr_d.get(d)) for d in DISTRICTS)
+                 + ("" if hide_total else cell(lr.get("overall"))) + "</tr>")
     html = f"<html><head><meta charset='utf-8'><style>{_FALLBACK_CSS}</style></head><body><table id='t'>{head}{body}</table></body></html>"
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as p:
@@ -228,7 +239,7 @@ def prepare(day, rec=None, hide_total=False, threshold=PINPOINT_THRESHOLD):
     caption = build_caption(day, rec, threshold)
     out = Path(OUT_DIR) / f"delay_{day:%Y%m%d}.png"
     try:
-        png = render_delay_screenshot(day, out, hide_total=hide_total)
+        png = render_delay_screenshot(day, out, hide_total=hide_total, expect_lr=bool(rec.get("lastReceived")))
     except Exception as e:                                  # dashboard has no row / page failed to load
         print(f"  ⚠️ dashboard screenshot failed ({e}); drawing the table from the data instead.")
         png = render_fallback_table(day, rec, out, hide_total=hide_total)

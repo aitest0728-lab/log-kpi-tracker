@@ -3,7 +3,7 @@
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
 v10.8 (Dashboard Version 9.2) — (1) "Last Received by Customer" time per district on the Delay % tab. While the T-1 delay rate is
-  processed, the T-1 OIX_Record_YYYYMMDD report (OIX_FOLDER) is read: only users starting LF/LP, rows dated before the file date
+  processed, the T-1 OIX_Record_YYYYMMDD report (OIX_FOLDER) is read: only users starting LF/LP/ODS/VAN, rows dated before the file date
   dropped, Received-by-Customer rows only, one row per Parent Order, district from 送貨車號 (Domo_Jai.py mapping), and the LATEST
   Status Change Date (Column B) per district (and network-wide) is stored in history.json lastReceivedDaily[T-1] and in
   delay_history.json daily[T-1].lastReceived as {date: "M/D/YYYY", time: "HH:MM:SS"} (24h). Soft-fail: a missing / unreadable OIX
@@ -3529,7 +3529,8 @@ def build_gmv_monthly(history):
 # 6a. v10.8 (Dashboard Version 9.2) — "Last Received by Customer" time per district (Delay % tab)
 # =============================================================================
 LAST_RECEIVED_STATUS_RE = re.compile(r"received[\s_]*by[\s_]*customer|客戶簽收|已簽收|已送達", re.IGNORECASE)   # real export: RECEIVED_BY_CUSTOMER
-LAST_RECEIVED_USER_PREFIXES = ("LF", "LP")
+# v10.9 — same user set the delay rate counts (HKTV staff LF/LP + ODS/VAN); previously LF/LP only, which understated the latest time.
+LAST_RECEIVED_USER_PREFIXES = ("LF", "LP", "ODS", "VAN")
 # Optional override (column letter) if the report's status column ever cannot be auto-detected.
 OIX_STATUS_COL = os.environ.get("OIX_STATUS_COL", "").strip().upper()
 
@@ -3616,7 +3617,7 @@ def find_oix_status_column(df, c_date):
 
 def compute_last_received(target_date):
     """v9.2 — latest Received-by-Customer time per district (and network-wide) from the T-1 OIX_Record report.
-    Steps (spec): locate OIX_Record_YYYYMMDD -> keep users LF*/LP* (Column E) -> keep Received-by-Customer rows -> one row per
+    Steps (spec): locate OIX_Record_YYYYMMDD -> keep users LF*/LP*/ODS*/VAN* (Column E) -> keep Received-by-Customer rows -> one row per
     Parent Order (Column L, else derived from Column K; the LATEST status row of each order is kept) -> Column B to date + 24h time,
     rows dated before the file date dropped (a T-0 after-midnight time is kept and wins, as the date is compared first) ->
     district from 送貨車號 (Column P) -> the latest datetime per district.
