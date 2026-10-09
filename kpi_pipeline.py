@@ -2,6 +2,15 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v10.8 (Dashboard Version 9.2) — (1) "Last Received by Customer" time per district on the Delay % tab. While the T-1 delay rate is
+  processed, the T-1 OIX_Record_YYYYMMDD report (OIX_FOLDER) is read: only users starting LF/LP, rows dated before the file date
+  dropped, Received-by-Customer rows only, one row per Parent Order, district from 送貨車號 (Domo_Jai.py mapping), and the LATEST
+  Status Change Date (Column B) per district (and network-wide) is stored in history.json lastReceivedDaily[T-1] and in
+  delay_history.json daily[T-1].lastReceived as {date: "M/D/YYYY", time: "HH:MM:SS"} (24h). Soft-fail: a missing / unreadable OIX
+  file never blocks the delay update. On demand / backfill:  `--section lastreceived [--date YYYY-MM-DD]`.
+  (2) Update time of ALL performance figures moves from 14:00 to 08:30 (same slot as the delay rate): schedule run_tableau_0830.sh /
+  run_tableau_0830.bat (`--section tableau`, deploy, WhatsApp delay post). The Daily Cost Report (`--section costreport`) and the 03:00
+  productivity job are unchanged. Wherever a comment below says "14:00 job" it now means this 08:30 `--section tableau` job.
 v10.7 — overall timeslot delay rate on the Delay % tab. The 08:30 job (and the 14:00 job) now also download the Tableau sheet
   "Actual Delivery - District" (DeliverySummary view, pre-selected, no thumbnail click) and, per timeslot, compute
   sum(district Delay orders, col C) / sum(district Grand Total orders, col F) -> overall AM/PM/EV/EV2 delay % (e.g. AM 577/6,096
@@ -129,9 +138,18 @@ TABLEAU_GMV_PASS = os.environ.get("TABLEAU_GMV_PASS", "")
 # the old direct-view goto()+reload() approach, which is what was failing.
 TABLEAU_GMV_WORKBOOK_ID = os.environ.get("TABLEAU_GMV_WORKBOOK_ID", "")
 
+# v10.9 - the pipeline now also runs under WSL cron (run_tableau_0830.sh), where a Windows path such as
+# C:\Users\... does not exist: it would silently create a folder literally named "C:\Users\..." next to the script.
+# _native_path() turns C:\... into /mnt/c/... on Linux/WSL and leaves Windows paths untouched.
+def _native_path(p):
+    if p and sys.platform.startswith("linux") and len(p) > 2 and p[1] == ":" and p[2] in "\\/":
+        return "/mnt/" + p[0].lower() + "/" + p[3:].replace("\\", "/")
+    return p
+
+
 # 目錄設定
-OIX_FOLDER = os.environ.get("OIX_FOLDER", r"C:\Users\chipanl\Downloads\Digimobi Report")
-REPORT_FOLDER = os.environ.get("REPORT_FOLDER", r"C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker\Folder for KPI Dashboard")
+OIX_FOLDER = os.environ.get("OIX_FOLDER", "/mnt/c/Users/chipanl/Downloads/Digimobi Report")
+REPORT_FOLDER = os.environ.get("REPORT_FOLDER", "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard")
 # v10.0 — Staff List switched from the local "Logistics_Staff_List_YYYYMMDD.xlsx"
 # export (v3.0 §4, STAFF_LIST_FOLDER below) to the "Master LOG Staff List"
 # Google Sheet — it's the actively-maintained source and doesn't depend on
@@ -156,7 +174,7 @@ GOOGLE_CREDENTIAL_JSON = os.environ.get(
     # "credential not found at '/mnt/c/Users/...'". Fixed to the native
     # Windows path here. Also made configurable via env var, matching the
     # convention every other path in this section already follows.
-    r"C:\Users\chipanl\Downloads\Whatsapp Session\digimobi-temperature-review-d88603b35531.json"
+    "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/digimobi-temperature-review-d88603b35531.json"
 )
 STAFF_MASTER_STAFFID_COL = "A"    # Staff ID
 STAFF_MASTER_DEPT_CODE_COL = "E"  # Dept
@@ -170,7 +188,11 @@ STAFF_MASTER_HEADER_ROW = 1  # row 1 is the header row
 # v3.0 §4 (DEPRECATED as of v10.0, replaced by the Google Sheet above — kept
 # here, unused, only so old pipeline_log.txt entries referencing this path
 # still make sense when read back later).
-STAFF_LIST_FOLDER = os.environ.get("STAFF_LIST_FOLDER", r"C:\Users\chipanl\Downloads\Staff List")
+STAFF_LIST_FOLDER = os.environ.get("STAFF_LIST_FOLDER", "/mnt/c/Users/chipanl/Downloads/Staff List")
+OIX_FOLDER = _native_path(OIX_FOLDER)
+REPORT_FOLDER = _native_path(REPORT_FOLDER)        # Tableau CSV downloads -> ...\log-kpi-tracker\Folder for KPI Dashboard
+GOOGLE_CREDENTIAL_JSON = _native_path(GOOGLE_CREDENTIAL_JSON)
+STAFF_LIST_FOLDER = _native_path(STAFF_LIST_FOLDER)
 DATA_JSON_PATH = os.environ.get("DATA_JSON_PATH", "./public/data.json")
 HISTORY_PATH = os.environ.get("HISTORY_PATH", "./history.json")
 # The dashboard's Productivity Detail / Daily Records tabs fetch this file
@@ -256,7 +278,7 @@ WA_VIRTUAL_SCREEN = os.environ.get("WA_VIRTUAL_SCREEN", "1920x1080x24")
 WA_USER_AGENT = os.environ.get(
     "WA_USER_AGENT",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
-COST_REPORT_FOLDER = os.environ.get("COST_REPORT_FOLDER", REPORT_FOLDER)
+COST_REPORT_FOLDER = _native_path(os.environ.get("COST_REPORT_FOLDER", REPORT_FOLDER))
 # "Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx" (e.g. Daily Cost Report_202609_Last Update_Sep 27.xlsx).
 # Spaces may appear as underscores once a file has been saved/renamed by a browser or chat app, so both are accepted.
 COST_REPORT_NAME_RE = re.compile(
@@ -3404,7 +3426,7 @@ def build_gmv_monthly(history):
     """
     gmv_log = history.get("gmv", {})
     if not gmv_log:
-        return {"daily": {}, "monthly": {}}
+        return {"daily": {}, "monthly": {}, "monthDaily": {}, "mtd": None}
 
     # v4.0.2 fix (trial-run adjustment #2) — "GMV information for dates after
     # T-1" turned out to be contamination sitting in history["gmv"] itself,
@@ -3455,17 +3477,20 @@ def build_gmv_monthly(history):
 
     current_month = today.strftime("%Y-%m")
     daily = {}
+    month_daily = {}  # v10.9 - EVERY month's daily rows (closed months too), so the dashboard can expand a month into its days
     sums = {}  # month -> running totals, used to build the closed-month rollup
 
     for date_str, gmv_group in sorted(gmv_log.items()):
         month = date_str[:7]
         orders_overall, orders_districts = total_parent_orders_for(history, date_str)
 
+        day_rec = {
+            "gmv": gmv_group,
+            "basketSize": basket_size(gmv_group, orders_overall, orders_districts),
+        }
+        month_daily.setdefault(month, {})[date_str] = day_rec
         if month == current_month:
-            daily[date_str] = {
-                "gmv": gmv_group,
-                "basketSize": basket_size(gmv_group, orders_overall, orders_districts),
-            }
+            daily[date_str] = day_rec
 
         bucket = sums.setdefault(month, {
             "gmv_overall": 0.0, "gmv_districts": {d: 0.0 for d in DISTRICTS},
@@ -3478,19 +3503,196 @@ def build_gmv_monthly(history):
             bucket["orders_districts"][d] += orders_districts.get(d) or 0
 
     monthly = {}
+    mtd = None
     for month, b in sums.items():
-        if month == current_month:
-            continue  # current month stays as daily rows only, per spec
         gmv_group = {
             "overall": round(b["gmv_overall"], 2),
             "districts": {d: round(v, 2) for d, v in b["gmv_districts"].items()},
         }
-        monthly[month] = {
+        rec = {
             "gmv": gmv_group,
             "basketSize": basket_size(gmv_group, b["orders_overall"], b["orders_districts"]),
         }
+        if month == current_month:
+            # v10.9 - the still-open month is NOT a closed-month row; it is the month-to-date row of the same
+            # expandable layout ("mtd"), and "monthly" keeps holding closed months only.
+            mtd = dict(rec, month=month)
+            continue
+        monthly[month] = rec
 
-    return {"daily": daily, "monthly": monthly}
+    # v10.9 - "monthDaily": {"YYYY-MM": {"YYYY-MM-DD": {gmv, basketSize}}} for every month in the log. "daily" (current
+    # month only) and "monthly" (closed months only) keep their old meaning for everything else that reads this file.
+    return {"daily": daily, "monthly": monthly, "monthDaily": month_daily, "mtd": mtd}
+
+
+# =============================================================================
+# 6a. v10.8 (Dashboard Version 9.2) — "Last Received by Customer" time per district (Delay % tab)
+# =============================================================================
+LAST_RECEIVED_STATUS_RE = re.compile(r"received[\s_]*by[\s_]*customer|客戶簽收|已簽收|已送達", re.IGNORECASE)   # real export: RECEIVED_BY_CUSTOMER
+LAST_RECEIVED_USER_PREFIXES = ("LF", "LP")
+# Optional override (column letter) if the report's status column ever cannot be auto-detected.
+OIX_STATUS_COL = os.environ.get("OIX_STATUS_COL", "").strip().upper()
+
+
+def district_from_carline(carline):
+    """送貨車號 -> district code, EXACTLY the order/rules of Domo_Jai.py's parse_district_from_carline() (the Excel IFS
+    mapping): ETK/將軍澳, WH/CH/CHA, CTK/WK, WX, CTW, ENH, CTX/CX/KX/KTX, NST, NTM, ZTS, WTW. None if nothing matches."""
+    if carline is None or (isinstance(carline, float) and pd.isna(carline)):
+        return None
+    raw = str(carline).strip()
+    up = raw.upper()
+    if not raw:
+        return None
+    if "ETK" in up or "將軍澳" in raw:
+        return "ETK"
+    if "WH" in up or "CH" in up or "CHA" in up:
+        return "WTH"
+    if "CTK" in up or "WK" in up:
+        return "WTK"
+    if "WX" in up:
+        return "WTX"
+    if "CTW" in up:
+        return "NT-TW"
+    if "ENH" in up:
+        return "ETH"
+    if "CTX" in up or "CX" in up or "KX" in up or "KTX" in up:
+        return "ETX"
+    if "NST" in up:
+        return "NT-ST"
+    if "NTM" in up:
+        return "NT-TM"
+    if "ZTS" in up:
+        return "NT-TSM"
+    if "WTW" in up:
+        return "NT-TW"
+    return None
+
+
+def oix_parent_order(l_val, k_val):
+    """v9.2 spec: Column L when it has a value; else from Column K (Order Number): 'H...' -> first 13 characters
+    (H261007517485-H9609001 -> H261007517485), 'EM...' -> drop the leading E (EM261007004006 -> M261007004006)."""
+    l_str = "" if pd.isna(l_val) else str(l_val).strip()
+    if l_str:
+        return l_str
+    k_str = "" if pd.isna(k_val) else str(k_val).strip()
+    if k_str.upper().startswith("EM"):
+        return k_str[1:][:13]
+    return k_str[:13]
+
+
+def parse_oix_datetimes(series):
+    """Column B 'Status Change Date': 'MM/DD/YYYY HH:MM:SS AM/PM' (e.g. 10/7/2026 6:54:02 PM). Excel date cells that arrive as
+    '2026-10-07 18:54:02' text are accepted too. Unparseable -> NaT."""
+    s = series.astype(str).str.strip()
+    out = pd.to_datetime(s, format="%m/%d/%Y %I:%M:%S %p", errors="coerce")
+    miss = out.isna()
+    if miss.any():
+        try:
+            out[miss] = pd.to_datetime(s[miss], errors="coerce", format="mixed")
+        except (TypeError, ValueError):          # pandas < 2.0 has no format="mixed"
+            out[miss] = pd.to_datetime(s[miss], errors="coerce")
+    return out
+
+
+def find_oix_status_column(df, c_date):
+    """Index of the 'Received by Customer' status column. OIX_STATUS_COL (letter) wins; else the column (header mentioning
+    status / 狀態 but not a date/time column is tried first) holding the most 'Received by Customer' values. None if none."""
+    if OIX_STATUS_COL:
+        return col(OIX_STATUS_COL)
+    best, best_n = None, 0
+    def rank(i):
+        h = str(df.columns[i])
+        if re.search(r"status\s*history", h, re.I):          # real export: Column A "Status History" = status of the Column B event
+            return -1
+        return 0 if re.search(r"status|狀態", h, re.I) and not re.search(r"date|time|日期|時間", h, re.I) else 1
+    for i in sorted(range(df.shape[1]), key=rank):
+        if i == c_date:
+            continue
+        n = int(df.iloc[:, i].astype(str).str.contains(LAST_RECEIVED_STATUS_RE, na=False).sum())
+        if n > best_n or (n and best is None):
+            best, best_n = i, n
+    return best
+
+
+def compute_last_received(target_date):
+    """v9.2 — latest Received-by-Customer time per district (and network-wide) from the T-1 OIX_Record report.
+    Steps (spec): locate OIX_Record_YYYYMMDD -> keep users LF*/LP* (Column E) -> keep Received-by-Customer rows -> one row per
+    Parent Order (Column L, else derived from Column K; the LATEST status row of each order is kept) -> Column B to date + 24h time,
+    rows dated before the file date dropped (a T-0 after-midnight time is kept and wins, as the date is compared first) ->
+    district from 送貨車號 (Column P) -> the latest datetime per district.
+    Returns {"overall": {date,time}|None, "districts": {D: {date,time}|None}, "source": file, "rows": n}."""
+    path = find_oix_file(target_date)
+    df = load_oix(path)
+    c_date, c_user = col("B"), col("E")
+    c_order_no, c_parent, c_truck = col("K"), col("L"), col("P")
+    if df.shape[1] <= c_truck:
+        raise ValueError(f"{os.path.basename(path)!r} has only {df.shape[1]} columns — expected the Waybill Status History layout (up to column P).")
+    users = df.iloc[:, c_user].fillna("").astype(str).str.strip().str.upper()
+    df = df.loc[users.str.startswith(LAST_RECEIVED_USER_PREFIXES)].copy()
+
+    c_status = find_oix_status_column(df, c_date)
+    if c_status is None:
+        raise ValueError(f"no 'Received by Customer' status found in {os.path.basename(path)!r} (headers: "
+                         f"{[str(c) for c in df.columns]}) — set OIX_STATUS_COL to the status column letter.")
+    df = df.loc[df.iloc[:, c_status].astype(str).str.contains(LAST_RECEIVED_STATUS_RE, na=False)].copy()
+
+    df["_dt"] = parse_oix_datetimes(df.iloc[:, c_date])
+    df = df.dropna(subset=["_dt"])
+    df = df.loc[df["_dt"].dt.date >= target_date].copy()      # earlier than the file date -> removed
+    df["_parent"] = [oix_parent_order(l, k) for l, k in zip(df.iloc[:, c_parent], df.iloc[:, c_order_no])]
+    df = df.sort_values("_dt", ascending=False).drop_duplicates(subset="_parent", keep="first")
+    df["_district"] = df.iloc[:, c_truck].apply(district_from_carline)
+    unmatched = int(df["_district"].isna().sum())
+    if unmatched:
+        print(f"  ⚠️ last-received: {unmatched} row(s) had a 送貨車號 matching no district — left out of the district figures.")
+
+    fmt = lambda ts: {"date": f"{ts.month}/{ts.day}/{ts.year}", "time": ts.strftime("%H:%M:%S")}
+    districts = {}
+    for d in DISTRICTS:
+        sub = df.loc[df["_district"] == d, "_dt"]
+        districts[d] = fmt(sub.max()) if len(sub) else None
+    mapped = df.loc[df["_district"].notna(), "_dt"]
+    overall = fmt(mapped.max()) if len(mapped) else None
+    return {"overall": overall, "districts": districts, "source": os.path.basename(path), "rows": int(len(df))}
+
+
+def apply_last_received(history, target_date):
+    """Soft-fail wrapper: writes history['lastReceivedDaily'][target_date]; any problem is only printed."""
+    try:
+        rec = compute_last_received(target_date)
+    except FileNotFoundError as e:
+        print(f"  ⚠️ last-received time skipped: {e}")
+        return False
+    except Exception as e:
+        print(f"  ⚠️ last-received time skipped ({type(e).__name__}): {e}")
+        return False
+    if rec["overall"] is None:
+        print(f"  ⚠️ last-received {target_date.isoformat()}: no Received-by-Customer rows found — nothing written.")
+        return False
+    history.setdefault("lastReceivedDaily", {})[target_date.isoformat()] = rec
+    shown = ", ".join(f"{d} {v['date']} {v['time']}" for d, v in rec["districts"].items() if v)
+    print(f"  ✅ last Received-by-Customer {target_date.isoformat()} (network {rec['overall']['date']} {rec['overall']['time']}; "
+          f"{rec['rows']:,} orders): {shown}")
+    return True
+
+
+def run_last_received_section(day=None):
+    """`--section lastreceived [--date YYYY-MM-DD]` — (re)compute one day's last-received times on their own (default T-1) and
+    refresh delay_history.json + the dashboard snapshot, keeping every other figure as it is."""
+    day = day or (today_hkt() - dt.timedelta(days=1))
+    history = load_history()
+    if not apply_last_received(history, day):
+        raise SystemExit(1)
+    old = {}
+    if os.path.exists(DELAY_HISTORY_PATH):
+        try:
+            with open(DELAY_HISTORY_PATH, "r", encoding="utf-8") as f:
+                old = json.load(f)
+        except (OSError, ValueError):
+            old = {}
+    save_history(history)
+    save_delay_history(build_delay_monthly(history, None, None, None, mtd_override=old.get("mtd") or {"overall": {}, "districts": {}}))
+    update_embedded_data()
 
 
 def append_delay_history(history, date_str, delay_early_t1):
@@ -3593,6 +3795,11 @@ def build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay, 
     current_month = dt.date.today().strftime("%Y-%m")
     full_log = history.get("delayPercentDaily", {})
     daily_log = {k: v for k, v in full_log.items() if k[:7] == current_month}
+    # v10.8 (Dashboard Version 9.2) — the day's last Received-by-Customer times ride along on the daily row
+    last_received = history.get("lastReceivedDaily", {})
+    for k in list(daily_log):
+        if k in last_received:
+            daily_log[k] = {**daily_log[k], "lastReceived": last_received[k]}
     mtd_daily_log = dict(history.get("delayRateMtdDaily", {}))
 
     slots = ["AM", "PM", "EV", "EV2", "Overall"]
@@ -4025,6 +4232,7 @@ def run_section_tableau():
     # parse_delay_early_pct docstring).
     delay_early_mtd = parse_delay_early_pct("mtd_delay_early_ontime")
     append_delay_history(history, delay_data_date.isoformat(), delay_early_t1)  # v6.0 — T-1 data date, see delay_data_date above
+    apply_last_received(history, delay_data_date)   # v10.8 — last Received-by-Customer time per district (soft-fail)
     save_delay_history(build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay))
 
     # v4.0 §3 — backfill any missing GMV / Delay Rate days from whatever
@@ -4203,6 +4411,7 @@ def run_section_delay(force=False):
     append_history(history, "delayRate", t1.isoformat(), t1_overall, t1_districts)
     apply_overall_timeslot_delay(history, t1.isoformat(), rec)     # v10.7 — overall AM/PM/EV/EV2 from 'Actual Delivery - District'
     append_delay_history(history, t1.isoformat(), rec)
+    apply_last_received(history, t1)          # v10.8 — last Received-by-Customer time per district (soft-fail)
 
     old = {}
     if os.path.exists(DELAY_HISTORY_PATH):
@@ -5063,10 +5272,13 @@ def run_cost_report_section(local_file=None):
 #                  lists them under "Data Check". There is NO distance-from-area rejection.
 CARTO_KEY_FILE = os.environ.get(
     "CARTO_KEY_FILE",
-    r"C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker\Carto Map API Key.txt")
+    "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Carto Map API Key.txt")
 MAP_EXCEL_PATH = os.environ.get("MAP_EXCEL_PATH", "")      # exact file; blank = auto-detect in MAP_EXCEL_FOLDER
 MAP_EXCEL_FOLDER = os.environ.get(
-    "MAP_EXCEL_FOLDER", r"C:\Users\chipanl\Downloads\Whatsapp Session\log-kpi-tracker")
+    "MAP_EXCEL_FOLDER", "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker")
+CARTO_KEY_FILE = _native_path(CARTO_KEY_FILE)
+MAP_EXCEL_PATH = _native_path(MAP_EXCEL_PATH)
+MAP_EXCEL_FOLDER = _native_path(MAP_EXCEL_FOLDER)
 MAP_ZONE_COLUMN_INDEX = 2    # Column C (0-based)
 
 # Coarse Hong Kong outline (lat, lng) incl. surrounding waters; the northern edge follows the
@@ -5470,7 +5682,7 @@ def main():
     # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
     parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "oixbackfill", "map", "maptemp", "newestate",
-                                              "delay", "delayreport", "all"], required=True)
+                                              "delay", "delayreport", "lastreceived", "all"], required=True)
     parser.add_argument("--date", default=None,
                         help="v10.6 — with --section delayreport: the data date YYYY-MM-DD to report (default: T-1).")
     parser.add_argument("--force", action="store_true",
@@ -5521,6 +5733,10 @@ def main():
                 pass
         fetch_tableau_reports(only_keys={"delay_early", "actual_delivery_district"})
         run_section_delay(force=args.force)
+        return
+
+    if args.section == "lastreceived":  # v10.8 — last Received-by-Customer time on its own / backfill a day
+        run_last_received_section(dt.datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else None)
         return
 
     if args.section == "delayreport":   # v10.6 — screenshot + caption -> WhatsApp group (run after `delay` + deploy)
