@@ -624,6 +624,10 @@
   #gmvTable tbody td{padding:9px 12px;text-align:right;font-family:'IBM Plex Mono';font-size:12.5px;border-top:1px solid var(--line-soft);white-space:nowrap;}
   #gmvTable tbody td:first-child{text-align:left;font-family:'Inter';font-weight:600;}
   #gmvTable tbody tr.total-row td{font-weight:700;background:#f6f7f9;}
+  /* Download (CSV) button above every table */
+  .tbl-dl-bar{display:flex;justify-content:flex-end;margin:0 0 6px;}
+  .tbl-dl-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--text);cursor:pointer;}
+  .tbl-dl-btn:hover{background:#f2f4f7;}
   /* Overview (Business Aspect) - click-to-expand month row -> daily rows (same look as the Delay % tab) */
   #gmvTable tbody tr.gmv-row-expandable{cursor:pointer;}
   #gmvTable tbody tr.gmv-row-expandable:hover td{background:#f2f4f7;}
@@ -3327,10 +3331,13 @@
     bSel.value = periods.includes(prevB) ? prevB : (periods[0] || '');
   }
 
-  function deltaInfo(va, vb){
+  // lowerBetter (e.g. Cost / Order): the arrow still shows the direction of the change, but a DROP is coloured green
+  // (delta-up style) and a RISE red (delta-down style).
+  function deltaInfo(va, vb, lowerBetter){
     if(va == null || vb == null || va === 0) return { cls:'delta-flat', pct:null, arrow:'●' };
     const pct = ((vb - va) / va) * 100;
-    const cls = pct > 0.5 ? 'delta-up' : pct < -0.5 ? 'delta-down' : 'delta-flat';
+    let cls = pct > 0.5 ? 'delta-up' : pct < -0.5 ? 'delta-down' : 'delta-flat';
+    if(lowerBetter && cls !== 'delta-flat') cls = (cls === 'delta-up') ? 'delta-down' : 'delta-up';
     const arrow = pct > 0.5 ? '▲' : pct < -0.5 ? '▼' : '●';
     return { cls, pct, arrow };
   }
@@ -3344,10 +3351,10 @@
      order; the LAST row is treated as the "primary" metric (Productivity,
      or Order Ratio) and its delta drives the cell's heat tint. */
   function comparisonCell(rows, primaryIndex = rows.length-1, lineIndex = primaryIndex){
-    const primaryDelta = deltaInfo(rows[primaryIndex].a, rows[primaryIndex].b);
+    const primaryDelta = deltaInfo(rows[primaryIndex].a, rows[primaryIndex].b, rows[primaryIndex].lowerBetter);
     const heatCls = primaryDelta.cls==='delta-up' ? 'heat-up' : primaryDelta.cls==='delta-down' ? 'heat-down' : '';
     const rowsHtml = rows.map((r,i)=>{
-      const d = deltaInfo(r.a, r.b);
+      const d = deltaInfo(r.a, r.b, r.lowerBetter);
       const cls = ['pc-row', i===primaryIndex?'pc-primary':'', i===lineIndex?'pc-line':''].filter(Boolean).join(' ');
       return `<div class="${cls}">
         <span class="pc-label">${r.label}</span>
@@ -7343,7 +7350,7 @@
       const va = totalA[i], vb = totalB[i];
       const maxV = Math.max(va||0, vb||0, 1);
       const pctA = va==null?0:Math.max(4,(va/maxV)*100), pctB = vb==null?0:Math.max(4,(vb/maxV)*100);
-      const d = deltaInfo(va, vb);
+      const d = deltaInfo(va, vb, m.key==='costPerOrder');
       return `<div class="prod-summary-card">
         <div class="wd">${w}</div>
         <div class="bar-row"><span class="tag">A</span><div class="bar-track"><div class="bar-fill a" style="width:${pctA}%"></div></div><span class="v">${m.fmt(va)}</span></div>
@@ -7385,7 +7392,7 @@
           { label:'Manpower', a:mA, b:mB, fmt:intFmt },
           { label:'WB/Order', a:woA, b:woB, fmt:v=>v==null?'—':v.toFixed(2) },
           { label:'Productivity', a:pA, b:pB, fmt:m.fmt },
-          { label:'Cost/Order', a:coA, b:coB, fmt:v=>v==null?'\u2014':('$'+v.toFixed(2)) },
+          { label:'Cost/Order', a:coA, b:coB, lowerBetter:true, fmt:v=>v==null?'\u2014':('$'+v.toFixed(2)) },
         ], 4, 3);
         return `<td class="kpi-cell3 ${heatCls}">${html}</td>`;
       }).join('');
@@ -7490,6 +7497,8 @@
     }
     const metric = document.getElementById('gmvMetricSelect').value; // 'gmv' | 'basketSize' | 'orderCount' | 'waybillCount' | 'waybillPerOrder'
     const isProductivityMetric = ['orderCount', 'waybillCount', 'waybillPerOrder'].includes(metric);
+    const WD3 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const dayLabel = l => /^\d{4}-\d{2}-\d{2}$/.test(l) ? `${l} (${WD3[new Date(l+'T00:00:00Z').getUTCDay()]})` : l;   // "2026-10-08 (Thu)"
     const dollarFmt = v => v==null ? '—' : '$'+Math.round(v).toLocaleString();
     const bsFmt = v => v==null ? '—' : '$'+v.toFixed(2);
     const intFmt = v => v==null ? '—' : Math.round(v).toLocaleString();
@@ -7587,13 +7596,13 @@
       const expandable = !!(r.children && r.children.length);
       const isOpen = expandable && gmvExpandedMonths.has(r.month);
       const caret = expandable ? `<span class="delay-caret ${isOpen?'open':''}">▸</span>` : '';
-      const rowLabel = r.isMonth ? `${caret}<strong>${r.label}</strong>` : r.label;
+      const rowLabel = r.isMonth ? `${caret}<strong>${r.label}</strong>` : dayLabel(r.label);
       const cls = [r.isMonth?'total-row':'', expandable?'gmv-row-expandable':'', isOpen?'gmv-row-open':''].filter(Boolean).join(' ');
       const main = `<tr class="${cls}" ${expandable?`data-month="${r.month}"`:''}><td>${rowLabel}</td>${cells}<td><strong>${fmt(r.group.overall)}</strong></td></tr>`;
       if(!isOpen) return main;
       const subs = r.children.map(c=>{
         const sc = DISTRICTS.map(d=>`<td>${fmt(c.group && c.group.districts[d])}</td>`).join('');
-        return `<tr class="gmv-subrow"><td>${c.label}</td>${sc}<td>${fmt(c.group && c.group.overall)}</td></tr>`;
+        return `<tr class="gmv-subrow"><td>${dayLabel(c.label)}</td>${sc}<td>${fmt(c.group && c.group.overall)}</td></tr>`;
       }).join('');
       return main + subs;
     }).join('');
@@ -8543,6 +8552,144 @@
     }
     if(map) setTimeout(()=>map.invalidateSize(), 60);
   };
+})();
+</script>
+<script>
+/* Download (CSV) button for every <table> on the dashboard. The CSV is built from what the table shows right now
+   (current dropdown / expanded rows), UTF-8 with BOM so Excel opens it correctly. Tables that are re-drawn later
+   (tab switches, re-renders) get their button automatically via the observer below. */
+(function(){
+  const PERIOD_PREFIX = { prodTable:'prod', odsRatioTable:'ods', mpTable:'mp' };
+  const DOW = { MON:0, TUE:1, WED:2, THU:3, FRI:4, SAT:5, SUN:6 };   // table id -> its Period A / Period B dropdowns
+  const numTxt = s => (s==='' || s==='\u2014') ? '' : s.replace(/[$,]/g,'');            // "$1,533" -> "1533", "—" -> ""
+  function chgTxt(s){                                                                    // "▲37%" -> "+37%", "▼8%" -> "-8%", "●0%" -> "0%"
+    const m = s.match(/^([\u25B2\u25BC\u25CF])\s*([\d.]+)%$/);
+    if(!m) return '';
+    return m[1]==='\u25B2' ? '+'+m[2]+'%' : m[1]==='\u25BC' ? '-'+m[2]+'%' : '0%';
+  }
+  function parseCmp(c){                                                                  // comparison cell -> Map(label -> {a,b,chg})
+    const m = new Map();
+    c.querySelectorAll('.pc-row').forEach(r=>{
+      const g = s => ((r.querySelector(s)||{}).textContent||'').trim();
+      m.set(g('.pc-label'), { a:numTxt(g('.pc-a')), b:numTxt(g('.pc-b')), chg:chgTxt(g('.delta-pill')) });
+    });
+    return m;
+  }
+  function plain(c){
+    const inp = c.querySelector('input,select');
+    if(inp && !(c.textContent||'').trim()) return inp.value;
+    return (c.innerText || c.textContent || '').replace(/\s*\n\s*/g,' ').replace(/\s+/g,' ').replace(/^[\u25B8\u25BE]\s*/,'').trim();
+  }
+  function periodNames(t){
+    const pre = PERIOD_PREFIX[t.id]; const out = { a:'A', b:'B', week:false };
+    if(pre){
+      const g = document.getElementById(pre+'GranularitySelect');
+      out.week = !!(g && g.value==='week');
+      ['A','B'].forEach(k=>{
+        const s = document.getElementById(pre+'Period'+k+'Select');
+        if(s && s.selectedIndex>=0 && s.options[s.selectedIndex]){
+          out[k.toLowerCase()] = s.options[s.selectedIndex].text.trim();
+          out[k.toLowerCase()+'Start'] = s.value;       // week view: the week's first day (Monday), YYYY-MM-DD
+        }
+      });
+    }
+    return out;
+  }
+  /* One value per CSV cell: a Period A / Period B / Change % comparison cell becomes 3 columns per metric
+     (e.g. "MON Order [A]", "MON Order [B]", "MON Order Change %"; change is signed: +37% / -9%), and a
+     "District + target" cell becomes a District column and a Target column. */
+  function tableToCsv(t){
+    const vis = el => !(el.style.display==='none' || el.hidden);
+    const trs = [...t.querySelectorAll('tr')].filter(vis);
+    const colLabels = {}, colTgt = new Set();
+    trs.forEach(tr=>{
+      let ci = 0;
+      [...tr.children].filter(vis).forEach(c=>{
+        if(c.tagName==='TD'){
+          if(c.querySelector('.prod-cell3')){
+            const labs = colLabels[ci] || (colLabels[ci] = []);
+            [...parseCmp(c).keys()].forEach(l=>{ if(!labs.includes(l)) labs.push(l); });
+          }
+          if(c.querySelector('.tgt')) colTgt.add(ci);
+        }
+        ci += (c.colSpan||1);
+      });
+    });
+    const pn = periodNames(t);
+    const lines = [];
+    trs.forEach(tr=>{
+      const row = []; let ci = 0;
+      [...tr.children].filter(vis).forEach(c=>{
+        const labs = colLabels[ci], isTh = c.tagName==='TH';
+        if(labs){
+          if(isTh){
+            const h0 = plain(c);
+            // Week view: each weekday column carries that day's exact date in each period ("MON 09/28 Order" vs
+            // "MON 10/05 Order"); month view (no single date) falls back to the period's name.
+            const off = DOW[h0.slice(0,3).toUpperCase()];
+            const hdr = (side, l) => {
+              const st = pn[side+'Start'];
+              if(pn.week && off!==undefined && /^\d{4}-\d{2}-\d{2}$/.test(st||'')){
+                const d = new Date(st+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+off);
+                return `${h0} ${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')} ${l}`;
+              }
+              return `${h0} ${l} [${pn[side]}]`;
+            };
+            labs.forEach(l=>{ row.push(hdr('a',l), hdr('b',l), `${h0} ${l} Change %`); });
+          } else if(c.querySelector('.prod-cell3')){
+            const m = parseCmp(c);
+            labs.forEach(l=>{ const v = m.get(l) || {a:'',b:'',chg:''}; row.push(v.a, v.b, v.chg); });
+          } else {
+            labs.forEach(()=>row.push('','',''));
+          }
+        } else if(colTgt.has(ci)){
+          if(isTh){ row.push(plain(c), 'Target'); }
+          else {
+            const tg = c.querySelector('.tgt'), cl = c.cloneNode(true);
+            cl.querySelectorAll('.tgt').forEach(x=>x.remove());
+            row.push(plain(cl), tg ? tg.textContent.replace(/^\s*target\s*/i,'').trim() : '');
+          }
+        } else {
+          row.push(plain(c));
+        }
+        for(let k=1;k<(c.colSpan||1);k++) row.push('');
+        ci += (c.colSpan||1);
+      });
+      if(row.length) lines.push(row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+    });
+    return lines.join('\r\n');
+  }
+  function fileNameFor(t){
+    const view = t.closest('.view');
+    const base = [(view && view.id ? view.id.replace(/^view-/,'') : 'dashboard'), t.id || ''].filter(Boolean).join('_');
+    const d = new Date(), p = n=>String(n).padStart(2,'0');
+    return `kpi_${base}_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.csv`;
+  }
+  function download(t){
+    const blob = new Blob(['\ufeff'+tableToCsv(t)], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = fileNameFor(t);
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+  }
+  function inject(){
+    document.querySelectorAll('table:not([data-dl])').forEach(t=>{
+      t.setAttribute('data-dl','1');
+      const target = t.closest('.table-wrap') || t.closest('.table-scroll') || t;
+      if(!target.parentNode) return;
+      const bar = document.createElement('div'); bar.className = 'tbl-dl-bar';
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'tbl-dl-btn';
+      btn.textContent = '\u2B07 CSV'; btn.title = 'Download this table as CSV (opens in Excel)';
+      btn.addEventListener('click', ()=>download(t));
+      bar.appendChild(btn);
+      target.parentNode.insertBefore(bar, target);
+    });
+  }
+  let timer = null;
+  function schedule(){ clearTimeout(timer); timer = setTimeout(inject, 250); }
+  new MutationObserver(schedule).observe(document.body, {childList:true, subtree:true});
+  document.addEventListener('DOMContentLoaded', inject);
+  inject(); schedule();
 })();
 </script>
 </body>
