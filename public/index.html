@@ -624,6 +624,12 @@
   #gmvTable tbody td{padding:9px 12px;text-align:right;font-family:'IBM Plex Mono';font-size:12.5px;border-top:1px solid var(--line-soft);white-space:nowrap;}
   #gmvTable tbody td:first-child{text-align:left;font-family:'Inter';font-weight:600;}
   #gmvTable tbody tr.total-row td{font-weight:700;background:#f6f7f9;}
+  /* Overview (Business Aspect) - click-to-expand month row -> daily rows (same look as the Delay % tab) */
+  #gmvTable tbody tr.gmv-row-expandable{cursor:pointer;}
+  #gmvTable tbody tr.gmv-row-expandable:hover td{background:#f2f4f7;}
+  #gmvTable tbody tr.gmv-row-open td{background:#eef0f3;}
+  #gmvTable tbody tr.gmv-subrow td{background:#fafbfc;color:var(--text-muted);font-size:12.5px;}
+  #gmvTable tbody tr.gmv-subrow td:first-child{padding-left:28px;font-weight:600;color:var(--text);}
 
 
   /* RFID now renders with the exact same treatment as every other matrix —
@@ -1684,6 +1690,8 @@
     dailyProductivity: {},
     gmvDaily: {},      // v3.0 §3 — current month's daily GMV/Basket Size rows, from gmv_history.json
     gmvMonthly: {},     // v3.0 §3 — one accumulated row per closed month, from gmv_history.json
+    gmvMonthDaily: {},  // v10.9 — {YYYY-MM: {date: {gmv,basketSize}}} for every month, so a month row can expand into its days
+    gmvMtd: null,       // v10.9 — current month's accumulated (month-to-date) GMV / Basket Size row
     dailyManpower: {},  // v3.0 §4 — daily Courier/Driver headcount, from manpower_distribution.json
     delayDaily: {},     // v4.0 §2 — current month's daily Delay % rows, from delay_history.json
     delayMonthly: {},   // v4.0 §2 — one accumulated row per closed month, from delay_history.json
@@ -1708,6 +1716,7 @@
   let currentView = 'actual';   // which value (actual|forecast) drives ranking/sort
   let sortKey = null, sortDir = 1;
   let selectedKpi = null;
+  const gmvExpandedMonths = new Set(); // Overview (Business Aspect): months expanded to show their daily rows
   const delayExpandedDates = new Set(); // v5.0 §1 — Delay % dates expanded to show all 4 timeslots
   let searchTerm = '';
   // District filter for Productivity Detail / ODS / HKTV Order Ratio tabs —
@@ -2339,8 +2348,10 @@
       const json3 = await res3.json();
       DATA.gmvDaily = json3.daily || {};
       DATA.gmvMonthly = json3.monthly || {};
+      DATA.gmvMonthDaily = json3.monthDaily || {};
+      DATA.gmvMtd = json3.mtd || null;
     }catch(err){
-      DATA.gmvDaily = {}; DATA.gmvMonthly = {};
+      DATA.gmvDaily = {}; DATA.gmvMonthly = {}; DATA.gmvMonthDaily = {}; DATA.gmvMtd = null;
     }
     try{
       const res4 = await fetchJSON('manpower_distribution.json');
@@ -7533,18 +7544,58 @@
           <div class="row"><span>ODS Order Ratio</span><span class="v">${pctFmt1(mtdOdsRatio)}</span></div>
         </div>`;
       
-      rows = [
-        ...dailyKeys.map(k=>({ label:k, group:DATA.gmvDaily[k][metric], isMonth:false })),
-        ...monthlyKeys.map(k=>({ label:k, group:DATA.gmvMonthly[k][metric], isMonth:true })),
-      ];
+      // One row per month (current month = month-to-date first, then closed months, newest first). Click a month
+      // to expand it into its daily rows. Daily rows come from gmv_history.json "monthDaily"; until the pipeline
+      // has written that key, the current month still expands from "daily" and closed months show no caret.
+      const curMonth = (DATA.gmvMtd && DATA.gmvMtd.month) || (dailyKeys[0] ? dailyKeys[0].slice(0,7) : null);
+      const childrenFor = month => {
+        const src = DATA.gmvMonthDaily[month] || (month===curMonth ? DATA.gmvDaily : null);
+        if(!src) return [];
+        return Object.keys(src).filter(k=>k.slice(0,7)===month).sort().reverse().map(k=>({ label:k, group:src[k][metric] }));
+      };
+      const fallbackMtd = () => {
+        const g = { overall:0, districts:Object.fromEntries(DISTRICTS.map(d=>[d,0])) };
+        const o = { overall:0, districts:Object.fromEntries(DISTRICTS.map(d=>[d,0])) };
+        dailyKeys.forEach(k=>{
+          const r = DATA.gmvDaily[k];
+          g.overall += r.gmv.overall||0;
+          if(r.basketSize.overall && r.gmv.overall) o.overall += r.gmv.overall/r.basketSize.overall;
+          DISTRICTS.forEach(d=>{
+            g.districts[d] += r.gmv.districts[d]||0;
+            const b = r.basketSize.districts[d];
+            if(b && r.gmv.districts[d]) o.districts[d] += r.gmv.districts[d]/b;
+          });
+        });
+        if(metric==='gmv') return g;
+        return { overall:o.overall?g.overall/o.overall:null,
+                 districts:Object.fromEntries(DISTRICTS.map(d=>[d, o.districts[d]?g.districts[d]/o.districts[d]:null])) };
+      };
+      rows = [];
+      if(curMonth && (DATA.gmvMtd || dailyKeys.length)){
+        const g = (DATA.gmvMtd && DATA.gmvMtd[metric]) || fallbackMtd();
+        rows.push({ label:curMonth+' (MTD)', month:curMonth, group:g, isMonth:true, children:childrenFor(curMonth) });
+      }
+      monthlyKeys.forEach(k=>{
+        rows.push({ label:k, month:k, group:DATA.gmvMonthly[k][metric], isMonth:true, children:childrenFor(k) });
+      });
       
       head.innerHTML = `<tr><th>Date</th>${DISTRICTS.map(d=>`<th>${d}</th>`).join('')}<th>Total</th></tr>`;
     }
 
     body.innerHTML = rows.map(r=>{
       const cells = DISTRICTS.map(d=>`<td>${fmt(r.group.districts[d])}</td>`).join('');
-      const rowLabel = r.isMonth ? `<strong>${r.label}</strong>` : r.label;
-      return `<tr class="${r.isMonth?'total-row':''}"><td>${rowLabel}</td>${cells}<td><strong>${fmt(r.group.overall)}</strong></td></tr>`;
+      const expandable = !!(r.children && r.children.length);
+      const isOpen = expandable && gmvExpandedMonths.has(r.month);
+      const caret = expandable ? `<span class="delay-caret ${isOpen?'open':''}">▸</span>` : '';
+      const rowLabel = r.isMonth ? `${caret}<strong>${r.label}</strong>` : r.label;
+      const cls = [r.isMonth?'total-row':'', expandable?'gmv-row-expandable':'', isOpen?'gmv-row-open':''].filter(Boolean).join(' ');
+      const main = `<tr class="${cls}" ${expandable?`data-month="${r.month}"`:''}><td>${rowLabel}</td>${cells}<td><strong>${fmt(r.group.overall)}</strong></td></tr>`;
+      if(!isOpen) return main;
+      const subs = r.children.map(c=>{
+        const sc = DISTRICTS.map(d=>`<td>${fmt(c.group && c.group.districts[d])}</td>`).join('');
+        return `<tr class="gmv-subrow"><td>${c.label}</td>${sc}<td>${fmt(c.group && c.group.overall)}</td></tr>`;
+      }).join('');
+      return main + subs;
     }).join('');
   }
 
@@ -7869,6 +7920,12 @@
     odsSearchTerm = e.target.value; renderOdsRatioTab(); updateScrollHints();
   });
   document.getElementById('gmvMetricSelect').addEventListener('change', ()=>{ renderGmvTab(); updateScrollHints(); });
+  document.getElementById('gmvTableBody').addEventListener('click', e=>{
+    const row = e.target.closest('.gmv-row-expandable'); if(!row) return;
+    const m = row.dataset.month;
+    if(gmvExpandedMonths.has(m)) gmvExpandedMonths.delete(m); else gmvExpandedMonths.add(m);
+    renderGmvTab(); updateScrollHints();
+  });
   ['mpGroupSelect','mpGranularitySelect','mpPeriodASelect','mpPeriodBSelect'].forEach(id=>{
     document.getElementById(id).addEventListener('change', ()=>{ renderManpowerTab(); updateScrollHints(); });
   });
