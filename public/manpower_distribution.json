@@ -2850,6 +2850,53 @@
         },
         "total": 199
       }
+    },
+    "2026-10-09": {
+      "courier": {
+        "districts": {
+          "ETH": 23,
+          "ETK": 12,
+          "ETX": 23,
+          "NT-ST": 16,
+          "NT-TM": 17,
+          "NT-TSM": 25,
+          "NT-TW": 19,
+          "WTH": 23,
+          "WTK": 22,
+          "WTX": 19
+        },
+        "total": 199
+      },
+      "driver": {
+        "districts": {
+          "ETH": 23,
+          "ETK": 18,
+          "ETX": 19,
+          "NT-ST": 19,
+          "NT-TM": 22,
+          "NT-TSM": 17,
+          "NT-TW": 18,
+          "WTH": 16,
+          "WTK": 17,
+          "WTX": 18
+        },
+        "total": 187
+      },
+      "odsVan": {
+        "districts": {
+          "ETH": 30,
+          "ETK": 10,
+          "ETX": 23,
+          "NT-ST": 16,
+          "NT-TM": 7,
+          "NT-TSM": 13,
+          "NT-TW": 15,
+          "WTH": 42,
+          "WTK": 16,
+          "WTX": 26
+        },
+        "total": 198
+      }
     }
   }
 }

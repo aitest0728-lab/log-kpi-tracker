@@ -4173,7 +4173,8 @@ def run_section_tableau():
     # v8.0 — "actual_delivery_10d" (ODS counts) is also soft: if its download failed the
     # ODS figures fall back to the OIX-derived ones staged at 03:00 (see below) instead of
     # taking the whole 15:00 job down.
-    required_files = {k: v for k, v in REPORT_FILES.items() if k not in ("gmv", "actual_delivery_10d", "actual_delivery_district")}  # v10.7: district sheet is soft too (see apply_overall_timeslot_delay)
+    # v11.1 — the 3 MONTHLY Delivery Map reports (estate_perf / zone_perf / homepass, --section mapperf only) are never part of the daily download, so they must not be required here.
+    required_files = {k: v for k, v in REPORT_FILES.items() if k not in ("gmv", "actual_delivery_10d", "actual_delivery_district", "estate_perf", "zone_perf", "homepass")}  # v10.7: district sheet is soft too (see apply_overall_timeslot_delay)
     # (v4.0: "delay_rate"/Rank_On Time.csv is retired — replaced by the 5
     # Delivery Dashboard files above, already included in REPORT_FILES.)
     cutoff_time = time.time() - STALE_REPORT_HOURS * 3600
