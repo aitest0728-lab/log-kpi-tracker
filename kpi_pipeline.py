@@ -2,6 +2,10 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v11.4 — Delay % tab: PREVIOUS (closed) months can be expanded into their daily rows, like GMV / Basket Size. delay_history.json gets
+  "monthDaily": {"YYYY-MM": {"YYYY-MM-DD": {overall, districts[, lastReceived]}}} for every closed month in history.json["delayPercentDaily"]
+  ("daily" = current month only and "monthly" = closed-month averages keep their meaning). Regenerate it without Tableau with
+  `python3 kpi_pipeline.py --section lastreceived` (rewrites delay_history.json + the index.html snapshot).
 v11.3 — "Top 75%" / "Bottom 25%" last-received indicators on the Delay % tab (next to "Last Received by Customer"). From the same T-1 OIX_Record
   rows (users LF/LP/ODS/VAN, Received-by-Customer, dated on/after the file date, one row per parent order, district from 送貨車號) the LAST
   Received-by-Customer time of every Car Group (Column W "Car Group Code") is taken; per district those car-group times are sorted earliest ->
@@ -3984,6 +3988,15 @@ def build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay, 
         if k in last_received:
             daily_log[k] = {**daily_log[k], "lastReceived": last_received[k]}
     mtd_daily_log = dict(history.get("delayRateMtdDaily", {}))
+    # v11.4 - every day of every CLOSED month, so a previous-month row can expand into its daily rows (same idea as gmv_history.json "monthDaily")
+    month_daily = {}
+    for k in sorted(full_log):
+        if k[:7] == current_month:
+            continue
+        rec_k = full_log[k]
+        if k in last_received:
+            rec_k = {**rec_k, "lastReceived": last_received[k]}
+        month_daily.setdefault(k[:7], {})[k] = rec_k
 
     slots = ["AM", "PM", "EV", "EV2", "Overall"]
     sums = {}  # month -> slot -> {"overall": [...], "districts": {d: [...]}}
@@ -4022,7 +4035,7 @@ def build_delay_monthly(history, delay_early_mtd, zone_type, mtd_overall_delay, 
             "overall": {**delay_early_mtd["overall"], "Overall": {"delay": mtd_overall_delay}},
             "districts": mtd_districts,
         }
-    return {"daily": daily_log, "monthly": monthly, "mtd": mtd, "mtdDaily": mtd_daily_log}
+    return {"daily": daily_log, "monthly": monthly, "monthDaily": month_daily, "mtd": mtd, "mtdDaily": mtd_daily_log}
 
 
 def save_delay_history(payload):
