@@ -2,6 +2,19 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v11.3 — "Top 75%" / "Bottom 25%" last-received indicators on the Delay % tab (next to "Last Received by Customer"). From the same T-1 OIX_Record
+  rows (users LF/LP/ODS/VAN, Received-by-Customer, dated on/after the file date, one row per parent order, district from 送貨車號) the LAST
+  Received-by-Customer time of every Car Group (Column W "Car Group Code") is taken; per district those car-group times are sorted earliest ->
+  latest and the average of the earliest 75% = "Top 75%", the average of the latest 25% = "Bottom 25%". Overall = all car groups of the 10
+  districts together. Split size = round-half-up(75% x n), kept between 1 and n-1 (n = 1 -> both equal that car group); constant
+  LAST_RECEIVED_TOP_SHARE. Stored beside lastReceived as history.json lastReceivedDaily[T-1].top75 / .bottom25 / .carGroups and in
+  delay_history.json daily[T-1].lastReceived (same {date, time} shape). Backfill a day:  `--section lastreceived --date YYYY-MM-DD`.
+v11.2 — (1) the daily job now starts at 08:15 (run_tableau_0815.sh; crontab `15 8 * * *`). (2) Download robustness: 3 attempts per Tableau report
+  (was 2) + automatic RECOVERY rounds (fresh browser/login, only the reports still missing; env TABLEAU_DOWNLOAD_ATTEMPTS / TABLEAU_RECOVERY_ROUNDS /
+  TABLEAU_RECOVERY_WAIT_S), the GMV report gets the same treatment, and `--section tableau --resume` fetches only reports that are not fresh yet
+  (the wrapper uses it to re-run a failed step 1 without re-downloading everything). (3) Monthly GMV / Basket Size roll-ups (gmv_history.json
+  monthly / mtd) leave out days that have no order count on record, so GMV and Basket Size cover the same days (August: 25 days, 443,099,992, 702.43);
+  the rows now carry daysCounted / daysExcluded.
 v11.0 (Dashboard Version 10.0) — the 08:30 delay-rate WhatsApp post (`--section delayreport`) now goes to every group in WA_DELAY_GROUPS (default:
   WA_TARGET_GROUP + "Logistic Management Team"; env WA_DELAY_GROUPS = names separated by | ), each with its own once-per-day sent flag.
 v11.0 (Dashboard Version 10.0) — Delivery Map: Estate Code / Zone Code performance. `--section mapperf` downloads three MONTHLY Tableau reports
@@ -265,6 +278,12 @@ DAILY_PRODUCTIVITY_KEEP_DAYS = int(os.environ.get("DAILY_PRODUCTIVITY_KEEP_DAYS"
 # generous slack over how long fetch_tableau_reports()+fetch_gmv_report()
 # actually take to run immediately before run_section_tableau() reads them.
 STALE_REPORT_HOURS = float(os.environ.get("STALE_REPORT_HOURS", "2"))
+# v11.2 - download robustness (see fetch_tableau_reports / fetch_gmv_report): tries per report inside one browser session (was 2),
+# and how many extra "recovery" sessions (fresh browser + login, only the reports still missing) follow the normal pass.
+TABLEAU_DOWNLOAD_ATTEMPTS = max(1, int(os.environ.get("TABLEAU_DOWNLOAD_ATTEMPTS", "3")))
+TABLEAU_RECOVERY_ROUNDS = max(0, int(os.environ.get("TABLEAU_RECOVERY_ROUNDS", "2")))
+TABLEAU_RECOVERY_WAIT_S = max(0, int(os.environ.get("TABLEAU_RECOVERY_WAIT_S", "20")))
+TABLEAU_RECOVERY_DEADLINE_MIN = float(os.environ.get("TABLEAU_RECOVERY_DEADLINE_MIN", "30"))   # no NEW recovery round starts later than this many minutes after the run began
 
 # v8.0 — WhatsApp / Daily Cost Report (see run_cost_report_section()).
 # The WhatsApp Web session is a persistent Chromium profile that has already
@@ -850,19 +869,64 @@ def smart_click_with_scroll(page, selectors, timeout_sec=15):
         time.sleep(1)
     return False
 
-def fetch_tableau_reports(only_keys=None, user=None, password=None, login_url=None):
+def _report_is_fresh(file_key):
+    """v11.2 - True if this report's CSV was (re)written within STALE_REPORT_HOURS, i.e. by this morning's run."""
+    path = os.path.join(REPORT_FOLDER, REPORT_FILES[file_key])
+    return os.path.exists(path) and os.path.getmtime(path) >= time.time() - STALE_REPORT_HOURS * 3600
+
+
+def fetch_tableau_reports(only_keys=None, user=None, password=None, login_url=None, resume=False):
     """使用 Playwright 自動登入 Tableau 並下載所有目標 Crosstab CSV
 
     v10.6 — `only_keys` (optional set of REPORT_FILES keys) restricts the run to those TABLEAU_TARGETS entries;
     the 08:30 `--section delay` job passes {"delay_early", "actual_delivery_district"} (the T-1 Delay & Early % and District sheets).
 
     v11.0 — `user` / `password` / `login_url` (default TABLEAU_USER / TABLEAU_PASS / TABLEAU_URL) let a job log in with another account:
-    the monthly Delivery Map reports (--section mapperf) use TABLEAU_GMV_USER / TABLEAU_GMV_PASS."""
+    the monthly Delivery Map reports (--section mapperf) use TABLEAU_GMV_USER / TABLEAU_GMV_PASS.
+
+    v11.2 — one bad report no longer sinks the run:
+      * every report gets TABLEAU_DOWNLOAD_ATTEMPTS (default 3, was 2) tries inside a session;
+      * afterwards any report that still failed is re-downloaded in up to TABLEAU_RECOVERY_ROUNDS (default 2) RECOVERY rounds, each
+        with a brand-new browser + login and only the missed reports (a crash in a session - login timeout, page hang - just
+        means the next round starts over for whatever is still missing);
+      * `resume=True` (--resume) skips reports whose CSV is already fresh, so a re-run only fetches what is missing.
+    Returns the list of file_keys that are STILL missing after all rounds (empty = everything downloaded)."""
     user, password, login_url = user or TABLEAU_USER, password or TABLEAU_PASS, login_url or TABLEAU_URL
     print("🚀 啟動 Tableau 自動化下載程序...")
     # v11.0 — "monthly" targets (Delivery Map performance) are only fetched when asked for by key (--section mapperf).
     targets = [t for t in TABLEAU_TARGETS if t["file_key"] in only_keys] if only_keys else [t for t in TABLEAU_TARGETS if not t.get("monthly")]
+    if resume:
+        kept = [t for t in targets if not _report_is_fresh(t["file_key"])]
+        print(f"  ⏭️ --resume: {len(targets) - len(kept)} report(s) already fresh, fetching {len(kept)}: {[t['file_key'] for t in kept] or 'none'}")
+        targets = kept
 
+    succeeded = set()
+    t_start = time.time()
+    for rnd in range(TABLEAU_RECOVERY_ROUNDS + 1):
+        todo = [t for t in targets if t["file_key"] not in succeeded]
+        if not todo:
+            break
+        if rnd and (time.time() - t_start) / 60 > TABLEAU_RECOVERY_DEADLINE_MIN:
+            print(f"  ⏱️ {TABLEAU_RECOVERY_DEADLINE_MIN:g} min used up - no further recovery rounds.")
+            break
+        if rnd:
+            print(f"\n🛟 補下載第 {rnd}/{TABLEAU_RECOVERY_ROUNDS} 輪 (recovery round) — missed report(s): {[t['file_key'] for t in todo]}")
+            time.sleep(TABLEAU_RECOVERY_WAIT_S)
+        try:
+            _fetch_tableau_session(todo, user, password, login_url, succeeded)
+        except Exception as e:                      # login timeout / page crash: keep what was saved, retry the rest next round
+            print(f"  ❌ Tableau session aborted: {type(e).__name__}: {e}")
+    failed = [t["file_key"] for t in targets if t["file_key"] not in succeeded]
+    if failed:
+        print(f"  ❌ Still missing after all sessions ({TABLEAU_DOWNLOAD_ATTEMPTS} attempt(s) per report per session): {failed}")
+    else:
+        print("  ✅ All requested Tableau reports downloaded.")
+    return failed
+
+
+def _fetch_tableau_session(targets, user, password, login_url, succeeded):
+    """One browser session: log in, then download each of `targets` (TABLEAU_DOWNLOAD_ATTEMPTS tries each). The file_key of every
+    report that was saved is added to `succeeded` (also when a later step of the session raises)."""
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--disable-popup-blocking"])
         context = browser.new_context(accept_downloads=True)
@@ -1089,15 +1153,18 @@ def fetch_tableau_reports(only_keys=None, user=None, password=None, login_url=No
                         pass
                     return False
 
-            succeeded = False
-            for attempt in (1, 2):
-                if attempt == 2:
-                    print(f"  🔁 重試 {sheet_name}（第 2 次嘗試）...")
+            got_it = False
+            for attempt in range(1, TABLEAU_DOWNLOAD_ATTEMPTS + 1):     # v11.2: 3 attempts (was 2)
+                if attempt > 1:
+                    print(f"  🔁 重試 {sheet_name}（第 {attempt}/{TABLEAU_DOWNLOAD_ATTEMPTS} 次嘗試）...")
+                    time.sleep(5)
                 if _attempt_download():
-                    succeeded = True
+                    got_it = True
                     break
-            if not succeeded:
-                print(f"  ❌ {sheet_name} 兩次嘗試皆失敗，放棄此報表。")
+            if got_it:
+                succeeded.add(target["file_key"])
+            else:
+                print(f"  ❌ {sheet_name} {TABLEAU_DOWNLOAD_ATTEMPTS} 次嘗試皆失敗，本輪放棄此報表（稍後補下載）。")
 
         context.close()
         browser.close()
@@ -1109,16 +1176,29 @@ def fetch_gmv_report():
     for AI Fetching' Tableau account. Its own browser/login, independent of
     fetch_tableau_reports() above, since it's a different account entirely.
 
-    Per spec this sheet is "pre-click" — i.e. already sitting on the right
-    view/sheet by default — so this skips the sheet-thumbnail selection step
-    that fetch_tableau_reports() needs for its 6 reports, and just does
-    Download -> Crosstab -> CSV -> confirm.
-    """
+    v11.2 - same hardening as fetch_tableau_reports(): up to TABLEAU_DOWNLOAD_ATTEMPTS (3) fresh sessions
+    (new browser + login each time; any exception inside a session just counts as a failed try). Returns True once the file
+    was saved (or when GMV is not configured), False if every session failed - run_section_tableau() then skips the GMV update."""
     if not TABLEAU_GMV_USER or not TABLEAU_GMV_PASS:
         print("  ⚠️ TABLEAU_GMV_USER / TABLEAU_GMV_PASS not set — skipping GMV download. "
               "Set these in .env (separate account from TABLEAU_USER/PASS) to enable it.")
-        return
+        return True
+    tries = TABLEAU_DOWNLOAD_ATTEMPTS            # 3 fresh sessions
+    for n in range(1, tries + 1):
+        if n > 1:
+            print(f"\n🛟 GMV 補下載 (第 {n}/{tries} 次，全新瀏覽器 + 重新登入)...")
+            time.sleep(TABLEAU_RECOVERY_WAIT_S)
+        try:
+            if _fetch_gmv_once():
+                return True
+        except Exception as e:
+            print(f"  ❌ GMV session aborted: {type(e).__name__}: {e}")
+    print(f"  ❌ GMV report still missing after {tries} sessions.")
+    return False
 
+
+def _fetch_gmv_once():
+    """One GMV download session (see fetch_gmv_report). True if 'Sheet 1.csv' was saved."""
     print("🚀 啟動 GMV Tableau 自動化下載程序 (獨立帳號)...")
     target_filepath = os.path.join(REPORT_FOLDER, REPORT_FILES["gmv"])
 
@@ -1193,7 +1273,7 @@ def fetch_gmv_report():
             if not smart_click(page, dl_selectors, 15):
                 print("  ❌ 找不到 Download 按鈕，GMV 下載中止")
                 context.close(); browser.close()
-                return
+                return False
 
         crosstab_selectors = [
             "#viz-viewer-toolbar-download-menu > div:nth-of-type(3)",
@@ -1208,7 +1288,7 @@ def fetch_gmv_report():
             if not smart_click(page, crosstab_selectors, 10):
                 print("  ❌ 找不到 Crosstab 選項，GMV 下載中止")
                 context.close(); browser.close()
-                return
+                return False
         time.sleep(2)
 
         # Sheet is pre-selected per spec — no thumbnail click needed. If a
@@ -1249,12 +1329,15 @@ def fetch_gmv_report():
             download = download_info.value
             download.save_as(target_filepath)
             print(f"  ✅ 成功儲存: {REPORT_FILES['gmv']}")
+            saved = True
         except Exception as e:
             print(f"  ❌ 下載 GMV 報表失敗: {e}")
+            saved = False
 
         context.close()
         browser.close()
-        print("🎉 GMV 報表下載完畢！\n")
+        print("🎉 GMV 報表下載完畢！\n" if saved else "  ⚠️ GMV 報表本次下載失敗。\n")
+        return saved
 
 # =============================================================================
 # 4. 數據處理邏輯 (Tableau CSV 解析)
@@ -3543,7 +3626,15 @@ def build_gmv_monthly(history):
         bucket = sums.setdefault(month, {
             "gmv_overall": 0.0, "gmv_districts": {d: 0.0 for d in DISTRICTS},
             "orders_overall": 0, "orders_districts": {d: 0 for d in DISTRICTS},
+            "days_counted": 0, "days_excluded": [],
         })
+        # v11.2 - a day with no order count on record (e.g. Aug 1-5 / Aug 31, before the productivity log started or where it never ran)
+        # has no basket size, and adding only its GMV (not its orders) inflated the month's Basket Size (August showed 864.76 instead
+        # of ~702). Such days are left out of the month's GMV total AND its basket size, so both are computed over the same days.
+        if not orders_overall:
+            bucket["days_excluded"].append(date_str)
+            continue
+        bucket["days_counted"] += 1
         bucket["gmv_overall"] += gmv_group["overall"] or 0
         bucket["orders_overall"] += orders_overall or 0
         for d in DISTRICTS:
@@ -3560,6 +3651,8 @@ def build_gmv_monthly(history):
         rec = {
             "gmv": gmv_group,
             "basketSize": basket_size(gmv_group, b["orders_overall"], b["orders_districts"]),
+            "daysCounted": b["days_counted"],        # v11.2 - days that make up this GMV / Basket Size
+            "daysExcluded": b["days_excluded"],      # v11.2 - days left out because no order count was on record
         }
         if month == current_month:
             # v10.9 - the still-open month is NOT a closed-month row; it is the month-to-date row of the same
@@ -3581,6 +3674,23 @@ LAST_RECEIVED_STATUS_RE = re.compile(r"received[\s_]*by[\s_]*customer|客戶簽�
 LAST_RECEIVED_USER_PREFIXES = ("LF", "LP", "ODS", "VAN")
 # Optional override (column letter) if the report's status column ever cannot be auto-detected.
 OIX_STATUS_COL = os.environ.get("OIX_STATUS_COL", "").strip().upper()
+
+
+LAST_RECEIVED_TOP_SHARE = 0.75      # v11.3 - earliest 75% of car-group last-received times = "Top 75%", the rest = "Bottom 25%"
+CAR_GROUP_COL = "W"                  # v11.3 - OIX Column W "Car Group Code"
+
+
+def split_top_bottom(times):
+    """v11.3 - `times`: one last-received datetime per car group. Returns (avg of the earliest 75%, avg of the latest 25%, n).
+    Split size = round-half-up(share x n) clamped to 1..n-1; a single car group is both groups; none -> (None, None, 0)."""
+    s = times.dropna().sort_values()
+    n = len(s)
+    if n == 0:
+        return None, None, 0
+    if n == 1:
+        return s.iloc[0], s.iloc[0], 1
+    k = min(n - 1, max(1, int(n * LAST_RECEIVED_TOP_SHARE + 0.5)))
+    return s.iloc[:k].mean(), s.iloc[k:].mean(), n
 
 
 def district_from_carline(carline):
@@ -3702,7 +3812,28 @@ def compute_last_received(target_date):
         districts[d] = fmt(sub.max()) if len(sub) else None
     mapped = df.loc[df["_district"].notna(), "_dt"]
     overall = fmt(mapped.max()) if len(mapped) else None
-    return {"overall": overall, "districts": districts, "source": os.path.basename(path), "rows": int(len(df))}
+    rec = {"overall": overall, "districts": districts, "source": os.path.basename(path), "rows": int(len(df))}
+
+    # v11.3 - Top 75% / Bottom 25%: last Received-by-Customer time per Car Group (Column W), then the average of the earliest 75% / latest 25%.
+    fmt_avg = lambda ts: None if ts is None or pd.isna(ts) else fmt(ts.round("s"))
+    c_cg = col(CAR_GROUP_COL)
+    if df.shape[1] <= c_cg:
+        print(f"  ⚠️ last-received: no Column {CAR_GROUP_COL} (Car Group Code) in {os.path.basename(path)!r} — Top 75% / Bottom 25% left out.")
+        return rec
+    df["_cg"] = df.iloc[:, c_cg].fillna("").astype(str).str.strip()
+    no_cg = int((df["_cg"] == "").sum())
+    if no_cg:
+        print(f"  ⚠️ last-received: {no_cg} row(s) had no Car Group Code — left out of Top 75% / Bottom 25%.")
+    per_cg = df.loc[df["_district"].notna() & (df["_cg"] != "")].groupby(["_district", "_cg"])["_dt"].max()   # one last time per car group
+    top, bottom, counts = {}, {}, {}
+    for d in DISTRICTS:
+        t, b, n = split_top_bottom(per_cg.loc[d]) if d in per_cg.index.get_level_values(0) else (None, None, 0)
+        top[d], bottom[d], counts[d] = fmt_avg(t), fmt_avg(b), n
+    t, b, n = split_top_bottom(per_cg)
+    rec["top75"] = {"overall": fmt_avg(t), "districts": top}
+    rec["bottom25"] = {"overall": fmt_avg(b), "districts": bottom}
+    rec["carGroups"] = {"overall": n, "districts": counts}
+    return rec
 
 
 def apply_last_received(history, target_date):
@@ -3722,6 +3853,9 @@ def apply_last_received(history, target_date):
     shown = ", ".join(f"{d} {v['date']} {v['time']}" for d, v in rec["districts"].items() if v)
     print(f"  ✅ last Received-by-Customer {target_date.isoformat()} (network {rec['overall']['date']} {rec['overall']['time']}; "
           f"{rec['rows']:,} orders): {shown}")
+    if rec.get("top75") and rec["top75"].get("overall"):
+        print(f"     Top 75% {rec['top75']['overall']['time']} / Bottom 25% {rec['bottom25']['overall']['time']} (network, "
+              f"{rec['carGroups']['overall']} car groups)")
     return True
 
 
@@ -5944,6 +6078,9 @@ def main():
                                               "delay", "delayreport", "lastreceived", "mapperf", "all"], required=True)
     parser.add_argument("--date", default=None,
                         help="v10.6 — with --section delayreport: the data date YYYY-MM-DD to report (default: T-1).")
+    parser.add_argument("--resume", action="store_true",
+                        help="v11.2 — with --section tableau: skip every report whose CSV is already fresh (downloaded within STALE_REPORT_HOURS) "
+                             "and only fetch the missing ones; used by run_tableau_0815.sh when it re-runs after a failed attempt.")
     parser.add_argument("--force", action="store_true",
                         help="v10.6 — with --section delay: accept a T-1 record identical to T-2's; with --section delayreport: "
                              "post again even if that day was already sent.")
@@ -6023,9 +6160,11 @@ def main():
     if args.section in ("productivity", "all"):
         run_productivity_section()
     if args.section in ("tableau", "all"):
-        fetch_tableau_reports()  # 1. 執行 Playwright 下載 (Delivery Dashboard + Logistics KPI 報表)
-        fetch_gmv_report()       # 1b. 下載 GMV 報表 (獨立帳號，v3.0 §3)
-        run_section_tableau()    # 2. 執行 CSV 解析、完成 Productivity 計算並寫入
+        # v11.2 - --resume: only fetch reports whose CSV is not already fresh (re-run after a partial failure, no full re-download)
+        fetch_tableau_reports(resume=args.resume)  # 1. 執行 Playwright 下載 (Delivery Dashboard + Logistics KPI 報表); 3 tries each + recovery rounds
+        if not (args.resume and _report_is_fresh("gmv")):
+            fetch_gmv_report()   # 1b. 下載 GMV 報表 (獨立帳號，v3.0 §3); fresh-session retries built in
+        run_section_tableau()    # 2. 執行 CSV 解析、完成 Productivity 計算並寫入 (raises, listing the missing report(s), if any is still stale)
     if args.section == "all":
         try:
             run_map_section()    # Delivery Map v2 — soft-fail: a missing map Excel must not break the KPI run
