@@ -2,6 +2,10 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v11.5 — the Daily Cost Report job (`--section costreport`, 09:00 Tue/Fri) pushes the dashboard again. It no longer relies on DEPLOY_CMD being
+  set in cron's environment: with no DEPLOY_CMD, run_deploy_hook() falls back to a built-in git push (pull --rebase -> add -> commit -> push,
+  see DEFAULT_DEPLOY_CMD; override with DEPLOY_CMD, turn off with DEPLOY_CMD=none). This matters now that the Tableau job runs at 08:15 and
+  pushes before the cost report is processed.
 v11.4 — Delay % tab: PREVIOUS (closed) months can be expanded into their daily rows, like GMV / Basket Size. delay_history.json gets
   "monthDaily": {"YYYY-MM": {"YYYY-MM-DD": {overall, districts[, lastReceived]}}} for every closed month in history.json["delayPercentDaily"]
   ("daily" = current month only and "monthly" = closed-month averages keep their meaning). Regenerate it without Tableau with
@@ -5386,6 +5390,13 @@ def write_fulfillment_cost_to_other_aspects(history):
     save_other_aspects_history(payload)
 
 
+# v11.5 - built-in push used when DEPLOY_CMD is not set. Run from DEPLOY_CWD (default: the folder the job starts in, i.e. the repo root).
+# Pulls first so it never collides with the 08:15 job's push; the commit is skipped when nothing changed.
+DEFAULT_DEPLOY_CMD = os.environ.get("DEFAULT_DEPLOY_CMD") or (
+    'git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/gmv_history.json public/delay_history.json public/other_aspects_history.json public/index.html history.json && '
+    '(git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push')
+
+
 def run_deploy_hook():
     """v9.3 - push the refreshed dashboard (index.html + the JSON files) to wherever it is served from, right after
     the 09:00 cost-report run. The command is yours, via DEPLOY_CMD (shell string, run from the project folder), e.g.
@@ -5395,9 +5406,12 @@ def run_deploy_hook():
     Never raises: a failed deploy is printed loudly but the data files are already written."""
     import subprocess
     cmd = os.environ.get("DEPLOY_CMD", "").strip()
-    if not cmd:
-        print("  ℹ️ DEPLOY_CMD is not set - dashboard files were refreshed locally but NOT pushed anywhere.")
+    if cmd.lower() == "none":
+        print("  ℹ️ DEPLOY_CMD=none - dashboard files were refreshed locally but NOT pushed anywhere.")
         return False
+    if not cmd:
+        cmd = DEFAULT_DEPLOY_CMD       # v11.5 - cron has no DEPLOY_CMD: fall back to the same git push the 08:15 wrapper does
+        print("  ℹ️ DEPLOY_CMD is not set - using the built-in git push.")
     print(f"  🚚 deploying dashboard: {cmd}")
     try:
         r = subprocess.run(cmd, shell=True, cwd=os.environ.get("DEPLOY_CWD") or None,

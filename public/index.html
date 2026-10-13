@@ -3057,7 +3057,7 @@
   function weekLabel(mondayStr){ return `Week of ${mondayStr} – ${addDays(mondayStr,6)}`; }
   function monthLabel(monthStr){ return new Date(monthStr+'-01T00:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
 
-  function dayRecord(dateKey, metricKey, district){
+  function dayRecord(dateKey, metricKey, district, ordersOnly){
     const day = DATA.dailyProductivity[dateKey];
     if(!day) return null;
     if(metricKey === 'combined'){
@@ -3077,8 +3077,8 @@
       // that really ran zero that day (0 orders / 0 staff): that IS a known
       // value, so HKTV + 0 is a complete Total Order, not a partial one. Only
       // a genuinely unknown side (Tableau gap) still nulls the day out.
-      const a = dayRecord(dateKey, 'hktvStaff', district);
-      const b = dayRecord(dateKey, 'odsRatio', district);
+      const a = dayRecord(dateKey, 'hktvStaff', district, ordersOnly);
+      const b = dayRecord(dateKey, 'odsRatio', district, ordersOnly);
       if(!a || !b) return null;
       return {
         orderCount: a.orderCount + b.orderCount,
@@ -3117,7 +3117,11 @@
     // Zero staff is only meaningful alongside zero orders. Orders with no
     // manpower behind them is a broken record, not a quiet day, and stays
     // excluded.
-    if(!rec.manpower) return rec.orderCount === 0 ? rec : null;
+    // v29.1 — ordersOnly: callers that only want COUNTS (the Overview Business Aspect Order / Waybill table) don't need
+    // manpower. A district that has real ODS orders but 0 ODS manpower that day (e.g. WTK on Mon 2026-10-12: 7 ODS
+    // orders, 0 ODS staff) used to be treated as a broken record, which nulled the whole HKTV+ODS cell to '—' even
+    // though the Total column (network record) already included those orders.
+    if(!rec.manpower && !ordersOnly) return rec.orderCount === 0 ? rec : null;
     return rec;
   }
   // v8.0 — Productivity Detail (HKTV Staff) shows the Daily Cost Report's real
@@ -7558,8 +7562,8 @@
       };
       rows = prodDailyKeys.map(k=>{
         const districtData = {};
-        DISTRICTS.forEach(d=>{ districtData[d] = metricFromRec(dayRecord(k, 'combined', d)); });
-        const overall = metricFromRec(dayRecord(k, 'combined', 'Total'));
+        DISTRICTS.forEach(d=>{ districtData[d] = metricFromRec(dayRecord(k, 'combined', d, true)); });
+        const overall = metricFromRec(dayRecord(k, 'combined', 'Total', true));
         return { label:k, group:{ districts:districtData, overall:overall }, isMonth:false };
       });
       
