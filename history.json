@@ -991,18 +991,18 @@
       }
     },
     "2026-10-12": {
-      "overall": 45.83,
+      "overall": 47.49,
       "districts": {
         "ETH": 35.71,
-        "ETK": 43.58,
-        "ETX": 42.9,
-        "NT-ST": 50.38,
-        "NT-TM": 51.27,
+        "ETK": 47.21,
+        "ETX": 46.47,
+        "NT-ST": 52.0,
+        "NT-TM": 52.88,
         "NT-TSM": 46.79,
-        "NT-TW": 51.71,
-        "WTH": 45.48,
-        "WTK": 49.71,
-        "WTX": 42.24
+        "NT-TW": 53.43,
+        "WTH": 47.0,
+        "WTK": 51.05,
+        "WTX": 44.21
       }
     }
   },
@@ -12176,26 +12176,26 @@
           "ETK": {
             "orderCount": 1133.0,
             "waybillCount": 5611.0,
-            "manpower": 26,
-            "productivity": 43.58
+            "manpower": 24,
+            "productivity": 47.21
           },
           "ETX": {
             "orderCount": 1673.0,
             "waybillCount": 8984.0,
-            "manpower": 39,
-            "productivity": 42.9
+            "manpower": 36,
+            "productivity": 46.47
           },
           "NT-ST": {
             "orderCount": 1612.0,
             "waybillCount": 8235.0,
-            "manpower": 32,
-            "productivity": 50.38
+            "manpower": 31,
+            "productivity": 52.0
           },
           "NT-TM": {
             "orderCount": 1692.0,
             "waybillCount": 8577.0,
-            "manpower": 33,
-            "productivity": 51.27
+            "manpower": 32,
+            "productivity": 52.88
           },
           "NT-TSM": {
             "orderCount": 1591.0,
@@ -12206,33 +12206,33 @@
           "NT-TW": {
             "orderCount": 1603.0,
             "waybillCount": 7996.0,
-            "manpower": 31,
-            "productivity": 51.71
+            "manpower": 30,
+            "productivity": 53.43
           },
           "WTH": {
             "orderCount": 1410.0,
             "waybillCount": 7323.0,
-            "manpower": 31,
-            "productivity": 45.48
+            "manpower": 30,
+            "productivity": 47.0
           },
           "WTK": {
             "orderCount": 1889.0,
             "waybillCount": 9249.0,
-            "manpower": 38,
-            "productivity": 49.71
+            "manpower": 37,
+            "productivity": 51.05
           },
           "WTX": {
             "orderCount": 1901.0,
             "waybillCount": 9485.0,
-            "manpower": 45,
-            "productivity": 42.24
+            "manpower": 43,
+            "productivity": 44.21
           }
         },
         "total": {
           "orderCount": 15718.0,
           "waybillCount": 79603.0,
-          "manpower": 343,
-          "productivity": 45.83
+          "manpower": 331,
+          "productivity": 47.49
         }
       },
       "odsRatio": {
@@ -16520,6 +16520,100 @@
         "total": 17
       },
       "_source": "costReport"
+    },
+    "2026-10-13": {
+      "courier": {
+        "districts": {
+          "ETH": 29,
+          "ETK": 14,
+          "ETX": 24,
+          "NT-ST": 16,
+          "NT-TM": 14,
+          "NT-TSM": 29,
+          "NT-TW": 20,
+          "WTH": 21,
+          "WTK": 19,
+          "WTX": 26
+        },
+        "total": 212
+      },
+      "driver": {
+        "districts": {
+          "ETH": 25,
+          "ETK": 21,
+          "ETX": 19,
+          "NT-ST": 19,
+          "NT-TM": 24,
+          "NT-TSM": 18,
+          "NT-TW": 21,
+          "WTH": 15,
+          "WTK": 19,
+          "WTX": 19
+        },
+        "total": 200
+      },
+      "odsVan": {
+        "districts": {
+          "ETH": 34,
+          "ETK": 12,
+          "ETX": 21,
+          "NT-ST": 15,
+          "NT-TM": 8,
+          "NT-TSM": 11,
+          "NT-TW": 22,
+          "WTH": 43,
+          "WTK": 17,
+          "WTX": 23
+        },
+        "total": 206
+      }
+    },
+    "2026-10-12": {
+      "courier": {
+        "districts": {
+          "ETH": 17,
+          "ETK": 10,
+          "ETX": 19,
+          "NT-ST": 13,
+          "NT-TM": 13,
+          "NT-TSM": 19,
+          "NT-TW": 11,
+          "WTH": 17,
+          "WTK": 17,
+          "WTX": 21
+        },
+        "total": 157
+      },
+      "driver": {
+        "districts": {
+          "ETH": 16,
+          "ETK": 12,
+          "ETX": 14,
+          "NT-ST": 15,
+          "NT-TM": 18,
+          "NT-TSM": 14,
+          "NT-TW": 18,
+          "WTH": 11,
+          "WTK": 16,
+          "WTX": 16
+        },
+        "total": 150
+      },
+      "odsVan": {
+        "districts": {
+          "ETH": 15,
+          "ETK": 3,
+          "ETX": 12,
+          "NT-ST": 6,
+          "NT-TM": 3,
+          "NT-TSM": 1,
+          "NT-TW": 2,
+          "WTH": 18,
+          "WTK": 0,
+          "WTX": 3
+        },
+        "total": 63
+      }
     }
   },
   "delayPercentDaily": {
@@ -27579,18 +27673,18 @@
       }
     },
     "2026-10-12": {
-      "overall": 48.93,
+      "overall": 49.05,
       "districts": {
         "ETH": 41.55,
-        "ETK": 50.4,
-        "ETX": 41.53,
-        "NT-ST": 63.93,
-        "NT-TM": 57.69,
+        "ETK": 50.66,
+        "ETX": 41.78,
+        "NT-ST": 64.09,
+        "NT-TM": 57.83,
         "NT-TSM": 50.74,
-        "NT-TW": 51.96,
-        "WTH": 48.63,
-        "WTK": 46.44,
-        "WTX": 42.11
+        "NT-TW": 52.09,
+        "WTH": 48.75,
+        "WTK": 46.54,
+        "WTX": 42.26
       }
     }
   },
@@ -29097,6 +29191,24 @@
       "rows": 172697,
       "courierDriver": true,
       "processedAt": "2026-10-12T08:50:22",
+      "hktvLeaderExcluded": true
+    },
+    "2026-10-13": {
+      "file": "OIX_Record_20261013.csv",
+      "size": 77463130,
+      "sha1": "5f60fa179f2de7461aa1ab15973e777e07be26f4",
+      "rows": 233829,
+      "courierDriver": true,
+      "processedAt": "2026-10-14T03:00:10",
+      "hktvLeaderExcluded": true
+    },
+    "2026-10-12": {
+      "file": "OIX_Record_20261012.csv",
+      "size": 43589132,
+      "sha1": "e53513fdc1b6187200cd273322c2e21312389c73",
+      "rows": 132016,
+      "courierDriver": true,
+      "processedAt": "2026-10-14T03:00:12",
       "hktvLeaderExcluded": true
     }
   },
