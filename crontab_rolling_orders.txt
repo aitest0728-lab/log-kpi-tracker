@@ -1,0 +1,9 @@
+# ---- KPI Dashboard v11.0 Rolling Orders (WSL) ----   install with:  crontab -e   (paste, save)
+CRON_TZ=Asia/Hong_Kong
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+# edit KPI to wherever rolling_orders.py + rolling_orders.env live
+0 6  * * * cd "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker" && mkdir -p logs && /usr/bin/python3 rolling_orders.py --slot 06:00 >> logs/rolling_orders_0600.log 2>&1
+0 13 * * * cd "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker" && mkdir -p logs && /usr/bin/python3 rolling_orders.py --slot 13:00 >> logs/rolling_orders_1300.log 2>&1
+0 18 * * * cd "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker" && mkdir -p logs && /usr/bin/python3 rolling_orders.py --slot 18:00 >> logs/rolling_orders_1800.log 2>&1
+0 0  * * * cd "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker" && mkdir -p logs && /usr/bin/python3 rolling_orders.py --slot 00:00 >> logs/rolling_orders_0000.log 2>&1

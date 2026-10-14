@@ -36,7 +36,6 @@ DEFAULT_GROUP = os.environ.get("WA_TARGET_GROUP", "LOG 區頭 x Head office")
 DEFAULT_USER_AGENT = os.environ.get(
     "WA_USER_AGENT",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
-LOCK_FILE = os.environ.get("WA_LOCK_FILE", "/tmp/wa_session.lock")
 
 
 def _default_hide_mode():
@@ -49,32 +48,19 @@ def _default_hide_mode():
 
 
 # ------------------------------------------------------------------------------------------------ session lock
+# One lock for EVERY WhatsApp job: delegate to wa_common (same lock file as the other scripts; it used to be a private
+# /tmp/wa_session.lock here, so this post could overlap with the other jobs).
+sys.path.insert(0, os.environ.get("WA_COMMON_DIR", "/mnt/c/Users/chipanl/Downloads/Whatsapp Session"))
+import wa_common
+
+LOCK_FILE = wa_common.WA_LOCK_FILE
+
+
 @contextlib.contextmanager
 def wa_session_lock(timeout_s=1200):
-    """Wait (up to timeout_s) for any other job that is using the WhatsApp profile, then hold the lock."""
-    if fcntl is None:
+    """Wait (up to timeout_s) for any other job that is using the WhatsApp profile, then hold the shared lock."""
+    with wa_common.wa_session_lock(timeout=timeout_s):
         yield
-        return
-    fh = open(LOCK_FILE, "a+")
-    start, announced = time.time(), False
-    try:
-        while True:
-            try:
-                fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                break
-            except OSError:
-                if not announced:
-                    print(f"  ⏳ another job is using the WhatsApp session ({LOCK_FILE}) - waiting...")
-                    announced = True
-                if time.time() - start > timeout_s:
-                    raise TimeoutError(f"WhatsApp session still locked by another job after {timeout_s}s ({LOCK_FILE}).")
-                time.sleep(5)
-        yield
-    finally:
-        try:
-            fcntl.flock(fh, fcntl.LOCK_UN)
-        finally:
-            fh.close()
 
 
 # ---------------------------------------------------------------------------------------------- virtual display

@@ -176,7 +176,27 @@ TABLEAU_GMV_WORKBOOK_ID = os.environ.get("TABLEAU_GMV_WORKBOOK_ID", "")
 def _native_path(p):
     if p and sys.platform.startswith("linux") and len(p) > 2 and p[1] == ":" and p[2] in "\\/":
         return "/mnt/" + p[0].lower() + "/" + p[3:].replace("\\", "/")
+    # v11.6 - the REVERSE direction. The 03:00 productivity job and the 09:45 map job run under plain Windows Python
+    # (Task Scheduler .bat), where the "/mnt/c/..." defaults below do not exist. That is why, from 2026-10-10 on, the
+    # Google credential "was not found", the staff list could not be read, and Manpower Distribution was not written
+    # (and the 09:45 maptemp job crashed). A WSL-style /mnt/<drive>/... path is now turned into <DRIVE>:\... on Windows.
+    if p and sys.platform.startswith("win") and len(p) > 7 and p.startswith("/mnt/") and p[5].isalpha() and p[6] == "/":
+        return p[5].upper() + ":\\" + p[7:].replace("/", "\\")
     return p
+
+
+def _first_existing(path, *alt_names_dirs):
+    """v11.6 - returns `path` if it exists; otherwise the first existing candidate: the same file name in the folder of
+    this script and in its parent folder (the credential JSON lives one level above log-kpi-tracker). Falls back to
+    `path` so the caller's own 'not found' message still names the configured location."""
+    if not path or os.path.exists(path):
+        return path
+    here = os.path.dirname(os.path.abspath(__file__))
+    for folder in (here, os.path.dirname(here)) + tuple(alt_names_dirs):
+        cand = os.path.join(folder, os.path.basename(path.replace("\\", "/")))
+        if os.path.exists(cand):
+            return cand
+    return path
 
 
 # 目錄設定
@@ -223,7 +243,7 @@ STAFF_MASTER_HEADER_ROW = 1  # row 1 is the header row
 STAFF_LIST_FOLDER = os.environ.get("STAFF_LIST_FOLDER", "/mnt/c/Users/chipanl/Downloads/Staff List")
 OIX_FOLDER = _native_path(OIX_FOLDER)
 REPORT_FOLDER = _native_path(REPORT_FOLDER)        # Tableau CSV downloads -> ...\log-kpi-tracker\Folder for KPI Dashboard
-GOOGLE_CREDENTIAL_JSON = _native_path(GOOGLE_CREDENTIAL_JSON)
+GOOGLE_CREDENTIAL_JSON = _first_existing(_native_path(GOOGLE_CREDENTIAL_JSON))   # v11.6 - works under both WSL and Windows Python
 STAFF_LIST_FOLDER = _native_path(STAFF_LIST_FOLDER)
 DATA_JSON_PATH = os.environ.get("DATA_JSON_PATH", "./public/data.json")
 HISTORY_PATH = os.environ.get("HISTORY_PATH", "./history.json")
@@ -246,6 +266,8 @@ MANPOWER_HISTORY_PATH = os.environ.get("MANPOWER_HISTORY_PATH", "./public/manpow
 # Daily Cost Report covers those days). Set OIX_BACKFILL_DAYS (or use --oix-days N) to instead re-check every
 # file of the last N days regardless of modified time; the check itself is cheap (one SHA-1 per file).
 OIX_BACKFILL_DAYS = int(os.environ["OIX_BACKFILL_DAYS"]) if os.environ.get("OIX_BACKFILL_DAYS", "").strip() else None
+# v11.6 - how many days back an UNFINISHED day (no processed record / no Courier-Driver) is retried by the default backfill.
+OIX_UNFINISHED_LOOKBACK_DAYS = int(os.environ.get("OIX_UNFINISHED_LOOKBACK_DAYS", "7"))
 OIX_FILE_RE = re.compile(r"^OIX_Record_(\d{8})\.(xlsx|csv)$", re.IGNORECASE)
 # v4.0 §1: Productivity now needs BOTH manpower (from OIX, available at
 # 03:00) and parent order counts (from the Tableau "Delivery Dashboard"
@@ -296,6 +318,9 @@ TABLEAU_RECOVERY_DEADLINE_MIN = float(os.environ.get("TABLEAU_RECOVERY_DEADLINE_
 # v8.0 — WhatsApp / Daily Cost Report (see run_cost_report_section()).
 # The WhatsApp Web session is a persistent Chromium profile that has already
 # been logged in once by scanning the QR code (re-scan if the session expires).
+import os as _wa_os, sys as _wa_sys
+_wa_sys.path.insert(0, _wa_os.environ.get("WA_COMMON_DIR", "/mnt/c/Users/chipanl/Downloads/Whatsapp Session"))   # folder holding the shared wa_common.py
+import wa_common   # shared WhatsApp session: one profile, one lock, one hidden-Chrome setup
 WA_SESSION_DIR = os.environ.get("WA_SESSION_DIR", "/home/chipanl/whatsapp_session_2")
 WA_TARGET_GROUP = os.environ.get("WA_TARGET_GROUP", "LOG 區頭 x Head office")
 # v11.0 — groups that receive the 08:30 delay-rate post (--section delayreport). WA_TARGET_GROUP stays the single group the Daily Cost Report is read from.
@@ -1433,8 +1458,20 @@ def parse_actual_delivery_timeslot(file_key):
     """
     path = os.path.join(REPORT_FOLDER, REPORT_FILES[file_key])
     raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str)
-    row0 = raw.iloc[0].tolist()
-    row1 = raw.iloc[1].tolist()
+    # Header depth is not fixed: a Tableau filter/pill that lands on Columns (e.g. a "October 2026" month level)
+    # pushes the measure row and the timeslot/'Total' row down by one. So locate the 'Total' row dynamically:
+    # it is the first row (within the first 6) with a bare 'Total' cell; the measure row ('Parent Order #' /
+    # 'No. of Waybill') is the row directly above it, and data rows start right after it.
+    total_row = None
+    for r in range(1, min(6, len(raw))):
+        if any(str(x).strip() == "Total" for x in raw.iloc[r].tolist() if not pd.isna(x)):
+            total_row = r
+            break
+    if total_row is None:
+        total_row = 1  # legacy layout; falls through to the diagnostic error below if it really is wrong
+    data_start = total_row + 1
+    row0 = raw.iloc[total_row - 1].tolist()   # measure row
+    row1 = raw.iloc[total_row].tolist()       # timeslot / 'Total' row
     parent_total_idx = waybill_total_idx = None
     for idx, (a, b) in enumerate(zip(row0, row1)):
         a = "" if pd.isna(a) else str(a).strip()
@@ -1444,13 +1481,26 @@ def parse_actual_delivery_timeslot(file_key):
         if a == "No. of Waybill" and b == "Total":
             waybill_total_idx = idx
     if parent_total_idx is None or waybill_total_idx is None:
+        # A CSV that parses to the wrong shape is a bad download (e.g. Tableau exported a different sheet). Left in
+        # place it would count as "fresh" for --resume, so retries 2/3 would re-parse the same bad file and the run
+        # would abort before the GMV / productivity writes. Move it aside so the next --resume re-downloads it, and
+        # log the first rows so the cause is visible in pipeline_log.txt.
+        def _cells(r):
+            return ["" if pd.isna(x) else str(x).strip()[:24] for x in r[:12]]
+        seen = f"row0={_cells(row0)} row1={_cells(row1)} (rows={len(raw)}, cols={raw.shape[1]})"
+        bad_path = path + ".bad"
+        try:
+            os.replace(path, bad_path)
+            moved = f" The file was moved to {bad_path!r} so --resume re-downloads it."
+        except OSError:
+            moved = ""
         raise ValueError(f"Could not find 'Parent Order # / Total' or 'No. of "
-                          f"Waybill / Total' columns in {path!r}.")
+                          f"Waybill / Total' columns in {path!r}. First rows seen: {seen}.{moved}")
 
     per_d_order = {d: 0.0 for d in DISTRICTS}
     per_d_waybill = {d: 0.0 for d in DISTRICTS}
     overall_order = overall_waybill = None
-    for _, row in raw.iloc[2:].iterrows():
+    for _, row in raw.iloc[data_start:].iterrows():
         label = normalize_district_label(row.iloc[0])
         order_val = parse_number(row.iloc[parent_total_idx])
         waybill_val = parse_number(row.iloc[waybill_total_idx])
@@ -2672,10 +2722,22 @@ def backfill_manpower_from_oix(history, position_map=_UNSET, days=None, force=Fa
     result = {"updated": [], "unchanged": [], "skipped": [], "manpower": {}}   # v10.4: "manpower" = corrections for apply_manpower_corrections()
     files = list_oix_files()
     if days is None:     # default: files whose modified time is today (T+0)
+        _log0, _proc0 = history.get("manpowerDistributionLog", {}), history.get("oixManpowerProcessed", {})
+
+        def _unfinished(d):
+            # v11.6 - a recent day whose Manpower Distribution was never completed (the 03:00 job could not read the staff
+            # list, or the file was not there yet) is revisited on every later run, however old its file is. Before, only
+            # files modified TODAY were looked at, so a day missed at 03:00 stayed blank on the dashboard for good.
+            ds = d.isoformat()
+            e, r = _log0.get(ds), _proc0.get(ds)
+            cost = bool(e) and e.get("_source") == "costReport"
+            return (r is None or e is None or "odsVan" not in e
+                    or (not r.get("courierDriver") and not cost))
         candidates = sorted(d for d, pth in files.items()
                             if d < today and d.isoformat() not in skip_dates
-                            and dt.date.fromtimestamp(os.path.getmtime(pth)) == today)
-        scope = "modified today"
+                            and (dt.date.fromtimestamp(os.path.getmtime(pth)) == today
+                                 or (d >= today - dt.timedelta(days=OIX_UNFINISHED_LOOKBACK_DAYS) and _unfinished(d))))
+        scope = "modified today or still unfinished"
     else:                # explicit window: last N days up to T-1, regardless of modified time
         window = [today - dt.timedelta(days=n) for n in range(days, 0, -1)]
         candidates = [d for d in window if d in files and d.isoformat() not in skip_dates]
@@ -4902,7 +4964,7 @@ def fetch_cost_report_from_whatsapp():
 
     print(f"🚀 Opening WhatsApp Web (session {WA_SESSION_DIR!r}) for group {WA_TARGET_GROUP!r}...")
     import wa_send   # v10.6 — the 08:30 delay post shares this Chromium profile; only one job may hold it at a time
-    with wa_send.wa_session_lock(), virtual_display() as wa_display, sync_playwright() as p:
+    with wa_common.wa_session_lock(), virtual_display() as wa_display, sync_playwright() as p:   # shared lock file with every other WhatsApp job
         # v8.2 — headed Chromium, but drawn on the Xvfb virtual display (when available) so no window appears
         launch_env = {**os.environ, "DISPLAY": wa_display} if wa_display else None
         wa_args = ["--disable-popup-blocking"]
@@ -5503,7 +5565,7 @@ CARTO_KEY_FILE = os.environ.get(
 MAP_EXCEL_PATH = os.environ.get("MAP_EXCEL_PATH", "")      # exact file; blank = auto-detect in MAP_EXCEL_FOLDER
 MAP_EXCEL_FOLDER = os.environ.get(
     "MAP_EXCEL_FOLDER", "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker")
-CARTO_KEY_FILE = _native_path(CARTO_KEY_FILE)
+CARTO_KEY_FILE = _first_existing(_native_path(CARTO_KEY_FILE))
 MAP_EXCEL_PATH = _native_path(MAP_EXCEL_PATH)
 MAP_EXCEL_FOLDER = _native_path(MAP_EXCEL_FOLDER)
 MAP_ZONE_COLUMN_INDEX = 2    # Column C (0-based)
