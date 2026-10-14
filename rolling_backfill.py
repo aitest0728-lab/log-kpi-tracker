@@ -3,18 +3,22 @@
 """
 rolling_backfill.py  -  KPI Dashboard "Rolling Orders" backfill  (companion of rolling_orders.py v11.1)
 
-Downloads the ECOM-MFNAS Accumulated Delivery Lead Time report of EVERY day from 2026-10-01 up to yesterday's orders and
-fills rolling_orders.json with them, so the Rolling Orders tab has the history its benchmark needs
-(last-7-days benchmark now, rolling 30-day benchmark once a month of data exists).
+Downloads the ECOM-MFNAS Accumulated Delivery Lead Time report of EVERY day from 2026-09-01 up to yesterday's orders and
+fills rolling_orders.json with them, so the Rolling Orders tab has:
+    * the FULL record of September 2026 (2026-09-01 -> 2026-09-30) = the BENCHMARK month, and
+    * October 2026 month-to-date (2026-10-01 -> yesterday)          = the month that is COMPARED with that benchmark.
+A coverage check at the end of every run tells you whether all 30 September days and every October MTD day are in the json.
 
 How a day is mapped (identical to the 06:00 job):  order date D  <-  MFNAS folder  <report folder>/<D+1 as YYYYMMDD>/
 Everything else - download, csv reading (trailing-comma fix), filters, counting, json update, embedding in index.html and
 the git push - is reused from rolling_orders.py, so a backfilled day is byte-for-byte what the daily run would have written.
 
 Usage (WSL, same folder as rolling_orders.py; same credentials as the daily job: CRAB_NAS_USER / CRAB_NAS_PASS or rolling_orders.env):
-    python3 rolling_backfill.py                       # 2026-10-01 -> yesterday, skips days that are already complete in the json
+    python3 rolling_backfill.py                       # 2026-09-01 -> yesterday (Sep benchmark + Oct MTD), skips days already complete in the json
     python3 rolling_backfill.py --dry-run             # only list what would be done
-    python3 rolling_backfill.py --from 2026-10-01 --to 2026-10-13
+    python3 rolling_backfill.py --from 2026-09-01 --to 2026-09-30     # September benchmark only
+    python3 rolling_backfill.py --from 2026-10-01                     # October MTD only
+    python3 rolling_backfill.py --check                               # no download: only report Sep / Oct coverage of the json
     python3 rolling_backfill.py --force               # redo days that are already in the json
     python3 rolling_backfill.py --skip-push           # update rolling_orders.json + index.html locally, no git push
     python3 rolling_backfill.py --keep-csv            # keep the downloaded csv files (default: deleted after processing, ~80 MB each)
@@ -42,7 +46,9 @@ sys.path.insert(0, HERE)
 import rolling_orders as ro          # noqa: E402  (config, NASClient, report processing, json / embed / push)
 
 log = ro.log
-DEFAULT_FROM = "2026-10-01"
+BENCH_START, BENCH_END = "2026-09-01", "2026-09-30"   # benchmark month = full September 2026
+CMP_START = "2026-10-01"                              # comparison month = October month-to-date
+DEFAULT_FROM = BENCH_START
 DONE_SLOT = ro.SLOTS[0]              # "06:00" = a day written by the MFNAS job
 
 
@@ -59,6 +65,27 @@ def done_dates():
     except Exception:
         return set()
     return {k for k, v in days.items() if (v or {}).get("slot") == DONE_SLOT and (v or {}).get("cells")}
+
+
+def coverage_report(last):
+    """Log which September (benchmark) and October MTD (comparison) order dates are complete in rolling_orders.json.
+    Returns the list of missing order dates."""
+    have = done_dates()
+
+    def span(a, b):
+        a, b = _d(a), _d(b)
+        return [f"{a + timedelta(days=i):%Y-%m-%d}" for i in range((b - a).days + 1)]
+
+    bench = span(BENCH_START, BENCH_END)
+    cmp_end = min(last, _d("2026-10-31"))
+    cmp_ = span(CMP_START, f"{cmp_end:%Y-%m-%d}") if cmp_end >= _d(CMP_START) else []
+    miss_b = [x for x in bench if x not in have]
+    miss_c = [x for x in cmp_ if x not in have]
+    log("coverage: September benchmark  %d/%d days complete" % (len(bench) - len(miss_b), len(bench))
+        + (f"  MISSING: {', '.join(miss_b)}" if miss_b else "  - full month OK"))
+    log("coverage: October MTD          %d/%d days complete" % (len(cmp_) - len(miss_c), len(cmp_))
+        + (f"  MISSING: {', '.join(miss_c)}" if miss_c else "  - OK"))
+    return miss_b + miss_c
 
 
 def fetch_one(nas, order_date, final_path):
@@ -91,12 +118,15 @@ def main():
     ap.add_argument("--redownload", action="store_true", help="download again even if the csv is already in the Rolling Orders folder")
     ap.add_argument("--keep-csv", action="store_true", help="keep the csv files this run downloaded")
     ap.add_argument("--dry-run", action="store_true", help="list the plan, download nothing")
+    ap.add_argument("--check", action="store_true", help="only report the September / October-MTD coverage of rolling_orders.json")
     ap.add_argument("--skip-embed", action="store_true")
     ap.add_argument("--skip-push", action="store_true", help="do not git-push (same as ROLLING_DEPLOY=none)")
     a = ap.parse_args()
 
     first = _d(a.d_from)
     last = _d(a.d_to) if a.d_to else ro.run_dates()[1]            # run_dates() -> (T-0, T-1)
+    if a.check:
+        sys.exit(1 if coverage_report(ro.run_dates()[1]) else 0)
     if last < first:
         raise SystemExit(f"--to {last:%Y-%m-%d} is before --from {first:%Y-%m-%d}")
     wanted = [first + timedelta(days=i) for i in range((last - first).days + 1)]
@@ -173,6 +203,7 @@ def main():
             ro.push_dashboard(_d(max(ok)), DONE_SLOT, data)
 
     log("=" * 60)
+    miss_cov = coverage_report(last)
     log(f"backfill finished: {len(ok)} written, {len(missing)} without a report, {len(failed)} failed")
     if ok:
         log(f"  written : {ok[0]} -> {ok[-1]} ({len(ok)} days)")
@@ -180,7 +211,7 @@ def main():
         log(f"  no csv  : {', '.join(missing)}")
     for od, why in failed:
         log(f"  failed  : {od}  {why}")
-    if missing or failed:
+    if missing or failed or miss_cov:
         sys.exit(1)
 
 
