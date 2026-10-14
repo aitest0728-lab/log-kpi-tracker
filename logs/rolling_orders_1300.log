@@ -1,0 +1,122 @@
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/rolling_orders.py", line 44, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/rolling_orders.py", line 44, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+[13:10:01] slot=13:00  T-0=2026-10-14
+[13:10:02] OIX: login
+[13:10:02] OIX: next_week  送貨日期 20261015 -> 20261021  更新狀態=(blank)
+[13:10:02] OIX: next_week: will be saved to /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/Rolling Order Count (Oct-14)_next week.csv
+[13:10:03] OIX: delivery-date inputs ['displayDeliveryDateFrom', 'displayDeliveryDateTo'] = ['20261015', '20261021']
+[13:10:05] OIX: next_week: submitting the form - OIX now builds the report (can take several minutes) ...
+[13:10:19] OIX: next_week: download started (waybill_status_history_20261014131005.csv) - receiving the file ...
+[13:10:23] OIX: next_week: SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/Rolling Order Count (Oct-14)_next week.csv (56.0 MB)
+[13:10:23] OIX: same_day  送貨日期 20261014 -> 20261014  更新狀態=(blank)
+[13:10:23] OIX: same_day: will be saved to /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/Rolling Order Count (Oct-14)_same day.csv
+[13:10:24] OIX: delivery-date inputs ['displayDeliveryDateFrom', 'displayDeliveryDateTo'] = ['20261014', '20261014']
+[13:10:25] OIX: same_day: submitting the form - OIX now builds the report (can take several minutes) ...
+[13:10:45] OIX: same_day: still waiting for the download to start (20s)
+[13:10:59] OIX: same_day: download started (waybill_status_history_20261014131025.csv) - receiving the file ...
+[13:11:09] OIX: same_day: still receiving the file (10s) ...
+[13:11:19] OIX: same_day: still receiving the file (20s) ...
+[13:11:23] OIX: same_day: SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/Rolling Order Count (Oct-14)_same day.csv (244.9 MB)
+[13:11:23] next week file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/Rolling Order Count (Oct-14)_next week.csv  ->  FOUND
+[13:11:23] same day file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/Rolling Order Count (Oct-14)_same day.csv  ->  FOUND
+[13:11:28] stats: {"sameDay": {"rawRows": 833674, "t0Rows": 24533, "afterCancelRows": 24529, "cancelledWaybills": 4, "waybills": 10437, "mappedBy": {"estate": 5271, "carline": 2709, "area": 2456, "other": 1}, "other": 1}, "nextWeek": {"rawRows": 191449, "t0Rows": 19901, "afterCancelRows": 19826, "cancelledWaybills": 59, "waybills": 15656, "mappedBy": {"carline": 14223, "area": 1078, "other": 353, "estate": 2}, "other": 353}}
+[13:11:28] wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/rolling_orders.json
+[13:11:28] embedded rolling_orders.json into index.html
+[13:11:31] screenshot /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/Rolling Order Trend (Oct-14)_1300.png
+[WA] /tmp/.X11-unix is read-only (WSLg) - Xvfb cannot start; falling back to new-headless Chrome.
+[WA] opening session '/home/chipanl/whatsapp_session_2' (hide mode: headless)
+[13:12:34] WhatsApp: picture + message sent
