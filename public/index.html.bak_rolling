@@ -760,6 +760,21 @@
   .rolling-table tr.rl-month.rl-open th,.rolling-table tr.rl-month.rl-open td{background:#dde6ef;}
   .rl-toggle{font-family:'Inter';font-size:12.5px;font-weight:700;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;}
   .rl-toggle:hover{background:#f0f3f7;}
+  /* v11.2 — Rolling Orders benchmark panel (top of every district block): latest record vs last-7-days / rolling-30-days average */
+  .rb-box{margin:0 0 14px;padding:12px 14px 8px;border:1px solid var(--line);border-radius:10px;background:#fbfcfd;}
+  .rb-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .rb-head b{font-size:13px;color:var(--ink);} .rb-head span{font-size:11.5px;color:var(--text-muted);}
+  .rb-scroll{overflow-x:auto;}
+  table.rolling-table.rb-table{min-width:0;}
+  .rb-table tbody td{background:#fff;}
+  .rb-table tr.rb-latest th,.rb-table tr.rb-latest td{font-weight:700;color:var(--ink);}
+  .rb-table tr.rb-avg th,.rb-table tr.rb-avg td{background:#eef2f6;}
+  .rb-table tr.rb-avg.rb-m th,.rb-table tr.rb-avg.rb-m td{background:#e3ebf3;}
+  .rb-table tr.rb-delta th{font-weight:500;color:var(--text-muted);font-size:11.5px;}
+  .rb-table tr.rb-delta td{font-size:11.5px;color:var(--text-muted);}
+  .rb-table td.rb-hi{background:#fff1dc;color:#9a5b00;font-weight:600;}
+  .rb-table tr.rb-msg td{text-align:left;font-family:'Inter',sans-serif;font-size:12px;color:var(--text-muted);white-space:normal;font-style:italic;background:#fff;}
+  html.rolling-shot .rb-scroll{overflow:visible;}
   /* WhatsApp screenshot ("shot mode"): fit the content so the Total column is never clipped */
   html.rolling-shot #rollingShot{display:inline-block;width:max-content;max-width:none;}
   html.rolling-shot .rolling-scroll{overflow:visible;max-height:none;}
@@ -1220,7 +1235,7 @@
         <div class="section-head">
           <div>
             <h2>Rolling Orders</h2>
-            <div class="sub">Rolling order count by Order Date (rows) and Expected Delivery Date (columns) · latest 3 months day by day, older months collapsed · refreshed once a day at 06:00 from the ECOM-MFNAS Accumulated Delivery Lead Time report (orders of the previous day)</div>
+            <div class="sub">Rolling order count by Order Date (rows) and Expected Delivery Date (columns) · latest 3 months day by day, older months collapsed · refreshed once a day at 06:00 from the ECOM-MFNAS Accumulated Delivery Lead Time report (orders of the previous day) · benchmark on top: latest record vs the last 7 days (and the rolling 30 days once a month of data exists)</div>
           </div>
         </div>
         <div class="prod-controls">
@@ -8067,7 +8082,7 @@
   }
   window.addEventListener('resize', updateScrollHints);
 
-  /* ---------------- v11.0 — Rolling Orders tab (v11.1: 3-month window · Order Date filter · one table per district · whole-table CSV) ----------------
+  /* ---------------- v11.0 — Rolling Orders tab (v11.1: 3-month window · Order Date filter · one table per district · whole-table CSV · v11.2: benchmark panel) ----------------
    Data: rolling_orders.json (written by rolling_orders.py, once a day at 06:00 since v11.1; also embedded in this file).
    days[orderDate] = { slot, asOf, cells: { deliveryDate: { OVERALL|district: [orders, waybills] } } }
    Rows = Order Date, columns = Expected Delivery Date.
@@ -8146,6 +8161,100 @@
     out.forEach(g=>{ g.open = !g.old || rollingState.open.has(g.ym); });
     return out;
   }
+  /* v11.2 — Benchmark panel. Latest record = the newest COMPLETE order date (slot 06:00 = written by the MFNAS job; legacy partial OIX
+     snapshots such as 13:00 are ignored). Benchmark 1 = average of the complete order dates in the 7 days before it. Benchmark 2 = average of the
+     complete order dates in the 30 days before it, shown once the data reaches back a month. Values are aligned by DELIVERY LEAD
+     (D+0 = same-day 18:00-22:00 slot, D+1 = next day, ...) because an absolute delivery date belongs to one order date only.
+     The panel ignores the Order Date filter and follows the District / Percentage / Order-Waybill selectors. */
+  const ROLLING_BENCH_WEEK = 7, ROLLING_BENCH_MONTH = 30, ROLLING_BENCH_MAX_LEAD = 14, ROLLING_BENCH_FLAG = 20;   // FLAG = |Δ%| that is highlighted
+  function rollingDayDiff(a, b){            // whole days from b to a (ISO dates)
+    const pa = a.split('-').map(Number), pb = b.split('-').map(Number);
+    return Math.round((Date.UTC(pa[0],pa[1]-1,pa[2]) - Date.UTC(pb[0],pb[1]-1,pb[2])) / 86400000);
+  }
+  function rollingAddDays(iso, n){
+    const p = iso.split('-').map(Number);
+    return new Date(Date.UTC(p[0], p[1]-1, p[2] + n)).toISOString().slice(0,10);
+  }
+  function rollingBenchCtx(R){
+    const comp = Object.keys(R.days).filter(od=>{ const d = R.days[od]; return d && d.slot === '06:00' && d.cells && Object.keys(d.cells).length; }).sort();
+    if(!comp.length) return null;
+    const L = comp[comp.length-1], prev = rollingAddDays(L, -1);
+    const wFrom = rollingAddDays(L, -ROLLING_BENCH_WEEK), mFrom = rollingAddDays(L, -ROLLING_BENCH_MONTH);
+    const week = comp.filter(d=>d >= wFrom && d <= prev), month = comp.filter(d=>d >= mFrom && d <= prev);
+    const history = rollingDayDiff(L, comp[0]);               // days of history behind the latest record
+    let maxLead = 0;
+    [L].concat(month).forEach(od=>Object.keys(R.days[od].cells).forEach(dd=>{ maxLead = Math.max(maxLead, rollingDayDiff(dd, od)); }));
+    return { L, week, month, first: comp[0], history, monthReady: history >= ROLLING_BENCH_MONTH, maxLead: Math.min(maxLead, ROLLING_BENCH_MAX_LEAD) };
+  }
+  function rollingLeadVec(R, od, key, maxLead){             // [count at D+0, D+1, ... D+maxLead] of one order date
+    const out = new Array(maxLead + 1).fill(0), u = rollingState.unit === 'waybill' ? 1 : 0, cells = R.days[od].cells || {};
+    Object.keys(cells).forEach(dd=>{
+      const off = rollingDayDiff(dd, od);
+      if(off < 0) return;
+      const v = cells[dd][key];
+      if(v) out[Math.min(off, maxLead)] += v[u];
+    });
+    return out;
+  }
+  function rollingAvgVec(R, dates, key, maxLead){
+    const sum = new Array(maxLead + 1).fill(0);
+    dates.forEach(od=>rollingLeadVec(R, od, key, maxLead).forEach((v,i)=>{ sum[i] += v; }));
+    return sum.map(v=>v / dates.length);
+  }
+  function rollingBenchHtml(R, key, ctx){
+    if(!ctx) return '<div class="rb-box"><div class="rb-head"><b>Benchmark</b><span>appears after the first complete order date (06:00 run) — run rolling_backfill.py to load the history</span></div></div>';
+    const pct = rollingState.pct === 'pct', n = ctx.maxLead + 1, cols = n + 2;
+    const sum = a => a.reduce((s,v)=>s + v, 0);
+    const num = v => v >= 10 ? Math.round(v).toLocaleString('en-US') : (Number.isInteger(v) ? String(v) : v.toFixed(1));
+    const share = (v, t) => t ? v / t * 100 : 0;
+    const lf = rollingFmtDate(ctx.L), unitTxt = rollingState.unit === 'waybill' ? 'waybill count' : 'order count (parent orders)';
+    const latest = rollingLeadVec(R, ctx.L, key, ctx.maxLead), lt = sum(latest);
+    const span = ds => rollingFmtDate(ds[0]).short + ' → ' + rollingFmtDate(ds[ds.length-1]).short + ' · ' + ds.length + (ds.length === 1 ? ' day' : ' days');
+    let h = `<div class="rb-box"><div class="rb-head"><b>Benchmark</b><span>Latest record ${lf.short} (${lf.wd}) vs the previous ${ROLLING_BENCH_WEEK} days` +
+            `${ctx.monthReady ? ' and the previous ' + ROLLING_BENCH_MONTH + ' days' : ''} · by delivery lead · ${unitTxt}${pct ? ' · % of the row total' : ''}</span></div>` +
+            '<div class="rb-scroll"><table class="rolling-table rb-table"><thead><tr><th class="rl-corner">Delivery lead →</th>';
+    for(let i = 0; i < n; i++) h += `<th>D+${i}<small>${rollingFmtDate(rollingAddDays(ctx.L, i)).short}</small></th>`;
+    h += '<th class="rl-total">Total</th></tr></thead><tbody>';
+    const valueRow = (cls, label, vec) => {
+      const t = sum(vec);
+      let r = `<tr class="${cls}"><th>${label}</th>`;
+      vec.forEach(v=>{ r += `<td>${pct ? (t ? share(v, t).toFixed(1) + '%' : '–') : num(v)}</td>`; });
+      return r + `<td class="rl-total">${pct ? (t ? '100.0%' : '–') : num(t)}</td></tr>`;
+    };
+    const deltaRows = (label, bench) => {
+      const bt = sum(bench);
+      let d = '', p = '';
+      const one = (lv, bv, tot) => {                           // returns [delta cell html, delta % cell html]
+        if(pct){
+          const x = share(lv, lt) - share(bv, bt);
+          return [`<td${tot ? ' class="rl-total"' : ''}>${Math.abs(x) < 0.05 ? '0.0 pt' : (x > 0 ? '+' : '−') + Math.abs(x).toFixed(1) + ' pt'}</td>`, ''];
+        }
+        const x = lv - bv, pc = bv > 0 ? (lv / bv - 1) * 100 : null, hi = pc != null && Math.abs(pc) >= ROLLING_BENCH_FLAG;
+        const ax = Math.abs(x), dx = ax < 0.05 ? '0' : (x > 0 ? '▲ ' : '▼ ') + (ax >= 1 ? Math.round(ax).toLocaleString('en-US') : ax.toFixed(1));   // whole numbers once the gap is >= 1
+        return [`<td class="${tot ? 'rl-total ' : ''}${hi ? 'rb-hi' : ''}">${dx}</td>`,
+                `<td class="${tot ? 'rl-total ' : ''}${hi ? 'rb-hi' : ''}">${pc == null ? '–' : (pc > 0 ? '+' : pc < 0 ? '−' : '') + Math.abs(pc).toFixed(1) + '%'}</td>`];
+      };
+      latest.forEach((lv, i)=>{ const c = one(lv, bench[i], false); d += c[0]; p += c[1]; });
+      const c = one(lt, bt, true); d += c[0]; p += c[1];
+      return `<tr class="rb-delta"><th>Δ vs ${label}</th>${d}</tr>` + (pct ? '' : `<tr class="rb-delta"><th>Δ % vs ${label}</th>${p}</tr>`);
+    };
+    h += valueRow('rb-latest', `Latest record · ${lf.short}<small>${lf.wd}</small><small class="rl-slot">most recent order date (full day)</small>`, latest);
+    // benchmark 1: previous 7 days
+    if(ctx.week.length){
+      const b = rollingAvgVec(R, ctx.week, key, ctx.maxLead);
+      h += valueRow('rb-avg', `Benchmark · last ${ROLLING_BENCH_WEEK} days avg<small class="rl-slot">${span(ctx.week)}</small>`, b) + deltaRows(`last ${ROLLING_BENCH_WEEK} days`, b);
+    }else{
+      h += `<tr class="rb-msg"><td colspan="${cols}">Benchmark (last ${ROLLING_BENCH_WEEK} days) needs at least one earlier complete order date — run rolling_backfill.py to load the history.</td></tr>`;
+    }
+    // benchmark 2: previous 30 days, once the data reaches back a month
+    if(ctx.monthReady && ctx.month.length){
+      const b = rollingAvgVec(R, ctx.month, key, ctx.maxLead);
+      h += valueRow('rb-avg rb-m', `Rolling ${ROLLING_BENCH_MONTH} days avg<small class="rl-slot">${span(ctx.month)}</small>`, b) + deltaRows(`${ROLLING_BENCH_MONTH}-day avg`, b);
+    }else{
+      h += `<tr class="rb-msg"><td colspan="${cols}">Rolling ${ROLLING_BENCH_MONTH}-day average appears once the data covers a month — ${ctx.history} of ${ROLLING_BENCH_MONTH} days collected (since ${rollingFmtDate(ctx.first).short}).</td></tr>`;
+    }
+    return h + '</tbody></table></div></div>';
+  }
   function rollingTableHtml(R, key, groups, delDates){
     const pct = rollingState.pct === 'pct';
     const fmt = v => v==null ? '–' : (pct ? v.toFixed(1) + '%' : v.toLocaleString('en-US'));
@@ -8222,12 +8331,14 @@
     const keys = rollingKeys();
     const unitTxt = rollingState.unit==='waybill' ? 'Waybill count' : 'Order count (parent orders)';
     const pctTxt = rollingState.pct==='pct' ? '% of order-date total (row)' : 'count';
+    const bctx = rollingBenchCtx(R);        // v11.2 — benchmark panel context (independent of the Order Date filter)
 
     const prev = wrap.querySelector('.rolling-scroll');
     const sl = prev ? prev.scrollLeft : 0, st = prev ? prev.scrollTop : 0;   // only used when a month is opened / closed
     wrap.innerHTML = keys.map(k=>
       '<div class="rolling-block">' +
         (keys.length > 1 ? `<div class="rolling-block-title">${k}</div>` : '') +
+        rollingBenchHtml(R, k, bctx) +
         '<div class="rolling-scroll">' + rollingTableHtml(R, k, groups, delDates) + '</div>' +
       '</div>').join('');
     if(keepScroll) wrap.querySelectorAll('.rolling-scroll').forEach(el=>{ el.scrollLeft = sl; el.scrollTop = st; });
@@ -8246,6 +8357,7 @@
       'Orders = distinct order numbers whose Optimum and First Available timeslots are both filled (parent orders); Waybills = distinct waybill numbers. When several districts are selected, each district has its own table (they are not added together). ' +
       (ROLLING_SHOT ? '' : 'The latest 3 months are shown day by day; older months are collapsed into one summary row per month (click the month to open it). The CSV button always downloads every day inside the Order Date filter. ') +
       '"Overall" covers the 10 districts (NT-YT is counted in WTH). ' +
+      'Benchmark (top) = the newest complete order date compared with the average of the complete order dates in the 7 days before it, and with the rolling 30-day average once the data covers a month; lined up by delivery lead (D+0 = same-day 18:00 – 22:00 slot, D+1 = next day, …). Δ = latest − benchmark, Δ % = latest ÷ benchmark − 1 (highlighted from ±' + ROLLING_BENCH_FLAG + '%); the panel ignores the Order Date filter. ' +
       (R.generatedAt ? 'Data generated ' + R.generatedAt + '.' : '');
   }
 
