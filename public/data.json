@@ -1,6 +1,6 @@
 {
   "_readme": "PLACEHOLDER seed data in the new 6-key schema (5 matrices, Matrix 1 split into hktvStaff + odsRatio). This file is overwritten automatically by kpi_pipeline.py via run_productivity_0300.bat (03:00) and run_tableau_1500.bat (15:00) once Task Scheduler is set up. Delete this _readme field or leave it; the page ignores it.",
-  "generatedAt": "2026-10-14T03:00",
+  "generatedAt": "2026-10-14T08:44",
   "matrices": {
     "hktvStaff": {
       "actual": {
@@ -85,18 +85,18 @@
         }
       },
       "forecast": {
-        "overall": 7.56,
+        "overall": 7.41,
         "districts": {
-          "ETH": 3.13,
+          "ETH": 3.14,
           "ETK": 3.43,
-          "ETX": 12.91,
-          "NT-ST": 5.27,
-          "NT-TM": 9.38,
-          "NT-TSM": 6.42,
-          "NT-TW": 9.38,
-          "WTH": 7.44,
-          "WTK": 7.88,
-          "WTX": 9.89
+          "ETX": 12.62,
+          "NT-ST": 5.41,
+          "NT-TM": 9.0,
+          "NT-TSM": 6.34,
+          "NT-TW": 9.45,
+          "WTH": 7.01,
+          "WTK": 7.52,
+          "WTX": 9.8
         }
       },
       "target": {
