@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-rolling_orders.py  -  KPI Dashboard Version 11.1  "Rolling Orders"   (raw data now comes from MFNAS, not OIX)
+rolling_orders.py  -  KPI Dashboard Version 11.2  "Rolling Orders"   (raw data now comes from MFNAS, not OIX)
 
 One run per day, at 06:00 (T-0). It reports the orders created YESTERDAY (T-1):
   1. Logs in to TKO-MFNAS (Synology File Station API, CRAB_NAS_USER / CRAB_NAS_PASS - same as project_crab.py),
