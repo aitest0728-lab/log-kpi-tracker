@@ -10,10 +10,9 @@ No import of kpi_pipeline (it insists on Tableau credentials at import time), so
     python3 wa_send.py --image logs/delay_report/delay_20261007.png --caption-file logs/delay_report/delay_20261007.txt
     python3 wa_send.py --image x.png --caption "hello" --group "My test group"     # try it on a private test group first
 
-Only one process may open a Chromium profile at a time, so wa_session_lock() (an flock on WA_LOCK_FILE) serialises this
-with the Tuesday/Friday cost-report download. Environment (same names as kpi_pipeline.py):
-    WA_SESSION_DIR, WA_TARGET_GROUP, WA_HIDE_MODE (auto|headless|offscreen|xvfb|off), WA_HEADLESS, WA_USER_AGENT,
-    WA_VIRTUAL_SCREEN, WA_LOCK_FILE, WA_URL (default https://web.whatsapp.com; only changed by the offline mock test)
+The browser is opened ONLY by wa_common.wa_session() (one profile, one lock, one fingerprint). The session_dir / hide_mode /
+headless / user_agent / virtual_screen arguments below are kept so old callers still work, but they are ignored - set
+WA_SESSION_DIR / WA_HIDE_MODE / ... in the environment (see wa_common.py). Own environment: WA_TARGET_GROUP.
 """
 import argparse
 import contextlib
@@ -30,14 +29,8 @@ try:
 except ImportError:                   # Windows: no cross-process lock, the jobs are scheduled far apart anyway
     fcntl = None
 
-WA_URL = os.environ.get("WA_URL", "https://web.whatsapp.com")
 DEFAULT_SESSION_DIR = os.environ.get("WA_SESSION_DIR", "/home/chipanl/whatsapp_session_2")
 DEFAULT_GROUP = os.environ.get("WA_TARGET_GROUP", "LOG 區頭 x Head office")
-DEFAULT_USER_AGENT = os.environ.get(
-    "WA_USER_AGENT",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
-
-
 def _default_hide_mode():
     m = os.environ.get("WA_HIDE_MODE", "auto").strip().lower()
     if os.environ.get("WA_VIRTUAL_DISPLAY") == "0":
@@ -47,64 +40,9 @@ def _default_hide_mode():
     return m
 
 
-# ------------------------------------------------------------------------------------------------ session lock
-# One lock for EVERY WhatsApp job: delegate to wa_common (same lock file as the other scripts; it used to be a private
-# /tmp/wa_session.lock here, so this post could overlap with the other jobs).
+# The WhatsApp session (lock, hidden display, browser flags, clean close) is wa_common's job - never launch Chrome here.
 sys.path.insert(0, os.environ.get("WA_COMMON_DIR", "/mnt/c/Users/chipanl/Downloads/Whatsapp Session"))
 import wa_common
-
-LOCK_FILE = wa_common.WA_LOCK_FILE
-
-
-@contextlib.contextmanager
-def wa_session_lock(timeout_s=1200):
-    """Wait (up to timeout_s) for any other job that is using the WhatsApp profile, then hold the shared lock."""
-    with wa_common.wa_session_lock(timeout=timeout_s):
-        yield
-
-
-# ---------------------------------------------------------------------------------------------- virtual display
-@contextlib.contextmanager
-def virtual_display(hide_mode, virtual_screen="1920x1080x24"):
-    """Private Xvfb for hide_mode == 'xvfb' (Linux/WSL); yields the DISPLAY string, or None to use the normal display."""
-    if hide_mode != "xvfb" or not sys.platform.startswith("linux"):
-        yield None
-        return
-    xvfb = shutil.which("Xvfb")
-    if not xvfb:
-        print("  ⚠️ Xvfb not installed (sudo apt install xvfb) - WhatsApp Chromium will use the normal display instead.")
-        yield None
-        return
-    proc, display = None, None
-    for num in range(99, 120):
-        if os.path.exists(f"/tmp/.X{num}-lock") or os.path.exists(f"/tmp/.X11-unix/X{num}"):
-            continue
-        cand = f":{num}"
-        proc = subprocess.Popen([xvfb, cand, "-screen", "0", virtual_screen, "-nolisten", "tcp"],
-                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        for _ in range(50):
-            if proc.poll() is not None or os.path.exists(f"/tmp/.X11-unix/X{num}"):
-                break
-            time.sleep(0.1)
-        if proc.poll() is None and os.path.exists(f"/tmp/.X11-unix/X{num}"):
-            display = cand
-            break
-        if proc.poll() is None:
-            proc.terminate()
-        proc = None
-    if not display:
-        print("  ⚠️ Could not start Xvfb - WhatsApp Chromium will use the normal display instead.")
-        yield None
-        return
-    print(f"  🖥️ Virtual display {display} started - Chromium will not show a window.")
-    try:
-        yield display
-    finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=5)
-        except Exception:
-            proc.kill()
 
 
 # -------------------------------------------------------------------------------------------------- page helpers
@@ -299,37 +237,15 @@ def wait_until_delivered(page, shot, max_wait_s=120):
 # ------------------------------------------------------------------------------------------------------ main API
 @contextlib.contextmanager
 def wa_page(session_dir, hide_mode, headless, user_agent, virtual_screen, shot):
-    """Lock + (virtual display) + persistent Chromium; yields the WhatsApp Web page once the chat list is loaded."""
-    from playwright.sync_api import sync_playwright
-    with wa_session_lock(), virtual_display(hide_mode, virtual_screen) as display, sync_playwright() as p:
-        env = {**os.environ, "DISPLAY": display} if display else None
-        args, kw = ["--disable-popup-blocking"], {}
-        if hide_mode == "headless":
-            args.append("--headless=new")                    # new headless = full browser; the old shell is refused by WA
-            kw["user_agent"] = user_agent or DEFAULT_USER_AGENT
-        elif hide_mode == "offscreen":
-            args += ["--window-position=-32000,-32000", "--window-size=1600,1000"]
-        ctx = p.chromium.launch_persistent_context(session_dir, headless=headless, env=env,
-                                                   viewport={"width": 1600, "height": 1000}, args=args, **kw)
-        page = None
+    """Shared wa_common session; yields the WhatsApp Web page once the chat list is loaded.
+    (all arguments except `shot` are ignored - see the module docstring)"""
+    with wa_common.wa_session() as (ctx, page):
         try:
-            page = ctx.pages[0] if ctx.pages else ctx.new_page()
-            page.goto(WA_URL, wait_until="domcontentloaded")
-            try:
-                page.wait_for_selector("#pane-side", timeout=120000)
-            except Exception:
-                shot(page, "login")
-                raise RuntimeError(f"WhatsApp Web never showed the chat list - the session in {session_dir!r} has "
-                                   f"probably expired (QR code); run once with WA_HIDE_MODE=off and re-link it.")
-            time.sleep(3)
             dismiss_wa_popups(page)
             yield page
         except Exception:
-            if page is not None:
-                shot(page, "error")
+            shot(page, "error")
             raise
-        finally:
-            ctx.close()
 
 
 def _make_shot(debug_dir):
@@ -366,6 +282,39 @@ def send_image_with_caption(image_path, caption, group=None, session_dir=None, h
         ok = wait_until_delivered(page, shot)
         print("  ✅ message sent." if ok else "  ⚠️ message was sent but delivery could not be confirmed (see screenshot).")
         return ok
+
+
+def send_image_to_groups(image_path, caption, groups, debug_dir="./logs/delay_report"):
+    """Post the same image + caption to several groups through ONE WhatsApp session (one Chrome start instead of one per group).
+    Returns {group: None (delivered) | Exception}. Raises only if the session itself cannot be opened
+    (SessionExpired / FingerprintChanged / RuntimeError) - then nothing was sent."""
+    image_path = str(Path(image_path).resolve())
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(image_path)
+    shot = _make_shot(debug_dir)
+    results = {}
+    with wa_page(None, None, False, None, None, shot) as page:
+        for g in groups:
+            print(f"🚀 Posting to {g!r}...")
+            try:
+                open_group(page, g, shot)
+                dismiss_wa_popups(page, escape=False)
+                attach_image(page, image_path, shot)
+                type_caption(page, caption, shot)
+                click_send(page, shot)
+                ok = wait_until_delivered(page, shot)
+                print("  ✅ message sent." if ok else "  ⚠️ sent, but delivery could not be confirmed (see screenshot).")
+                results[g] = None
+            except Exception as e:
+                results[g] = e
+                shot(page, f"group_{len(results)}")
+                for _ in range(2):                           # leave a half-open picture preview before the next group
+                    try:
+                        page.keyboard.press("Escape")
+                        time.sleep(0.5)
+                    except Exception:
+                        pass
+    return results
 
 
 def list_matching_chats(group=None, session_dir=None, hide_mode=None, headless=False, user_agent=None,

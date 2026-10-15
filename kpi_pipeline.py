@@ -319,8 +319,12 @@ TABLEAU_RECOVERY_DEADLINE_MIN = float(os.environ.get("TABLEAU_RECOVERY_DEADLINE_
 # The WhatsApp Web session is a persistent Chromium profile that has already
 # been logged in once by scanning the QR code (re-scan if the session expires).
 import os as _wa_os, sys as _wa_sys
-_wa_sys.path.insert(0, _wa_os.environ.get("WA_COMMON_DIR", "/mnt/c/Users/chipanl/Downloads/Whatsapp Session"))   # folder holding the shared wa_common.py
-import wa_common   # shared WhatsApp session: one profile, one lock, one hidden-Chrome setup
+_wa_sys.path.insert(0, _native_path(_wa_os.environ.get("WA_COMMON_DIR", "/mnt/c/Users/chipanl/Downloads/Whatsapp Session")))   # folder holding the shared wa_common.py (v11.6: native path under Windows Python too)
+try:
+    import wa_common   # shared WhatsApp session: one profile, one lock, one hidden-Chrome setup
+except Exception as _wa_err:   # never let a WhatsApp-helper problem stop the manpower / productivity / Tableau jobs
+    wa_common = None
+    print(f"  ⚠️ wa_common could not be imported ({_wa_err!r}) - WhatsApp sections will be skipped; data sections still run.")
 WA_SESSION_DIR = os.environ.get("WA_SESSION_DIR", "/home/chipanl/whatsapp_session_2")
 WA_TARGET_GROUP = os.environ.get("WA_TARGET_GROUP", "LOG 區頭 x Head office")
 # v11.0 — groups that receive the 08:30 delay-rate post (--section delayreport). WA_TARGET_GROUP stays the single group the Daily Cost Report is read from.
@@ -4725,13 +4729,15 @@ def run_delay_report_section(day=None, force=False, dry_run=False):
         print(f"  ℹ️ --dry-run: nothing was sent (would post to {WA_DELAY_GROUPS}).")
         return False
     failed = []
+    try:      # ONE WhatsApp session for all groups (wa_common owns the browser)
+        results = wa_send.send_image_to_groups(str(png), caption, [g for _, g in pending], debug_dir=DELAY_REPORT_SENT_DIR)
+    except Exception as e:
+        print(f"  ❌ Could not open WhatsApp ({type(e).__name__}): {e}")
+        results = {g: e for _, g in pending}
     for i, g in pending:
-        try:
-            wa_send.send_image_with_caption(str(png), caption, group=g, session_dir=WA_SESSION_DIR,
-                                            hide_mode=WA_HIDE_MODE, headless=WA_HEADLESS, user_agent=WA_USER_AGENT,
-                                            virtual_screen=WA_VIRTUAL_SCREEN, debug_dir=DELAY_REPORT_SENT_DIR)
-        except Exception as e:      # one group failing must not stop the others
-            print(f"  ❌ Could not post the delay report to {g!r}: {e}")
+        err = results.get(g)
+        if err is not None:         # one group failing must not stop the others
+            print(f"  ❌ Could not post the delay report to {g!r}: {err}")
             failed.append(g)
             continue
         f = _flag(i, g)
@@ -4964,33 +4970,8 @@ def fetch_cost_report_from_whatsapp():
 
     print(f"🚀 Opening WhatsApp Web (session {WA_SESSION_DIR!r}) for group {WA_TARGET_GROUP!r}...")
     import wa_send   # v10.6 — the 08:30 delay post shares this Chromium profile; only one job may hold it at a time
-    with wa_common.wa_session_lock(), virtual_display() as wa_display, sync_playwright() as p:   # shared lock file with every other WhatsApp job
-        # v8.2 — headed Chromium, but drawn on the Xvfb virtual display (when available) so no window appears
-        launch_env = {**os.environ, "DISPLAY": wa_display} if wa_display else None
-        wa_args = ["--disable-popup-blocking"]
-        wa_kwargs = {}
-        if WA_HIDE_MODE == "headless":
-            # New headless is requested through a flag on a HEADED launch (headless=False): Playwright's own
-            # headless=True would start the old headless shell, which WhatsApp Web refuses.
-            wa_args.append("--headless=new")
-            wa_kwargs["user_agent"] = WA_USER_AGENT
-            print("  🕶️ WhatsApp Chromium: new-headless mode (no window).")
-        elif WA_HIDE_MODE == "offscreen":
-            wa_args += ["--window-position=-32000,-32000", "--window-size=1600,1000"]
-            print("  🕶️ WhatsApp Chromium: window parked off-screen.")
-        ctx = p.chromium.launch_persistent_context(
-            WA_SESSION_DIR, headless=WA_HEADLESS, accept_downloads=True, env=launch_env,
-            viewport={"width": 1600, "height": 1000}, args=wa_args, **wa_kwargs)
+    with wa_common.wa_session(accept_downloads=True, debug_dir=COST_REPORT_FOLDER) as (ctx, page):   # shared lock + hidden Chrome + clean close
         try:
-            page = ctx.pages[0] if ctx.pages else ctx.new_page()
-            page.goto("https://web.whatsapp.com", wait_until="domcontentloaded")
-            try:
-                page.wait_for_selector("#pane-side", timeout=120000)
-            except Exception:
-                shot(page, "login")
-                raise RuntimeError("WhatsApp Web never showed the chat list — the session in "
-                                   f"{WA_SESSION_DIR!r} has probably expired (QR code); re-link it once by hand.")
-            time.sleep(3)
             dismiss_wa_popups(page)
 
             # --- open the group ---
@@ -5153,8 +5134,6 @@ def fetch_cost_report_from_whatsapp():
             except Exception:
                 pass
             raise
-        finally:
-            ctx.close()
 
 
 def _cr_num(v):

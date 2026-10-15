@@ -433,18 +433,18 @@
         }
       },
       "basketSize": {
-        "overall": null,
+        "overall": 595.77,
         "districts": {
-          "ETH": null,
-          "ETK": null,
-          "ETX": null,
-          "NT-ST": null,
-          "NT-TM": null,
-          "NT-TSM": null,
-          "NT-TW": null,
-          "WTH": null,
-          "WTK": null,
-          "WTX": null
+          "ETH": 563.52,
+          "ETK": 595.55,
+          "ETX": 562.58,
+          "NT-ST": 684.58,
+          "NT-TM": 659.0,
+          "NT-TSM": 612.74,
+          "NT-TW": 596.42,
+          "WTH": 516.72,
+          "WTK": 559.98,
+          "WTX": 632.43
         }
       }
     }
@@ -2917,18 +2917,18 @@
           }
         },
         "basketSize": {
-          "overall": null,
+          "overall": 595.77,
           "districts": {
-            "ETH": null,
-            "ETK": null,
-            "ETX": null,
-            "NT-ST": null,
-            "NT-TM": null,
-            "NT-TSM": null,
-            "NT-TW": null,
-            "WTH": null,
-            "WTK": null,
-            "WTX": null
+            "ETH": 563.52,
+            "ETK": 595.55,
+            "ETX": 562.58,
+            "NT-ST": 684.58,
+            "NT-TM": 659.0,
+            "NT-TSM": 612.74,
+            "NT-TW": 596.42,
+            "WTH": 516.72,
+            "WTK": 559.98,
+            "WTX": 632.43
           }
         }
       }
@@ -2936,39 +2936,37 @@
   },
   "mtd": {
     "gmv": {
-      "overall": 234651977.0,
+      "overall": 250920083.0,
       "districts": {
-        "ETH": 25267841.0,
-        "ETK": 18479744.0,
-        "ETX": 22549580.0,
-        "NT-ST": 23512702.0,
-        "NT-TM": 21729195.0,
-        "NT-TSM": 24188698.0,
-        "NT-TW": 22229446.0,
-        "WTH": 30273247.0,
-        "WTK": 21622599.0,
-        "WTX": 24798925.0
+        "ETH": 26769620.0,
+        "ETK": 19675610.0,
+        "ETX": 24032546.0,
+        "NT-ST": 25443893.0,
+        "NT-TM": 23489385.0,
+        "NT-TSM": 25767738.0,
+        "NT-TW": 23741376.0,
+        "WTH": 32206303.0,
+        "WTK": 23187192.0,
+        "WTX": 26606420.0
       }
     },
     "basketSize": {
-      "overall": 695.42,
+      "overall": 687.96,
       "districts": {
-        "ETH": 678.5,
-        "ETK": 685.98,
-        "ETX": 698.06,
-        "NT-ST": 736.52,
-        "NT-TM": 698.96,
-        "NT-TSM": 698.57,
-        "NT-TW": 702.04,
-        "WTH": 693.28,
-        "WTK": 677.27,
-        "WTX": 687.96
+        "ETH": 670.82,
+        "ETK": 679.71,
+        "ETX": 687.84,
+        "NT-ST": 732.3,
+        "NT-TM": 695.8,
+        "NT-TSM": 692.63,
+        "NT-TW": 694.21,
+        "WTH": 679.34,
+        "WTK": 667.83,
+        "WTX": 683.88
       }
     },
-    "daysCounted": 13,
-    "daysExcluded": [
-      "2026-10-14"
-    ],
+    "daysCounted": 14,
+    "daysExcluded": [],
     "month": "2026-10"
   }
 }
