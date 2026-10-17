@@ -479,6 +479,38 @@
           "WTX": 641.22
         }
       }
+    },
+    "2026-10-16": {
+      "gmv": {
+        "overall": 19383395.0,
+        "districts": {
+          "ETH": 2222722.0,
+          "ETK": 1498509.0,
+          "ETX": 1697825.0,
+          "NT-ST": 1812839.0,
+          "NT-TM": 1544657.0,
+          "NT-TSM": 1906696.0,
+          "NT-TW": 1893835.0,
+          "WTH": 3015776.0,
+          "WTK": 1807257.0,
+          "WTX": 1983279.0
+        }
+      },
+      "basketSize": {
+        "overall": null,
+        "districts": {
+          "ETH": null,
+          "ETK": null,
+          "ETX": null,
+          "NT-ST": null,
+          "NT-TM": null,
+          "NT-TSM": null,
+          "NT-TW": null,
+          "WTH": null,
+          "WTK": null,
+          "WTX": null
+        }
+      }
     }
   },
   "monthly": {
@@ -2995,6 +3027,38 @@
             "WTX": 641.22
           }
         }
+      },
+      "2026-10-16": {
+        "gmv": {
+          "overall": 19383395.0,
+          "districts": {
+            "ETH": 2222722.0,
+            "ETK": 1498509.0,
+            "ETX": 1697825.0,
+            "NT-ST": 1812839.0,
+            "NT-TM": 1544657.0,
+            "NT-TSM": 1906696.0,
+            "NT-TW": 1893835.0,
+            "WTH": 3015776.0,
+            "WTK": 1807257.0,
+            "WTX": 1983279.0
+          }
+        },
+        "basketSize": {
+          "overall": null,
+          "districts": {
+            "ETH": null,
+            "ETK": null,
+            "ETX": null,
+            "NT-ST": null,
+            "NT-TM": null,
+            "NT-TSM": null,
+            "NT-TW": null,
+            "WTH": null,
+            "WTK": null,
+            "WTX": null
+          }
+        }
       }
     }
   },
@@ -3030,7 +3094,9 @@
       }
     },
     "daysCounted": 15,
-    "daysExcluded": [],
+    "daysExcluded": [
+      "2026-10-16"
+    ],
     "month": "2026-10"
   }
 }
