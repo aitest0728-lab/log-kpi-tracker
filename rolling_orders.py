@@ -21,16 +21,15 @@ One run per day, at 06:00 (T-0). It reports the orders created YESTERDAY (T-1):
   4. Pushes rolling_orders.json + index.html to the dashboard repo (git pull --rebase -> commit -> push), with an
      automatic fix for the one conflict this always risks: the EMBEDDED_DATA block of index.html, which
      kpi_pipeline.py rewrites too (see push_dashboard). Disable with --skip-push or ROLLING_DEPLOY=none.
-  5. Takes a screenshot of the "Rolling Orders" tab table and sends it + the message to the
-     WhatsApp group via wa_common (shared WhatsApp Web session).
+  (No WhatsApp message / screenshot is sent any more - the dashboard is the only output.)
 
 Usage (WSL):
     python3 rolling_orders.py                          # the 06:00 cron call (T-0 = today, order date = yesterday)
     python3 rolling_orders.py --date 2026-10-14        # re-run for another T-0 (reports the orders of 2026-10-13)
-    python3 rolling_orders.py --skip-whatsapp --skip-push
+    python3 rolling_orders.py --skip-push
     python3 rolling_orders.py --process-only --report-file "Rolling Order Count (Oct-13).csv" --date 2026-10-14
 
-Cron (WSL, machine timezone = HKT) - ONE line; delete the old 13:00 / 18:00 / 00:00 lines:
+Cron (WSL, machine timezone = HKT) - ONE line; delete the old 13:00 / 18:00 / 00:00 lines (no xvfb-run needed any more - no browser is used):
     0 6 * * *  cd "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker" && python3 rolling_orders.py >> logs/rolling_0600.log 2>&1
 
 Credentials (never hard-code them): environment variables CRAB_NAS_USER / CRAB_NAS_PASS, or a KEY=VALUE file
@@ -53,8 +52,6 @@ import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.dirname(HERE))   # wa_common.py may sit one level up (…/Whatsapp Session/)
-sys.path.insert(0, os.environ.get("WA_COMMON_DIR", "/mnt/c/Users/chipanl/Downloads/Whatsapp Session"))   # same default as project_crab.py
 
 
 # ----------------------------------------------------------------------------- config
@@ -98,10 +95,6 @@ PUBLIC_DIR = os.environ.get("KPI_PUBLIC_DIR", os.path.join(KPI_DIR, "public"))  
 INDEX_HTML = os.environ.get("KPI_INDEX_HTML", os.path.join(PUBLIC_DIR, "index.html"))
 ROLLING_JSON = os.environ.get("ROLLING_JSON", os.path.join(PUBLIC_DIR, "rolling_orders.json"))   # next to index.html
 LOG_DIR = os.environ.get("ROLLING_LOG_DIR", os.path.join(KPI_DIR, "logs"))
-SHOT_DIR = os.environ.get("ROLLING_SHOT_DIR", ROLLING_DIR)
-
-WA_TARGET_GROUP = os.environ.get("WA_TARGET_GROUP", "LOG 區頭 x Head office")
-# WA_SESSION_DIR is read by wa_common itself (default /home/chipanl/whatsapp_session_2)
 
 SLOTS = ["06:00"]                            # Version 11.1: one run a day
 KEEP_ORDER_DATES = 400                       # order dates kept in rolling_orders.json (the dashboard shows the latest 3 months
@@ -634,190 +627,6 @@ def _push_dashboard(order_date, slot, data):
     return False
 
 
-# ----------------------------------------------------------------------------- screenshot + WhatsApp
-def screenshot_table(order_date, slot):
-    from playwright.sync_api import sync_playwright
-    os.makedirs(SHOT_DIR, exist_ok=True)
-    out = os.path.join(SHOT_DIR, f"Rolling Order Trend ({mmm_dd(order_date)})_{slot.replace(':', '')}.png")
-    with sync_playwright() as p:
-        b = p.chromium.launch(headless=True)
-        try:
-            pg = b.new_page(viewport={"width": 1700, "height": 1100}, device_scale_factor=1.5)
-            pg.add_init_script("window.__ROLLING_SHOT__ = true;")     # dashboard JS: latest 14 order dates, nothing collapsed, no scroll boxes
-            pg.goto("file://" + INDEX_HTML, wait_until="domcontentloaded", timeout=120000)
-            pg.wait_for_selector(".main-tab[data-target='view-rolling']", timeout=120000)
-            pg.click(".main-tab[data-target='view-rolling']")
-            pg.wait_for_selector("#rollingTableWrap table", timeout=60000)
-            pg.add_style_tag(content='#rollingShot .tbl-dl-bar{display:none !important}')
-            time.sleep(1)
-            w = pg.evaluate("() => Math.ceil(document.querySelector('#rollingShot').getBoundingClientRect().width)")
-            if w + 140 > 1700:      # wide table: widen the page so the Total column is never clipped
-                pg.set_viewport_size({"width": w + 140, "height": 1100})
-                time.sleep(1)
-            pg.locator("#rollingShot").screenshot(path=out)
-        finally:
-            b.close()
-    log(f"screenshot {out}")
-    return out
-
-
-def whatsapp_text(order_date, slot):
-    return (f"Rolling Order Trend ({mmm_dd(order_date)})\n\n"
-            f"Attached please find the rolling orders trend as of {mmm_dd(order_date)} Overall above.")
-
-
-def send_whatsapp(image_path, text):
-    """Send the trend screenshot as a PHOTO (with the message as caption).
-    Attach logic ported from project_crab.py: the plain `input[accept*="image"]` (image/* only) is WhatsApp's
-    STICKER picker, which is what made the screenshot arrive as a sticker. The real Photos & videos
-    input also accepts video, so it is chosen via the menu item / file chooser, or by accept=image+video."""
-    import wa_common
-    with wa_common.wa_session() as (context, page):
-        search_sel = 'div[contenteditable="true"][data-tab="3"], input[data-tab="3"]'
-        page.wait_for_selector(search_sel, timeout=60000)
-        time.sleep(3)
-        sb = page.locator(search_sel).first
-        sb.fill("")
-        sb.type(WA_TARGET_GROUP, delay=80)
-        time.sleep(2)
-        gsel = f'span[title="{WA_TARGET_GROUP}"]'
-        page.wait_for_selector(gsel, timeout=10000)
-        page.click(gsel)
-        time.sleep(3)
-        msg_sel = 'div[contenteditable="true"][data-tab="10"]'
-        page.wait_for_selector(msg_sel, timeout=10000)
-
-        attach_selectors = [
-            'div[aria-label="Attach"]', 'button[aria-label="Attach"]',
-            'button[title="Attach"]', 'div[title="Attach"]',
-            '[aria-label="附加"]', '[aria-label="附件"]',
-            'span[data-icon="plus"]', 'span[data-icon="plus-rounded"]',
-            'span[data-icon="attach-menu-plus"]', 'span[data-icon="attach-menu-item"]',
-            'span[data-icon="clip"]',
-        ]
-        media_selectors = [
-            'span[data-icon="attach-image"]', 'button[aria-label="Photos & videos"]',
-            'button[aria-label="相片和影片"]', 'button[aria-label="照片和影片"]',
-            'button[aria-label="相片及影片"]', 'li[data-testid="mi-attach-media"]',
-            'span:has-text("Photos & videos")', 'span:has-text("相片和影片")',
-            'span:has-text("照片和影片")', 'span:has-text("相片及影片")',
-        ]
-        caption_selectors = [
-            'div[aria-label*="aption"]', 'div[aria-label*="說明"]', 'div[aria-label*="標題"]',
-        ]
-        send_selectors = [
-            'span[data-icon="send"]', 'span[data-icon="wds-ic-send-filled"]',
-            'div[aria-label="Send"]', 'div[aria-label="發送"]', 'div[aria-label="傳送"]',
-            'button[aria-label="Send"]', 'button[aria-label="發送"]', 'button[aria-label="傳送"]',
-        ]
-
-        def open_attach_menu():
-            for sel in attach_selectors:
-                try:
-                    btn = page.locator(sel).first
-                    if btn.is_visible():
-                        btn.click(timeout=3000)
-                        time.sleep(1)
-                        log(f"WhatsApp: attach menu opened via {sel}")
-                        return True
-                except Exception:
-                    continue
-            log("WhatsApp: attach button not found by selector; relying on hidden file input")
-            return False
-
-        def choose_via_menu(path, selectors):
-            """Click the 'Photos & videos' entry and hand the file to the native file chooser."""
-            open_attach_menu()
-            for sel in selectors:
-                try:
-                    el = page.locator(sel).first
-                    if el.is_visible():
-                        with page.expect_file_chooser(timeout=5000) as fc:
-                            el.click()
-                        fc.value.set_files(path)
-                        log(f"WhatsApp: photo chosen via menu item {sel}")
-                        page.wait_for_timeout(3000)   # preview dialog
-                        return True
-                except Exception:
-                    continue
-            return False
-
-        def send_photo(path):
-            if choose_via_menu(path, media_selectors):
-                return
-            accepts = page.evaluate(
-                "() => Array.from(document.querySelectorAll('input[type=file]'))"
-                ".map(i => i.getAttribute('accept') || '')")
-            log(f"WhatsApp: Photos menu not found; hidden inputs (accept): {accepts}")
-            for i, acc in enumerate(accepts):
-                # the real Photos & videos input also accepts video; image/* alone = the STICKER picker
-                if "image" in acc and "video" in acc:
-                    page.locator('input[type="file"]').nth(i).set_input_files(path)
-                    page.wait_for_timeout(3000)
-                    return
-            # last resort: put the PNG on the clipboard and paste it into the composer (opens a photo preview)
-            log("WhatsApp: falling back to clipboard paste for the image")
-            import base64
-            try:
-                context.grant_permissions(["clipboard-read", "clipboard-write"], origin="https://web.whatsapp.com")
-            except Exception:
-                pass
-            with open(path, "rb") as fh:
-                b64 = base64.b64encode(fh.read()).decode()
-            page.evaluate("""async (b64) => {
-                const bin = atob(b64); const arr = new Uint8Array(bin.length);
-                for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-                const blob = new Blob([arr], {type: 'image/png'});
-                await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
-            }""", b64)
-            page.locator(msg_sel).click()
-            page.keyboard.press("Control+v")
-            page.wait_for_timeout(3000)
-
-        def click_send():
-            for sel in send_selectors:
-                try:
-                    btn = page.locator(sel).last
-                    if btn.is_visible(timeout=3000):
-                        btn.click()
-                        log(f"WhatsApp: send clicked via {sel}")
-                        return
-                except Exception:
-                    continue
-            log("WhatsApp: send button not found; pressing Enter")
-            page.keyboard.press("Enter")
-
-        def paste_text(txt):
-            page.evaluate("(t) => navigator.clipboard.writeText(t)", txt)
-            page.keyboard.press("Control+v")
-            page.wait_for_timeout(800)
-
-        send_photo(image_path)
-        caption_ok = False
-        for sel in caption_selectors:
-            try:
-                box = page.locator(sel).first
-                if box.is_visible():
-                    box.click(force=True, timeout=5000)
-                    paste_text(text)
-                    caption_ok = True
-                    log(f"WhatsApp: caption filled via {sel}")
-                    break
-            except Exception:
-                continue
-        if not caption_ok:
-            log("WhatsApp: caption box not found; the message will be sent as a separate text")
-        click_send()
-        page.wait_for_timeout(5000)
-        if not caption_ok:
-            page.wait_for_selector(msg_sel, timeout=15000)
-            page.locator(msg_sel).click()
-            paste_text(text)
-            page.keyboard.press("Enter")
-            page.wait_for_timeout(3000)
-        log("WhatsApp: picture + message sent")
-
-
 # ----------------------------------------------------------------------------- main
 @contextlib.contextmanager
 def run_lock():
@@ -836,10 +645,10 @@ def main():
     ap.add_argument("--slot", help="kept so an old cron line does not break; only 06:00 runs (Version 11.1)")
     ap.add_argument("--date", help="T-0 = the run date YYYY-MM-DD (default today). The report holds the orders of the day BEFORE it")
     ap.add_argument("--skip-download", action="store_true", help="use the file already in Folder for Rolling Orders")
-    ap.add_argument("--process-only", action="store_true", help="skip download + git push + WhatsApp; uses --report-file or the file in the folder")
+    ap.add_argument("--process-only", action="store_true", help="skip download + git push; uses --report-file or the file in the folder")
     ap.add_argument("--report-file", help="process this csv instead of Rolling Order Count (T-1).csv")
     ap.add_argument("--download-only", action="store_true", help="only download the MFNAS csv into Folder for Rolling Orders, then stop")
-    ap.add_argument("--skip-whatsapp", action="store_true")
+    ap.add_argument("--skip-whatsapp", action="store_true", help="ignored - WhatsApp sending was removed; kept so old command lines still work")
     ap.add_argument("--skip-embed", action="store_true")
     ap.add_argument("--skip-push", action="store_true", help="do not git-push the dashboard files (same as ROLLING_DEPLOY=none)")
     a = ap.parse_args()
@@ -871,9 +680,6 @@ def main():
             embed_in_index(data)
         if not (a.skip_push or a.process_only):
             push_dashboard(order_date, slot, data)       # publish the update to the Rolling Orders tab
-        if not (a.skip_whatsapp or a.process_only):
-            img = screenshot_table(order_date, slot)
-            send_whatsapp(img, whatsapp_text(order_date, slot))
 
 
 if __name__ == "__main__":

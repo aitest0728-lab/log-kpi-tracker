@@ -2,6 +2,21 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v11.6 — Full Perspective Forecast: the COST PLAN now refreshes itself from the Daily Cost Report. When `--section costreport` reads the
+  workbook's Breakdown tab it also derives, per district: (a) daily Fixed Cost - Non-Controllable = sum of the "Provision - Non-Controllable
+  Cost" Unit Cost cells; (b) daily Fixed Cost - Controllable = sum of the "Provision - Controllable Cost" Unit Cost cells + Transit & Ice
+  (Leased Car + Outsource Manpower + Tube/Dry Ice: month-to-date Total Cost / days reported); (c) ODS Unit Cost of the 1st / 2nd point
+  ("Individual ODS" rows). They are written to public/cost_plan.json (also embedded in index.html) and the forecast tab uses them instead of
+  its built-in figures. A newer report replaces an older one; an older file never overwrites a newer one. Staff unit costs and targets are
+  NOT touched. If the Breakdown tab cannot be read the plan is left as it was and the rest of the cost-report job carries on.
+v11.8 — ODS first / non-first points: when an order has no Estate Code (Column U) the Street Number Code (Column V) is used to group the orders
+  of a user instead; only orders with neither code count as first point.
+v11.7 — ODS First Point Ratio of the Forecast tab, now from the daily OIX_Record files (OIX_FOLDER = ...\\Downloads\\Digimobi Report): per day, per
+  district, for every unique ODS/VAN user (Column E) and unique Parent Order (Column L): the orders of one user that share an Estate Code
+  (Column U) -> the first of them is a first-point order, every other one a non-first order (an estate code with a single order = first
+  point; an order with a blank estate code counts as first point). history["odsPointsDaily"][date] keeps the daily counts; the ratio =
+  first / (first + non-first) pooled over every day stored (all-time, the new days are added by the 03:00 job) and is written to
+  cost_plan.json -> firstPointRatio. `--section odspoints` backfills it from every OIX_Record file in the folder (once); --oix-days N limits it.
 v11.5 — the Daily Cost Report job (`--section costreport`, 09:00 Tue/Fri) pushes the dashboard again. It no longer relies on DEPLOY_CMD being
   set in cron's environment: with no DEPLOY_CMD, run_deploy_hook() falls back to a built-in git push (pull --rebase -> add -> commit -> push,
   see DEFAULT_DEPLOY_CMD; override with DEPLOY_CMD, turn off with DEPLOY_CMD=none). This matters now that the Tableau job runs at 08:15 and
@@ -284,6 +299,10 @@ DELAY_HISTORY_PATH = os.environ.get("DELAY_HISTORY_PATH", "./public/delay_histor
 # amount, RFID missing tote, logged monthly in the same layout as GMV/Basket
 # Size (see build_gmv_monthly()).
 OTHER_ASPECTS_HISTORY_PATH = os.environ.get("OTHER_ASPECTS_HISTORY_PATH", "./public/other_aspects_history.json")
+# v11.6 - Full Perspective Forecast cost plan (fixed cost per district, ODS unit cost) read from the Daily Cost Report's Breakdown tab.
+COST_PLAN_PATH = os.environ.get("COST_PLAN_PATH", "./public/cost_plan.json")
+# v11.7 - the 03:00 job re-checks the OIX files of the last N days for the ODS first / non-first point counts (`--section odspoints` = all files).
+ODS_POINTS_LOOKBACK_DAYS = int(os.environ.get("ODS_POINTS_LOOKBACK_DAYS", "7"))
 # v28.0 — single deployable dashboard file. Every JSON file's parsed content
 # gets burned into a window.__EMBEDDED_DATA__ script tag inside this same
 # file at the end of every "tableau" run, so it works both live off a real
@@ -2528,6 +2547,11 @@ def run_productivity_section():
     # v10.3 — T-1 itself was just written above and fingerprinted. Any OTHER OIX_Record file that was modified
     # today (or, if OIX_BACKFILL_DAYS is set, any file of the last N days) is re-checked here too.
     res = backfill_manpower_from_oix(history, position_map=position_map, skip_dates={target_date.isoformat()})
+    try:                                                          # v11.7 - ODS first / non-first point counts of T-1 (+ any updated file) -> Forecast tab ratio
+        update_ods_points(history, days=ODS_POINTS_LOOKBACK_DAYS)
+        refresh_first_point_ratio(history)
+    except Exception as e:
+        print(f"  ⚠️ ODS first / non-first points not updated ({e}).")
     save_manpower_history(trimmed_manpower_distribution(history, DAILY_PRODUCTIVITY_KEEP_DAYS))
     persist_manpower_corrections(history, res)       # v10.4 — productivity / MTD / data.json follow the corrected manpower
     save_history(history)
@@ -3051,6 +3075,111 @@ def persist_manpower_corrections(history, res):
 
 
 
+def ods_point_counts(df):
+    """v11.8 - ODS/VAN first-point vs non-first-point orders of one day, per district. `df` must come from process_oix().
+    For every unique ODS/VAN user (Column E) the unique Parent Orders (Column L) are grouped by location: the Estate Code (Column U), or,
+    when the estate code is blank, the Street Number Code (Column V). The first order of a location is the first-point order, the others
+    are non-first. So first = number of (user, location) groups, non-first = unique (user, parent order) pairs - first. An order with
+    neither code cannot be grouped and counts as a first-point order.
+    Returns {district: {"first": n, "nonFirst": n}}."""
+    c_user, c_parent, c_estate = col("E"), col("L"), col("U")
+    c_street = col("V")
+    user = df.iloc[:, c_user].fillna("").astype(str).str.strip()
+    sub = df[user.str.startswith(("ODS", "VAN"))]
+    out = {}
+    for d in DISTRICTS:
+        rows = sub[sub["District"] == d]
+        estate = rows.iloc[:, c_estate].fillna("").astype(str).str.strip()
+        street = (rows.iloc[:, c_street].fillna("").astype(str).str.strip()
+                  if df.shape[1] > c_street else pd.Series("", index=rows.index))
+        loc = estate.where(estate != "", street.where(street == "", "S:" + street))     # estate code, else street code ("S:" keeps the two code spaces apart)
+        pairs = pd.DataFrame({"u": rows.iloc[:, c_user].fillna("").astype(str).str.strip().values,
+                              "o": rows.iloc[:, c_parent].fillna("").astype(str).str.strip().values,
+                              "e": loc.values}).drop_duplicates(["u", "o"])
+        named = pairs[pairs["e"] != ""]
+        first = int(named.drop_duplicates(["u", "e"]).shape[0]) + int((pairs["e"] == "").sum())
+        out[d] = {"first": first, "nonFirst": int(len(pairs)) - first}
+    return out
+
+
+def update_ods_points(history, days=None, force=False, as_of=None):
+    """v11.7 - stores history["odsPointsDaily"][date] = {"sha1", "districts": {d: [first, nonFirst]}} for every OIX_Record file of the
+    last `days` days up to T-1 (days=None: every file in OIX_FOLDER) that is new or whose content changed. Stored days are kept even
+    after their file is deleted. Returns the list of dates (re)computed."""
+    today = as_of or dt.date.today()
+    store = history.setdefault("odsPointsDaily", {})
+    files = {d: p for d, p in list_oix_files().items()
+             if d < today and (days is None or d >= today - dt.timedelta(days=days))}
+    done = []
+    for d in sorted(files):
+        ds, path = d.isoformat(), files[d]
+        try:
+            sha = _oix_fingerprint(path)["sha1"]
+        except OSError as e:
+            print(f"  ⚠️ ODS points: cannot read {os.path.basename(path)!r} ({e}) - {ds} skipped.")
+            continue
+        if not force and (store.get(ds) or {}).get("sha1") == sha:
+            continue
+        try:
+            counts = ods_point_counts(process_oix(load_oix(path), None))
+        except Exception as e:
+            print(f"  ⚠️ ODS points: {os.path.basename(path)!r} could not be processed ({e}) - {ds} skipped.")
+            continue
+        store[ds] = {"sha1": sha, "districts": {x: [c["first"], c["nonFirst"]] for x, c in counts.items()}}
+        done.append(ds)
+        tf, tn = sum(c["first"] for c in counts.values()), sum(c["nonFirst"] for c in counts.values())
+        print(f"  📍 ODS points {ds}: first {tf:,} / non-first {tn:,} ({tf / (tf + tn) * 100:.1f}% first)" if tf + tn else f"  📍 ODS points {ds}: no ODS/VAN orders")
+    return done
+
+
+def refresh_first_point_ratio(history):
+    """v11.7 - ODS First Point Ratio per district = first / (first + non-first) pooled over every day in history["odsPointsDaily"],
+    merged into cost_plan.json (firstPointRatio) next to the cost plan the cost report writes. Never raises. Returns the ratio dict."""
+    try:
+        store = history.get("odsPointsDaily") or {}
+        if not store:
+            return None
+        ratio = {}
+        for d in DISTRICTS:
+            f = sum(((rec.get("districts") or {}).get(d) or [0, 0])[0] for rec in store.values())
+            n = sum(((rec.get("districts") or {}).get(d) or [0, 0])[1] for rec in store.values())
+            if f + n > 0:
+                ratio[d] = round(f / (f + n) * 100, 2)
+        data = {}
+        if os.path.exists(COST_PLAN_PATH):
+            try:
+                with open(COST_PLAN_PATH, "r", encoding="utf-8") as fh:
+                    data = json.load(fh)
+            except (OSError, ValueError):
+                data = {}
+        data.update({"firstPointRatio": ratio, "firstPointRatioDays": len(store),
+                     "firstPointRatioFrom": min(store), "firstPointRatioTo": max(store)})
+        os.makedirs(os.path.dirname(os.path.abspath(COST_PLAN_PATH)), exist_ok=True)
+        tmp = COST_PLAN_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(data, fh, ensure_ascii=False, indent=1)
+        os.replace(tmp, COST_PLAN_PATH)
+        print(f"  💲 ODS First Point Ratio ({len(store)} day(s), {min(store)}..{max(store)}): "
+              + ", ".join(f"{d} {ratio[d]}%" for d in DISTRICTS if d in ratio))
+        return ratio
+    except Exception as e:
+        print(f"  ⚠️ ODS First Point Ratio not refreshed ({e}).")
+        return None
+
+
+def run_ods_points_section(days=None, force=False):
+    """v11.7 - `--section odspoints`: (back)fill the ODS first / non-first point counts from the OIX_Record files in OIX_FOLDER
+    (all of them, or the last `days`), refresh the ratio in cost_plan.json, update the index.html snapshot and push."""
+    print("🚀 計算 ODS First / Non-first Point（OIX Record）...")
+    history = load_history()
+    done = update_ods_points(history, days=days, force=force)
+    refresh_first_point_ratio(history)
+    save_history(history)
+    update_embedded_data()
+    run_deploy_hook()
+    print(f"✅ ODS points: {len(done)} day(s) (re)computed, {len(history.get('odsPointsDaily', {}))} day(s) on record.")
+
+
 def run_oix_backfill_section(days=None, force=False):
     """v10.3 — `--section oixbackfill`: run the OIX manpower backfill on its own — run it (or schedule it) after
     an OIX_Record file has been updated on T+0. By default only files whose modified time is today are checked;
@@ -3058,6 +3187,19 @@ def run_oix_backfill_section(days=None, force=False):
     print("🚀 檢查 OIX Record 是否有更新，回補 HKTV Manpower Distribution...")
     history = load_history()
     res = backfill_manpower_from_oix(history, days=days, force=force)
+    try:
+        pts = update_ods_points(history, days=days, force=force)      # v11.7
+        if pts:
+            refresh_first_point_ratio(history)
+    except Exception as e:
+        print(f"  ⚠️ ODS first / non-first points not updated ({e}).")
+        pts = []
+    if not res["updated"] and pts:
+        save_history(history)
+        update_embedded_data()
+        run_deploy_hook()
+        print(f"✅ ODS points updated for {len(pts)} day(s); no manpower backfill needed.")
+        return
     if not res["updated"]:
         print(f"✅ Nothing to backfill ({len(res['unchanged'])} day(s) up to date, {len(res['skipped'])} skipped).")
         save_history(history)       # a first-time fingerprint record may still have been added
@@ -3451,6 +3593,7 @@ def update_embedded_data():
         "manpower_distribution.json": MANPOWER_HISTORY_PATH,
         "delay_history.json": DELAY_HISTORY_PATH,
         "other_aspects_history.json": OTHER_ASPECTS_HISTORY_PATH,
+        "cost_plan.json": COST_PLAN_PATH,          # v11.6 - forecast cost plan from the Daily Cost Report
     }
     embedded = {}
     missing = []
@@ -5153,6 +5296,110 @@ def _cr_overview_district(label):
     return None
 
 
+# v11.6 - cost-plan rows of the Breakdown tab (Cost Type, column A, lower-case)
+CP_PROV_CTRL = "provision - controllable cost"
+CP_PROV_NONCTRL = "provision - non-controllable cost"
+CP_TRANSIT_ICE = ("leased car expenditure", "other expenditure")      # Transit (cool truck / ambient) + Outsource Manpower + Tube / Dry Ice
+CP_ODS = "ods expenditure"
+
+
+def parse_cost_plan(ws_b, starts, upd, hdr):
+    """v11.6 - the Forecast tab's cost plan, read from the Breakdown tab (first table of each Cost Type; the sheet repeats the
+    ODS and Leased Car blocks further down as a count table, which is ignored). Per district block the columns are
+    Unit Cost (block's first column), Total, Total Cost:
+      fixedCostNonControllable = sum of the 'Provision - Non-Controllable Cost' Unit Cost cells (daily rate)
+      fixedCostControllable    = sum of the 'Provision - Controllable Cost' Unit Cost cells (daily rate)
+                                 + Transit & Ice = (Leased Car + Other Expenditure Total Cost, month to date) / days reported
+      odsUnitCost              = Unit Cost of the 'Individual ODS' 1st Point / 2nd Point rows
+    Raises ValueError when the layout is not as expected - the caller then leaves the plan untouched."""
+    groups, seen, cur = {}, set(), None
+    for r in range(hdr + 1, ws_b.max_row + 1):
+        a = str(ws_b.cell(r, 1).value or "").strip().lower()
+        if a:                                                   # Cost Type is only written on a block's first row
+            if a == "cost type" or a in seen:                   # header row / a repeated block (count table): ignore its rows
+                cur = None
+            else:
+                cur = a
+                seen.add(a)
+        func = str(ws_b.cell(r, 2).value or "").strip()
+        if cur and func:
+            groups.setdefault(cur, []).append(r)
+    for need in (CP_PROV_CTRL, CP_PROV_NONCTRL):
+        if not groups.get(need):
+            raise ValueError(f"Breakdown tab: no '{need}' rows found")
+    days = max(1, upd.day)
+    ctrl, nonctrl, transit, ods = {}, {}, {}, {}
+    for c0, dist in starts:
+        if str(ws_b.cell(hdr, c0).value or "").strip().lower() != "unit cost" or str(ws_b.cell(hdr, c0 + 2).value or "").strip().lower() != "total cost":
+            raise ValueError(f"Breakdown tab: {dist} block does not start with 'Unit Cost' / 'Total' / 'Total Cost' columns")
+        val = lambda r, c: _cr_num(ws_b.cell(r, c).value) or 0.0
+        nonctrl[dist] = round(sum(val(r, c0) for r in groups[CP_PROV_NONCTRL]), 2)
+        prov = sum(val(r, c0) for r in groups[CP_PROV_CTRL])
+        transit[dist] = round(sum(val(r, c0 + 2) for t in CP_TRANSIT_ICE for r in groups.get(t, [])) / days, 2)
+        ctrl[dist] = round(prov + transit[dist], 2)
+        first = second = None
+        for r in groups.get(CP_ODS, []):
+            if str(ws_b.cell(r, 2).value or "").strip().lower() != "individual ods":
+                continue
+            unit = str(ws_b.cell(r, 5).value or "").strip().lower()
+            u = _cr_num(ws_b.cell(r, c0).value)
+            if u and u > 0:
+                if unit == "1st point":
+                    first = u
+                elif unit == "2nd point":
+                    second = u
+        if first and second:
+            ods[dist] = {"firstPoint": first, "nonFirstPoint": second}
+    bad = [d for d in DISTRICTS if not (ctrl.get(d, 0) > 0 and nonctrl.get(d, 0) > 0)]
+    if bad:
+        raise ValueError(f"fixed cost is zero / missing for {bad}")
+    return {"asOf": upd.isoformat(), "daysCounted": days,
+            "fixedCostControllable": {d: ctrl[d] for d in DISTRICTS},
+            "fixedCostNonControllable": {d: nonctrl[d] for d in DISTRICTS},
+            "odsUnitCost": {d: ods[d] for d in DISTRICTS if d in ods},
+            "detail": {"provisionControllable": {d: round(ctrl[d] - transit[d], 2) for d in DISTRICTS},
+                       "transitIceDailyAvg": {d: transit[d] for d in DISTRICTS}}}
+
+
+def apply_cost_plan(report):
+    """v11.6 - writes the plan parsed from the report to COST_PLAN_PATH (served + embedded for the Forecast tab).
+    A report older than the stored plan never overwrites it. Never raises. Returns the stored plan or None."""
+    plan = report.get("costPlan")
+    if not plan:
+        print("  ℹ️ Cost plan: nothing read from this report - forecast cost plan left unchanged.")
+        return None
+    try:
+        old = None
+        if os.path.exists(COST_PLAN_PATH):
+            try:
+                with open(COST_PLAN_PATH, "r", encoding="utf-8") as f:
+                    old = json.load(f)
+            except (OSError, ValueError):
+                old = None
+        if old and (old.get("asOf") or "") > plan["asOf"]:
+            print(f"  ℹ️ Cost plan: {COST_PLAN_PATH} already holds a newer report (as of {old['asOf']}) - kept.")
+            return old
+        rec = {"source": report["file"], "updatedAt": dt.datetime.now().strftime("%Y-%m-%dT%H:%M"), **plan}
+        for k in ("firstPointRatio", "firstPointRatioDays", "firstPointRatioFrom", "firstPointRatioTo"):   # written by refresh_first_point_ratio() from the OIX records - keep
+            if old and k in old:
+                rec[k] = old[k]
+        if old:
+            for key, label in (("fixedCostControllable", "controllable"), ("fixedCostNonControllable", "non-controllable")):
+                ch = [f"{d} {old.get(key, {}).get(d)}->{plan[key][d]}" for d in DISTRICTS
+                      if old.get(key, {}).get(d) is not None and abs(old[key][d] - plan[key][d]) >= 0.005]
+                print(f"  💲 Cost plan {label} fixed cost/day: " + (", ".join(ch) if ch else "no change"))
+        os.makedirs(os.path.dirname(os.path.abspath(COST_PLAN_PATH)), exist_ok=True)
+        tmp = COST_PLAN_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(rec, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, COST_PLAN_PATH)
+        print(f"  💲 Cost plan written to {COST_PLAN_PATH} (report as of {plan['asOf']}, {plan['daysCounted']} day(s) for Transit & Ice).")
+        return rec
+    except Exception as e:
+        print(f"  ⚠️ Cost plan could not be written ({e}) - forecast cost plan left unchanged.")
+        return None
+
+
 def parse_cost_report(path):
     """v8.0 §2 — reads the Daily Cost Report workbook.
     Overview tab: each section (District / Overall mark in the top-left cell of its header row) has a
@@ -5247,6 +5494,12 @@ def parse_cost_report(path):
     if missing:
         raise ValueError(f"Breakdown tab: district block(s) not found: {missing}")
 
+    try:                                                    # v11.6 - Forecast tab cost plan; must never break the rest of the job
+        cost_plan = parse_cost_plan(ws_b, starts, upd, hdr)
+    except Exception as e:
+        print(f"  ⚠️ Cost plan: not read from the Breakdown tab ({e}) - forecast cost plan left unchanged.")
+        cost_plan = None
+
     cost_type, row_group = None, {}
     for r in range(hdr + 1, end):
         a = str(ws_b.cell(r, 1).value or "").strip()
@@ -5287,7 +5540,7 @@ def parse_cost_report(path):
         manpower[dt.date(upd.year, upd.month, day).isoformat()] = per
 
     return {"file": os.path.basename(path), "asOf": upd.isoformat(),
-            "manpower": manpower, "daily": daily, "mtd": mtd, "totalCost": total_cost}
+            "manpower": manpower, "daily": daily, "mtd": mtd, "totalCost": total_cost, "costPlan": cost_plan}
 
 
 def reapply_cost_report_fields(history):
@@ -5435,6 +5688,7 @@ def write_fulfillment_cost_to_other_aspects(history):
 # Pulls first so it never collides with the 08:15 job's push; the commit is skipped when nothing changed.
 DEFAULT_DEPLOY_CMD = os.environ.get("DEFAULT_DEPLOY_CMD") or (
     'git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/gmv_history.json public/delay_history.json public/other_aspects_history.json public/index.html history.json && '
+    '{ git add public/cost_plan.json 2>/dev/null || true; } && '
     '(git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push')
 
 
@@ -5516,6 +5770,7 @@ def run_cost_report_section(local_file=None):
     save_data_json(payload)
     if fc:
         write_fulfillment_cost_to_other_aspects(history)  # v9.0 - before update_embedded_data() so the snapshot has it
+    apply_cost_plan(report)                           # v11.6 - Forecast tab cost plan, also before update_embedded_data()
     update_embedded_data()
     run_deploy_hook()                                 # v9.3 - push the refreshed dashboard in the same 09:00 run
     print("✅ Daily Cost Report 處理完成")
@@ -6143,7 +6398,7 @@ def main():
     # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
     parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "oixbackfill", "map", "maptemp", "newestate",
-                                              "delay", "delayreport", "lastreceived", "mapperf", "all"], required=True)
+                                              "delay", "delayreport", "lastreceived", "mapperf", "odspoints", "all"], required=True)
     parser.add_argument("--date", default=None,
                         help="v10.6 — with --section delayreport: the data date YYYY-MM-DD to report (default: T-1).")
     parser.add_argument("--resume", action="store_true",
@@ -6185,6 +6440,11 @@ def main():
     # v10.3 — OIX manpower backfill on its own (run it after an updated OIX_Record has been dropped in OIX_FOLDER).
     if args.section == "oixbackfill":
         run_oix_backfill_section(days=args.oix_days, force=args.force_oix)
+        return
+
+    # v11.7 - ODS first / non-first point counts from the OIX_Record files (one-off backfill of every file; the 03:00 job keeps it up to date). NOT part of "all".
+    if args.section == "odspoints":
+        run_ods_points_section(days=args.oix_days, force=args.force_oix)
         return
 
     # v8.0 §2 — separate Task Scheduler job (09:00 every Tuesday and Friday); deliberately NOT part of "all".
