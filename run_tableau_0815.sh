@@ -62,7 +62,7 @@ else
 fi
 
 if command -v xvfb-run >/dev/null 2>&1; then
-    "$PYTHON" kpi_pipeline.py --section delayreport >> "$LOG" 2>&1
+    WA_HIDE_MODE=off xvfb-run -a "$PYTHON" kpi_pipeline.py --section delayreport >> "$LOG" 2>&1
 else
     "$PYTHON" kpi_pipeline.py --section delayreport >> "$LOG" 2>&1
 fi

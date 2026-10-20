@@ -41,7 +41,7 @@ fi
 # cron has no display: give WhatsApp's Chromium a virtual one (same xvfb-run the other jobs use); WA_HIDE_MODE=off because
 # xvfb-run already supplies it (wa_send's own Xvfb cannot start under WSL anyway)
 if command -v xvfb-run >/dev/null 2>&1; then
-    "$PYTHON" kpi_pipeline.py --section delayreport >> "$LOG" 2>&1
+    WA_HIDE_MODE=off xvfb-run -a "$PYTHON" kpi_pipeline.py --section delayreport >> "$LOG" 2>&1
 else
     "$PYTHON" kpi_pipeline.py --section delayreport >> "$LOG" 2>&1
 fi
