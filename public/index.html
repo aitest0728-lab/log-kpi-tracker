@@ -1581,6 +1581,14 @@
               <option value="LastReceivedBottom25">Last Received · Bottom 25% (avg)</option>
             </select>
           </div>
+          <!-- v11.5 - Metric drop box: Delay % (default) or the number of delayed orders of the selected timeslot -->
+          <div class="prod-field">
+            <label for="delayMetricSelect">Metric</label>
+            <select id="delayMetricSelect">
+              <option value="pct">Delay %</option>
+              <option value="count">Delay Order Count</option>
+            </select>
+          </div>
         </div>
         <div class="gmv-summary" id="delaySummary"></div>
         <h3 class="prod-detail-label">By Date / Month</h3>
@@ -1607,6 +1615,10 @@
           (same users LF / LP / ODS / VAN) is first reduced to the last Received-by-Customer time of each Car Group (Column W); per district those
           times are sorted earliest to latest, "Top 75%" is the average of the earliest 75% of the car groups and "Bottom 25%" the average of the latest 25%
           (the Total column uses the car groups of all 10 districts together).
+          "Metric" drop box: "Delay %" (default) or "Delay Order Count" - the number of delayed orders of the selected timeslot, per district and in total
+          ("Overall" = AM + PM + EV + EV2; it expands into the four timeslots like the % view). A closed-month row is the sum of its days and shows "—" unless
+          every day of that month has a count. Per-district counts are recorded from the 08:30 run after kpi_pipeline.py v10.9 is deployed; earlier days show "—"
+          (the network Total is available from 2026-10-07).
         </div>
       </div>
 
@@ -7862,17 +7874,63 @@
       return;
     }
     const slot = document.getElementById('delaySlotSelect').value; // 'Overall'|'AM'|'PM'|'EV'|'EV2'|'LastReceived'
+    // v11.5 - the Metric drop box (Delay % | Delay Order Count) does not apply to the Last Received views
+    const metricSel = document.getElementById('delayMetricSelect');
+    if(metricSel) metricSel.disabled = (slot === 'LastReceived' || slot === 'LastReceivedTop75' || slot === 'LastReceivedBottom25');
     if(slot === 'LastReceived' || slot === 'LastReceivedTop75' || slot === 'LastReceivedBottom25'){   // v32.0 (Dashboard Version 9.2); Top 75% / Bottom 25% v32.1
       renderLastReceivedView(head, body, summary, dailyKeys, slot === 'LastReceivedTop75' ? 'top75' : slot === 'LastReceivedBottom25' ? 'bottom25' : 'last'); return;
     }
     const pctFmt = v => v==null ? '—' : v.toFixed(2)+'%';
+
+    // v11.5 - "Delay Order Count": number of DELAYED orders of the selected timeslot, per district + Total.
+    // Source: delay_history.json daily[date].overall[slot].delayOrders (Total) / .districts[d][slot].delayOrders (kpi_pipeline.py v10.9).
+    // 'Overall' = AM + PM + EV + EV2. A closed-month row is the sum of its days, shown only when EVERY day of the month has a count
+    // (a partial sum would read as a whole month). Days filed before v10.9 have no per-district counts -> '—'.
+    const countMode = !!(metricSel && metricSel.value === 'count');
+    const SLOTS4 = ['AM','PM','EV','EV2'];
+    const intFmt = v => v==null ? '—' : Math.round(v).toLocaleString('en-US');
+    const slotCnt = (r, d, sl) => {
+      const x = d==null ? (r.overall && r.overall[sl]) : (r.districts && r.districts[d] && r.districts[d][sl]);
+      return (x && x.delayOrders != null) ? x.delayOrders : null;
+    };
+    const cntOf = (r, d, sl) => {
+      if(r.isMonth && r.children && r.children.length){
+        let sum = 0;
+        for(const c of r.children){ const v = cntOf(c, d, sl); if(v==null) return null; sum += v; }
+        return sum;
+      }
+      if(sl === 'Overall'){
+        let sum = 0, any = false;
+        SLOTS4.forEach(x=>{ const v = slotCnt(r, d, x); if(v!=null){ sum += v; any = true; } });
+        return any ? sum : null;
+      }
+      return slotCnt(r, d, sl);
+    };
+    // one table cell: d = district code, or null for the Total column
+    const cellOf = (r, d, sl) => countMode ? intFmt(cntOf(r, d, sl))
+      : pctFmt(d==null ? (r.overall[sl] && r.overall[sl].delay) : (r.districts[d] && r.districts[d][sl] && r.districts[d][sl].delay));
 
     const mtd = DATA.delayMtd;
     const mtdOverall = mtd ? (mtd.overall[slot] && mtd.overall[slot].delay) : null;
     const latestKey = dailyKeys[0];
     const latest = latestKey ? DATA.delayDaily[latestKey] : null;
     const latestOverall = latest ? (latest.overall[slot] && latest.overall[slot].delay) : null;
-    summary.innerHTML = `
+    if(countMode){
+      // MTD = sum of this month's days that carry a count (dailyKeys = the open month's days)
+      let mtdSum = 0, mtdDays = 0;
+      dailyKeys.forEach(k=>{ const v = cntOf({ overall:DATA.delayDaily[k].overall, districts:DATA.delayDaily[k].districts }, null, slot); if(v!=null){ mtdSum += v; mtdDays++; } });
+      const latestCnt = latest ? cntOf({ overall:latest.overall, districts:latest.districts }, null, slot) : null;
+      summary.innerHTML = `
+      <div class="gmv-summary-card">
+        <div class="label">Latest Day${latestKey?' · '+latestKey:''}</div>
+        <div class="row"><span>Delayed orders (${slot})</span><span class="v">${intFmt(latestCnt)}</span></div>
+      </div>
+      <div class="gmv-summary-card">
+        <div class="label">Month to Date</div>
+        <div class="row"><span>Delayed orders (${slot})</span><span class="v">${mtdDays ? intFmt(mtdSum) : '—'}</span></div>
+        <div class="row"><span>Days with a count</span><span class="v">${mtdDays} / ${dailyKeys.length}</span></div>
+      </div>`;
+    } else summary.innerHTML = `
       <div class="gmv-summary-card">
         <div class="label">Latest Day${latestKey?' · '+latestKey:''}</div>
         <div class="row"><span>Delay % (${slot})</span><span class="v">${pctFmt(latestOverall)}</span></div>
@@ -7913,24 +7971,22 @@
     // days expands again into its own AM/PM/EV/EV2 (+ Last Received / Top 75% / Bottom 25% when recorded).
     const canExpand = slot === 'Overall';
     const renderRow = r=>{
-      const cells = DISTRICTS.map(d=>`<td>${pctFmt(r.districts[d] && r.districts[d][slot] && r.districts[d][slot].delay)}</td>`).join('');
-      const total = r.overall[slot] && r.overall[slot].delay;
+      const cells = DISTRICTS.map(d=>`<td>${cellOf(r, d, slot)}</td>`).join('');
       const hasKids = !!(r.children && r.children.length);
       const expandable = canExpand || (r.isMonth && hasKids);
       const isOpen = expandable && delayExpandedDates.has(r.label);
       const caret = expandable ? `<span class="delay-caret ${isOpen?'open':''}">▸</span>` : '';
       const rowLabel = r.isMonth ? `${caret}<strong>${r.label}</strong>` : `${caret}${r.label}`;
       const rowCls = [r.isMonth?'total-row':'', r.nested?'delay-dayrow':'', expandable?'delay-row-expandable':'', isOpen?'delay-row-open':''].filter(Boolean).join(' ');
-      const mainRow = `<tr class="${rowCls}" ${expandable?`data-date="${r.label}"`:''}><td>${rowLabel}</td>${cells}<td><strong>${pctFmt(total)}</strong></td></tr>`;
+      const mainRow = `<tr class="${rowCls}" ${expandable?`data-date="${r.label}"`:''}><td>${rowLabel}</td>${cells}<td><strong>${cellOf(r, null, slot)}</strong></td></tr>`;
       if(!isOpen) return mainRow;
       const subCls = r.nested ? 'delay-subrow delay-subrow-nested' : 'delay-subrow';
       const subRows = canExpand ? ['AM','PM','EV','EV2'].map(s=>{
-        const subCells = DISTRICTS.map(d=>`<td>${pctFmt(r.districts[d] && r.districts[d][s] && r.districts[d][s].delay)}</td>`).join('');
-        const subTotal = r.overall[s] && r.overall[s].delay;
-        return `<tr class="${subCls}"><td class="delay-subrow-label">${s}</td>${subCells}<td>${pctFmt(subTotal)}</td></tr>`;
+        const subCells = DISTRICTS.map(d=>`<td>${cellOf(r, d, s)}</td>`).join('');
+        return `<tr class="${subCls}"><td class="delay-subrow-label">${s}</td>${subCells}<td>${cellOf(r, null, s)}</td></tr>`;
       }).join('') : '';
       // v32.0 (Dashboard Version 9.2) - bottom row of the expanded day: last Received-by-Customer time (only when recorded)
-      const lr = canExpand ? r.lastReceived : null;
+      const lr = (canExpand && !countMode) ? r.lastReceived : null;
       const lrRowFor = (label, v, first) => v ? `<tr class="${subCls}${first?' delay-subrow-lr':''}"><td class="delay-subrow-label">${label}</td>${DISTRICTS.map(d=>`<td class="lr-cell">${lrCell(v.districts && v.districts[d])}</td>`).join('')}<td class="lr-cell">${lrCell(v.overall)}</td></tr>` : '';
       // v32.1 - plus the average of the earliest 75% / latest 25% of the day's car-group last-received times (when recorded)
       const lrRow = lr ? lrRowFor('Last Received', lr, true) + lrRowFor('Top 75%', lr.top75, false) + lrRowFor('Bottom 25%', lr.bottom25, false) : '';
@@ -8549,6 +8605,7 @@
   fcRenderCostPortal();
   fcSetupCostPortalListeners();
   document.getElementById('delaySlotSelect').addEventListener('change', ()=>{ renderDelayTab(); updateScrollHints(); });
+  document.getElementById('delayMetricSelect').addEventListener('change', ()=>{ renderDelayTab(); updateScrollHints(); });   // v11.5
   document.getElementById('delayTableBody').addEventListener('click', e=>{
     const row = e.target.closest('.delay-row-expandable'); if(!row) return;
     const date = row.dataset.date;

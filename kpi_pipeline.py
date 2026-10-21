@@ -58,6 +58,9 @@ v10.8 (Dashboard Version 9.2) — (1) "Last Received by Customer" time per distr
   (2) Update time of ALL performance figures moves from 14:00 to 08:30 (same slot as the delay rate): schedule run_tableau_0830.sh /
   run_tableau_0830.bat (`--section tableau`, deploy, WhatsApp delay post). The Daily Cost Report (`--section costreport`) and the 03:00
   productivity job are unchanged. Wherever a comment below says "14:00 job" it now means this 08:30 `--section tableau` job.
+v10.9 — Delay % tab "Delay Order Count" drop box: daily[date].districts[d][slot] now also carries delayOrders / orders (taken from the
+  same 'Actual Delivery - District' sheet as v10.7, which used to be summed into the network totals only). Recorded from the next
+  08:30 run onward; days filed before this version have no per-district counts (the dashboard shows '—' for them).
 v10.7 — overall timeslot delay rate on the Delay % tab. The 08:30 job (and the 14:00 job) now also download the Tableau sheet
   "Actual Delivery - District" (DeliverySummary view, pre-selected, no thumbnail click) and, per timeslot, compute
   sum(district Delay orders, col C) / sum(district Grand Total orders, col F) -> overall AM/PM/EV/EV2 delay % (e.g. AM 577/6,096
@@ -1639,7 +1642,7 @@ def _district_int(v):
     return int(round(float(s)))
 
 
-def parse_district_timeslot_delay(path=None):
+def parse_district_timeslot_delay(path=None, with_districts=False):
     """v10.7 — parses 'Actual Delivery - District.csv' (Tableau crosstab, UTF-16 TSV, T-1) into the NETWORK-WIDE delay rate
     of each timeslot:
 
@@ -1653,7 +1656,10 @@ def parse_district_timeslot_delay(path=None):
 
     Raises ValueError if the file is not this sheet (no header with Delay + Grand Total + 'Expected Timeslot', or no district
     rows) so a wrongly exported sheet can never feed the dashboard.
-    Returns {slot: {"delayOrders": int, "orders": int, "delay": float|None}} for AM/PM/EV/EV2."""
+    Returns {slot: {"delayOrders": int, "orders": int, "delay": float|None}} for AM/PM/EV/EV2.
+
+    v10.9 - with_districts=True returns (that dict, {district: {slot: {"delayOrders": int, "orders": int}}}) so the Delay % tab's
+    "Delay Order Count" view can show the delayed-order count of every district x timeslot (they used to be summed away)."""
     path = path or os.path.join(REPORT_FOLDER, REPORT_FILES["actual_delivery_district"])
     raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str, keep_default_na=False)
     hdr = None
@@ -1672,6 +1678,7 @@ def parse_district_timeslot_delay(path=None):
         print(f"  i District sheet: Delay is column {delay_col + 1}, Grand Total column {total_col + 1} (spec: C and F) - using the header names.")
 
     acc = {sl: {"delayOrders": 0, "orders": 0} for sl in DELAY_SLOT_ORDER}
+    by_district = {}                                                            # v10.9 - district -> slot -> counts
     seen, check_total, per_district = set(), {}, {}
     last_label = None
     for i in range(hdr + 1, len(raw)):
@@ -1687,8 +1694,10 @@ def parse_district_timeslot_delay(path=None):
         if slot not in acc:
             continue
         dn = _district_int(row[delay_col])
+        on = _district_int(row[total_col])
         acc[slot]["delayOrders"] += dn
-        acc[slot]["orders"] += _district_int(row[total_col])
+        acc[slot]["orders"] += on
+        by_district.setdefault(label, {})[slot] = {"delayOrders": dn, "orders": on}
         per_district[label] = per_district.get(label, 0) + dn
         seen.add(label)
     if not seen:
@@ -1702,7 +1711,10 @@ def parse_district_timeslot_delay(path=None):
     for sl in DELAY_SLOT_ORDER:
         n, dn = acc[sl]["orders"], acc[sl]["delayOrders"]
         out[sl] = {"delayOrders": dn, "orders": n, "delay": round(dn / n * 100, 2) if n else None}
-    return out
+    for d_slots in by_district.values():                 # v10.9 - Tableau omits a timeslot row a district had no orders in: that is 0 / 0, not "unknown"
+        for sl in DELAY_SLOT_ORDER:
+            d_slots.setdefault(sl, {"delayOrders": 0, "orders": 0})
+    return (out, by_district) if with_districts else out
 
 
 def apply_overall_timeslot_delay(history, date_str, rec, tolerance_pp=0.3):
@@ -1713,7 +1725,7 @@ def apply_overall_timeslot_delay(history, date_str, rec, tolerance_pp=0.3):
     from any record already filed for `date_str` (e.g. this morning's 08:30 figures when the 14:00 download is the one that
     failed) and a warning says so. Returns True if fresh figures were applied."""
     path = os.path.join(REPORT_FOLDER, REPORT_FILES["actual_delivery_district"])
-    fresh, why = None, None
+    fresh, fresh_d, why = None, {}, None
     if not os.path.exists(path):
         why = "not downloaded"
     else:
@@ -1722,13 +1734,20 @@ def apply_overall_timeslot_delay(history, date_str, rec, tolerance_pp=0.3):
             why = f"{age_h:.1f}h old (> {STALE_REPORT_HOURS}h) - leftover from an earlier run"
         else:
             try:
-                fresh = parse_district_timeslot_delay(path)
+                fresh, fresh_d = parse_district_timeslot_delay(path, with_districts=True)
             except Exception as e:
                 why = str(e)
     ov = rec.setdefault("overall", {})
     if fresh:
         for sl, v in fresh.items():
             ov[sl] = {**ov.get(sl, {}), "delay": v["delay"], "delayOrders": v["delayOrders"], "orders": v["orders"]}
+        # v10.9 - per-district delayed-order / order counts per timeslot ("Delay Order Count" view of the Delay % tab). The
+        # district's delay % keeps coming from 'Delay & Early %'; only the two count fields are added to its slot record.
+        dist_rec = rec.setdefault("districts", {})
+        for d, by_slot in fresh_d.items():
+            for sl, v in by_slot.items():
+                slot_rec = dist_rec.setdefault(d, {}).setdefault(sl, {})
+                slot_rec["delayOrders"], slot_rec["orders"] = v["delayOrders"], v["orders"]
         print("  ✅ overall timeslot delay (Actual Delivery - District): " + ", ".join(
             f"{sl} {v['delayOrders']}/{v['orders']} = {v['delay']}%" if v["delay"] is not None else f"{sl} n/a" for sl, v in fresh.items()))
         tot_o = sum(v["orders"] for v in fresh.values())
@@ -1742,6 +1761,14 @@ def apply_overall_timeslot_delay(history, date_str, rec, tolerance_pp=0.3):
     kept = [sl for sl in DELAY_SLOT_ORDER if sl in prev and sl not in ov]
     for sl in kept:
         ov[sl] = prev[sl]
+    prev_d = (history.get("delayPercentDaily", {}).get(date_str) or {}).get("districts", {})   # v10.9 - same carry-over for the counts
+    dist_rec = rec.setdefault("districts", {})
+    for d, by_slot in prev_d.items():
+        for sl, v in by_slot.items():
+            if "delayOrders" in v:
+                slot_rec = dist_rec.setdefault(d, {}).setdefault(sl, {})
+                slot_rec.setdefault("delayOrders", v["delayOrders"])
+                slot_rec.setdefault("orders", v.get("orders"))
     print(f"  ⚠️ overall timeslot delay NOT updated - {why}"
           + (f" | kept the figures already filed for {date_str}." if kept else " | the Delay % tab shows '—' in the AM/PM/EV/EV2 Total cells."))
     return False
