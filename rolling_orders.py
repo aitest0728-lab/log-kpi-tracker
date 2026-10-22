@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-rolling_orders.py  -  KPI Dashboard Version 11.2  "Rolling Orders"   (raw data now comes from MFNAS, not OIX)
+rolling_orders.py  -  KPI Dashboard Version 11.3  "Rolling Orders"   (MFNAS report + Tableau "AI Fetching for Order Date = T-1" mapping)
 
 One run per day, at 06:00 (T-0). It reports the orders created YESTERDAY (T-1):
   1. Logs in to TKO-MFNAS (Synology File Station API, CRAB_NAS_USER / CRAB_NAS_PASS - same as project_crab.py),
      opens  ECOM-MFNAS / ECOM-MFNAS_hktvAccumulatedDeliveryLeadTimeReport / <T-0 as YYYYMMDD>/  and downloads its one csv.
      The csv holds the full list of orders with Order Date = T-1, so it is saved to "Folder for Rolling Orders" as
          Rolling Order Count (MMM-DD of T-1).csv        (same name every run => overwritten)
+  1b. (v11.3) Right after the MFNAS download it logs in to Tableau (same TABLEAU_GMV_USER / TABLEAU_GMV_PASS account as the
+     GMV report in kpi_pipeline.py), opens the view "AI Fetching for Order Date = T-1", types T-1 as DD/MM/YYYY into the
+     delivery_date START-date box (top right), waits 5 minutes for the page to refresh, then Download -> Crosstab -> CSV
+     (the sheet is already pre-selected, no thumbnail click). Saved to "Folder for Rolling Orders" as
+         AI Fetching for Order Date T-1 (MMM-DD of T-1).csv        (UTF-16 tab-separated, overwritten every run)
   2. Processes it (column letters as in the file):
        - Order Date (C) and Delivery Date (P) are converted to MM/DD/YYYY
        - rows are removed when  Delivery District (Z) is not one of ETH ETK ETX NT-ST NT-TM NT-TSM NT-TW NT-YT WTH WTX WTK,
          or  Consignment Status (J) contains CANCEL,  or  Delivery Zone (U) = KN015
        - delivery date = T-1 (same as the order date): only the 18:00 - 22:00 Delivery Timeslot (Q) is counted
-       - ORDER count = distinct Order Number among the rows where BOTH Optimum Delivery Timeslot (N) and
-         First Available Delivery Timeslot (O) have a value (= parent orders, de-duplicated)
-         WAYBILL count = distinct Waybill Number over all remaining rows (rows without both N and O only count here)
+       - (v11.3) PARENT ORDER mapping - replaces the Optimum (N) / First Available (O) timeslot test. After the district /
+         status / zone / same-day-timeslot filters above, every MFNAS Order Number (col A) is looked up in the Tableau report's
+         order_number (col B) -> its Parent Order (Tableau col A). The earliest Order Date (Tableau col D) over ALL rows of that
+         Parent Order is the parent's real order date. A row is kept as an ORDER only when that earliest date = T-1.
+         Orders that are not in the Tableau report cannot be mapped and are NOT counted (the count is logged + stored in stats).
+         ORDER count = distinct Order Number among the kept rows, per Delivery Date x district and overall
+         WAYBILL count = distinct Waybill Number over all remaining rows (unchanged)
        - counted per (Delivery Date x district); NT-YT is grouped into WTH
   3. Writes rolling_orders.json next to index.html AND embeds it in index.html's window.__EMBEDDED_DATA__ block.
   4. Pushes rolling_orders.json + index.html to the dashboard repo (git pull --rebase -> commit -> push), with an
@@ -27,13 +36,16 @@ Usage (WSL):
     python3 rolling_orders.py                          # the 06:00 cron call (T-0 = today, order date = yesterday)
     python3 rolling_orders.py --date 2026-10-14        # re-run for another T-0 (reports the orders of 2026-10-13)
     python3 rolling_orders.py --skip-push
+    python3 rolling_orders.py --skip-download --skip-tableau-download      # re-process the two files already in the folder
+    python3 rolling_orders.py --tableau-only --date 2026-10-22              # only (re)download the Tableau csv
     python3 rolling_orders.py --process-only --report-file "Rolling Order Count (Oct-13).csv" --date 2026-10-14
 
 Cron (WSL, machine timezone = HKT) - ONE line; delete the old 13:00 / 18:00 / 00:00 lines (no xvfb-run needed any more - no browser is used):
     0 6 * * *  cd "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker" && python3 rolling_orders.py >> logs/rolling_0600.log 2>&1
 
-Credentials (never hard-code them): environment variables CRAB_NAS_USER / CRAB_NAS_PASS, or a KEY=VALUE file
-("rolling_orders.env" or "crab.env", next to this script or one folder up).
+Credentials (never hard-code them): environment variables CRAB_NAS_USER / CRAB_NAS_PASS (MFNAS) and TABLEAU_GMV_USER /
+TABLEAU_GMV_PASS (Tableau, same as kpi_pipeline.py), or a KEY=VALUE file ("rolling_orders.env", "crab.env" or ".env",
+next to this script or one folder up). Needs: pip install playwright && playwright install chromium (already used by kpi_pipeline.py).
 """
 import argparse
 import contextlib
@@ -57,7 +69,7 @@ sys.path.insert(0, HERE)
 # ----------------------------------------------------------------------------- config
 def _load_env_file():
     for folder in (HERE, os.path.dirname(HERE)):
-        for name in ("rolling_orders.env", "crab.env"):
+        for name in ("rolling_orders.env", "crab.env", ".env"):
             p = os.path.join(folder, name)
             if os.path.exists(p):
                 for line in open(p, encoding="utf-8-sig"):
@@ -81,6 +93,18 @@ NAS_ROOT_CANDIDATES = [r for r in (os.environ.get("ROLLING_NAS_ROOT", "").strip(
                                    "/ECOM-MFNAS/ECOM-MFNAS", "/ECOM-MFNAS",
                                    "/OIX-MFNAS/OIX-MFNAS",            # project_crab.py's NAS_REMOTE_ROOT
                                    "/OIX-MFNAS/OIX-MFNAS/ECOM-MFNAS", "/OIX-MFNAS/ECOM-MFNAS", "/OIX-MFNAS") if r]
+# --- Tableau (v11.3) - same account / host as the GMV report in kpi_pipeline.py ---
+TABLEAU_SIGNIN_URL = os.environ.get("TABLEAU_GMV_URL", "https://inhouse-analytics.hktv.com.hk/#/signin")
+TABLEAU_AI_VIEW_URL = os.environ.get("TABLEAU_AI_T1_URL",
+    "https://inhouse-analytics.hktv.com.hk/#/views/AIFetchingforOrderDateT-1/AIFetchingforOrderDateT-1?:iid=2")
+TABLEAU_USER = os.environ.get("TABLEAU_GMV_USER", "")
+TABLEAU_PASS = os.environ.get("TABLEAU_GMV_PASS", "")
+TABLEAU_REFRESH_WAIT_S = int(os.environ.get("ROLLING_TABLEAU_REFRESH_WAIT", "300"))   # 5 min after the start date is typed
+TABLEAU_ATTEMPTS = max(1, int(os.environ.get("TABLEAU_DOWNLOAD_ATTEMPTS", "3")))      # fresh browser sessions, as kpi_pipeline.py
+TABLEAU_RECOVERY_WAIT_S = int(os.environ.get("TABLEAU_RECOVERY_WAIT_S", "20"))
+TABLEAU_LOAD_WAIT_S = int(os.environ.get("ROLLING_TABLEAU_LOAD_WAIT", "300"))          # max wait for the view to appear (was 90s)
+TABLEAU_HEADLESS = os.environ.get("ROLLING_TABLEAU_HEADLESS", "1").strip().lower() not in ("0", "false", "no")
+
 NAS_CONNECT_TIMEOUT = 10
 NAS_READ_TIMEOUT = 120
 NAS_POLL_ATTEMPTS = int(os.environ.get("ROLLING_NAS_POLL_ATTEMPTS", "6"))      # the file is generated ~01:30; wait if it is late
@@ -146,6 +170,10 @@ def mmm_dd(d):
 
 def report_path(order_date):
     return os.path.join(ROLLING_DIR, f"Rolling Order Count ({mmm_dd(order_date)}).csv")
+
+
+def tableau_report_path(order_date):
+    return os.path.join(ROLLING_DIR, f"AI Fetching for Order Date T-1 ({mmm_dd(order_date)}).csv")
 
 
 # ----------------------------------------------------------------------------- MFNAS download
@@ -284,6 +312,243 @@ def download_report(t0, final_path):
         nas.logout()
 
 
+# ----------------------------------------------------------------------------- Tableau download (v11.3)
+# Playwright helpers - the same logic as fast_click / smart_click in kpi_pipeline.py (copied, not imported: importing the
+# 6,500-line pipeline would run its module-level setup). The Tableau viz lives inside <iframe title="Data Visualisation">.
+def _frames(page):
+    return [page.frame_locator('iframe[title="Data Visualisation"]'), page.main_frame] + list(page.frames)
+
+
+def _fast_click(page, selectors, timeout_ms=5000):
+    per = max(300, timeout_ms // max(1, len(selectors)))
+    end = time.time() + timeout_ms / 1000.0
+    while time.time() < end:
+        for target in _frames(page):
+            for sel in selectors:
+                try:
+                    target.locator(sel).first.click(timeout=per)
+                    return True
+                except Exception:
+                    continue
+    return False
+
+
+def _smart_click(page, selectors, timeout_sec=15):
+    end = time.time() + timeout_sec
+    while time.time() < end:
+        for target in _frames(page):
+            for sel in selectors:
+                try:
+                    loc = target.locator(sel).first
+                    if loc.is_visible():
+                        loc.click(force=True)
+                        return True
+                except Exception:
+                    continue
+        time.sleep(1)
+    return False
+
+
+def _read_date_box(page):
+    """Text shown in the delivery_date START-date box (div.readoutText ... domLowerText), '' if not readable."""
+    for target in _frames(page):
+        try:
+            loc = target.locator('[dojoattachpoint="domLowerText"]').first
+            if loc.count():
+                return (loc.inner_text(timeout=2000) or "").strip()
+        except Exception:
+            continue
+    return ""
+
+
+def _set_start_date(page, order_date):
+    """Type T-1 as DD/MM/YYYY into the delivery_date start-date box (top right). Click the readout text -> the hidden
+    <input dojoattachpoint="domLowerInput"> appears -> select all, type, Enter. Verified by re-reading the readout text."""
+    want = order_date.strftime("%d/%m/%Y")
+    for attempt in range(1, 4):
+        if not _fast_click(page, ['[dojoattachpoint="domLowerText"]', "div.readoutText.tab-ctrl-formatted-fixedsize"], 15000):
+            log(f"Tableau: start-date box not found (attempt {attempt}/3)")
+            time.sleep(5)
+            continue
+        time.sleep(0.5)
+        done = False
+        for target in _frames(page):
+            try:
+                inp = target.locator('input[dojoattachpoint="domLowerInput"]').first
+                if not inp.count():
+                    continue
+                inp.click(timeout=3000, force=True)
+                inp.press("Control+A")
+                inp.fill(want)
+                inp.press("Enter")
+                done = True
+                break
+            except Exception:
+                continue
+        time.sleep(3)
+        shown = _read_date_box(page)
+        log(f"Tableau: start date typed {want} (attempt {attempt}/3) -> box now shows '{shown}'")
+        if done and shown.lstrip("0").replace("/0", "/") == want.lstrip("0").replace("/0", "/"):
+            return True
+    return False
+
+
+def _wait_for_view(page, final_path):
+    """Wait (up to TABLEAU_LOAD_WAIT_S) until the viz iframe or the date box exists. Re-issues the view URL every 60s in case the
+    SPA bounced back to the explore/home page after sign-in. On failure a screenshot is saved next to the csv for diagnosis."""
+    end = time.time() + TABLEAU_LOAD_WAIT_S
+    last_goto = time.time()
+    while time.time() < end:
+        try:
+            if page.locator('iframe[title="Data Visualisation"]').count() or any(
+                    f.locator('[dojoattachpoint="domLowerText"]').count() for f in page.frames):
+                log("Tableau: view loaded")
+                return
+        except Exception:
+            pass
+        if time.time() - last_goto > 60:
+            log(f"Tableau: view not up yet (at {page.url}) - opening it again")
+            try:
+                page.goto(TABLEAU_AI_VIEW_URL)
+            except Exception:
+                pass
+            last_goto = time.time()
+        time.sleep(3)
+    shot = os.path.splitext(final_path)[0] + "_view_timeout.png"
+    try:
+        page.screenshot(path=shot, full_page=True)
+        log(f"Tableau: screenshot saved to {shot} (page was at {page.url})")
+    except Exception:
+        pass
+    raise RuntimeError(f"Tableau view did not load within {TABLEAU_LOAD_WAIT_S}s (page at {page.url})")
+
+
+def _tableau_session(order_date, final_path):
+    from playwright.sync_api import sync_playwright
+    tmp = final_path + ".part"
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=TABLEAU_HEADLESS, args=["--disable-popup-blocking"])
+        try:
+            context = browser.new_context(accept_downloads=True)
+            page = context.new_page()
+            page.set_viewport_size({"width": 1920, "height": 1080})
+            log("Tableau: login")
+            page.goto(TABLEAU_SIGNIN_URL)
+            page.wait_for_selector("input[type='text'], input[name='username']", timeout=30000)
+            page.locator("input[type='text'], input[name='username']").first.fill(TABLEAU_USER)
+            page.locator("input[type='password'], input[name='password']").first.fill(TABLEAU_PASS)
+            page.locator("button:has-text('Sign In'), [aria-label='Sign In']").first.click()
+            try:                                                        # leave the sign-in page before jumping to the view
+                page.wait_for_function("() => !location.hash.includes('signin')", timeout=60000)
+            except Exception:
+                log(f"Tableau: still on {page.url} after sign-in - continuing")
+            time.sleep(5)
+            log("Tableau: opening 'AI Fetching for Order Date = T-1'")
+            page.goto(TABLEAU_AI_VIEW_URL)
+            _wait_for_view(page, final_path)
+            time.sleep(15)
+            if not _set_start_date(page, order_date):
+                raise RuntimeError(f"could not set the delivery_date start date to {order_date:%d/%m/%Y}")
+            log(f"Tableau: waiting {TABLEAU_REFRESH_WAIT_S}s for the page to refresh ...")
+            waited = 0
+            while waited < TABLEAU_REFRESH_WAIT_S:                      # in slices so the session stays alive / is logged
+                step = min(60, TABLEAU_REFRESH_WAIT_S - waited)
+                page.wait_for_timeout(step * 1000)
+                waited += step
+            shown = _read_date_box(page)
+            if shown and shown.lstrip("0").replace("/0", "/") != order_date.strftime("%d/%m/%Y").lstrip("0").replace("/0", "/"):
+                raise RuntimeError(f"start date reverted to '{shown}' during the refresh wait")
+            dl_sel = ["#download", '[aria-label="Download"]', "button:has-text('Download')"]
+            if not (_fast_click(page, dl_sel, 4000) or _smart_click(page, dl_sel, 15)):
+                raise RuntimeError("Download button not found")
+            ct_sel = ["#viz-viewer-toolbar-download-menu > div:nth-of-type(3)",
+                      "#viz-viewer-toolbar-download-menu div:nth-of-type(3) span",
+                      "xpath=//*[@id='viz-viewer-toolbar-download-menu']/div[3]",
+                      '[data-tb-test-id="download-crosstab-Button-MenuItem"]',
+                      "span:has-text('Crosstab')", "text='Crosstab'"]
+            if not (_fast_click(page, ct_sel, 4000) or _smart_click(page, ct_sel, 10)):
+                raise RuntimeError("Crosstab option not found")
+            time.sleep(2)          # the sheet is already pre-selected in the dialog: NO thumbnail click (it is a toggle)
+            csv_sel = ["#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id label:nth-of-type(2) input",
+                       "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id label:nth-of-type(2)",
+                       "label:has-text('CSV')", "text='CSV'"]
+            if not _fast_click(page, csv_sel, 2000):
+                _smart_click(page, csv_sel, 5)
+            time.sleep(1)
+            ok_sel = ["#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id button",
+                      "button[aria-label='Download Crosstab']", "button[aria-label='Download']",
+                      'button[data-tb-test-id="export-crosstab-export-Button"]']
+            with page.expect_download(timeout=180000) as info:      # ~730k rows: give the export more than the usual 60s
+                if not (_fast_click(page, ok_sel, 3000) or _smart_click(page, ok_sel, 30)):
+                    raise RuntimeError("Download Crosstab button not found")
+            os.makedirs(os.path.dirname(final_path), exist_ok=True)
+            info.value.save_as(tmp)
+        finally:
+            browser.close()
+    return tmp
+
+
+def _check_tableau_file(path):
+    """Cheap sanity check of the downloaded crosstab (UTF-16 tab csv, order_number in column B) before it replaces the old copy."""
+    head = pd.read_csv(path, encoding="utf-16", sep="\t", dtype=str, nrows=5, keep_default_na=False)
+    if head.shape[1] < 4 or "order_number" not in [c.strip() for c in head.columns]:
+        raise RuntimeError(f"unexpected Tableau csv layout, columns = {list(head.columns)[:6]}")
+
+
+def download_tableau_report(order_date, final_path):
+    """Fresh browser session per attempt (up to TABLEAU_ATTEMPTS), as the GMV download does."""
+    if not TABLEAU_USER or not TABLEAU_PASS:
+        raise RuntimeError("TABLEAU_GMV_USER / TABLEAU_GMV_PASS not set (env var, rolling_orders.env or .env)")
+    last = None
+    for n in range(1, TABLEAU_ATTEMPTS + 1):
+        if n > 1:
+            log(f"Tableau: retry {n}/{TABLEAU_ATTEMPTS} (fresh browser + login)")
+            time.sleep(TABLEAU_RECOVERY_WAIT_S)
+        try:
+            tmp = _tableau_session(order_date, final_path)
+            if os.path.getsize(tmp) < 1024:
+                raise RuntimeError(f"downloaded file is only {os.path.getsize(tmp)} bytes")
+            _check_tableau_file(tmp)
+            os.replace(tmp, final_path)                # same name each run -> the previous copy is covered
+            log(f"Tableau: saved {final_path} ({os.path.getsize(final_path) / 1048576:.1f} MB)")
+            return final_path
+        except Exception as ex:
+            last = ex
+            log(f"Tableau: attempt {n}/{TABLEAU_ATTEMPTS} failed: {type(ex).__name__}: {ex}")
+    raise RuntimeError(f"Tableau 'AI Fetching for Order Date = T-1' download failed after {TABLEAU_ATTEMPTS} sessions: {last}")
+
+
+# ----------------------------------------------------------------------------- Tableau parent-order mapping (v11.3)
+def load_parent_map(path):
+    """Tableau crosstab (UTF-16, tab) -> (order_number -> parent, parent -> earliest order date) . Columns by position:
+    A = Order (Unlimited & Add-on Group to Parent) = Parent Order, B = order_number, D = Day, Month, Year of order_date."""
+    t = pd.read_csv(path, encoding="utf-16", sep="\t", dtype=str, keep_default_na=False, index_col=False)
+    if t.shape[1] < 4:
+        raise ValueError(f"{os.path.basename(path)}: expected at least 4 columns (Parent Order, order_number, waybill_no, order date), got {t.shape[1]}")
+    t = t.iloc[:, [0, 1, 3]]
+    t.columns = ["parent", "order_no", "odate"]
+    t["parent"] = t["parent"].str.strip()
+    t["order_no"] = t["order_no"].str.strip()
+    # "2026年10月21日" (the Chinese-locale export), or 2026-10-21 / 21/10/2026: three numbers; a 4-digit one tells the order
+    n = t["odate"].str.extract(r"(\d+)\D+(\d+)\D+(\d+)").astype(float)
+    ymd = n[0] > 31
+    y = n[0].where(ymd, n[2]); mo = n[1]; d = n[2].where(ymd, n[0])
+    t["odate"] = pd.to_datetime(pd.DataFrame({"year": y, "month": mo, "day": d}), errors="coerce")
+    t = t[(t["parent"] != "") & (t["order_no"] != "")]
+    bad = int(t["odate"].isna().sum())
+    if bad:
+        log(f"WARNING: {bad} Tableau rows have an unreadable order date (ignored for the earliest-date calculation)")
+    if len(t) and bad == len(t):
+        raise ValueError(f"{os.path.basename(path)}: no Tableau order date could be read")
+    earliest = t.groupby("parent")["odate"].min()                    # earliest order date of every Parent Order
+    o2p = t.drop_duplicates("order_no").set_index("order_no")["parent"]
+    multi = int((t.groupby("order_no")["parent"].nunique() > 1).sum())
+    if multi:
+        log(f"WARNING: {multi} order numbers map to more than one Parent Order in the Tableau report - the first one is used")
+    log(f"Tableau map: {len(t)} rows, {o2p.size} order numbers, {earliest.size} parent orders")
+    return o2p, earliest
+
+
 # ----------------------------------------------------------------------------- report processing
 def _read_csv_tolerant(path, cols):
     """Rows with more / fewer fields than the header (an unquoted comma in a text field, a trailing comma) are cut / padded to
@@ -356,9 +621,10 @@ def parse_dates(series, expected=None, prefer=None):
     return best, best_fmt
 
 
-def process_report(path, order_date):
+def process_report(path, order_date, tableau_path):
     """Returns (rows, stats). rows = DataFrame (one row per report line left after the filters) with
-    district, delivery (date), is_parent, order_no, waybill."""
+    district, delivery (date), is_parent, order_no, waybill. is_parent (v11.3) = the Order Number maps (Tableau order_number ->
+    Parent Order) to a parent whose EARLIEST order date is T-1."""
     df = read_report(path)
     st = {"rawRows": len(df)}
     # --- 1. dates -> MM/DD/YYYY
@@ -402,12 +668,28 @@ def process_report(path, order_date):
         log(f"WARNING: none of the {st['sameDayRows']} same-day rows has Delivery Timeslot {SAME_DAY_TIMESLOT}; values seen: {st['sameDaySlots']}")
     df = df[~drop_same].copy()
     st["rowsKept"] = len(df)
-    # --- 4. parent order = both N and O have a value; district (NT-YT -> WTH)
-    df["is_parent"] = (df["optimum"].str.strip() != "") & (df["first"].str.strip() != "")
+    # --- 4. (v11.3) parent order via the Tableau report: Order Number -> Parent Order -> earliest order date; keep when = T-1.
+    #        district (NT-YT -> WTH)
     d = df["district"].str.strip().str.upper()
     df["district"] = d.replace(DISTRICT_ALIAS)
     df["order_no"] = df["order_no"].str.strip().replace("", pd.NA)
     df["waybill"] = df["waybill"].str.strip().replace("", pd.NA)
+    o2p, earliest = load_parent_map(tableau_path)
+    parent = df["order_no"].map(o2p)
+    first_date = parent.map(earliest)
+    df["is_parent"] = first_date == pd.Timestamp(order_date)
+    uniq = df.drop_duplicates("order_no")
+    up = uniq["order_no"].map(o2p)
+    st["ordersInFilteredReport"] = int(uniq["order_no"].notna().sum())
+    st["ordersNotInTableau"] = int(up.isna().sum())            # cannot be mapped -> not counted
+    st["ordersEarlierParent"] = int((up.notna() & (up.map(earliest) < pd.Timestamp(order_date))).sum())
+    st["ordersLaterParent"] = int((up.notna() & (up.map(earliest) > pd.Timestamp(order_date))).sum())
+    if st["ordersNotInTableau"]:
+        pct = 100.0 * st["ordersNotInTableau"] / max(1, st["ordersInFilteredReport"])
+        log(f"WARNING: {st['ordersNotInTableau']} of {st['ordersInFilteredReport']} order numbers ({pct:.2f}%) are not in the Tableau report - not counted")
+    if st["ordersInFilteredReport"] and st["ordersNotInTableau"] > 0.2 * st["ordersInFilteredReport"]:
+        raise ValueError(f"only {100 - 100.0 * st['ordersNotInTableau'] / st['ordersInFilteredReport']:.0f}% of the order numbers were found in "
+                         f"{os.path.basename(tableau_path)} - wrong / stale Tableau file? (start date must be {order_date:%d/%m/%Y})")
     st["parentRows"] = int(df["is_parent"].sum())
     st["parentOrders"] = int(df.loc[df["is_parent"], "order_no"].nunique())
     st["waybills"] = int(df["waybill"].nunique())
@@ -418,7 +700,7 @@ def process_report(path, order_date):
 
 def count_cells(rows):
     """{deliveryDate: {district|'OVERALL': [orders, waybills]}}
-    orders = distinct Order Number among the parent rows (both N and O filled); waybills = distinct Waybill Number of all rows."""
+    orders = distinct Order Number among the rows whose Parent Order's earliest order date = T-1 (v11.3); waybills = distinct Waybill Number of all rows."""
     def cell(g):
         return [int(g.loc[g["is_parent"], "order_no"].nunique()), int(g["waybill"].nunique())]
     cells = {}
@@ -430,8 +712,8 @@ def count_cells(rows):
     return cells
 
 
-def build_snapshot(order_date, report_file):
-    rows, st = process_report(report_file, order_date)
+def build_snapshot(order_date, report_file, tableau_file):
+    rows, st = process_report(report_file, order_date, tableau_file)
     return count_cells(rows), {"report": st}
 
 
@@ -647,11 +929,18 @@ def main():
     ap.add_argument("--skip-download", action="store_true", help="use the file already in Folder for Rolling Orders")
     ap.add_argument("--process-only", action="store_true", help="skip download + git push; uses --report-file or the file in the folder")
     ap.add_argument("--report-file", help="process this csv instead of Rolling Order Count (T-1).csv")
-    ap.add_argument("--download-only", action="store_true", help="only download the MFNAS csv into Folder for Rolling Orders, then stop")
+    ap.add_argument("--skip-tableau-download", action="store_true", help="use the Tableau csv already in Folder for Rolling Orders")
+    ap.add_argument("--tableau-file", help="process with this Tableau csv instead of AI Fetching for Order Date T-1 (T-1).csv")
+    ap.add_argument("--headed", action="store_true", help="show the Chrome window during the Tableau download (same as ROLLING_TABLEAU_HEADLESS=0)")
+    ap.add_argument("--tableau-only", action="store_true", help="only (re)download the Tableau csv, then stop")
+    ap.add_argument("--download-only", action="store_true", help="only download the MFNAS csv + Tableau csv into Folder for Rolling Orders, then stop")
     ap.add_argument("--skip-whatsapp", action="store_true", help="ignored - WhatsApp sending was removed; kept so old command lines still work")
     ap.add_argument("--skip-embed", action="store_true")
     ap.add_argument("--skip-push", action="store_true", help="do not git-push the dashboard files (same as ROLLING_DEPLOY=none)")
     a = ap.parse_args()
+    global TABLEAU_HEADLESS
+    if a.headed:
+        TABLEAU_HEADLESS = False
 
     slot = SLOTS[0]
     if a.slot and a.slot not in SLOTS:
@@ -663,15 +952,26 @@ def main():
     log(f"T-0={t0:%Y-%m-%d}  ->  Order Date (T-1)={order_date:%Y-%m-%d}")
     with run_lock():
         report = a.report_file or report_path(order_date)
+        tableau = a.tableau_file or tableau_report_path(order_date)
+        if a.tableau_only:
+            download_tableau_report(order_date, tableau)
+            log("tableau-only: done")
+            return
         if not (a.skip_download or a.process_only or a.report_file):
             download_report(t0, report)
+        # v11.3: right after the MFNAS csv, fetch the Tableau parent-order report (start date = T-1, 5 min refresh wait)
+        if not (a.skip_tableau_download or a.process_only or a.tableau_file):
+            download_tableau_report(order_date, tableau)
         if a.download_only:
             log("download-only: done")
             return
         log(f"report file: {report}  ->  {'FOUND' if os.path.exists(report) else 'NOT FOUND'}")
         if not os.path.exists(report):
             raise SystemExit("no report file - run without --skip-download / --process-only, or pass --report-file")
-        cells, stats = build_snapshot(order_date, report)
+        log(f"tableau file: {tableau}  ->  {'FOUND' if os.path.exists(tableau) else 'NOT FOUND'}")
+        if not os.path.exists(tableau):
+            raise SystemExit("no Tableau file - run without --skip-tableau-download, or pass --tableau-file")
+        cells, stats = build_snapshot(order_date, report, tableau)
         log("stats: " + json.dumps(stats, ensure_ascii=False))
         if not cells:
             raise SystemExit(f"report found but 0 usable rows for order date {order_date:%Y-%m-%d} - nothing written")
