@@ -1,19 +1,19 @@
 {
- "source": "Daily Cost Report_202610_Last Update_Oct 15.xlsx",
- "updatedAt": "2026-10-20T09:00",
- "asOf": "2026-10-15",
- "daysCounted": 15,
+ "source": "Daily Cost Report_202610_Last Update_Oct 21.xlsx",
+ "updatedAt": "2026-10-23T09:00",
+ "asOf": "2026-10-21",
+ "daysCounted": 21,
  "fixedCostControllable": {
-  "ETH": 13649.28,
+  "ETH": 15576.42,
   "ETK": 10725.27,
-  "ETX": 12677.48,
-  "NT-ST": 12130.81,
-  "NT-TM": 14655.75,
-  "NT-TSM": 13934.81,
+  "ETX": 12681.29,
+  "NT-ST": 12135.04,
+  "NT-TM": 14577.8,
+  "NT-TSM": 13787.63,
   "NT-TW": 14735.31,
-  "WTH": 15467.55,
-  "WTK": 16523.64,
-  "WTX": 9975.61
+  "WTH": 15434.1,
+  "WTK": 16491.74,
+  "WTX": 10011.06
  },
  "fixedCostNonControllable": {
   "ETH": 10145.92,
@@ -83,31 +83,31 @@
    "WTX": 7499.68
   },
   "transitIceDailyAvg": {
-   "ETH": 1923.06,
+   "ETH": 3850.2,
    "ETK": 2900.0,
-   "ETX": 2825.0,
-   "NT-ST": 2337.67,
-   "NT-TM": 2925.33,
-   "NT-TSM": 3694.13,
+   "ETX": 2828.81,
+   "NT-ST": 2341.9,
+   "NT-TM": 2847.38,
+   "NT-TSM": 3546.95,
    "NT-TW": 2280.0,
-   "WTH": 3583.4,
-   "WTK": 2380.54,
-   "WTX": 2475.93
+   "WTH": 3549.95,
+   "WTK": 2348.64,
+   "WTX": 2511.38
   }
  },
  "firstPointRatio": {
-  "ETH": 71.19,
-  "ETK": 60.19,
-  "ETX": 51.36,
-  "NT-ST": 67.99,
-  "NT-TM": 63.71,
-  "NT-TSM": 62.5,
-  "NT-TW": 58.04,
-  "WTH": 69.5,
-  "WTK": 69.22,
+  "ETH": 71.22,
+  "ETK": 60.25,
+  "ETX": 51.43,
+  "NT-ST": 68.01,
+  "NT-TM": 63.67,
+  "NT-TSM": 62.49,
+  "NT-TW": 58.09,
+  "WTH": 69.54,
+  "WTK": 69.25,
   "WTX": 70.35
  },
- "firstPointRatioDays": 76,
+ "firstPointRatioDays": 77,
  "firstPointRatioFrom": "2026-08-06",
- "firstPointRatioTo": "2026-10-21"
+ "firstPointRatioTo": "2026-10-22"
 }

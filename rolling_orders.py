@@ -12,7 +12,9 @@ One run per day, at 06:00 (T-0). It reports the orders created YESTERDAY (T-1):
      GMV report in kpi_pipeline.py), opens the view "AI Fetching for Order Date = T-1", types T-1 as DD/MM/YYYY into the
      delivery_date START-date box (top right), waits 5 minutes for the page to refresh, then Download -> Crosstab -> CSV
      (the sheet is already pre-selected, no thumbnail click). Saved to "Folder for Rolling Orders" as
-         AI Fetching for Order Date T-1 (MMM-DD of T-1).csv        (UTF-16 tab-separated, overwritten every run)
+         AI Fetching for Order Date T-1 (MMM-DD of T-1).csv        (overwritten every run; UTF-8 or UTF-16, with or without the waybill column - all read)
+  1c. (v11.9) Once the day is written to rolling_orders.json the two downloaded csv files (MFNAS + Tableau) are DELETED from the folder.
+     Keep them with --keep-files or ROLLING_KEEP_FILES=1; --process-only and files passed with --report-file / --tableau-file are never deleted.
   2. Processes it (column letters as in the file):
        - Order Date (C) and Delivery Date (P) are converted to MM/DD/YYYY
        - rows are removed when  Delivery District (Z) is not one of ETH ETK ETX NT-ST NT-TM NT-TSM NT-TW NT-YT WTH WTX WTK,
@@ -102,7 +104,8 @@ TABLEAU_PASS = os.environ.get("TABLEAU_GMV_PASS", "")
 TABLEAU_REFRESH_WAIT_S = int(os.environ.get("ROLLING_TABLEAU_REFRESH_WAIT", "300"))   # 5 min after the start date is typed
 TABLEAU_ATTEMPTS = max(1, int(os.environ.get("TABLEAU_DOWNLOAD_ATTEMPTS", "3")))      # fresh browser sessions, as kpi_pipeline.py
 TABLEAU_RECOVERY_WAIT_S = int(os.environ.get("TABLEAU_RECOVERY_WAIT_S", "20"))
-TABLEAU_LOAD_WAIT_S = int(os.environ.get("ROLLING_TABLEAU_LOAD_WAIT", "300"))          # max wait for the view to appear (was 90s)
+KEEP_FILES = os.environ.get("ROLLING_KEEP_FILES", "0").strip().lower() in ("1", "true", "yes", "on")   # 1 = keep the downloaded csv files
+TABLEAU_LOAD_WAIT_S = int(os.environ.get("ROLLING_TABLEAU_LOAD_WAIT", "180"))          # max wait for the view to appear
 TABLEAU_HEADLESS = os.environ.get("ROLLING_TABLEAU_HEADLESS", "1").strip().lower() not in ("0", "false", "no")
 
 NAS_CONNECT_TIMEOUT = 10
@@ -393,6 +396,34 @@ def _set_start_date(page, order_date):
     return False
 
 
+class _VizActivity:
+    """Tracks Tableau's vizql requests (every refresh of the view goes through /vizql/). Used to leave the 5-minute wait early:
+    once the date change has produced vizql traffic, nothing is in flight any more and it has been quiet for QUIET_S seconds,
+    the view has finished refreshing."""
+    QUIET_S = 20
+
+    def __init__(self, page):
+        self.inflight, self.count, self.last = set(), 0, time.time()
+        page.on("request", self._start)
+        page.on("requestfinished", self._end)
+        page.on("requestfailed", self._end)
+
+    def _start(self, req):
+        if "/vizql/" in req.url:
+            self.inflight.add(req); self.count += 1; self.last = time.time()
+
+    def _end(self, req):
+        if req in self.inflight:
+            self.inflight.discard(req); self.last = time.time()
+
+    def mark(self):
+        self.count = 0
+        self.last = time.time()
+
+    def refreshed(self):
+        return self.count > 0 and not self.inflight and time.time() - self.last >= self.QUIET_S
+
+
 def _wait_for_view(page, final_path):
     """Wait (up to TABLEAU_LOAD_WAIT_S) until the viz iframe or the date box exists. Re-issues the view URL every 60s in case the
     SPA bounced back to the explore/home page after sign-in. On failure a screenshot is saved next to the csv for diagnosis."""
@@ -445,16 +476,21 @@ def _tableau_session(order_date, final_path):
             time.sleep(5)
             log("Tableau: opening 'AI Fetching for Order Date = T-1'")
             page.goto(TABLEAU_AI_VIEW_URL)
+            activity = _VizActivity(page)
             _wait_for_view(page, final_path)
             time.sleep(15)
+            activity.mark()
             if not _set_start_date(page, order_date):
                 raise RuntimeError(f"could not set the delivery_date start date to {order_date:%d/%m/%Y}")
-            log(f"Tableau: waiting {TABLEAU_REFRESH_WAIT_S}s for the page to refresh ...")
-            waited = 0
-            while waited < TABLEAU_REFRESH_WAIT_S:                      # in slices so the session stays alive / is logged
-                step = min(60, TABLEAU_REFRESH_WAIT_S - waited)
-                page.wait_for_timeout(step * 1000)
-                waited += step
+            log(f"Tableau: waiting for the page to refresh (up to {TABLEAU_REFRESH_WAIT_S}s, or as soon as the view has reloaded) ...")
+            t_start = time.time()
+            while time.time() - t_start < TABLEAU_REFRESH_WAIT_S:
+                page.wait_for_timeout(2000)
+                if activity.refreshed():
+                    log(f"Tableau: view refreshed after {time.time() - t_start:.0f}s ({activity.count} vizql requests) - continuing")
+                    break
+            else:
+                log(f"Tableau: no refresh completion detected - waited the full {TABLEAU_REFRESH_WAIT_S}s")
             shown = _read_date_box(page)
             if shown and shown.lstrip("0").replace("/0", "/") != order_date.strftime("%d/%m/%Y").lstrip("0").replace("/0", "/"):
                 raise RuntimeError(f"start date reverted to '{shown}' during the refresh wait")
@@ -488,10 +524,24 @@ def _tableau_session(order_date, final_path):
     return tmp
 
 
+def read_tableau_csv(path, nrows=None):
+    """Tableau crosstab as strings. Every layout is accepted: UTF-16 tab-separated or UTF-8 (comma / tab), with the waybill_no column
+    (Parent Order, order_number, waybill_no, Order Date) or without it (Parent Order, order_number, Order Date)."""
+    with open(path, "rb") as f:
+        head = f.read(4096)
+    if head[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        enc, sep = "utf-16", "\t"
+    else:
+        enc = "utf-8-sig"
+        first = head.decode("utf-8-sig", errors="ignore").split("\n", 1)[0]
+        sep = "\t" if "\t" in first else ","
+    return pd.read_csv(path, encoding=enc, sep=sep, dtype=str, keep_default_na=False, index_col=False, nrows=nrows)
+
+
 def _check_tableau_file(path):
     """Cheap sanity check of the downloaded crosstab (UTF-16 tab csv, order_number in column B) before it replaces the old copy."""
-    head = pd.read_csv(path, encoding="utf-16", sep="\t", dtype=str, nrows=5, keep_default_na=False)
-    if head.shape[1] < 4 or "order_number" not in [c.strip() for c in head.columns]:
+    head = read_tableau_csv(path, nrows=5)
+    if head.shape[1] < 3 or "order_number" not in [c.strip() for c in head.columns]:
         raise RuntimeError(f"unexpected Tableau csv layout, columns = {list(head.columns)[:6]}")
 
 
@@ -518,14 +568,34 @@ def download_tableau_report(order_date, final_path):
     raise RuntimeError(f"Tableau 'AI Fetching for Order Date = T-1' download failed after {TABLEAU_ATTEMPTS} sessions: {last}")
 
 
+def cleanup_files(paths, why="written to the json"):
+    """v11.9 - delete the downloaded csv files once their numbers are safely in rolling_orders.json. Only files inside
+    "Folder for Rolling Orders" are touched (+ a leftover .part / .new next to them); never raises."""
+    base = os.path.realpath(ROLLING_DIR) + os.sep
+    for p in paths:
+        if not p:
+            continue
+        for q in (p, p + ".part", p + ".new"):
+            try:
+                if os.path.isfile(q) and os.path.realpath(q).startswith(base):
+                    sz = os.path.getsize(q) / 1048576
+                    os.remove(q)
+                    log(f"cleanup: deleted {os.path.basename(q)} ({sz:.1f} MB) - {why}")
+            except Exception as ex:
+                log(f"cleanup: could not delete {q}: {ex}")
+
+
 # ----------------------------------------------------------------------------- Tableau parent-order mapping (v11.3)
 def load_parent_map(path):
-    """Tableau crosstab (UTF-16, tab) -> (order_number -> parent, parent -> earliest order date) . Columns by position:
-    A = Order (Unlimited & Add-on Group to Parent) = Parent Order, B = order_number, D = Day, Month, Year of order_date."""
-    t = pd.read_csv(path, encoding="utf-16", sep="\t", dtype=str, keep_default_na=False, index_col=False)
-    if t.shape[1] < 4:
-        raise ValueError(f"{os.path.basename(path)}: expected at least 4 columns (Parent Order, order_number, waybill_no, order date), got {t.shape[1]}")
-    t = t.iloc[:, [0, 1, 3]]
+    """Tableau crosstab -> (order_number -> parent, parent -> earliest order date). A = Order (Unlimited & Add-on Group to Parent)
+    = Parent Order, order_number (B), and the "Day, Month, Year of Order Date" column (D, or C when the waybill column is removed)."""
+    t = read_tableau_csv(path)
+    if t.shape[1] < 3:
+        raise ValueError(f"{os.path.basename(path)}: expected at least 3 columns (Parent Order, order_number, order date), got {t.shape[1]}")
+    cols = [str(c).strip() for c in t.columns]
+    oi = cols.index("order_number") if "order_number" in cols else 1
+    di = next((i for i, c in enumerate(cols) if "order date" in c.lower().replace("_", " ")), 2 if t.shape[1] == 3 else 3)
+    t = t.iloc[:, [0, oi, di]]
     t.columns = ["parent", "order_no", "odate"]
     t["parent"] = t["parent"].str.strip()
     t["order_no"] = t["order_no"].str.strip()
@@ -621,7 +691,7 @@ def parse_dates(series, expected=None, prefer=None):
     return best, best_fmt
 
 
-def process_report(path, order_date, tableau_path):
+def process_report(path, order_date, tableau_path, parent_map=None):
     """Returns (rows, stats). rows = DataFrame (one row per report line left after the filters) with
     district, delivery (date), is_parent, order_no, waybill. is_parent (v11.3) = the Order Number maps (Tableau order_number ->
     Parent Order) to a parent whose EARLIEST order date is T-1."""
@@ -674,7 +744,7 @@ def process_report(path, order_date, tableau_path):
     df["district"] = d.replace(DISTRICT_ALIAS)
     df["order_no"] = df["order_no"].str.strip().replace("", pd.NA)
     df["waybill"] = df["waybill"].str.strip().replace("", pd.NA)
-    o2p, earliest = load_parent_map(tableau_path)
+    o2p, earliest = parent_map if parent_map is not None else load_parent_map(tableau_path)
     parent = df["order_no"].map(o2p)
     first_date = parent.map(earliest)
     df["is_parent"] = first_date == pd.Timestamp(order_date)
@@ -935,6 +1005,8 @@ def main():
     ap.add_argument("--tableau-only", action="store_true", help="only (re)download the Tableau csv, then stop")
     ap.add_argument("--download-only", action="store_true", help="only download the MFNAS csv + Tableau csv into Folder for Rolling Orders, then stop")
     ap.add_argument("--skip-whatsapp", action="store_true", help="ignored - WhatsApp sending was removed; kept so old command lines still work")
+    ap.add_argument("--push-only", action="store_true", help="no download / processing: embed the rolling_orders.json that is already in the public folder into index.html and git-push it")
+    ap.add_argument("--keep-files", action="store_true", help="do not delete the downloaded csv files after they were written to the json (same as ROLLING_KEEP_FILES=1)")
     ap.add_argument("--skip-embed", action="store_true")
     ap.add_argument("--skip-push", action="store_true", help="do not git-push the dashboard files (same as ROLLING_DEPLOY=none)")
     a = ap.parse_args()
@@ -943,6 +1015,16 @@ def main():
         TABLEAU_HEADLESS = False
 
     slot = SLOTS[0]
+    if a.push_only:
+        with run_lock():
+            data = json.load(open(ROLLING_JSON, encoding="utf-8"))
+            last = max(data.get("days", {}) or [datetime.now().strftime("%Y-%m-%d")])
+            log(f"push-only: {ROLLING_JSON} holds {len(data.get('days', {}))} order dates, latest {last}, generatedAt {data.get('generatedAt')}")
+            if not a.skip_embed:
+                embed_in_index(data)
+            if not a.skip_push:
+                log("push-only: result = " + ("PUSHED" if push_dashboard(datetime.strptime(last, "%Y-%m-%d"), slot, data) else "NOT pushed (see the push: lines above)"))
+        return
     if a.slot and a.slot not in SLOTS:
         log(f"slot {a.slot}: nothing to do - since Version 11.1 Rolling Orders runs once a day at {slot} only "
             f"(remove this cron / Task Scheduler entry)")
@@ -976,6 +1058,10 @@ def main():
         if not cells:
             raise SystemExit(f"report found but 0 usable rows for order date {order_date:%Y-%m-%d} - nothing written")
         data = update_json(order_date, slot, cells, stats)
+        # v11.9 - the numbers are in the json now: delete the two downloaded csv files (not with --keep-files / --process-only,
+        # and never a file given with --report-file / --tableau-file)
+        if not (a.keep_files or KEEP_FILES or a.process_only):
+            cleanup_files([None if a.report_file else report, None if a.tableau_file else tableau])
         if not a.skip_embed:
             embed_in_index(data)
         if not (a.skip_push or a.process_only):

@@ -306,6 +306,9 @@ OTHER_ASPECTS_HISTORY_PATH = os.environ.get("OTHER_ASPECTS_HISTORY_PATH", "./pub
 COST_PLAN_PATH = os.environ.get("COST_PLAN_PATH", "./public/cost_plan.json")
 # v11.7 - the 03:00 job re-checks the OIX files of the last N days for the ODS first / non-first point counts (`--section odspoints` = all files).
 ODS_POINTS_LOOKBACK_DAYS = int(os.environ.get("ODS_POINTS_LOOKBACK_DAYS", "7"))
+# v11.8 - rolling_orders.json is written by rolling_orders.py (not by this pipeline) but must stay inside the embedded snapshot:
+# update_embedded_data() rebuilds the whole block on every run, so it re-reads this file (or, failing that, keeps the copy already embedded).
+ROLLING_ORDERS_PATH = os.environ.get("ROLLING_ORDERS_PATH", "./public/rolling_orders.json")
 # v28.0 — single deployable dashboard file. Every JSON file's parsed content
 # gets burned into a window.__EMBEDDED_DATA__ script tag inside this same
 # file at the end of every "tableau" run, so it works both live off a real
@@ -3630,6 +3633,21 @@ def update_embedded_data():
                 embedded[filename] = json.load(f)
         else:
             missing.append(filename)
+    # v11.8 - keep the Rolling Orders data (rolling_orders.py's file) instead of dropping it from the rebuilt block
+    try:
+        if os.path.exists(ROLLING_ORDERS_PATH):
+            with open(ROLLING_ORDERS_PATH, "r", encoding="utf-8") as f:
+                embedded["rolling_orders.json"] = json.load(f)
+        else:
+            m_old = re.search(r"window\.__EMBEDDED_DATA__\s*=\s*", html[start_idx:end_idx])
+            if m_old:
+                old_js = html[start_idx:end_idx][m_old.end():]
+                old_js = old_js[:old_js.rindex("</script>")].rstrip().rstrip(";")
+                old_emb = json.loads(old_js.replace("<\\/", "</"))
+                if "rolling_orders.json" in old_emb:
+                    embedded["rolling_orders.json"] = old_emb["rolling_orders.json"]
+    except Exception as ex:
+        print(f"  ⚠️ could not keep rolling_orders.json in the embedded data: {ex}")
     if missing:
         print(f"  ⚠️ embedded data: {', '.join(missing)} not found — embedding whatever "
               f"the rest of this run did produce; index.html's own fetchJSON() will "
