@@ -7647,7 +7647,7 @@
             "manpower": 48,
             "productivity": 42.0,
             "productivitySource": "costReport",
-            "costPerOrder": 47.08
+            "costPerOrder": 47.42
           },
           "ETK": {
             "orderCount": 1540.0,
@@ -7728,7 +7728,7 @@
           "manpower": 401,
           "productivity": 47.95,
           "productivitySource": "costReport",
-          "costPerOrder": 43.54
+          "costPerOrder": 43.57
         }
       },
       "odsRatio": {
@@ -7811,7 +7811,7 @@
             "manpower": 49,
             "productivity": 45.22,
             "productivitySource": "costReport",
-            "costPerOrder": 45.28
+            "costPerOrder": 45.57
           },
           "ETK": {
             "orderCount": 1697.0,
@@ -7892,7 +7892,7 @@
           "manpower": 422,
           "productivity": 49.86,
           "productivitySource": "costReport",
-          "costPerOrder": 42.46
+          "costPerOrder": 42.49
         }
       },
       "odsRatio": {
@@ -7973,68 +7973,90 @@
             "orderCount": 2194.0,
             "waybillCount": 11612,
             "manpower": 48,
-            "productivity": 45.71
+            "productivity": 46.53,
+            "productivitySource": "costReport",
+            "costPerOrder": 45.75
           },
           "ETK": {
             "orderCount": 1727.0,
             "waybillCount": 9010,
             "manpower": 31,
-            "productivity": 55.71
+            "productivity": 60.38,
+            "productivitySource": "costReport",
+            "costPerOrder": 38.01
           },
           "ETX": {
             "orderCount": 1902.0,
             "waybillCount": 10012,
             "manpower": 47,
-            "productivity": 40.47
+            "productivity": 40.67,
+            "productivitySource": "costReport",
+            "costPerOrder": 43.86
           },
           "NT-ST": {
             "orderCount": 2029.0,
             "waybillCount": 10721,
             "manpower": 35,
-            "productivity": 57.97
+            "productivity": 65.38,
+            "productivitySource": "costReport",
+            "costPerOrder": 38.7
           },
           "NT-TM": {
             "orderCount": 2024.0,
             "waybillCount": 10000,
             "manpower": 37,
-            "productivity": 54.7
+            "productivity": 50.66,
+            "productivitySource": "costReport",
+            "costPerOrder": 42.38
           },
           "NT-TSM": {
             "orderCount": 2339.0,
             "waybillCount": 12229,
             "manpower": 46,
-            "productivity": 50.85
+            "productivity": 50.38,
+            "productivitySource": "costReport",
+            "costPerOrder": 37.97
           },
           "NT-TW": {
             "orderCount": 1875.0,
             "waybillCount": 10041,
             "manpower": 40,
-            "productivity": 46.88
+            "productivity": 51.64,
+            "productivitySource": "costReport",
+            "costPerOrder": 40.98
           },
           "WTH": {
             "orderCount": 2419.0,
             "waybillCount": 10077,
             "manpower": 43,
-            "productivity": 56.26
+            "productivity": 42.46,
+            "productivitySource": "costReport",
+            "costPerOrder": 48.28
           },
           "WTK": {
             "orderCount": 2110.0,
             "waybillCount": 11054,
             "manpower": 46,
-            "productivity": 45.87
+            "productivity": 47.57,
+            "productivitySource": "costReport",
+            "costPerOrder": 44.64
           },
           "WTX": {
             "orderCount": 2066.0,
             "waybillCount": 11187,
             "manpower": 48,
-            "productivity": 43.04
+            "productivity": 47.23,
+            "productivitySource": "costReport",
+            "costPerOrder": 42.41
           }
         },
         "total": {
           "orderCount": 20685.0,
           "waybillCount": 105943,
           "manpower": 421,
-          "productivity": 49.13
+          "productivity": 49.15,
+          "productivitySource": "costReport",
+          "costPerOrder": 42.74
         }
       },
       "odsRatio": {
@@ -8115,68 +8137,90 @@
             "orderCount": 1906.0,
             "waybillCount": 10303.0,
             "manpower": 45,
-            "productivity": 42.36
+            "productivity": 46.98,
+            "productivitySource": "costReport",
+            "costPerOrder": 44.82
           },
           "ETK": {
             "orderCount": 1765.0,
             "waybillCount": 9548.0,
             "manpower": 32,
-            "productivity": 55.16
+            "productivity": 58.16,
+            "productivitySource": "costReport",
+            "costPerOrder": 38.66
           },
           "ETX": {
             "orderCount": 1533.0,
             "waybillCount": 8333.0,
             "manpower": 39,
-            "productivity": 39.31
+            "productivity": 41.05,
+            "productivitySource": "costReport",
+            "costPerOrder": 45.0
           },
           "NT-ST": {
             "orderCount": 2402.0,
             "waybillCount": 13272.0,
             "manpower": 36,
-            "productivity": 66.72
+            "productivity": 57.11,
+            "productivitySource": "costReport",
+            "costPerOrder": 40.05
           },
           "NT-TM": {
             "orderCount": 2218.0,
             "waybillCount": 12181.0,
             "manpower": 37,
-            "productivity": 59.95
+            "productivity": 55.48,
+            "productivitySource": "costReport",
+            "costPerOrder": 40.78
           },
           "NT-TSM": {
             "orderCount": 2283.0,
             "waybillCount": 12012.0,
             "manpower": 45,
-            "productivity": 50.73
+            "productivity": 49.67,
+            "productivitySource": "costReport",
+            "costPerOrder": 39.85
           },
           "NT-TW": {
             "orderCount": 1807.0,
             "waybillCount": 9471.0,
             "manpower": 35,
-            "productivity": 51.63
+            "productivity": 51.49,
+            "productivitySource": "costReport",
+            "costPerOrder": 42.17
           },
           "WTH": {
             "orderCount": 1700.0,
             "waybillCount": 9102.0,
             "manpower": 32,
-            "productivity": 53.12
+            "productivity": 42.4,
+            "productivitySource": "costReport",
+            "costPerOrder": 49.03
           },
           "WTK": {
             "orderCount": 1864.0,
             "waybillCount": 9221.0,
             "manpower": 41,
-            "productivity": 45.46
+            "productivity": 47.5,
+            "productivitySource": "costReport",
+            "costPerOrder": 45.93
           },
           "WTX": {
             "orderCount": 2031.0,
             "waybillCount": 10593.0,
             "manpower": 45,
-            "productivity": 45.13
+            "productivity": 45.73,
+            "productivitySource": "costReport",
+            "costPerOrder": 40.41
           }
         },
         "total": {
           "orderCount": 19508.0,
           "waybillCount": 104036.0,
           "manpower": 387,
-          "productivity": 50.41
+          "productivity": 49.18,
+          "productivitySource": "costReport",
+          "costPerOrder": 42.79
         }
       },
       "odsRatio": {
@@ -8257,68 +8301,90 @@
             "orderCount": 1755.0,
             "waybillCount": 9669.0,
             "manpower": 43,
-            "productivity": 40.81
+            "productivity": 46.95,
+            "productivitySource": "costReport",
+            "costPerOrder": 43.9
           },
           "ETK": {
             "orderCount": 1607.0,
             "waybillCount": 9410.0,
             "manpower": 32,
-            "productivity": 50.22
+            "productivity": 56.65,
+            "productivitySource": "costReport",
+            "costPerOrder": 40.35
           },
           "ETX": {
             "orderCount": 1534.0,
             "waybillCount": 8781.0,
             "manpower": 42,
-            "productivity": 36.52
+            "productivity": 42.19,
+            "productivitySource": "costReport",
+            "costPerOrder": 45.29
           },
           "NT-ST": {
             "orderCount": 2263.0,
             "waybillCount": 13415.0,
             "manpower": 34,
-            "productivity": 66.56
+            "productivity": 56.32,
+            "productivitySource": "costReport",
+            "costPerOrder": 42.37
           },
           "NT-TM": {
             "orderCount": 2301.0,
             "waybillCount": 13349.0,
             "manpower": 38,
-            "productivity": 60.55
+            "productivity": 57.6,
+            "productivitySource": "costReport",
+            "costPerOrder": 40.51
           },
           "NT-TSM": {
             "orderCount": 2223.0,
             "waybillCount": 12031.0,
             "manpower": 43,
-            "productivity": 51.7
+            "productivity": 54.3,
+            "productivitySource": "costReport",
+            "costPerOrder": 38.99
           },
           "NT-TW": {
             "orderCount": 1781.0,
             "waybillCount": 10036.0,
             "manpower": 36,
-            "productivity": 49.47
+            "productivity": 50.83,
+            "productivitySource": "costReport",
+            "costPerOrder": 42.32
           },
           "WTH": {
             "orderCount": 1407.0,
             "waybillCount": 7622.0,
             "manpower": 32,
-            "productivity": 43.97
+            "productivity": 43.62,
+            "productivitySource": "costReport",
+            "costPerOrder": 50.04
           },
           "WTK": {
             "orderCount": 1537.0,
             "waybillCount": 8567.0,
             "manpower": 35,
-            "productivity": 43.91
+            "productivity": 45.97,
+            "productivitySource": "costReport",
+            "costPerOrder": 49.11
           },
           "WTX": {
             "orderCount": 2006.0,
             "waybillCount": 11012.0,
             "manpower": 46,
-            "productivity": 43.61
+            "productivity": 45.8,
+            "productivitySource": "costReport",
+            "costPerOrder": 44.49
           }
         },
         "total": {
           "orderCount": 18414.0,
           "waybillCount": 103892.0,
           "manpower": 381,
-          "productivity": 48.33
+          "productivity": 49.83,
+          "productivitySource": "costReport",
+          "costPerOrder": 43.69
         }
       },
       "odsRatio": {
@@ -8399,68 +8465,90 @@
             "orderCount": 1298.0,
             "waybillCount": 6963.0,
             "manpower": 33,
-            "productivity": 39.33
+            "productivity": 38.18,
+            "productivitySource": "costReport",
+            "costPerOrder": 51.55
           },
           "ETK": {
             "orderCount": 1234.0,
             "waybillCount": 6072.0,
             "manpower": 21,
-            "productivity": 58.76
+            "productivity": 66.89,
+            "productivitySource": "costReport",
+            "costPerOrder": 37.93
           },
           "ETX": {
             "orderCount": 1529.0,
             "waybillCount": 8003.0,
             "manpower": 33,
-            "productivity": 46.33
+            "productivity": 46.3,
+            "productivitySource": "costReport",
+            "costPerOrder": 45.05
           },
           "NT-ST": {
             "orderCount": 1426.0,
             "waybillCount": 8364.0,
             "manpower": 28,
-            "productivity": 50.93
+            "productivity": 50.96,
+            "productivitySource": "costReport",
+            "costPerOrder": 44.56
           },
           "NT-TM": {
             "orderCount": 1711.0,
             "waybillCount": 8986.0,
             "manpower": 30,
-            "productivity": 57.03
+            "productivity": 59.55,
+            "productivitySource": "costReport",
+            "costPerOrder": 39.25
           },
           "NT-TSM": {
             "orderCount": 1519.0,
             "waybillCount": 7666.0,
             "manpower": 33,
-            "productivity": 46.03
+            "productivity": 46.06,
+            "productivitySource": "costReport",
+            "costPerOrder": 43.71
           },
           "NT-TW": {
             "orderCount": 1434.0,
             "waybillCount": 7494.0,
             "manpower": 28,
-            "productivity": 51.21
+            "productivity": 51.43,
+            "productivitySource": "costReport",
+            "costPerOrder": 50.04
           },
           "WTH": {
             "orderCount": 688.0,
             "waybillCount": 5741.0,
             "manpower": 12,
-            "productivity": 57.33
+            "productivity": 46.64,
+            "productivitySource": "costReport",
+            "costPerOrder": 56.57
           },
           "WTK": {
             "orderCount": 1418.0,
             "waybillCount": 6491.0,
             "manpower": 32,
-            "productivity": 44.31
+            "productivity": 44.44,
+            "productivitySource": "costReport",
+            "costPerOrder": 50.82
           },
           "WTX": {
             "orderCount": 1685.0,
             "waybillCount": 8293.0,
             "manpower": 37,
-            "productivity": 45.54
+            "productivity": 47.17,
+            "productivitySource": "costReport",
+            "costPerOrder": 44.53
           }
         },
         "total": {
           "orderCount": 13942.0,
           "waybillCount": 74073.0,
           "manpower": 287,
-          "productivity": 48.58
+          "productivity": 48.89,
+          "productivitySource": "costReport",
+          "costPerOrder": 46.28
         }
       },
       "odsRatio": {
@@ -8541,68 +8629,90 @@
             "orderCount": 1777.0,
             "waybillCount": 9747.0,
             "manpower": 51,
-            "productivity": 34.84
+            "productivity": 42.88,
+            "productivitySource": "costReport",
+            "costPerOrder": 46.21
           },
           "ETK": {
             "orderCount": 1385.0,
             "waybillCount": 7437.0,
             "manpower": 32,
-            "productivity": 43.28
+            "productivity": 47.9,
+            "productivitySource": "costReport",
+            "costPerOrder": 42.94
           },
           "ETX": {
             "orderCount": 1697.0,
             "waybillCount": 9058.0,
             "manpower": 44,
-            "productivity": 38.57
+            "productivity": 36.85,
+            "productivitySource": "costReport",
+            "costPerOrder": 47.57
           },
           "NT-ST": {
             "orderCount": 2159.0,
             "waybillCount": 11419.0,
             "manpower": 35,
-            "productivity": 61.69
+            "productivity": 55.62,
+            "productivitySource": "costReport",
+            "costPerOrder": 41.61
           },
           "NT-TM": {
             "orderCount": 1962.0,
             "waybillCount": 10415.0,
             "manpower": 36,
-            "productivity": 54.5
+            "productivity": 47.64,
+            "productivitySource": "costReport",
+            "costPerOrder": 44.55
           },
           "NT-TSM": {
             "orderCount": 2000.0,
             "waybillCount": 10532.0,
             "manpower": 45,
-            "productivity": 44.44
+            "productivity": 42.6,
+            "productivitySource": "costReport",
+            "costPerOrder": 41.5
           },
           "NT-TW": {
             "orderCount": 1739.0,
             "waybillCount": 9488.0,
             "manpower": 34,
-            "productivity": 51.15
+            "productivity": 49.85,
+            "productivitySource": "costReport",
+            "costPerOrder": 45.46
           },
           "WTH": {
             "orderCount": 1660.0,
             "waybillCount": 9049.0,
             "manpower": 35,
-            "productivity": 47.43
+            "productivity": 37.87,
+            "productivitySource": "costReport",
+            "costPerOrder": 50.37
           },
           "WTK": {
             "orderCount": 1932.0,
             "waybillCount": 10648.0,
             "manpower": 43,
-            "productivity": 44.93
+            "productivity": 47.52,
+            "productivitySource": "costReport",
+            "costPerOrder": 46.53
           },
           "WTX": {
             "orderCount": 1929.0,
             "waybillCount": 10119.0,
             "manpower": 48,
-            "productivity": 40.19
+            "productivity": 43.0,
+            "productivitySource": "costReport",
+            "costPerOrder": 40.97
           }
         },
         "total": {
           "orderCount": 18240.0,
           "waybillCount": 97912.0,
           "manpower": 403,
-          "productivity": 45.26
+          "productivity": 44.53,
+          "productivitySource": "costReport",
+          "costPerOrder": 44.96
         }
       },
       "odsRatio": {
@@ -8683,68 +8793,90 @@
             "orderCount": 1831.0,
             "waybillCount": 10687.0,
             "manpower": 51,
-            "productivity": 35.9
+            "productivity": 44.1,
+            "productivitySource": "costReport",
+            "costPerOrder": 46.58
           },
           "ETK": {
             "orderCount": 1497.0,
             "waybillCount": 8629.0,
             "manpower": 32,
-            "productivity": 46.78
+            "productivity": 51.12,
+            "productivitySource": "costReport",
+            "costPerOrder": 41.13
           },
           "ETX": {
             "orderCount": 1626.0,
             "waybillCount": 9513.0,
             "manpower": 41,
-            "productivity": 39.66
+            "productivity": 41.74,
+            "productivitySource": "costReport",
+            "costPerOrder": 46.08
           },
           "NT-ST": {
             "orderCount": 2003.0,
             "waybillCount": 11736.0,
             "manpower": 36,
-            "productivity": 55.64
+            "productivity": 48.56,
+            "productivitySource": "costReport",
+            "costPerOrder": 44.27
           },
           "NT-TM": {
             "orderCount": 1952.0,
             "waybillCount": 11127.0,
             "manpower": 40,
-            "productivity": 48.8
+            "productivity": 47.51,
+            "productivitySource": "costReport",
+            "costPerOrder": 43.6
           },
           "NT-TSM": {
             "orderCount": 2031.0,
             "waybillCount": 12032.0,
             "manpower": 46,
-            "productivity": 44.15
+            "productivity": 40.35,
+            "productivitySource": "costReport",
+            "costPerOrder": 44.13
           },
           "NT-TW": {
             "orderCount": 1795.0,
             "waybillCount": 10168.0,
             "manpower": 37,
-            "productivity": 48.51
+            "productivity": 52.33,
+            "productivitySource": "costReport",
+            "costPerOrder": 42.47
           },
           "WTH": {
             "orderCount": 2020.0,
             "waybillCount": 11826.0,
             "manpower": 43,
-            "productivity": 46.98
+            "productivity": 39.91,
+            "productivitySource": "costReport",
+            "costPerOrder": 49.41
           },
           "WTK": {
             "orderCount": 2045.0,
             "waybillCount": 11393.0,
             "manpower": 47,
-            "productivity": 43.51
+            "productivity": 45.07,
+            "productivitySource": "costReport",
+            "costPerOrder": 46.14
           },
           "WTX": {
             "orderCount": 1915.0,
             "waybillCount": 10851.0,
             "manpower": 49,
-            "productivity": 39.08
+            "productivity": 38.83,
+            "productivitySource": "costReport",
+            "costPerOrder": 48.64
           }
         },
         "total": {
           "orderCount": 18715.0,
           "waybillCount": 107962.0,
           "manpower": 422,
-          "productivity": 44.35
+          "productivity": 44.31,
+          "productivitySource": "costReport",
+          "costPerOrder": 45.56
         }
       },
       "odsRatio": {
