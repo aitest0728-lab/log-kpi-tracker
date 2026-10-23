@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-rolling_orders.py  -  KPI Dashboard Version 11.3  "Rolling Orders"   (MFNAS report + Tableau "AI Fetching for Order Date = T-1" mapping)
+rolling_orders.py  -  KPI Dashboard Version 11.10  "Rolling Orders"   (MFNAS report + Tableau "AI Fetching for Order Date = T-1" mapping)
 
 One run per day, at 06:00 (T-0). It reports the orders created YESTERDAY (T-1):
   1. Logs in to TKO-MFNAS (Synology File Station API, CRAB_NAS_USER / CRAB_NAS_PASS - same as project_crab.py),
@@ -20,12 +20,16 @@ One run per day, at 06:00 (T-0). It reports the orders created YESTERDAY (T-1):
        - rows are removed when  Delivery District (Z) is not one of ETH ETK ETX NT-ST NT-TM NT-TSM NT-TW NT-YT WTH WTX WTK,
          or  Consignment Status (J) contains CANCEL,  or  Delivery Zone (U) = KN015
        - delivery date = T-1 (same as the order date): only the 18:00 - 22:00 Delivery Timeslot (Q) is counted
-       - (v11.3) PARENT ORDER mapping - replaces the Optimum (N) / First Available (O) timeslot test. After the district /
-         status / zone / same-day-timeslot filters above, every MFNAS Order Number (col A) is looked up in the Tableau report's
-         order_number (col B) -> its Parent Order (Tableau col A). The earliest Order Date (Tableau col D) over ALL rows of that
-         Parent Order is the parent's real order date. A row is kept as an ORDER only when that earliest date = T-1.
-         Orders that are not in the Tableau report cannot be mapped and are NOT counted (the count is logged + stored in stats).
-         ORDER count = distinct Order Number among the kept rows, per Delivery Date x district and overall
+       - (v11.10) PARENT ORDER mapping + tracking across days. After the district / status / zone / same-day-timeslot filters above:
+           a) The Tableau report now holds the Order Date (col D) AND the delivery date (col E). Every MFNAS Order Number (col A) is looked
+              up in the Tableau rows of the SAME delivery date (for delivery date = T-1: the Tableau rows with delivery date = T-1) ->
+              order_number (col B) -> Parent Order (col A).
+           b) An order that is not in the Tableau report uses its own order number as its parent order.
+           c) rolling_parent_registry.json.gz (in "Folder for Rolling Orders") remembers, per delivery date, which parent orders the
+              earlier order-date records already counted. A parent that an earlier record counted for the SAME delivery date is not counted
+              again (e.g. an add-on order that shares the parent of an order placed on a previous day). This replaces the v11.3 test
+              "earliest order date of the parent = T-1".
+         ORDER count = distinct PARENT ORDER that no earlier record counted for that delivery date, per Delivery Date x district and overall
          WAYBILL count = distinct Waybill Number over all remaining rows (unchanged)
        - counted per (Delivery Date x district); NT-YT is grouped into WTH
   3. Writes rolling_orders.json next to index.html AND embeds it in index.html's window.__EMBEDDED_DATA__ block.
@@ -52,6 +56,7 @@ next to this script or one folder up). Needs: pip install playwright && playwrig
 import argparse
 import contextlib
 import fcntl
+import gzip
 import json
 import os
 import re
@@ -98,7 +103,7 @@ NAS_ROOT_CANDIDATES = [r for r in (os.environ.get("ROLLING_NAS_ROOT", "").strip(
 # --- Tableau (v11.3) - same account / host as the GMV report in kpi_pipeline.py ---
 TABLEAU_SIGNIN_URL = os.environ.get("TABLEAU_GMV_URL", "https://inhouse-analytics.hktv.com.hk/#/signin")
 TABLEAU_AI_VIEW_URL = os.environ.get("TABLEAU_AI_T1_URL",
-    "https://inhouse-analytics.hktv.com.hk/#/views/AIFetchingforOrderDateT-1/AIFetchingforOrderDateT-1?:iid=2")
+    "https://inhouse-analytics.hktv.com.hk/#/views/AIFetchingforOrderDateT-1/AIFetchingforOrderDateT-1_1?:iid=1")
 TABLEAU_USER = os.environ.get("TABLEAU_GMV_USER", "")
 TABLEAU_PASS = os.environ.get("TABLEAU_GMV_PASS", "")
 TABLEAU_REFRESH_WAIT_S = int(os.environ.get("ROLLING_TABLEAU_REFRESH_WAIT", "300"))   # 5 min after the start date is typed
@@ -122,6 +127,10 @@ PUBLIC_DIR = os.environ.get("KPI_PUBLIC_DIR", os.path.join(KPI_DIR, "public"))  
 INDEX_HTML = os.environ.get("KPI_INDEX_HTML", os.path.join(PUBLIC_DIR, "index.html"))
 ROLLING_JSON = os.environ.get("ROLLING_JSON", os.path.join(PUBLIC_DIR, "rolling_orders.json"))   # next to index.html
 LOG_DIR = os.environ.get("ROLLING_LOG_DIR", os.path.join(KPI_DIR, "logs"))
+# v11.10 - parent orders already counted by earlier order dates (per delivery date). Outside the dashboard repo, next to the raw csv files.
+REGISTRY_PATH = os.environ.get("ROLLING_PARENT_REGISTRY", os.path.join(ROLLING_DIR, "rolling_parent_registry.json.gz"))
+MAX_UNMAPPED_SHARE = float(os.environ.get("ROLLING_MAX_UNMAPPED", "0.2"))          # more unmapped orders than this share = wrong / stale Tableau file -> stop
+REGISTRY_KEEP_DAYS = int(os.environ.get("ROLLING_REGISTRY_KEEP_DAYS", "30"))      # delivery dates older than this (vs the newest order date) are dropped
 
 SLOTS = ["06:00"]                            # Version 11.1: one run a day
 KEEP_ORDER_DATES = 400                       # order dates kept in rolling_orders.json (the dashboard shows the latest 3 months
@@ -585,38 +594,81 @@ def cleanup_files(paths, why="written to the json"):
                 log(f"cleanup: could not delete {q}: {ex}")
 
 
-# ----------------------------------------------------------------------------- Tableau parent-order mapping (v11.3)
+# ----------------------------------------------------------------------------- Tableau parent-order mapping (v11.3 / v11.10)
+def _parse_ymd(series):
+    """'2026年10月21日' (the Chinese-locale export), or 2026-10-21 / 21/10/2026: three numbers; a 4-digit one tells the order."""
+    n = series.str.extract(r"(\d+)\D+(\d+)\D+(\d+)").astype(float)
+    ymd = n[0] > 31
+    y = n[0].where(ymd, n[2]); mo = n[1]; d = n[2].where(ymd, n[0])
+    return pd.to_datetime(pd.DataFrame({"year": y, "month": mo, "day": d}), errors="coerce")
+
+
+class ParentMap:
+    """The Tableau "AI Fetching for Order Date = T-1" crosstab as a lookup  (order number, delivery date) -> Parent Order.
+    v11.10: the report now holds the Order Date (col D) AND the delivery date (col E). An MFNAS order is mapped through the Tableau
+    rows of the SAME delivery date - for delivery date = T-1 that is exactly "take the Tableau rows with delivery date = T-1,
+    then map". A report without the delivery column (old 3 / 4-column layout) maps by order number alone."""
+
+    def __init__(self, lookup, has_delivery, orders, max_order_date, min_delivery, rows):
+        self.lookup, self.has_delivery, self.orders = lookup, has_delivery, orders
+        self.max_order_date, self.min_delivery, self.rows = max_order_date, min_delivery, rows
+
+    def parents(self, order_no, delivery):
+        """Parent Order of every (order number, delivery date) pair; NaN where the pair is not in the report."""
+        k = order_no.astype("string")
+        if self.has_delivery:
+            k = k + "|" + delivery.dt.strftime("%Y%m%d")
+        return k.map(self.lookup)
+
+
 def load_parent_map(path):
-    """Tableau crosstab -> (order_number -> parent, parent -> earliest order date). A = Order (Unlimited & Add-on Group to Parent)
-    = Parent Order, order_number (B), and the "Day, Month, Year of Order Date" column (D, or C when the waybill column is removed)."""
+    """Tableau crosstab -> ParentMap. Columns: A = Order (Unlimited & Add-on Group to Parent) = Parent Order, order_number (B),
+    the "Day, Month, Year of Order Date" column (D, or C when the waybill column is removed) and, since v11.10, the
+    "Day, Month, Year of delivery_date" column (E)."""
     t = read_tableau_csv(path)
     if t.shape[1] < 3:
         raise ValueError(f"{os.path.basename(path)}: expected at least 3 columns (Parent Order, order_number, order date), got {t.shape[1]}")
     cols = [str(c).strip() for c in t.columns]
+    norm = [c.lower().replace("_", " ") for c in cols]
     oi = cols.index("order_number") if "order_number" in cols else 1
-    di = next((i for i, c in enumerate(cols) if "order date" in c.lower().replace("_", " ")), 2 if t.shape[1] == 3 else 3)
-    t = t.iloc[:, [0, oi, di]]
-    t.columns = ["parent", "order_no", "odate"]
+    di = next((i for i, c in enumerate(norm) if "order date" in c), 2 if t.shape[1] == 3 else 3)
+    ei = next((i for i, c in enumerate(norm) if "delivery date" in c), None)
+    t = t.iloc[:, [0, oi, di] + ([ei] if ei is not None else [])]
+    t.columns = ["parent", "order_no", "odate"] + (["ddate"] if ei is not None else [])
     t["parent"] = t["parent"].str.strip()
     t["order_no"] = t["order_no"].str.strip()
-    # "2026年10月21日" (the Chinese-locale export), or 2026-10-21 / 21/10/2026: three numbers; a 4-digit one tells the order
-    n = t["odate"].str.extract(r"(\d+)\D+(\d+)\D+(\d+)").astype(float)
-    ymd = n[0] > 31
-    y = n[0].where(ymd, n[2]); mo = n[1]; d = n[2].where(ymd, n[0])
-    t["odate"] = pd.to_datetime(pd.DataFrame({"year": y, "month": mo, "day": d}), errors="coerce")
+    t["odate"] = _parse_ymd(t["odate"])
     t = t[(t["parent"] != "") & (t["order_no"] != "")]
     bad = int(t["odate"].isna().sum())
     if bad:
-        log(f"WARNING: {bad} Tableau rows have an unreadable order date (ignored for the earliest-date calculation)")
+        log(f"WARNING: {bad} Tableau rows have an unreadable order date (ignored)")
     if len(t) and bad == len(t):
         raise ValueError(f"{os.path.basename(path)}: no Tableau order date could be read")
-    earliest = t.groupby("parent")["odate"].min()                    # earliest order date of every Parent Order
-    o2p = t.drop_duplicates("order_no").set_index("order_no")["parent"]
-    multi = int((t.groupby("order_no")["parent"].nunique() > 1).sum())
+    has_delivery = ei is not None
+    min_delivery = None
+    if has_delivery:
+        t["ddate"] = _parse_ymd(t["ddate"])
+        bad_d = int(t["ddate"].isna().sum())
+        if bad_d:
+            log(f"WARNING: {bad_d} Tableau rows have an unreadable delivery date - they cannot be used for the mapping")
+        if len(t) and bad_d == len(t):
+            raise ValueError(f"{os.path.basename(path)}: no Tableau delivery date could be read")
+        t = t[t["ddate"].notna()]
+        t["key"] = t["order_no"] + "|" + t["ddate"].dt.strftime("%Y%m%d")
+        min_delivery = t["ddate"].min()
+    else:
+        log(f"WARNING: {os.path.basename(path)} has no delivery date column (old layout) - orders are mapped by order number only")
+        t["key"] = t["order_no"]
+    multi = int((t.groupby("key")["parent"].nunique() > 1).sum())
     if multi:
-        log(f"WARNING: {multi} order numbers map to more than one Parent Order in the Tableau report - the first one is used")
-    log(f"Tableau map: {len(t)} rows, {o2p.size} order numbers, {earliest.size} parent orders")
-    return o2p, earliest
+        log(f"WARNING: {multi} order numbers (per delivery date) map to more than one Parent Order in the Tableau report - the first one is used")
+    lookup = t.drop_duplicates("key").set_index("key")["parent"]
+    lookup.index = lookup.index.astype("string")
+    pm = ParentMap(lookup, has_delivery, frozenset(t["order_no"]), t["odate"].max(), min_delivery, len(t))
+    log(f"Tableau map: {len(t)} rows, {lookup.size} order numbers{' x delivery dates' if has_delivery else ''}, "
+        f"{t['parent'].nunique()} parent orders, order dates up to {pm.max_order_date:%Y-%m-%d}"
+        + (f", delivery dates from {min_delivery:%Y-%m-%d}" if has_delivery else ""))
+    return pm
 
 
 # ----------------------------------------------------------------------------- report processing
@@ -691,10 +743,76 @@ def parse_dates(series, expected=None, prefer=None):
     return best, best_fmt
 
 
-def process_report(path, order_date, tableau_path, parent_map=None):
+class ParentRegistry:
+    """v11.10 - the Parent Orders that earlier records already counted, kept per DELIVERY date and per ORDER-date record:
+        {delivery date: {order date: [parent orders first counted by that record]}}
+    A record stores only its NEW parents, so the union of the records of the order dates BEFORE X is every parent already counted
+    for that delivery date. The file lives next to the raw csv files (outside the dashboard repo): those csv files are deleted
+    once processed, so this is the only memory of what the previous days counted."""
+
+    def __init__(self, path=None):
+        self.path = path or REGISTRY_PATH
+        self.days = {}
+        self.quiet = False                      # the backfill re-computes many days in a row and warns once at its end
+
+    def load(self):
+        if not os.path.exists(self.path):
+            log(f"registry: {self.path} does not exist yet - starting with no history")
+            return self
+        try:
+            with gzip.open(self.path, "rt", encoding="utf-8") as fh:
+                self.days = json.load(fh).get("days", {})
+        except Exception as ex:
+            raise RuntimeError(f"parent registry {self.path} is unreadable ({type(ex).__name__}: {ex}). Restore it, or delete it and run "
+                               f"rolling_orders_backfill.py --from <first order date> to rebuild it - a run without it would count "
+                               f"parents again that earlier days already counted.")
+        n = sum(len(v) for v in self.days.values())
+        log(f"registry: {len(self.days)} delivery dates, {n} (delivery date x order date) records loaded")
+        return self
+
+    def order_dates(self):
+        return sorted({o for rec in self.days.values() for o in rec})
+
+    def seen_before(self, order_date, ddate):
+        """Parents already counted for delivery date `ddate` by the records of order dates BEFORE `order_date`."""
+        cut = f"{order_date:%Y-%m-%d}"
+        seen = set()
+        for od, parents in self.days.get(ddate, {}).items():
+            if od < cut:
+                seen.update(parents)
+        return seen
+
+    def later_dates(self, order_date):
+        cut = f"{order_date:%Y-%m-%d}"
+        return [o for o in self.order_dates() if o > cut]
+
+    def record(self, order_date, new_by_ddate):
+        """Replace the record of `order_date` (a re-run overwrites it) with its new parents per delivery date."""
+        od = f"{order_date:%Y-%m-%d}"
+        for rec in self.days.values():
+            rec.pop(od, None)
+        for dte, parents in new_by_ddate.items():
+            self.days.setdefault(dte, {})[od] = sorted(parents)
+        self.days = {d: r for d, r in self.days.items() if r}
+
+    def save(self, newest_order_date):
+        keep_from = f"{newest_order_date - timedelta(days=REGISTRY_KEEP_DAYS):%Y-%m-%d}"
+        self.days = {d: r for d, r in self.days.items() if d >= keep_from}      # delivery dates long past are finished
+        os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
+        tmp = self.path + ".tmp"
+        with gzip.open(tmp, "wt", encoding="utf-8") as fh:
+            json.dump({"version": 1, "savedAt": datetime.now().strftime("%Y-%m-%dT%H:%M"), "days": self.days}, fh,
+                      ensure_ascii=False, separators=(",", ":"))
+        os.replace(tmp, self.path)
+        log(f"registry: saved {self.path} ({os.path.getsize(self.path) / 1048576:.1f} MB, {len(self.days)} delivery dates)")
+
+
+def process_report(path, order_date, tableau_path, parent_map=None, registry=None):
     """Returns (rows, stats). rows = DataFrame (one row per report line left after the filters) with
-    district, delivery (date), is_parent, order_no, waybill. is_parent (v11.3) = the Order Number maps (Tableau order_number ->
-    Parent Order) to a parent whose EARLIEST order date is T-1."""
+    district, delivery (date), order_no, parent, is_new, waybill.
+      parent (v11.10) = the Tableau Parent Order of (order number, delivery date); an order that is not in the Tableau report
+                        uses its own order number as its parent.
+      is_new          = the parent was NOT counted by an earlier order-date record for the same delivery date (registry)."""
     df = read_report(path)
     st = {"rawRows": len(df)}
     # --- 1. dates -> MM/DD/YYYY
@@ -736,43 +854,70 @@ def process_report(path, order_date, tableau_path, parent_map=None):
     st["sameDaySlots"] = {k: int(v) for k, v in slot[same].value_counts().head(6).items()}      # what the timeslot values look like
     if st["sameDayRows"] and st["sameDayRows"] == st["sameDayDropped"]:
         log(f"WARNING: none of the {st['sameDayRows']} same-day rows has Delivery Timeslot {SAME_DAY_TIMESLOT}; values seen: {st['sameDaySlots']}")
-    df = df[~drop_same].copy()
+    df = df[~drop_same].copy().reset_index(drop=True)
     st["rowsKept"] = len(df)
-    # --- 4. (v11.3) parent order via the Tableau report: Order Number -> Parent Order -> earliest order date; keep when = T-1.
-    #        district (NT-YT -> WTH)
+    # --- 4. district (NT-YT -> WTH) and the Parent Order of every order (v11.10)
     d = df["district"].str.strip().str.upper()
     df["district"] = d.replace(DISTRICT_ALIAS)
     df["order_no"] = df["order_no"].str.strip().replace("", pd.NA)
     df["waybill"] = df["waybill"].str.strip().replace("", pd.NA)
-    o2p, earliest = parent_map if parent_map is not None else load_parent_map(tableau_path)
-    parent = df["order_no"].map(o2p)
-    first_date = parent.map(earliest)
-    df["is_parent"] = first_date == pd.Timestamp(order_date)
-    uniq = df.drop_duplicates("order_no")
-    up = uniq["order_no"].map(o2p)
-    st["ordersInFilteredReport"] = int(uniq["order_no"].notna().sum())
-    st["ordersNotInTableau"] = int(up.isna().sum())            # cannot be mapped -> not counted
-    st["ordersEarlierParent"] = int((up.notna() & (up.map(earliest) < pd.Timestamp(order_date))).sum())
-    st["ordersLaterParent"] = int((up.notna() & (up.map(earliest) > pd.Timestamp(order_date))).sum())
+    pm = parent_map if parent_map is not None else load_parent_map(tableau_path)
+    mapped = pm.parents(df["order_no"], df["delivery"])                    # Tableau rows of the SAME delivery date
+    df["parent"] = mapped.where(mapped.notna(), df["order_no"])           # not in the Tableau report -> the order number IS the parent
+    pairs = df[df["order_no"].notna()].drop_duplicates(["order_no", "delivery"])      # one line per (order number, delivery date)
+    unm = pairs[mapped.loc[pairs.index].isna()]
+    if pm.has_delivery and pm.min_delivery is not None:
+        before = unm["delivery"] < pm.min_delivery                            # earlier than the report's start date: cannot be in it
+        covered_pairs = int((pairs["delivery"] >= pm.min_delivery).sum())
+        unm_covered = int((~before).sum())
+        if int(before.sum()):
+            log(f"WARNING: {int(before.sum())} orders have a delivery date before the first delivery date of the Tableau report "
+                f"({pm.min_delivery:%Y-%m-%d}) - not mappable, their own order number is the parent")
+    else:
+        covered_pairs, unm_covered = len(pairs), len(unm)
+    st["ordersInFilteredReport"] = len(pairs)
+    st["ordersNotInTableau"] = len(unm)                                  # own order number used as the parent
+    st["ordersOtherDeliveryDate"] = int(unm["order_no"].isin(pm.orders).sum()) if pm.has_delivery else 0    # in Tableau, but under another delivery date
     if st["ordersNotInTableau"]:
         pct = 100.0 * st["ordersNotInTableau"] / max(1, st["ordersInFilteredReport"])
-        log(f"WARNING: {st['ordersNotInTableau']} of {st['ordersInFilteredReport']} order numbers ({pct:.2f}%) are not in the Tableau report - not counted")
-    if st["ordersInFilteredReport"] and st["ordersNotInTableau"] > 0.2 * st["ordersInFilteredReport"]:
-        raise ValueError(f"only {100 - 100.0 * st['ordersNotInTableau'] / st['ordersInFilteredReport']:.0f}% of the order numbers were found in "
+        log(f"WARNING: {st['ordersNotInTableau']} of {st['ordersInFilteredReport']} orders ({pct:.2f}%) are not in the Tableau report for their "
+            f"delivery date ({st['ordersOtherDeliveryDate']} of them are in it under another delivery date) - their order number is used as the parent")
+    if covered_pairs and unm_covered > MAX_UNMAPPED_SHARE * covered_pairs:
+        raise ValueError(f"only {100 - 100.0 * unm_covered / covered_pairs:.0f}% of the orders were found in "
                          f"{os.path.basename(tableau_path)} - wrong / stale Tableau file? (start date must be {order_date:%d/%m/%Y})")
-    st["parentRows"] = int(df["is_parent"].sum())
-    st["parentOrders"] = int(df.loc[df["is_parent"], "order_no"].nunique())
+    # --- 5. (v11.10) a parent already counted by an earlier record for the same delivery date is not counted again
+    if registry is not None and not registry.quiet:
+        later = registry.later_dates(order_date)
+        if later:
+            log(f"WARNING: the registry already holds records of later order dates ({later[0]} .. {later[-1]}); they were deduplicated against "
+                f"the old history of {order_date:%Y-%m-%d}. Re-run those days in order (rolling_orders_backfill.py --from {order_date:%Y-%m-%d}).")
+    df["is_new"] = False
+    new_by, n_parents, n_seen = {}, 0, 0
+    for dte, g in df[df["parent"].notna()].groupby(df["delivery"].dt.strftime("%Y-%m-%d")):
+        ps = pd.Series(g["parent"].unique())
+        seen = registry.seen_before(order_date, dte) if registry is not None else set()
+        new = ps[~ps.isin(seen)]
+        df.loc[g.index, "is_new"] = g["parent"].isin(set(new)).values
+        new_by[dte] = new.tolist()
+        n_parents += len(ps)
+        n_seen += len(ps) - len(new)
+    st["parentOrders"] = n_parents - n_seen                             # new parents = what this record adds to the dashboard
+    st["parentsAlreadyCounted"] = n_seen                                # skipped: counted by an earlier order date, same delivery date
+    st["parentRows"] = int(df["is_new"].sum())
     st["waybills"] = int(df["waybill"].nunique())
+    if registry is not None:
+        registry.record(order_date, new_by)
     log(f"rows {st['rawRows']} -> districts {st['afterDistrict']} -> no CANCEL {st['afterCancel']} -> no {EXCLUDE_ZONE} {st['afterZone']} "
-        f"-> same-day slot {st['rowsKept']} | parent orders {st['parentOrders']}, waybills {st['waybills']}")
+        f"-> same-day slot {st['rowsKept']} | parents {n_parents} (new {st['parentOrders']}, already counted {n_seen}), waybills {st['waybills']}")
     return df, st
 
 
 def count_cells(rows):
     """{deliveryDate: {district|'OVERALL': [orders, waybills]}}
-    orders = distinct Order Number among the rows whose Parent Order's earliest order date = T-1 (v11.3); waybills = distinct Waybill Number of all rows."""
+    orders = distinct PARENT ORDER among the rows whose parent no earlier order-date record counted for that delivery date (v11.10);
+    waybills = distinct Waybill Number of all rows."""
     def cell(g):
-        return [int(g.loc[g["is_parent"], "order_no"].nunique()), int(g["waybill"].nunique())]
+        return [int(g.loc[g["is_new"], "parent"].nunique()), int(g["waybill"].nunique())]
     cells = {}
     for dte, g in rows.groupby(rows["delivery"].dt.strftime("%Y-%m-%d")):
         c = {"OVERALL": cell(g)}
@@ -782,8 +927,8 @@ def count_cells(rows):
     return cells
 
 
-def build_snapshot(order_date, report_file, tableau_file):
-    rows, st = process_report(report_file, order_date, tableau_file)
+def build_snapshot(order_date, report_file, tableau_file, registry=None):
+    rows, st = process_report(report_file, order_date, tableau_file, registry=registry)
     return count_cells(rows), {"report": st}
 
 
@@ -1053,11 +1198,16 @@ def main():
         log(f"tableau file: {tableau}  ->  {'FOUND' if os.path.exists(tableau) else 'NOT FOUND'}")
         if not os.path.exists(tableau):
             raise SystemExit("no Tableau file - run without --skip-tableau-download, or pass --tableau-file")
-        cells, stats = build_snapshot(order_date, report, tableau)
+        registry = ParentRegistry().load()                  # v11.10: parents the earlier order dates already counted
+        if not registry.order_dates() and os.path.exists(ROLLING_JSON):
+            log("WARNING: the parent registry is empty but rolling_orders.json already holds days - run rolling_orders_backfill.py "
+                "--from <first order date> once so the earlier days are known; otherwise parents they counted are counted again")
+        cells, stats = build_snapshot(order_date, report, tableau, registry)
         log("stats: " + json.dumps(stats, ensure_ascii=False))
         if not cells:
             raise SystemExit(f"report found but 0 usable rows for order date {order_date:%Y-%m-%d} - nothing written")
         data = update_json(order_date, slot, cells, stats)
+        registry.save(order_date)                          # only after the json was written, so the two never disagree
         # v11.9 - the numbers are in the json now: delete the two downloaded csv files (not with --keep-files / --process-only,
         # and never a file given with --report-file / --tableau-file)
         if not (a.keep_files or KEEP_FILES or a.process_only):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-rolling_orders_backfill.py  -  KPI Dashboard Version 11.3  "Rolling Orders" BACKFILL (whole month)
+rolling_orders_backfill.py  -  KPI Dashboard Version 11.10  "Rolling Orders" BACKFILL (whole month)
 
 Re-computes the Rolling Orders figures of every order date from <--from> (default: the 1st of the month of yesterday) to
-<--to> (default: yesterday = T-1) with the v11.3 parent-order logic of rolling_orders.py, and writes them into rolling_orders.json
+<--to> (default: yesterday = T-1) with the v11.10 parent-order logic of rolling_orders.py, and writes them into rolling_orders.json
 (+ embeds it in index.html and pushes, exactly like the daily job). It uses the SAME processing code as rolling_orders.py
 (import), so a backfilled day equals what the 06:00 job would have produced.
 
@@ -20,8 +20,11 @@ What it does
      (start date typed, wait for the refresh, Crosstab -> CSV - same steps as rolling_orders.py) only when it is missing or with
      --redownload-tableau. A file the user dropped in by hand is found by its name
      (anything like "AI Fetching for Order Date T-1 ... Oct-1 ...csv" in the folder).
-  4. Processes every day (district / CANCEL / KN015 / same-day-slot filters, Order Number -> Parent Order -> earliest order date = D)
-     and writes the days into rolling_orders.json. Only the "days" of the processed dates are replaced; every other day, the
+  4. Processes every day IN DATE ORDER (district / CANCEL / KN015 / same-day-slot filters, Order Number -> Parent Order of the same
+     delivery date; an order that is not in Tableau is its own parent; a parent that an earlier order date already counted for the
+     same delivery date is not counted again - v11.10) and writes the days into rolling_orders.json. The parents every day counted
+     are kept in rolling_parent_registry.json.gz, which the 06:00 job continues from - so run this backfill ONCE from the first order
+     date whose delivery dates are still open (e.g. --from 2026-10-01) when you install v11.10. Only the "days" of the processed dates are replaced; every other day, the
      snapshots and lastRun are left untouched. A copy of the old json is kept as rolling_orders.json.bak_backfill.
   5. Prints old vs new parent-order totals per order date.
   6. (v11.9) Deletes the csv files it has just written to the json: the MFNAS csv of every written day, and a Tableau csv once no
@@ -87,6 +90,16 @@ def load_json():
 def order_total(cells):
     """Parent orders of one order date = sum over its delivery dates of the OVERALL order count."""
     return sum(v.get("OVERALL", [0, 0])[0] for v in (cells or {}).values())
+
+
+def delivery_totals(data):
+    """{delivery date: orders} = the OVERALL order count summed over every order-date record in the json. Because each record only
+    counts the parents the earlier records did not, this is the number of distinct Parent Orders for that delivery date."""
+    tot = {}
+    for rec in (data.get("days") or {}).values():
+        for dte, cell in (rec.get("cells") or {}).items():
+            tot[dte] = tot.get(dte, 0) + cell.get("OVERALL", [0, 0])[0]
+    return tot
 
 
 def mfnas_present(path):
@@ -174,8 +187,8 @@ class TableauFiles:
         self._seen.add(key)
         pm = ro.load_parent_map(path)
         start = start_from_name(path, self.year) or first          # a file without a date in its name is taken to start at the range start
-        self.items.append({"path": path, "start": start, "covered": pm[1].max(), "pm": pm, "mtime": os.path.getmtime(path)})
-        log(f"Tableau: {os.path.basename(path)} - start {start:%Y-%m-%d}, order dates up to {pm[1].max():%Y-%m-%d}")
+        self.items.append({"path": path, "start": start, "covered": pm.max_order_date, "pm": pm, "mtime": os.path.getmtime(path)})
+        log(f"Tableau: {os.path.basename(path)} - start {start:%Y-%m-%d}, order dates up to {pm.max_order_date:%Y-%m-%d}")
 
     def pick(self, d):
         ok = [t for t in self.items if t["start"] <= d <= t["covered"]]
@@ -306,14 +319,17 @@ def main():
         if not todo:
             raise SystemExit("no day has an MFNAS csv - nothing to process: " + "; ".join(f"{d:%m-%d}: {m}" for d, m in failed.items()))
 
-        # --- 4. process
+        # --- 4. process (chronological: every day is deduplicated against the days before it)
         results = {}
+        registry = ro.ParentRegistry().load()
+        registry.quiet = True                        # earlier / later records are re-computed here; one warning at the end
+        todo = sorted(todo)
         for d in todo:
             log(f"=== order date {d:%Y-%m-%d} ===")
             try:
                 t = tf.pick(d)
                 log(f"Tableau csv used: {os.path.basename(t['path'])}")
-                rows, st = ro.process_report(ro.report_path(d), d, t["path"], parent_map=t["pm"])
+                rows, st = ro.process_report(ro.report_path(d), d, t["path"], parent_map=t["pm"], registry=registry)
                 cells = ro.count_cells(rows)
                 if not cells:
                     raise ValueError("0 usable rows")
@@ -324,6 +340,11 @@ def main():
         old_days = json.loads(json.dumps(data.get("days", {})))      # snapshot of the old values for the summary
         if results:
             data = write_days(results, data)
+            registry.save(max(results))
+            later = registry.later_dates(max(results))
+            if later:
+                log(f"WARNING: the registry also holds records of later order dates ({later[0]} .. {later[-1]}); they were deduplicated against "
+                    f"the previous history. Re-run the backfill up to yesterday (--to) so every day is consistent.")
             if not (a.keep_files or ro.KEEP_FILES):
                 # v11.9 - delete what is now safely in the json: the MFNAS csv of every written day, and a Tableau csv once no day
                 # it could serve is still waiting (failed days keep it, so a re-run does not have to download again).
@@ -347,6 +368,13 @@ def main():
         old = order_total(old_days.get(d.strftime('%Y-%m-%d'), {}).get("cells")) if old_days.get(d.strftime('%Y-%m-%d')) else None
         print(f"{d:%Y-%m-%d}  {('-' if old is None else format(old, ',')):>12}{new:>12,}"
               f"{('' if old is None else format(new - old, '+,')):>9}{results[d][1].get('ordersNotInTableau', 0):>16,}")
+    if results:
+        tot = delivery_totals(data)
+        shown = [k for k in sorted(tot) if first.strftime("%Y-%m-%d") <= k <= last.strftime("%Y-%m-%d")]
+        if shown:
+            print(f"\n{'delivery date':<14}{'orders (distinct parents, all order dates in the json)':>56}")
+            for k in shown:
+                print(f"{k:<14}{tot[k]:>56,}")
     if failed:
         print("\nNOT updated:")
         for d in sorted(failed):
