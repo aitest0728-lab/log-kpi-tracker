@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-rolling_orders_backfill.py  -  KPI Dashboard Version 11.10  "Rolling Orders" BACKFILL (whole month)
+rolling_orders_backfill.py  -  KPI Dashboard Version 11.11  "Rolling Orders" BACKFILL (whole month)
 
 Re-computes the Rolling Orders figures of every order date from <--from> (default: the 1st of the month of yesterday) to
 <--to> (default: yesterday = T-1) with the v11.10 parent-order logic of rolling_orders.py, and writes them into rolling_orders.json
@@ -93,12 +93,14 @@ def order_total(cells):
 
 
 def delivery_totals(data):
-    """{delivery date: orders} = the OVERALL order count summed over every order-date record in the json. Because each record only
-    counts the parents the earlier records did not, this is the number of distinct Parent Orders for that delivery date."""
+    """{delivery date: (orders, waybills)} = the OVERALL counts summed over every order-date record in the json. Because each record only
+    counts the parents / waybills the earlier records did not, these are the distinct Parent Orders / Waybills of that delivery date."""
     tot = {}
     for rec in (data.get("days") or {}).values():
         for dte, cell in (rec.get("cells") or {}).items():
-            tot[dte] = tot.get(dte, 0) + cell.get("OVERALL", [0, 0])[0]
+            o, w = cell.get("OVERALL", [0, 0])[:2]
+            a = tot.get(dte, (0, 0))
+            tot[dte] = (a[0] + o, a[1] + w)
     return tot
 
 
@@ -372,9 +374,9 @@ def main():
         tot = delivery_totals(data)
         shown = [k for k in sorted(tot) if first.strftime("%Y-%m-%d") <= k <= last.strftime("%Y-%m-%d")]
         if shown:
-            print(f"\n{'delivery date':<14}{'orders (distinct parents, all order dates in the json)':>56}")
+            print(f"\n{'delivery date':<14}{'orders (distinct parents)':>28}{'waybills (distinct)':>22}   (all order dates in the json)")
             for k in shown:
-                print(f"{k:<14}{tot[k]:>56,}")
+                print(f"{k:<14}{tot[k][0]:>28,}{tot[k][1]:>22,}")
     if failed:
         print("\nNOT updated:")
         for d in sorted(failed):

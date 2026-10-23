@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-rolling_orders.py  -  KPI Dashboard Version 11.10  "Rolling Orders"   (MFNAS report + Tableau "AI Fetching for Order Date = T-1" mapping)
+rolling_orders.py  -  KPI Dashboard Version 11.11  "Rolling Orders"   (MFNAS report + Tableau "AI Fetching for Order Date = T-1" mapping)
 
 One run per day, at 06:00 (T-0). It reports the orders created YESTERDAY (T-1):
   1. Logs in to TKO-MFNAS (Synology File Station API, CRAB_NAS_USER / CRAB_NAS_PASS - same as project_crab.py),
@@ -30,7 +30,8 @@ One run per day, at 06:00 (T-0). It reports the orders created YESTERDAY (T-1):
               again (e.g. an add-on order that shares the parent of an order placed on a previous day). This replaces the v11.3 test
               "earliest order date of the parent = T-1".
          ORDER count = distinct PARENT ORDER that no earlier record counted for that delivery date, per Delivery Date x district and overall
-         WAYBILL count = distinct Waybill Number over all remaining rows (unchanged)
+         WAYBILL count (v11.11) = distinct Waybill Number, with the same rule: a waybill an earlier record already counted for the same
+         delivery date is not counted again (the registry keeps the waybills too)
        - counted per (Delivery Date x district); NT-YT is grouped into WTH
   3. Writes rolling_orders.json next to index.html AND embeds it in index.html's window.__EMBEDDED_DATA__ block.
   4. Pushes rolling_orders.json + index.html to the dashboard repo (git pull --rebase -> commit -> push), with an
@@ -746,13 +747,15 @@ def parse_dates(series, expected=None, prefer=None):
 class ParentRegistry:
     """v11.10 - the Parent Orders that earlier records already counted, kept per DELIVERY date and per ORDER-date record:
         {delivery date: {order date: [parent orders first counted by that record]}}
-    A record stores only its NEW parents, so the union of the records of the order dates BEFORE X is every parent already counted
-    for that delivery date. The file lives next to the raw csv files (outside the dashboard repo): those csv files are deleted
+    v11.11 - the Waybill Numbers are tracked the same way (self.wb, same layout).
+    A record stores only its NEW parents / waybills, so the union of the records of the order dates BEFORE X is everything already
+    counted for that delivery date. The file lives next to the raw csv files (outside the dashboard repo): those csv files are deleted
     once processed, so this is the only memory of what the previous days counted."""
 
     def __init__(self, path=None):
         self.path = path or REGISTRY_PATH
         self.days = {}
+        self.wb = {}                            # v11.11: same layout as self.days, for waybill numbers
         self.quiet = False                      # the backfill re-computes many days in a row and warns once at its end
 
     def load(self):
@@ -761,7 +764,11 @@ class ParentRegistry:
             return self
         try:
             with gzip.open(self.path, "rt", encoding="utf-8") as fh:
-                self.days = json.load(fh).get("days", {})
+                raw = json.load(fh)
+            self.days, self.wb = raw.get("days", {}), raw.get("wb", {})
+            if self.days and not self.wb:
+                log("WARNING: the registry has no waybill history (written before v11.11) - run rolling_orders_backfill.py "
+                    "--from <first order date> so the waybills of the earlier days are known")
         except Exception as ex:
             raise RuntimeError(f"parent registry {self.path} is unreadable ({type(ex).__name__}: {ex}). Restore it, or delete it and run "
                                f"rolling_orders_backfill.py --from <first order date> to rebuild it - a run without it would count "
@@ -771,13 +778,14 @@ class ParentRegistry:
         return self
 
     def order_dates(self):
-        return sorted({o for rec in self.days.values() for o in rec})
+        return sorted({o for src in (self.days, self.wb) for rec in src.values() for o in rec})
 
-    def seen_before(self, order_date, ddate):
-        """Parents already counted for delivery date `ddate` by the records of order dates BEFORE `order_date`."""
+    def seen_before(self, order_date, ddate, kind="parent"):
+        """Parents (kind="parent") or waybills (kind="waybill") already counted for delivery date `ddate` by the records of
+        order dates BEFORE `order_date`."""
         cut = f"{order_date:%Y-%m-%d}"
         seen = set()
-        for od, parents in self.days.get(ddate, {}).items():
+        for od, parents in (self.wb if kind == "waybill" else self.days).get(ddate, {}).items():
             if od < cut:
                 seen.update(parents)
         return seen
@@ -786,22 +794,25 @@ class ParentRegistry:
         cut = f"{order_date:%Y-%m-%d}"
         return [o for o in self.order_dates() if o > cut]
 
-    def record(self, order_date, new_by_ddate):
-        """Replace the record of `order_date` (a re-run overwrites it) with its new parents per delivery date."""
+    def record(self, order_date, new_by_ddate, new_wb_by_ddate=None):
+        """Replace the record of `order_date` (a re-run overwrites it) with its new parents / waybills per delivery date."""
         od = f"{order_date:%Y-%m-%d}"
-        for rec in self.days.values():
-            rec.pop(od, None)
-        for dte, parents in new_by_ddate.items():
-            self.days.setdefault(dte, {})[od] = sorted(parents)
+        for store, new in ((self.days, new_by_ddate), (self.wb, new_wb_by_ddate or {})):
+            for rec in store.values():
+                rec.pop(od, None)
+            for dte, items in new.items():
+                store.setdefault(dte, {})[od] = sorted(items)
         self.days = {d: r for d, r in self.days.items() if r}
+        self.wb = {d: r for d, r in self.wb.items() if r}
 
     def save(self, newest_order_date):
         keep_from = f"{newest_order_date - timedelta(days=REGISTRY_KEEP_DAYS):%Y-%m-%d}"
         self.days = {d: r for d, r in self.days.items() if d >= keep_from}      # delivery dates long past are finished
+        self.wb = {d: r for d, r in self.wb.items() if d >= keep_from}
         os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
         tmp = self.path + ".tmp"
         with gzip.open(tmp, "wt", encoding="utf-8") as fh:
-            json.dump({"version": 1, "savedAt": datetime.now().strftime("%Y-%m-%dT%H:%M"), "days": self.days}, fh,
+            json.dump({"version": 2, "savedAt": datetime.now().strftime("%Y-%m-%dT%H:%M"), "days": self.days, "wb": self.wb}, fh,
                       ensure_ascii=False, separators=(",", ":"))
         os.replace(tmp, self.path)
         log(f"registry: saved {self.path} ({os.path.getsize(self.path) / 1048576:.1f} MB, {len(self.days)} delivery dates)")
@@ -809,10 +820,11 @@ class ParentRegistry:
 
 def process_report(path, order_date, tableau_path, parent_map=None, registry=None):
     """Returns (rows, stats). rows = DataFrame (one row per report line left after the filters) with
-    district, delivery (date), order_no, parent, is_new, waybill.
+    district, delivery (date), order_no, parent, is_new, waybill, wb_new.
       parent (v11.10) = the Tableau Parent Order of (order number, delivery date); an order that is not in the Tableau report
                         uses its own order number as its parent.
-      is_new          = the parent was NOT counted by an earlier order-date record for the same delivery date (registry)."""
+      is_new          = the parent was NOT counted by an earlier order-date record for the same delivery date (registry).
+      wb_new (v11.11) = the same test for the Waybill Number (a waybill an earlier record counted for that delivery date is skipped)."""
     df = read_report(path)
     st = {"rawRows": len(df)}
     # --- 1. dates -> MM/DD/YYYY
@@ -892,8 +904,11 @@ def process_report(path, order_date, tableau_path, parent_map=None, registry=Non
             log(f"WARNING: the registry already holds records of later order dates ({later[0]} .. {later[-1]}); they were deduplicated against "
                 f"the old history of {order_date:%Y-%m-%d}. Re-run those days in order (rolling_orders_backfill.py --from {order_date:%Y-%m-%d}).")
     df["is_new"] = False
+    df["wb_new"] = False
     new_by, n_parents, n_seen = {}, 0, 0
-    for dte, g in df[df["parent"].notna()].groupby(df["delivery"].dt.strftime("%Y-%m-%d")):
+    new_wb, n_wb, n_wb_seen = {}, 0, 0
+    ddates = df["delivery"].dt.strftime("%Y-%m-%d")
+    for dte, g in df[df["parent"].notna()].groupby(ddates):
         ps = pd.Series(g["parent"].unique())
         seen = registry.seen_before(order_date, dte) if registry is not None else set()
         new = ps[~ps.isin(seen)]
@@ -901,23 +916,33 @@ def process_report(path, order_date, tableau_path, parent_map=None, registry=Non
         new_by[dte] = new.tolist()
         n_parents += len(ps)
         n_seen += len(ps) - len(new)
+    for dte, g in df[df["waybill"].notna()].groupby(ddates):               # v11.11 - the waybills, same rule
+        ws = pd.Series(g["waybill"].unique())
+        seen = registry.seen_before(order_date, dte, "waybill") if registry is not None else set()
+        new = ws[~ws.isin(seen)]
+        df.loc[g.index, "wb_new"] = g["waybill"].isin(set(new)).values
+        new_wb[dte] = new.tolist()
+        n_wb += len(ws)
+        n_wb_seen += len(ws) - len(new)
     st["parentOrders"] = n_parents - n_seen                             # new parents = what this record adds to the dashboard
     st["parentsAlreadyCounted"] = n_seen                                # skipped: counted by an earlier order date, same delivery date
     st["parentRows"] = int(df["is_new"].sum())
-    st["waybills"] = int(df["waybill"].nunique())
+    st["waybills"] = n_wb - n_wb_seen                                   # new waybills = what this record adds to the dashboard
+    st["waybillsAlreadyCounted"] = n_wb_seen
     if registry is not None:
-        registry.record(order_date, new_by)
+        registry.record(order_date, new_by, new_wb)
     log(f"rows {st['rawRows']} -> districts {st['afterDistrict']} -> no CANCEL {st['afterCancel']} -> no {EXCLUDE_ZONE} {st['afterZone']} "
-        f"-> same-day slot {st['rowsKept']} | parents {n_parents} (new {st['parentOrders']}, already counted {n_seen}), waybills {st['waybills']}")
+        f"-> same-day slot {st['rowsKept']} | parents {n_parents} (new {st['parentOrders']}, already counted {n_seen}), "
+        f"waybills {n_wb} (new {st['waybills']}, already counted {n_wb_seen})")
     return df, st
 
 
 def count_cells(rows):
     """{deliveryDate: {district|'OVERALL': [orders, waybills]}}
     orders = distinct PARENT ORDER among the rows whose parent no earlier order-date record counted for that delivery date (v11.10);
-    waybills = distinct Waybill Number of all rows."""
+    waybills = distinct Waybill Number that no earlier order-date record counted for that delivery date (v11.11)."""
     def cell(g):
-        return [int(g.loc[g["is_new"], "parent"].nunique()), int(g["waybill"].nunique())]
+        return [int(g.loc[g["is_new"], "parent"].nunique()), int(g.loc[g["wb_new"], "waybill"].nunique())]
     cells = {}
     for dte, g in rows.groupby(rows["delivery"].dt.strftime("%Y-%m-%d")):
         c = {"OVERALL": cell(g)}
