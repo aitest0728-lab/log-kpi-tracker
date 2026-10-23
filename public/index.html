@@ -739,6 +739,8 @@
   .rolling-table thead th.rl-total{background:var(--ink);color:#fff;}
   .rolling-table tfoot th,.rolling-table tfoot td{font-weight:700;background:#eef2f6;color:var(--ink);border-top:2px solid var(--ink);border-bottom:none;}
   .rolling-table tfoot th{text-align:left;position:sticky;left:0;}
+  .rolling-table tfoot th,.rolling-table tfoot td{position:sticky;bottom:0;z-index:2;font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .rolling-table tfoot th{z-index:3;font-family:'Inter';} .rolling-table tfoot th small{font-weight:500;color:var(--text-muted);margin-left:6px;display:block;margin:2px 0 0;font-size:10.5px;}
   #rollingNote{font-size:11.5px;color:var(--text-muted);margin-top:12px;line-height:1.55;}
   .rolling-empty{padding:34px;text-align:center;color:var(--text-muted);font-size:13px;}
   /* v11.1 — Rolling Orders: Order Date filter, CSV button, month collapse, one table per district */
@@ -8403,7 +8405,19 @@
         });
       }
     });
-    return h + '</tbody></table>';
+    // v11.9 - Total row: every expected-delivery-date column summed over ALL order dates inside the filter (day by day, whether or not an
+    // old month is collapsed on screen); the right-most cell is the grand total. Percentage mode = each column's share of the grand total.
+    const allDates = []; groups.forEach(g=>g.dates.forEach(od=>allDates.push(od)));
+    const colTot = delDates.map(dd=>{
+      let s = 0, any = false;
+      allDates.forEach(od=>{ const v = rollingVal((R.days[od].cells||{})[dd], key); if(v!=null){ s += v; any = true; } });
+      return any ? s : null;
+    });
+    let grand = 0, anyG = false; colTot.forEach(v=>{ if(v!=null){ grand += v; anyG = true; } });
+    let ft = `<tfoot><tr><th>Total<small class="rl-slot">${allDates.length} order date${allDates.length>1?'s':''}</small></th>`;
+    colTot.forEach(v=>{ ft += `<td>${v==null ? '–' : (pct ? (grand ? (v/grand*100).toFixed(1) : '0.0') + '%' : v.toLocaleString('en-US'))}</td>`; });
+    ft += `<td class="rl-total">${!anyG ? '–' : (pct ? '100.0%' : grand.toLocaleString('en-US'))}</td></tr></tfoot>`;
+    return h + '</tbody>' + ft + '</table>';
   }
   // The newest order dates are the bottom rows and their delivery dates / Total are the right-most columns,
   // so land there (over 3 months the top-left is mostly empty).
@@ -8490,6 +8504,15 @@
         const f = rollingFmtDate(od);
         lines.push([key==='OVERALL' ? 'Overall' : key, od, f.wd].concat(cellsOut, [total]).map(c).join(','));
       });
+      // v11.9 - Total row of this district: every delivery-date column summed over the order dates in the filter
+      const colTot = delDates.map(dd=>{
+        let s = 0, any = false;
+        dates.forEach(od=>{ const v = rollingVal((R.days[od].cells||{})[dd], key); if(v!=null){ s += v; any = true; } });
+        return any ? s : null;
+      });
+      let grand = 0, anyG = false; colTot.forEach(v=>{ if(v!=null){ grand += v; anyG = true; } });
+      const totOut = colTot.map(v=> v==null ? '' : (pct ? (grand ? Math.round(v/grand*1000)/10 : 0) : v));
+      lines.push([key==='OVERALL' ? 'Overall' : key, 'Total', ''].concat(totOut, [!anyG ? '' : (pct ? 100 : grand)]).map(c).join(','));
     });
     return { text: lines.join('\r\n'), first: dates[0], last: dates[dates.length-1] };
   }
