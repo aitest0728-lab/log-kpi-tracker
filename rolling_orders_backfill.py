@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-rolling_orders_backfill.py  -  KPI Dashboard Version 11.11  "Rolling Orders" BACKFILL (whole month)
+rolling_orders_backfill.py  -  KPI Dashboard Version 11.12  "Rolling Orders" BACKFILL (whole month)
 
 Re-computes the Rolling Orders figures of every order date from <--from> (default: the 1st of the month of yesterday) to
 <--to> (default: yesterday = T-1) with the v11.10 parent-order logic of rolling_orders.py, and writes them into rolling_orders.json
@@ -189,7 +189,7 @@ class TableauFiles:
         self._seen.add(key)
         pm = ro.load_parent_map(path)
         start = start_from_name(path, self.year) or first          # a file without a date in its name is taken to start at the range start
-        self.items.append({"path": path, "start": start, "covered": pm.max_order_date, "pm": pm, "mtime": os.path.getmtime(path)})
+        self.items.append({"path": path, "start": start, "covered": pm.complete_through, "pm": pm, "mtime": os.path.getmtime(path)})
         log(f"Tableau: {os.path.basename(path)} - start {start:%Y-%m-%d}, order dates up to {pm.max_order_date:%Y-%m-%d}")
 
     def pick(self, d):

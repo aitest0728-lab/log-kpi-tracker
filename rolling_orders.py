@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-rolling_orders.py  -  KPI Dashboard Version 11.11  "Rolling Orders"   (MFNAS report + Tableau "AI Fetching for Order Date = T-1" mapping)
+rolling_orders.py  -  KPI Dashboard Version 11.14  "Rolling Orders"   (MFNAS report + Tableau "AI Fetching for Order Date = T-1" mapping)
 
 One run per day, at 06:00 (T-0). It reports the orders created YESTERDAY (T-1):
   1. Logs in to TKO-MFNAS (Synology File Station API, CRAB_NAS_USER / CRAB_NAS_PASS - same as project_crab.py),
@@ -104,7 +104,12 @@ NAS_ROOT_CANDIDATES = [r for r in (os.environ.get("ROLLING_NAS_ROOT", "").strip(
 # --- Tableau (v11.3) - same account / host as the GMV report in kpi_pipeline.py ---
 TABLEAU_SIGNIN_URL = os.environ.get("TABLEAU_GMV_URL", "https://inhouse-analytics.hktv.com.hk/#/signin")
 TABLEAU_AI_VIEW_URL = os.environ.get("TABLEAU_AI_T1_URL",
-    "https://inhouse-analytics.hktv.com.hk/#/views/AIFetchingforOrderDateT-1/AIFetchingforOrderDateT-1_1?:iid=1")
+    "https://inhouse-analytics.hktv.com.hk/#/views/AIFetchingforOrderDateT-1/AIFetchingforOrderDateT-1_1")
+# The view must be the one TITLED "AI Fetching for Order Date = T-1" (with the "="). A Tableau URL never shows the "=" (spaces and special
+# characters are stripped from the view name, and a "_1" is added when two views end up with the same URL name), so the title found on
+# the opened page is logged and compared with this text. TABLEAU_AI_T1_STRICT=1 stops the run when it is not found.
+TABLEAU_AI_VIEW_TITLE = os.environ.get("TABLEAU_AI_T1_TITLE", "AI Fetching for Order Date = T-1")
+TABLEAU_AI_VIEW_STRICT = os.environ.get("TABLEAU_AI_T1_STRICT", "") == "1"
 TABLEAU_USER = os.environ.get("TABLEAU_GMV_USER", "")
 TABLEAU_PASS = os.environ.get("TABLEAU_GMV_PASS", "")
 TABLEAU_REFRESH_WAIT_S = int(os.environ.get("ROLLING_TABLEAU_REFRESH_WAIT", "300"))   # 5 min after the start date is typed
@@ -131,6 +136,7 @@ LOG_DIR = os.environ.get("ROLLING_LOG_DIR", os.path.join(KPI_DIR, "logs"))
 # v11.10 - parent orders already counted by earlier order dates (per delivery date). Outside the dashboard repo, next to the raw csv files.
 REGISTRY_PATH = os.environ.get("ROLLING_PARENT_REGISTRY", os.path.join(ROLLING_DIR, "rolling_parent_registry.json.gz"))
 MAX_UNMAPPED_SHARE = float(os.environ.get("ROLLING_MAX_UNMAPPED", "0.2"))          # more unmapped orders than this share = wrong / stale Tableau file -> stop
+PARTIAL_DAY_SHARE = 0.25            # newest Tableau order date with fewer rows than this share of the day before = exported too early, not complete
 REGISTRY_KEEP_DAYS = int(os.environ.get("ROLLING_REGISTRY_KEEP_DAYS", "30"))      # delivery dates older than this (vs the newest order date) are dropped
 
 SLOTS = ["06:00"]                            # Version 11.1: one run a day
@@ -464,6 +470,31 @@ def _wait_for_view(page, final_path):
     raise RuntimeError(f"Tableau view did not load within {TABLEAU_LOAD_WAIT_S}s (page at {page.url})")
 
 
+def _check_view_title(page):
+    """v11.14 - log which Tableau view was opened and warn (or stop with TABLEAU_AI_T1_STRICT=1) when its title is not
+    TABLEAU_AI_VIEW_TITLE ("AI Fetching for Order Date = T-1", with the "=")."""
+    norm = lambda x: re.sub(r"\s+", "", x or "").lower()
+    seen = []
+    try:
+        seen.append(page.title() or "")
+    except Exception:
+        pass
+    try:
+        seen.append(page.inner_text("body", timeout=5000)[:20000])
+    except Exception:
+        pass
+    ok = any(norm(TABLEAU_AI_VIEW_TITLE) in norm(t) for t in seen)
+    found = next((t.strip().splitlines()[0][:120] for t in seen[:1] if t and t.strip()), "?")
+    if ok:
+        log(f"Tableau: view title OK - '{TABLEAU_AI_VIEW_TITLE}' found (browser title: '{found}')")
+        return
+    msg = (f"the opened Tableau view does not show the title '{TABLEAU_AI_VIEW_TITLE}' (browser title: '{found}', url {page.url}). "
+           f"A view named WITHOUT the '=' ('AI Fetching for Order Date T-1') gets almost the same URL - check TABLEAU_AI_T1_URL")
+    if TABLEAU_AI_VIEW_STRICT:
+        raise RuntimeError(msg)
+    log("WARNING: " + msg)
+
+
 def _tableau_session(order_date, final_path):
     from playwright.sync_api import sync_playwright
     tmp = final_path + ".part"
@@ -489,6 +520,7 @@ def _tableau_session(order_date, final_path):
             activity = _VizActivity(page)
             _wait_for_view(page, final_path)
             time.sleep(15)
+            _check_view_title(page)
             activity.mark()
             if not _set_start_date(page, order_date):
                 raise RuntimeError(f"could not set the delivery_date start date to {order_date:%d/%m/%Y}")
@@ -535,8 +567,8 @@ def _tableau_session(order_date, final_path):
 
 
 def read_tableau_csv(path, nrows=None):
-    """Tableau crosstab as strings. Every layout is accepted: UTF-16 tab-separated or UTF-8 (comma / tab), with the waybill_no column
-    (Parent Order, order_number, waybill_no, Order Date) or without it (Parent Order, order_number, Order Date)."""
+    """Tableau crosstab as strings. Every layout is accepted: UTF-16 tab-separated or UTF-8 (comma / tab), with or without the waybill_no
+    column - (Parent Order, order_number, [waybill_no,] Order Date, delivery_date); see tableau_columns."""
     with open(path, "rb") as f:
         head = f.read(4096)
     if head[:2] in (b"\xff\xfe", b"\xfe\xff"):
@@ -610,9 +642,13 @@ class ParentMap:
     rows of the SAME delivery date - for delivery date = T-1 that is exactly "take the Tableau rows with delivery date = T-1,
     then map". A report without the delivery column (old 3 / 4-column layout) maps by order number alone."""
 
-    def __init__(self, lookup, has_delivery, orders, max_order_date, min_delivery, rows):
+    def __init__(self, lookup, has_delivery, orders, max_order_date, min_delivery, rows, complete_through=None, last_day_rows=0):
         self.lookup, self.has_delivery, self.orders = lookup, has_delivery, orders
         self.max_order_date, self.min_delivery, self.rows = max_order_date, min_delivery, rows
+        # newest order date whose orders are all in the report. The newest order date of an export taken early in the day holds only
+        # the first hours of that day, so it is NOT complete (v11.12).
+        self.complete_through = complete_through if complete_through is not None else max_order_date
+        self.last_day_rows = last_day_rows
 
     def parents(self, order_no, delivery):
         """Parent Order of every (order number, delivery date) pair; NaN where the pair is not in the report."""
@@ -622,19 +658,56 @@ class ParentMap:
         return k.map(self.lookup)
 
 
+def tableau_columns(t):
+    """Column positions of the Tableau crosstab -> (parent, order_no, order_date, delivery_date or None, waybill or None).
+    Headers decide (so the waybill_no column may be present or removed); only when a header is missing / renamed the layout is
+    taken from the number of columns:
+        5  Parent Order, order_number, waybill_no, Order Date, delivery_date
+        4  Parent Order, order_number, Order Date, delivery_date          (waybill column removed - the daily download)
+           or Parent Order, order_number, waybill_no, Order Date          (old layout, no delivery date)
+        3  Parent Order, order_number, Order Date
+    A trailing empty column (Tableau ends every line with a tab) is ignored."""
+    cols = [str(c).strip() for c in t.columns]
+    real = [i for i, c in enumerate(cols) if c and not c.lower().startswith("unnamed")]
+    n = (max(real) + 1) if real else len(cols)
+    norm = [c.lower().replace("_", " ") for c in cols]
+    def find(*keys):
+        return next((i for i, c in enumerate(norm[:n]) if any(k in c for k in keys)), None)
+    oi = find("order number")
+    di = find("order date")
+    ei = find("delivery date")
+    wi = find("waybill")
+    pi = find("parent")
+    if pi is None:
+        pi = 0
+    if oi is None:
+        oi = 1
+    if di is None or (n >= 4 and ei is None and wi is None):
+        if n >= 5:
+            wi, di, ei = (wi if wi is not None else 2), 3, 4
+        elif n == 4:
+            third = _parse_ymd(t.iloc[:200, 2].astype(str).str.strip())
+            if third.notna().mean() > 0.9:          # col C is a date -> (Parent, order, Order Date, delivery date)
+                wi, di, ei = None, 2, 3
+            else:                                   # col C is a waybill -> old layout
+                wi, di, ei = 2, 3, None
+        else:
+            wi, di, ei = None, 2, None
+    return pi, oi, di, ei, wi
+
+
 def load_parent_map(path):
     """Tableau crosstab -> ParentMap. Columns: A = Order (Unlimited & Add-on Group to Parent) = Parent Order, order_number (B),
-    the "Day, Month, Year of Order Date" column (D, or C when the waybill column is removed) and, since v11.10, the
-    "Day, Month, Year of delivery_date" column (E)."""
+    the "Day, Month, Year of Order Date" column and, since v11.10, the "Day, Month, Year of delivery_date" column. The waybill_no
+    column (C) is optional: without it the order date is column C and the delivery date column D (see tableau_columns)."""
     t = read_tableau_csv(path)
     if t.shape[1] < 3:
         raise ValueError(f"{os.path.basename(path)}: expected at least 3 columns (Parent Order, order_number, order date), got {t.shape[1]}")
-    cols = [str(c).strip() for c in t.columns]
-    norm = [c.lower().replace("_", " ") for c in cols]
-    oi = cols.index("order_number") if "order_number" in cols else 1
-    di = next((i for i, c in enumerate(norm) if "order date" in c), 2 if t.shape[1] == 3 else 3)
-    ei = next((i for i, c in enumerate(norm) if "delivery date" in c), None)
-    t = t.iloc[:, [0, oi, di] + ([ei] if ei is not None else [])]
+    pi, oi, di, ei, wi = tableau_columns(t)
+    names = f"parent = {t.columns[pi]!r}, order = {t.columns[oi]!r}, order date = {t.columns[di]!r}, " + \
+            (f"delivery date = {t.columns[ei]!r}" if ei is not None else "no delivery date")
+    log(f"Tableau columns ({os.path.basename(path)}): {names}")
+    t = t.iloc[:, [pi, oi, di] + ([ei] if ei is not None else [])]
     t.columns = ["parent", "order_no", "odate"] + (["ddate"] if ei is not None else [])
     t["parent"] = t["parent"].str.strip()
     t["order_no"] = t["order_no"].str.strip()
@@ -665,10 +738,19 @@ def load_parent_map(path):
         log(f"WARNING: {multi} order numbers (per delivery date) map to more than one Parent Order in the Tableau report - the first one is used")
     lookup = t.drop_duplicates("key").set_index("key")["parent"]
     lookup.index = lookup.index.astype("string")
-    pm = ParentMap(lookup, has_delivery, frozenset(t["order_no"]), t["odate"].max(), min_delivery, len(t))
+    per_day = t.groupby("odate").size().sort_index()
+    last_rows = int(per_day.iloc[-1])
+    complete = per_day.index[-1]
+    if len(per_day) > 1 and last_rows < PARTIAL_DAY_SHARE * per_day.iloc[-2]:      # a few hours of the newest day only
+        complete = per_day.index[-2]
+    pm = ParentMap(lookup, has_delivery, frozenset(t["order_no"]), t["odate"].max(), min_delivery, len(t), complete, last_rows)
     log(f"Tableau map: {len(t)} rows, {lookup.size} order numbers{' x delivery dates' if has_delivery else ''}, "
         f"{t['parent'].nunique()} parent orders, order dates up to {pm.max_order_date:%Y-%m-%d}"
         + (f", delivery dates from {min_delivery:%Y-%m-%d}" if has_delivery else ""))
+    if complete != pm.max_order_date:
+        log(f"WARNING: the newest Order Date in {os.path.basename(path)} ({pm.max_order_date:%Y-%m-%d}) has only {last_rows} rows "
+            f"({100.0 * last_rows / per_day.iloc[-2]:.0f}% of the day before) - the report was exported before that day was complete; "
+            f"orders are complete only through {complete:%Y-%m-%d}")
     return pm
 
 
@@ -895,8 +977,13 @@ def process_report(path, order_date, tableau_path, parent_map=None, registry=Non
         log(f"WARNING: {st['ordersNotInTableau']} of {st['ordersInFilteredReport']} orders ({pct:.2f}%) are not in the Tableau report for their "
             f"delivery date ({st['ordersOtherDeliveryDate']} of them are in it under another delivery date) - their order number is used as the parent")
     if covered_pairs and unm_covered > MAX_UNMAPPED_SHARE * covered_pairs:
+        why = ""
+        if pm.complete_through < pd.Timestamp(order_date):
+            why = (f" The Tableau report is an early snapshot: its newest Order Date is {pm.max_order_date:%Y-%m-%d} with only "
+                   f"{pm.last_day_rows} rows, so it does not hold the orders of {order_date:%Y-%m-%d} (MFNAS has {st['ordersInFilteredReport']} "
+                   f"of them). Export it again after the Tableau extract has refreshed - the newest Order Date should have well over 100,000 rows.")
         raise ValueError(f"only {100 - 100.0 * unm_covered / covered_pairs:.0f}% of the orders were found in "
-                         f"{os.path.basename(tableau_path)} - wrong / stale Tableau file? (start date must be {order_date:%d/%m/%Y})")
+                         f"{os.path.basename(tableau_path)} - wrong / stale Tableau file? (start date must be {order_date:%d/%m/%Y}).{why}")
     # --- 5. (v11.10) a parent already counted by an earlier record for the same delivery date is not counted again
     if registry is not None and not registry.quiet:
         later = registry.later_dates(order_date)
