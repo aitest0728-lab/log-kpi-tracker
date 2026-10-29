@@ -976,14 +976,10 @@ def process_report(path, order_date, tableau_path, parent_map=None, registry=Non
         pct = 100.0 * st["ordersNotInTableau"] / max(1, st["ordersInFilteredReport"])
         log(f"WARNING: {st['ordersNotInTableau']} of {st['ordersInFilteredReport']} orders ({pct:.2f}%) are not in the Tableau report for their "
             f"delivery date ({st['ordersOtherDeliveryDate']} of them are in it under another delivery date) - their order number is used as the parent")
+    # data guard removed: a low Tableau match rate is only logged (the run continues; unmapped orders use their own order number as parent)
     if covered_pairs and unm_covered > MAX_UNMAPPED_SHARE * covered_pairs:
-        why = ""
-        if pm.complete_through < pd.Timestamp(order_date):
-            why = (f" The Tableau report is an early snapshot: its newest Order Date is {pm.max_order_date:%Y-%m-%d} with only "
-                   f"{pm.last_day_rows} rows, so it does not hold the orders of {order_date:%Y-%m-%d} (MFNAS has {st['ordersInFilteredReport']} "
-                   f"of them). Export it again after the Tableau extract has refreshed - the newest Order Date should have well over 100,000 rows.")
-        raise ValueError(f"only {100 - 100.0 * unm_covered / covered_pairs:.0f}% of the orders were found in "
-                         f"{os.path.basename(tableau_path)} - wrong / stale Tableau file? (start date must be {order_date:%d/%m/%Y}).{why}")
+        log(f"WARNING: only {100 - 100.0 * unm_covered / covered_pairs:.0f}% of the orders were found in {os.path.basename(tableau_path)} "
+            f"(Tableau newest Order Date {pm.max_order_date:%Y-%m-%d}, {pm.last_day_rows} rows) - continuing anyway (guard removed).")
     # --- 5. (v11.10) a parent already counted by an earlier record for the same delivery date is not counted again
     if registry is not None and not registry.quiet:
         later = registry.later_dates(order_date)
