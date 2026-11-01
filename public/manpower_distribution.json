@@ -1,68 +1,5 @@
 {
   "daily": {
-    "2026-09-02": {
-      "courier": {
-        "districts": {
-          "ETH": 21,
-          "ETK": 16,
-          "ETX": 17,
-          "NT-ST": 14,
-          "NT-TM": 9,
-          "NT-TSM": 25,
-          "NT-TW": 20,
-          "WTH": 22,
-          "WTK": 19,
-          "WTX": 22
-        },
-        "total": 185
-      },
-      "driver": {
-        "districts": {
-          "ETH": 18,
-          "ETK": 17,
-          "ETX": 17,
-          "NT-ST": 19,
-          "NT-TM": 21,
-          "NT-TSM": 20,
-          "NT-TW": 18,
-          "WTH": 20,
-          "WTK": 15,
-          "WTX": 17
-        },
-        "total": 182
-      },
-      "courierPT": {
-        "districts": {
-          "ETH": 1,
-          "ETK": 0,
-          "ETX": 0,
-          "NT-ST": 0,
-          "NT-TM": 0,
-          "NT-TSM": 0,
-          "NT-TW": 0,
-          "WTH": 0,
-          "WTK": 0,
-          "WTX": 0
-        },
-        "total": 1
-      },
-      "driverPT": {
-        "districts": {
-          "ETH": 5,
-          "ETK": 0,
-          "ETX": 2,
-          "NT-ST": 2,
-          "NT-TM": 0,
-          "NT-TSM": 1,
-          "NT-TW": 2,
-          "WTH": 5,
-          "WTK": 2,
-          "WTX": 4
-        },
-        "total": 23
-      },
-      "_source": "costReport"
-    },
     "2026-09-03": {
       "courier": {
         "districts": {
@@ -4390,6 +4327,53 @@
           "WTX": 20
         },
         "total": 187
+      }
+    },
+    "2026-11-01": {
+      "courier": {
+        "districts": {
+          "ETH": 17,
+          "ETK": 13,
+          "ETX": 21,
+          "NT-ST": 14,
+          "NT-TM": 15,
+          "NT-TSM": 28,
+          "NT-TW": 17,
+          "WTH": 16,
+          "WTK": 15,
+          "WTX": 21
+        },
+        "total": 177
+      },
+      "driver": {
+        "districts": {
+          "ETH": 20,
+          "ETK": 20,
+          "ETX": 15,
+          "NT-ST": 19,
+          "NT-TM": 23,
+          "NT-TSM": 18,
+          "NT-TW": 14,
+          "WTH": 15,
+          "WTK": 15,
+          "WTX": 19
+        },
+        "total": 178
+      },
+      "odsVan": {
+        "districts": {
+          "ETH": 20,
+          "ETK": 5,
+          "ETX": 19,
+          "NT-ST": 16,
+          "NT-TM": 5,
+          "NT-TSM": 9,
+          "NT-TW": 15,
+          "WTH": 22,
+          "WTK": 10,
+          "WTX": 9
+        },
+        "total": 130
       }
     }
   }
