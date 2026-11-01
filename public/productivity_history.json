@@ -1,169 +1,5 @@
 {
   "daily": {
-    "2026-09-01": {
-      "hktvStaff": {
-        "districts": {
-          "ETH": {
-            "orderCount": 2373,
-            "waybillCount": null,
-            "manpower": 52,
-            "productivity": 47.46,
-            "productivitySource": "costReport",
-            "costPerOrder": 43.22
-          },
-          "ETK": {
-            "orderCount": 1692,
-            "waybillCount": null,
-            "manpower": 35,
-            "productivity": 48.34,
-            "productivitySource": "costReport",
-            "costPerOrder": 39.05
-          },
-          "ETX": {
-            "orderCount": 2124,
-            "waybillCount": null,
-            "manpower": 39,
-            "productivity": 55.89,
-            "productivitySource": "costReport",
-            "costPerOrder": 36.85
-          },
-          "NT-ST": {
-            "orderCount": 2197,
-            "waybillCount": null,
-            "manpower": 36,
-            "productivity": 59.38,
-            "productivitySource": "costReport",
-            "costPerOrder": 37.98
-          },
-          "NT-TM": {
-            "orderCount": 2542,
-            "waybillCount": null,
-            "manpower": 38,
-            "productivity": 70.61,
-            "productivitySource": "costReport",
-            "costPerOrder": 33.25
-          },
-          "NT-TSM": {
-            "orderCount": 2516,
-            "waybillCount": null,
-            "manpower": 50,
-            "productivity": 48.38,
-            "productivitySource": "costReport",
-            "costPerOrder": 38.62
-          },
-          "NT-TW": {
-            "orderCount": 2183,
-            "waybillCount": null,
-            "manpower": 41,
-            "productivity": 54.58,
-            "productivitySource": "costReport",
-            "costPerOrder": 38.9
-          },
-          "WTH": {
-            "orderCount": 2556,
-            "waybillCount": null,
-            "manpower": 48,
-            "productivity": 43.32,
-            "productivitySource": "costReport",
-            "costPerOrder": 45.97
-          },
-          "WTK": {
-            "orderCount": 2307,
-            "waybillCount": null,
-            "manpower": 43,
-            "productivity": 54.93,
-            "productivitySource": "costReport",
-            "costPerOrder": 39.13
-          },
-          "WTX": {
-            "orderCount": 2465,
-            "waybillCount": null,
-            "manpower": 52,
-            "productivity": 49.3,
-            "productivitySource": "costReport",
-            "costPerOrder": 36.95
-          }
-        },
-        "total": {
-          "orderCount": 22955,
-          "waybillCount": null,
-          "manpower": 434,
-          "productivity": 52.29,
-          "productivitySource": "costReport",
-          "costPerOrder": 39.43
-        }
-      },
-      "odsRatio": {
-        "districts": {
-          "ETH": {
-            "orderCount": 1192,
-            "waybillCount": 1201,
-            "manpower": 29,
-            "productivity": 41.1
-          },
-          "ETK": {
-            "orderCount": 677,
-            "waybillCount": 679,
-            "manpower": 14,
-            "productivity": 48.36
-          },
-          "ETX": {
-            "orderCount": 756,
-            "waybillCount": 765,
-            "manpower": 21,
-            "productivity": 36.0
-          },
-          "NT-ST": {
-            "orderCount": 778,
-            "waybillCount": 781,
-            "manpower": 20,
-            "productivity": 38.9
-          },
-          "NT-TM": {
-            "orderCount": 284,
-            "waybillCount": 285,
-            "manpower": 8,
-            "productivity": 35.5
-          },
-          "NT-TSM": {
-            "orderCount": 461,
-            "waybillCount": 462,
-            "manpower": 13,
-            "productivity": 35.46
-          },
-          "NT-TW": {
-            "orderCount": 668,
-            "waybillCount": 672,
-            "manpower": 20,
-            "productivity": 33.4
-          },
-          "WTH": {
-            "orderCount": 1647,
-            "waybillCount": 1664,
-            "manpower": 46,
-            "productivity": 35.8
-          },
-          "WTK": {
-            "orderCount": 663,
-            "waybillCount": 666,
-            "manpower": 17,
-            "productivity": 39.0
-          },
-          "WTX": {
-            "orderCount": 879,
-            "waybillCount": 881,
-            "manpower": 23,
-            "productivity": 38.22
-          }
-        },
-        "total": {
-          "orderCount": 8005,
-          "waybillCount": 8056,
-          "manpower": 211,
-          "productivity": 37.94
-        }
-      }
-    },
     "2026-09-02": {
       "hktvStaff": {
         "districts": {
@@ -9597,6 +9433,148 @@
           "productivity": 37.03
         }
       }
+    },
+    "2026-10-31": {
+      "hktvStaff": {
+        "districts": {
+          "ETH": {
+            "orderCount": 1948.0,
+            "waybillCount": 10945.0,
+            "manpower": 44,
+            "productivity": 44.27
+          },
+          "ETK": {
+            "orderCount": 1696.0,
+            "waybillCount": 9279.0,
+            "manpower": 32,
+            "productivity": 53.0
+          },
+          "ETX": {
+            "orderCount": 1663.0,
+            "waybillCount": 9216.0,
+            "manpower": 41,
+            "productivity": 40.56
+          },
+          "NT-ST": {
+            "orderCount": 2239.0,
+            "waybillCount": 13480.0,
+            "manpower": 34,
+            "productivity": 65.85
+          },
+          "NT-TM": {
+            "orderCount": 2098.0,
+            "waybillCount": 11909.0,
+            "manpower": 37,
+            "productivity": 56.7
+          },
+          "NT-TSM": {
+            "orderCount": 2248.0,
+            "waybillCount": 12053.0,
+            "manpower": 47,
+            "productivity": 47.83
+          },
+          "NT-TW": {
+            "orderCount": 1935.0,
+            "waybillCount": 10907.0,
+            "manpower": 38,
+            "productivity": 50.92
+          },
+          "WTH": {
+            "orderCount": 1877.0,
+            "waybillCount": 10188.0,
+            "manpower": 40,
+            "productivity": 46.92
+          },
+          "WTK": {
+            "orderCount": 1856.0,
+            "waybillCount": 9965.0,
+            "manpower": 43,
+            "productivity": 43.16
+          },
+          "WTX": {
+            "orderCount": 1958.0,
+            "waybillCount": 10640.0,
+            "manpower": 48,
+            "productivity": 40.79
+          }
+        },
+        "total": {
+          "orderCount": 19518.0,
+          "waybillCount": 108582.0,
+          "manpower": 404,
+          "productivity": 48.31
+        }
+      },
+      "odsRatio": {
+        "districts": {
+          "ETH": {
+            "orderCount": 936,
+            "waybillCount": 4397,
+            "manpower": 29,
+            "productivity": 32.28
+          },
+          "ETK": {
+            "orderCount": 533,
+            "waybillCount": 2632,
+            "manpower": 11,
+            "productivity": 48.45
+          },
+          "ETX": {
+            "orderCount": 790,
+            "waybillCount": 3631,
+            "manpower": 23,
+            "productivity": 34.35
+          },
+          "NT-ST": {
+            "orderCount": 314,
+            "waybillCount": 1490,
+            "manpower": 15,
+            "productivity": 20.93
+          },
+          "NT-TM": {
+            "orderCount": 371,
+            "waybillCount": 1586,
+            "manpower": 7,
+            "productivity": 53.0
+          },
+          "NT-TSM": {
+            "orderCount": 471,
+            "waybillCount": 2356,
+            "manpower": 14,
+            "productivity": 33.64
+          },
+          "NT-TW": {
+            "orderCount": 651,
+            "waybillCount": 3076,
+            "manpower": 18,
+            "productivity": 36.17
+          },
+          "WTH": {
+            "orderCount": 1308,
+            "waybillCount": 6646,
+            "manpower": 34,
+            "productivity": 38.47
+          },
+          "WTK": {
+            "orderCount": 652,
+            "waybillCount": 2801,
+            "manpower": 16,
+            "productivity": 40.75
+          },
+          "WTX": {
+            "orderCount": 965,
+            "waybillCount": 4892,
+            "manpower": 20,
+            "productivity": 48.25
+          }
+        },
+        "total": {
+          "orderCount": 6991,
+          "waybillCount": 33507,
+          "manpower": 187,
+          "productivity": 37.39
+        }
+      }
     }
   },
   "mtdDaily": {
@@ -10108,6 +10086,21 @@
         "WTH": 49.52,
         "WTK": 45.48,
         "WTX": 42.08
+      }
+    },
+    "2026-10-31": {
+      "overall": 48.33,
+      "districts": {
+        "ETH": 41.04,
+        "ETK": 50.99,
+        "ETX": 41.46,
+        "NT-ST": 62.81,
+        "NT-TM": 56.59,
+        "NT-TSM": 48.79,
+        "NT-TW": 50.98,
+        "WTH": 49.36,
+        "WTK": 45.35,
+        "WTX": 41.97
       }
     }
   }
