@@ -1291,18 +1291,18 @@
       }
     },
     "2026-11-01": {
-      "overall": 49.26,
+      "overall": 50.65,
       "districts": {
-        "ETH": 44.13,
-        "ETK": 48.49,
-        "ETX": 42.54,
-        "NT-ST": 65.35,
-        "NT-TM": 60.76,
-        "NT-TSM": 46.31,
-        "NT-TW": 51.32,
-        "WTH": 44.62,
-        "WTK": 49.27,
-        "WTX": 42.68
+        "ETH": 44.15,
+        "ETK": 51.53,
+        "ETX": 44.89,
+        "NT-ST": 66.7,
+        "NT-TM": 67.85,
+        "NT-TSM": 48.32,
+        "NT-TW": 53.03,
+        "WTH": 38.95,
+        "WTK": 49.73,
+        "WTX": 46.37
       }
     },
     "2026-11-02": {
@@ -16645,68 +16645,90 @@
             "orderCount": 1721.0,
             "waybillCount": 9813.0,
             "manpower": 39,
-            "productivity": 44.13
+            "productivity": 44.15,
+            "productivitySource": "costReport",
+            "costPerOrder": 48.23
           },
           "ETK": {
             "orderCount": 1697.0,
             "waybillCount": 9520.0,
             "manpower": 35,
-            "productivity": 48.49
+            "productivity": 51.53,
+            "productivitySource": "costReport",
+            "costPerOrder": 40.77
           },
           "ETX": {
             "orderCount": 1574.0,
             "waybillCount": 8595.0,
             "manpower": 37,
-            "productivity": 42.54
+            "productivity": 44.89,
+            "productivitySource": "costReport",
+            "costPerOrder": 42.95
           },
           "NT-ST": {
             "orderCount": 2222.0,
             "waybillCount": 13236.0,
             "manpower": 34,
-            "productivity": 65.35
+            "productivity": 66.7,
+            "productivitySource": "costReport",
+            "costPerOrder": 34.78
           },
           "NT-TM": {
             "orderCount": 2309.0,
             "waybillCount": 13628.0,
             "manpower": 38,
-            "productivity": 60.76
+            "productivity": 67.85,
+            "productivitySource": "costReport",
+            "costPerOrder": 35.61
           },
           "NT-TSM": {
             "orderCount": 2223.0,
             "waybillCount": 12465.0,
             "manpower": 48,
-            "productivity": 46.31
+            "productivity": 48.32,
+            "productivitySource": "costReport",
+            "costPerOrder": 39.15
           },
           "NT-TW": {
             "orderCount": 1745.0,
             "waybillCount": 9883.0,
             "manpower": 34,
-            "productivity": 51.32
+            "productivity": 53.03,
+            "productivitySource": "costReport",
+            "costPerOrder": 40.62
           },
           "WTH": {
             "orderCount": 1428.0,
             "waybillCount": 7875.0,
             "manpower": 32,
-            "productivity": 44.62
+            "productivity": 38.95,
+            "productivitySource": "costReport",
+            "costPerOrder": 50.37
           },
           "WTK": {
             "orderCount": 1626.0,
             "waybillCount": 8931.0,
             "manpower": 33,
-            "productivity": 49.27
+            "productivity": 49.73,
+            "productivitySource": "costReport",
+            "costPerOrder": 45.89
           },
           "WTX": {
             "orderCount": 1878.0,
             "waybillCount": 10758.0,
             "manpower": 44,
-            "productivity": 42.68
+            "productivity": 46.37,
+            "productivitySource": "costReport",
+            "costPerOrder": 46.52
           }
         },
         "total": {
           "orderCount": 18423.0,
           "waybillCount": 104704.0,
           "manpower": 374,
-          "productivity": 49.26
+          "productivity": 50.65,
+          "productivitySource": "costReport",
+          "costPerOrder": 42.42
         }
       },
       "odsRatio": {
@@ -22924,12 +22946,12 @@
         "districts": {
           "ETH": 17,
           "ETK": 13,
-          "ETX": 21,
-          "NT-ST": 14,
+          "ETX": 20,
+          "NT-ST": 13,
           "NT-TM": 15,
           "NT-TSM": 28,
-          "NT-TW": 17,
-          "WTH": 16,
+          "NT-TW": 16,
+          "WTH": 19,
           "WTK": 15,
           "WTX": 21
         },
@@ -22938,17 +22960,17 @@
       "driver": {
         "districts": {
           "ETH": 20,
-          "ETK": 20,
-          "ETX": 15,
-          "NT-ST": 19,
-          "NT-TM": 23,
+          "ETK": 21,
+          "ETX": 17,
+          "NT-ST": 20,
+          "NT-TM": 19,
           "NT-TSM": 18,
-          "NT-TW": 14,
-          "WTH": 15,
+          "NT-TW": 15,
+          "WTH": 17,
           "WTK": 15,
-          "WTX": 19
+          "WTX": 18
         },
-        "total": 178
+        "total": 180
       },
       "odsVan": {
         "districts": {
@@ -22964,7 +22986,38 @@
           "WTX": 9
         },
         "total": 130
-      }
+      },
+      "courierPT": {
+        "districts": {
+          "ETH": 1,
+          "ETK": 0,
+          "ETX": 0,
+          "NT-ST": 0,
+          "NT-TM": 0,
+          "NT-TSM": 0,
+          "NT-TW": 0,
+          "WTH": 0,
+          "WTK": 1,
+          "WTX": 0
+        },
+        "total": 2
+      },
+      "driverPT": {
+        "districts": {
+          "ETH": 1,
+          "ETK": 0,
+          "ETX": 1,
+          "NT-ST": 0,
+          "NT-TM": 0,
+          "NT-TSM": 1,
+          "NT-TW": 4,
+          "WTH": 0,
+          "WTK": 2,
+          "WTX": 4
+        },
+        "total": 13
+      },
+      "_source": "costReport"
     },
     "2026-11-02": {
       "courier": {
@@ -44593,6 +44646,38 @@
           "NT-ST": 51.2972972972973
         }
       }
+    },
+    "2026-11-01": {
+      "costPerOrder": {
+        "overall": 42.42497196703843,
+        "districts": {
+          "ETH": 48.23170591976841,
+          "ETK": 40.77496707688848,
+          "ETX": 42.948342836568045,
+          "NT-TSM": 39.15067132779204,
+          "WTK": 45.8894200124689,
+          "NT-TW": 40.622382559756716,
+          "WTH": 50.371637919323966,
+          "WTX": 46.51915448363745,
+          "NT-TM": 35.61276495009971,
+          "NT-ST": 34.78181929457274
+        }
+      },
+      "productivity": {
+        "overall": 50.64611260053619,
+        "districts": {
+          "ETH": 44.15384615384615,
+          "ETK": 51.529411764705884,
+          "ETX": 44.89473684210526,
+          "NT-TSM": 48.319148936170215,
+          "WTK": 49.72727272727273,
+          "NT-TW": 53.02857142857143,
+          "WTH": 38.945945945945944,
+          "WTX": 46.372093023255815,
+          "NT-TM": 67.8529411764706,
+          "NT-ST": 66.6969696969697
+        }
+      }
     }
   },
   "fulfillmentCostMonthly": {
@@ -44692,6 +44777,55 @@
         "WTH": 7.74,
         "WTK": 7.15,
         "WTX": 6.89
+      }
+    },
+    "2026-11": {
+      "asOf": "2026-11-01",
+      "source": "Daily Cost Report_202611_Last Update_Nov 1.xlsx",
+      "gmvDays": 1,
+      "expectedDays": 1,
+      "totalCost": {
+        "overall": 1109252.9499249738,
+        "districts": {
+          "ETH": 130253.20151754696,
+          "ETK": 86781.29177011334,
+          "ETX": 113281.05292929351,
+          "NT-ST": 97561.1959932036,
+          "NT-TM": 101315.16278782026,
+          "NT-TSM": 109072.78476541604,
+          "NT-TW": 106679.37434158007,
+          "WTH": 134980.17340594833,
+          "WTK": 105714.1971124368,
+          "WTX": 123614.51530161501
+        }
+      },
+      "gmv": {
+        "overall": 16970261.0,
+        "districts": {
+          "ETH": 1752790.0,
+          "ETK": 1372220.0,
+          "ETX": 1641071.0,
+          "NT-ST": 1902392.0,
+          "NT-TM": 1881240.0,
+          "NT-TSM": 1828080.0,
+          "NT-TW": 1711662.0,
+          "WTH": 1727069.0,
+          "WTK": 1406117.0,
+          "WTX": 1747620.0
+        }
+      },
+      "overall": 6.54,
+      "districts": {
+        "ETH": 7.43,
+        "ETK": 6.32,
+        "ETX": 6.9,
+        "NT-ST": 5.13,
+        "NT-TM": 5.39,
+        "NT-TSM": 5.97,
+        "NT-TW": 6.23,
+        "WTH": 7.82,
+        "WTK": 7.52,
+        "WTX": 7.07
       }
     }
   },
