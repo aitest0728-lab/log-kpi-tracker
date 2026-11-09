@@ -2698,3 +2698,130 @@ We expect that some modules will need time to support NumPy 2.
 [06:03:39] cleanup: deleted Rolling Order Count (Nov-07).csv (177.2 MB) - written to the json
 [06:03:39] cleanup: deleted AI Fetching for Order Date T-1 (Nov-07).csv (7.8 MB) - written to the json
 [06:03:39] embedded rolling_orders.json into index.html
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/rolling_orders.py", line 71, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/rolling_orders.py", line 71, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+[06:00:02] T-0=2026-11-09  ->  Order Date (T-1)=2026-11-08
+[06:00:02] MFNAS: login
+[06:00:02] MFNAS: login successful
+[06:00:02] MFNAS: folder found: /ECOM-MFNAS/ECOM-MFNAS/ECOM-MFNAS_hktvAccumulatedDeliveryLeadTimeReport/20261109
+[06:00:02] MFNAS: ECOM-MFNAS_hktvAccumulatedDeliveryLeadTimeReport_20261109013001.csv  ->  Rolling Order Count (Nov-08).csv
+[06:00:02] [NAS] downloading ECOM-MFNAS_hktvAccumulatedDeliveryLeadTimeReport_20261109013001.csv ...
+[06:00:13] [NAS] ... 112 MB
+[06:00:18] [NAS] saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/Rolling Order Count (Nov-08).csv.part (168.6 MB)
+[06:00:18] Tableau: login
+[06:00:25] Tableau: opening 'AI Fetching for Order Date = T-1'
+[06:01:13] Tableau: view loaded
+[06:01:28] Tableau: view title OK - 'AI Fetching for Order Date = T-1' found (browser title: 'AI Fetching for Order Date = T-1: AI Fetching for Order Date = T-1 - Tableau Server')
+[06:02:17] Tableau: start date typed 08/11/2026 (attempt 1/3) -> box now shows '8/11/2026'
+[06:02:17] Tableau: waiting for the page to refresh (up to 300s, or as soon as the view has reloaded) ...
+[06:02:41] Tableau: view refreshed after 24s (6 vizql requests) - continuing
+[06:03:31] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-08).csv (8.5 MB)
+[06:03:31] report file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/Rolling Order Count (Nov-08).csv  ->  FOUND
+[06:03:31] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-08).csv  ->  FOUND
+[06:03:32] registry: 46 delivery dates, 500 (delivery date x order date) records loaded
+[06:03:37] Tableau columns (AI Fetching for Order Date T-1 (Nov-08).csv): parent = 'Order (Unlimited & Add-on Group to Parent)', order = 'order_number', order date = 'Day, Month, Year of Order Date (day)', delivery date = 'Day, Month, Year of delivery_date'
+[06:03:38] Tableau map: 87138 rows, 87138 order numbers x delivery dates, 69238 parent orders, order dates up to 2026-11-08, delivery dates from 2026-11-08
+[06:03:38] WARNING: the newest Order Date in AI Fetching for Order Date T-1 (Nov-08).csv (2026-11-08) has only 1913 rows (5% of the day before) - the report was exported before that day was complete; orders are complete only through 2026-11-07
+[06:03:39] WARNING: 41014 of 42916 orders (95.57%) are not in the Tableau report for their delivery date (7 of them are in it under another delivery date) - their order number is used as the parent
+[06:03:39] WARNING: only 4% of the orders were found in AI Fetching for Order Date T-1 (Nov-08).csv (Tableau newest Order Date 2026-11-08, 1913 rows) - continuing anyway (guard removed).
+[06:03:39] rows 394651 -> districts 320324 -> no CANCEL 319903 -> no KN015 295718 -> same-day slot 295718 | parents 42683 (new 42521, already counted 162), waybills 194342 (new 194269, already counted 73)
+[06:03:39] stats: {"report": {"rawRows": 394651, "orderDates": {"2026-11-08": 394651}, "dateFormat": {"orderDate": "%Y-%m-%d", "delivery": "%Y-%m-%d"}, "badDeliveryDate": 0, "afterDistrict": 320324, "afterCancel": 319903, "afterZone": 295718, "sameDayRows": 3072, "sameDayDropped": 0, "sameDaySlots": {"18:00-22:00": 3072}, "rowsKept": 295718, "ordersInFilteredReport": 42916, "ordersNotInTableau": 41014, "ordersOtherDeliveryDate": 7, "parentOrders": 42521, "parentsAlreadyCounted": 162, "parentRows": 295272, "waybills": 194269, "waybillsAlreadyCounted": 73}}
+[06:03:39] wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/rolling_orders.json
+[06:03:51] registry: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/rolling_parent_registry.json.gz (14.8 MB, 45 delivery dates)
+[06:03:51] cleanup: deleted Rolling Order Count (Nov-08).csv (168.6 MB) - written to the json
+[06:03:51] cleanup: deleted AI Fetching for Order Date T-1 (Nov-08).csv (8.5 MB) - written to the json
+[06:03:52] embedded rolling_orders.json into index.html
