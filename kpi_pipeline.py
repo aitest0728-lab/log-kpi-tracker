@@ -2,6 +2,10 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v11.9 — Daily Cost Report file name + layout: `--section costreport` (09:00 Tue/Fri) now accepts ANY .xlsx whose name starts with "Daily_Cost_Report" /
+  "Daily Cost Report" (e.g. Daily_Cost_Report_as_of_8_Nov.xlsx) - in the WhatsApp group scan, the local-folder fallback and the map-Excel exclusion.
+  The newest is chosen by the date in the name (YYYYMM_Last Update_MMM DD, "as of 8 Nov", YYYYMMDD ...), ties by chat order / file time. The report date is
+  read from Breakdown "Working Date" (B1) or the old B3, and asOf is clamped to the last day that actually has data.
 v11.6 — Full Perspective Forecast: the COST PLAN now refreshes itself from the Daily Cost Report. When `--section costreport` reads the
   workbook's Breakdown tab it also derives, per district: (a) daily Fixed Cost - Non-Controllable = sum of the "Provision - Non-Controllable
   Cost" Unit Cost cells; (b) daily Fixed Cost - Controllable = sum of the "Provision - Controllable Cost" Unit Cost cells + Transit & Ice
@@ -377,6 +381,10 @@ COST_REPORT_FOLDER = _native_path(os.environ.get("COST_REPORT_FOLDER", REPORT_FO
 # Spaces may appear as underscores once a file has been saved/renamed by a browser or chat app, so both are accepted.
 COST_REPORT_NAME_RE = re.compile(
     r"^Daily[ _]Cost[ _]Report_(\d{6})_Last[ _]Update_([A-Za-z]{3})[ _](\d{1,2})(?:\b.*)?\.xlsx$", re.IGNORECASE)
+
+# v11.9 - the report no longer always carries the long "_YYYYMM_Last Update_MMM DD" suffix (e.g. Daily_Cost_Report_as_of_8_Nov.xlsx).
+# Any .xlsx whose name STARTS WITH "Daily Cost Report" / "Daily_Cost_Report" is now treated as a Daily Cost Report.
+COST_REPORT_PREFIX_RE = re.compile(r"^Daily[ _]Cost[ _]Report.*\.xlsx$", re.IGNORECASE)
 
 os.makedirs(REPORT_FOLDER, exist_ok=True)
 os.makedirs(COST_REPORT_FOLDER, exist_ok=True)
@@ -4955,14 +4963,42 @@ CR_BREAKDOWN_LABELS = {"ETH": "ETH", "ETK": "ETK", "ETX": "ETX", "NT-ST": "NT-ST
 
 
 def cost_report_sort_key(filename):
-    """(year, month, day) from 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx'; None if the name doesn't match."""
-    m = COST_REPORT_NAME_RE.match(os.path.basename(filename).strip())
-    if not m:
+    """v11.9 - (year, month, day) used to pick the NEWEST report; None when the file is not a Daily Cost Report.
+    A report is any .xlsx whose name starts with 'Daily Cost Report' / 'Daily_Cost_Report' (space or underscore).
+      - 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' -> that date (as before)
+      - any other name (e.g. 'Daily_Cost_Report_as_of_8_Nov.xlsx') -> the 'D Mon' / 'Mon D' / YYYYMMDD / YYYY-MM-DD found in the
+        name (year = the YYYYMM token if present, else this year - or last year if that month is still in the future)
+      - no date in the name at all -> (0, 0, 0); callers break ties by file time / chat order."""
+    base = os.path.basename(filename).strip()
+    m = COST_REPORT_NAME_RE.match(base)
+    if m:
+        ym, mon, day = m.groups()
+        if mon.lower() in _MONTH_ABBR:
+            return (int(ym[:4]), _MONTH_ABBR.index(mon.lower()) + 1, int(day))
+    if not COST_REPORT_PREFIX_RE.match(base):
         return None
-    ym, mon, day = m.groups()
-    if mon.lower() not in _MONTH_ABBR:
-        return None
-    return (int(ym[:4]), _MONTH_ABBR.index(mon.lower()) + 1, int(day))
+    stem = re.sub(r"\.xlsx$", "", base, flags=re.IGNORECASE)
+    rest = re.sub(r"^Daily[ _]Cost[ _]Report", "", stem, flags=re.IGNORECASE)
+    m = re.search(r"(?<!\d)(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})(?!\d)", rest)         # 20261108 / 2026-11-08
+    if m and 1 <= int(m.group(2)) <= 12 and 1 <= int(m.group(3)) <= 31:
+        return (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    ym = re.search(r"(?<!\d)(20\d{2})(0[1-9]|1[0-2])(?!\d)", rest)
+    toks = [t for t in re.split(r"[ _\-.()]+", rest) if t]
+    names = {n: i + 1 for i, n in enumerate(_MONTH_ABBR)}
+    full = {"january": 1, "february": 2, "march": 3, "april": 4, "june": 6, "july": 7, "august": 8,
+            "september": 9, "sept": 9, "october": 10, "november": 11, "december": 12}
+    today = dt.date.today()
+    for i, t in enumerate(toks):
+        mon = names.get(t.lower()) or full.get(t.lower())
+        if not mon:
+            continue
+        for j in (i - 1, i + 1):
+            if 0 <= j < len(toks) and re.fullmatch(r"\d{1,2}(st|nd|rd|th)?", toks[j], re.IGNORECASE):
+                d = int(re.sub(r"\D", "", toks[j]))
+                if 1 <= d <= 31:
+                    year = int(ym.group(1)) if ym else (today.year if mon <= today.month else today.year - 1)
+                    return (year, mon, d)
+    return (0, 0, 0)
 
 
 def find_latest_local_cost_report():
@@ -4970,8 +5006,13 @@ def find_latest_local_cost_report():
     best = None
     for p in glob.glob(os.path.join(COST_REPORT_FOLDER, "*.xlsx")):
         k = cost_report_sort_key(p)
-        if k and (best is None or k > best[0]):
-            best = (k, p)
+        if k:
+            try:
+                k = (k, os.path.getmtime(p))                # v11.9 - same / unknown date in the name -> newest file wins
+            except OSError:
+                k = (k, 0)
+            if best is None or k > best[0]:
+                best = (k, p)
     return best[1] if best else None
 
 
@@ -4988,7 +5029,7 @@ WA_MAX_SCROLLS = int(os.environ.get("WA_MAX_SCROLLS", "8"))
 # Each hit is tagged data-cr-idx=N so Python can address it; returns [{i, name}] in document order.
 _CR_SCAN_JS = r"""
 (mode) => {
-  const NAME = /Daily[ _]Cost[ _]Report_\d{6}_Last[ _]Update_[A-Za-z]{3}[ _]\d{1,2}(?:\.xlsx)?/i;
+  const NAME = /Daily[ _]Cost[ _]Report[^\n]{0,80}?\.xlsx|Daily[ _]Cost[ _]Report_\d{6}_Last[ _]Update_[A-Za-z]{3}[ _]\d{1,2}/i;
   document.querySelectorAll('[data-cr-idx]').forEach(e => e.removeAttribute('data-cr-idx'));
   const main = document.querySelector('#main');
   const out = [];
@@ -5215,7 +5256,7 @@ def fetch_cost_report_from_whatsapp():
                         name += ".xlsx"
                     k = cost_report_sort_key(name)
                     if k:
-                        out.append((k, it["i"], name))
+                        out.append((k + (it["i"],), it["i"], name))      # v11.9 - chat order breaks ties (later = newer)
                 return out
 
             wa_scroll_chat_to_bottom(page)          # v9.2 - make sure we are looking at the NEWEST messages
@@ -5243,8 +5284,8 @@ def fetch_cost_report_from_whatsapp():
                     time.sleep(4)
                     hits = scan("outside")
                     if hits:
-                        best_key = max(k for k, _, _ in hits)
-                        _, i0, n0 = [h for h in hits if h[0] == best_key][0]     # results list newest first
+                        best_key = max(k[:3] for k, _, _ in hits)
+                        _, i0, n0 = [h for h in hits if h[0][:3] == best_key][0]     # results list newest first
                         print(f"  🔎 search hit: {n0!r}")
                         page.locator(f'[data-cr-idx="{i0}"]').first.click(timeout=5000)
                         time.sleep(4)
@@ -5268,7 +5309,7 @@ def fetch_cost_report_from_whatsapp():
                         break
             if not found:
                 shot(page, "nofile")
-                raise RuntimeError("No 'Daily Cost Report_YYYYMM_Last Update_MMM DD.xlsx' message found in the group "
+                raise RuntimeError("No 'Daily Cost Report*.xlsx' / 'Daily_Cost_Report*.xlsx' message found in the group "
                                    f"(tried the loaded messages, in-chat search and {WA_MAX_SCROLLS} scrolls).")
 
             # --- pick the newest (latest of any duplicates) and download it ---
@@ -5452,7 +5493,7 @@ def parse_cost_report(path):
     the header row's dates (shown as DD-MMM, e.g. 29-Sep). Blank / #DIV/0! / 0 = not reported yet.
     Breakdown tab, FIRST table only (not the yellow one): per district block and per day column (DD),
     the FT/PT Driver & Courier man-days, grouped by Cost Type + Function; row '借人' ignored.
-    Only days up to the report's 'Last Update' date (Breakdown!B3) are used.
+    Only days up to the report's date ('Working Date' in Breakdown!B1; older layout: Last Update in B3) are used; asOf is clamped to the last day with data.
     Returns {"file","asOf","manpower":{date:{group:{"districts","total"}}},
              "daily":{date:{"costPerOrder":{overall,districts},"productivity":{...}}},
              "mtd":{"costPerOrder":{...},"productivity":{...}},
@@ -5465,11 +5506,19 @@ def parse_cost_report(path):
             raise ValueError(f"{os.path.basename(path)!r} has no '{need.title()}' sheet (found {wb.sheetnames})")
     ws_o, ws_b = wb[names["overview"]], wb[names["breakdown"]]
 
-    upd = ws_b["B3"].value
-    if isinstance(upd, dt.datetime):
-        upd = upd.date()
-    if not isinstance(upd, dt.date):
-        raise ValueError("Breakdown!B3 (the report's 'Date' / last-update day) is not a date")
+    # v11.9 - the report's date moved: older files keep it in Breakdown!B3, the newer layout has it in B1 next to a
+    # 'Working Date' label (and the header row sits on row 3). Look for a labelled date in column A/B of the top rows first.
+    def _as_date(v):
+        return v.date() if isinstance(v, dt.datetime) else (v if isinstance(v, dt.date) else None)
+    upd = None
+    for r in range(1, 6):
+        if "date" in str(ws_b.cell(r, 1).value or "").strip().lower() and _as_date(ws_b.cell(r, 2).value):
+            upd = _as_date(ws_b.cell(r, 2).value)
+            break
+    if upd is None:
+        upd = _as_date(ws_b["B3"].value)
+    if upd is None:
+        raise ValueError("Breakdown tab: the report's date ('Working Date' in B1, or B3 in the older layout) is not a date")
 
     # ---- Overview: Cost Per Order (Controllable) + Staff Productivity ----
     row_metric = {"Cost Per Order (Controllable)": "costPerOrder", "Staff Productivity": "productivity"}
@@ -5539,12 +5588,6 @@ def parse_cost_report(path):
     if missing:
         raise ValueError(f"Breakdown tab: district block(s) not found: {missing}")
 
-    try:                                                    # v11.6 - Forecast tab cost plan; must never break the rest of the job
-        cost_plan = parse_cost_plan(ws_b, starts, upd, hdr)
-    except Exception as e:
-        print(f"  ⚠️ Cost plan: not read from the Breakdown tab ({e}) - forecast cost plan left unchanged.")
-        cost_plan = None
-
     cost_type, row_group = None, {}
     for r in range(hdr + 1, end):
         a = str(ws_b.cell(r, 1).value or "").strip()
@@ -5583,6 +5626,19 @@ def parse_cost_report(path):
         if sum(per[g]["total"] for g in CR_GROUPS) == 0:
             continue                                        # day exists in the sheet but nothing filled in yet
         manpower[dt.date(upd.year, upd.month, day).isoformat()] = per
+
+    # v11.9 - the new layout's 'Working Date' is the day the file was made (e.g. 9 Nov) while the data stops a day earlier
+    # (8 Nov; later columns are 0). asOf = the last day that really has data, so MTD ratios / Transit-&-Ice daily averages
+    # are not diluted by an empty day.
+    filled = [dt.date.fromisoformat(d) for d in list(daily) + list(manpower)]
+    if filled and max(filled) < upd:
+        upd = max(filled)
+
+    try:                                                    # v11.6 - Forecast tab cost plan; must never break the rest of the job
+        cost_plan = parse_cost_plan(ws_b, starts, upd, hdr)
+    except Exception as e:
+        print(f"  ⚠️ Cost plan: not read from the Breakdown tab ({e}) - forecast cost plan left unchanged.")
+        cost_plan = None
 
     return {"file": os.path.basename(path), "asOf": upd.isoformat(),
             "manpower": manpower, "daily": daily, "mtd": mtd, "totalCost": total_cost, "costPlan": cost_plan}
@@ -5929,7 +5985,7 @@ def _find_map_excel(explicit=None):
     cands = []
     for ext in ("*.xlsx", "*.xlsm", "*.csv"):
         cands += glob.glob(os.path.join(MAP_EXCEL_FOLDER, ext))
-    cands = [p for p in cands if not os.path.basename(p).lower().startswith(("~$", "daily cost report", "oix_record", "new_estate_tracker"))]
+    cands = [p for p in cands if not os.path.basename(p).lower().startswith(("~$", "daily cost report", "daily_cost_report", "oix_record", "new_estate_tracker"))]
     for p in sorted(cands, key=os.path.getmtime, reverse=True):   # newest first, first one with lat+lng headers
         try:
             head = pd.read_csv(p, nrows=8, header=None, dtype=str, encoding="utf-8-sig") if p.lower().endswith(".csv") \
