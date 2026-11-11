@@ -25583,6 +25583,53 @@
         },
         "total": 201
       }
+    },
+    "2026-11-11": {
+      "courier": {
+        "districts": {
+          "ETH": 23,
+          "ETK": 12,
+          "ETX": 20,
+          "NT-ST": 14,
+          "NT-TM": 18,
+          "NT-TSM": 25,
+          "NT-TW": 18,
+          "WTH": 15,
+          "WTK": 21,
+          "WTX": 23
+        },
+        "total": 189
+      },
+      "driver": {
+        "districts": {
+          "ETH": 22,
+          "ETK": 21,
+          "ETX": 18,
+          "NT-ST": 18,
+          "NT-TM": 24,
+          "NT-TSM": 17,
+          "NT-TW": 17,
+          "WTH": 11,
+          "WTK": 17,
+          "WTX": 19
+        },
+        "total": 184
+      },
+      "odsVan": {
+        "districts": {
+          "ETH": 24,
+          "ETK": 3,
+          "ETX": 18,
+          "NT-ST": 16,
+          "NT-TM": 9,
+          "NT-TSM": 11,
+          "NT-TW": 19,
+          "WTH": 38,
+          "WTK": 14,
+          "WTX": 23
+        },
+        "total": 175
+      }
     }
   },
   "delayPercentDaily": {
@@ -51540,6 +51587,15 @@
       "courierDriver": true,
       "processedAt": "2026-11-11T03:00:11",
       "hktvLeaderExcluded": true
+    },
+    "2026-11-11": {
+      "file": "OIX_Record_20261111.csv",
+      "size": 63254871,
+      "sha1": "a8da7ed4cab3c7e765a495706aa017bffc8c3fc6",
+      "rows": 191528,
+      "courierDriver": true,
+      "processedAt": "2026-11-12T03:00:11",
+      "hktvLeaderExcluded": true
     }
   },
   "productivityMtdBasis": {
@@ -63065,6 +63121,51 @@
         "WTX": [
           648,
           288
+        ]
+      }
+    },
+    "2026-11-11": {
+      "sha1": "a8da7ed4cab3c7e765a495706aa017bffc8c3fc6",
+      "districts": {
+        "ETH": [
+          465,
+          188
+        ],
+        "ETK": [
+          94,
+          27
+        ],
+        "ETX": [
+          388,
+          341
+        ],
+        "NT-ST": [
+          418,
+          211
+        ],
+        "NT-TM": [
+          284,
+          159
+        ],
+        "NT-TSM": [
+          270,
+          171
+        ],
+        "NT-TW": [
+          358,
+          260
+        ],
+        "WTH": [
+          911,
+          331
+        ],
+        "WTK": [
+          333,
+          159
+        ],
+        "WTX": [
+          592,
+          240
         ]
       }
     }
