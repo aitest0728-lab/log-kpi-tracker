@@ -1,0 +1,364 @@
+[18:00:01] run 2026-11-10 18:00  T+0=2026-11-10  ->  order dates to update: 2026-11-10
+[18:00:01] Tableau: login (TABLEAU_USER)
+[18:00:04] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[18:00:07] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[18:00:22] Tableau: forced reload so the toolbar initialises correctly
+[18:00:34] Tableau: view loaded
+[18:00:49] Tableau: view title OK ('Number of Order with unique...' found)
+[18:01:14] Tableau: sheets in the Crosstab dialog: ['10 Districts', 'Summary [selected]']
+[18:01:25] Tableau: clicked sheet '10 Districts' -> selected state = True
+[18:01:25] Tableau: sheets in the Crosstab dialog: ['10 Districts [selected]', 'Summary']
+[18:01:26] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[18:01:27] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[18:01:28] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[18:01:28] Tableau: pressing the dialog Download button via 'test-id export button'
+[18:01:28] Tableau: downloaded '10 Districts.csv' (43396 bytes)
+[18:01:28] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv (0.04 MB)
+[18:01:28] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv  ->  FOUND
+[18:01:28] report: 234 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format mdy
+[18:01:28] 2026-11-10: 10 district rows, 12 delivery dates, T+0 total 808, all dates total 13507
+[18:01:28] wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/rolling_orders.json  (order dates 2026-11-10)
+[18:01:28] cleanup: deleted AI Fetching for Order Date T-1 (Nov-09).csv (0.0 MB) - written to the json
+[18:01:29] embedded rolling_orders.json into index.html
+[18:01:36] push: dashboard pushed (attempt 1) -    52c3b2e..ee45ce4  main -> main
+[18:01:36] image 1/2: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/report_images/rolling_2026-11-10_1801_p1.png  (delivery 2026-11-10 -> 2026-11-16)
+[18:01:37] image 2/2: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/report_images/rolling_2026-11-10_1801_p2.png  (delivery 2026-11-17 -> 2026-11-21)
+[WA] opening session '/home/chipanl/whatsapp_session_2' (hide=headless, browser=chrome 151.0.7922.108)
+🚀 Posting to 'LOG 掃把Super Group'...
+  chat 1/1 titled 'LOG 掃把Super Group': can send messages  <-- using this one
+  ✅ message sent.
+[18:02:12] WhatsApp: part 1/2 sent to 'LOG 掃把Super Group'
+[WA] previous WhatsApp session ended 0s ago - waiting 20s
+[WA] opening session '/home/chipanl/whatsapp_session_2' (hide=headless, browser=chrome 151.0.7922.108)
+🚀 Posting to 'LOG 掃把Super Group'...
+  chat 1/1 titled 'LOG 掃把Super Group': can send messages  <-- using this one
+  ✅ message sent.
+[18:03:06] WhatsApp: part 2/2 sent to 'LOG 掃把Super Group'
+[19:00:01] run 2026-11-10 19:00  T+0=2026-11-10  ->  order dates to update: 2026-11-10
+[19:00:01] Tableau: login (TABLEAU_USER)
+[19:00:06] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[19:00:09] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[19:00:24] Tableau: forced reload so the toolbar initialises correctly
+[19:00:35] Tableau: view loaded
+[19:00:50] Tableau: view title OK ('Number of Order with unique...' found)
+[19:01:15] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[19:01:15] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[19:01:16] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[19:01:17] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[19:01:18] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[19:01:18] Tableau: pressing the dialog Download button via 'test-id export button'
+[19:01:19] Tableau: downloaded 'data.csv' (1222326 bytes)
+[19:01:19] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv (1.17 MB)
+[19:01:19] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv  ->  FOUND
+[19:01:19] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[19:01:19] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[19:01:19] 2026-11-10: 314 district rows, 12 delivery dates, T+0 total 966, all dates total 16283
+[19:01:19] wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/rolling_orders.json  (order dates 2026-11-10)
+[19:01:19] cleanup: deleted AI Fetching for Order Date T-1 (Nov-09).csv (1.2 MB) - written to the json
+[19:01:20] embedded rolling_orders.json into index.html
+[19:01:27] push: dashboard pushed (attempt 1) -    d83801f..6ff510e  main -> main
+[20:00:01] run 2026-11-10 20:00  T+0=2026-11-10  ->  order dates to update: 2026-11-10
+[20:00:01] Tableau: login (TABLEAU_USER)
+[20:00:05] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[20:00:08] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[20:00:23] Tableau: forced reload so the toolbar initialises correctly
+[20:00:34] Tableau: view loaded
+[20:00:49] Tableau: view title OK ('Number of Order with unique...' found)
+[20:01:15] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[20:01:15] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[20:01:16] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[20:01:17] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[20:01:18] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[20:01:18] Tableau: pressing the dialog Download button via 'test-id export button'
+[20:01:19] Tableau: downloaded 'data.csv' (1222326 bytes)
+[20:01:19] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv (1.17 MB)
+[20:01:19] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv  ->  FOUND
+[20:01:19] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[20:01:19] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[20:01:19] 2026-11-10: 314 district rows, 12 delivery dates, T+0 total 966, all dates total 16283
+[20:01:19] wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/rolling_orders.json  (order dates 2026-11-10)
+[20:01:19] cleanup: deleted AI Fetching for Order Date T-1 (Nov-09).csv (1.2 MB) - written to the json
+[20:01:19] embedded rolling_orders.json into index.html
+[20:01:26] push: dashboard pushed (attempt 1) -    6ff510e..343723e  main -> main
+[21:00:01] run 2026-11-10 21:00  T+0=2026-11-10  ->  order dates to update: 2026-11-10
+[21:00:01] Tableau: login (TABLEAU_USER)
+[21:00:04] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[21:00:07] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[21:00:22] Tableau: forced reload so the toolbar initialises correctly
+[21:00:33] Tableau: view loaded
+[21:00:48] Tableau: view title OK ('Number of Order with unique...' found)
+[21:01:14] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[21:01:14] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[21:01:15] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[21:01:16] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[21:01:17] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[21:01:17] Tableau: pressing the dialog Download button via 'test-id export button'
+[21:01:18] Tableau: downloaded 'data.csv' (1222326 bytes)
+[21:01:19] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv (1.17 MB)
+[21:01:19] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv  ->  FOUND
+[21:01:19] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[21:01:19] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[21:01:19] 2026-11-10: 314 district rows, 12 delivery dates, T+0 total 966, all dates total 16283
+[21:01:19] wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/rolling_orders.json  (order dates 2026-11-10)
+[21:01:19] cleanup: deleted AI Fetching for Order Date T-1 (Nov-09).csv (1.2 MB) - written to the json
+[21:01:19] embedded rolling_orders.json into index.html
+[21:01:27] push: dashboard pushed (attempt 1) -    343723e..95469ab  main -> main
+[22:00:01] run 2026-11-10 22:00  T+0=2026-11-10  ->  order dates to update: 2026-11-10
+[22:00:01] Tableau: login (TABLEAU_USER)
+[22:00:04] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[22:00:07] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[22:00:22] Tableau: forced reload so the toolbar initialises correctly
+[22:00:34] Tableau: view loaded
+[22:00:49] Tableau: view title OK ('Number of Order with unique...' found)
+[22:01:14] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[22:01:14] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[22:01:15] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[22:01:16] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[22:01:17] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[22:01:17] Tableau: pressing the dialog Download button via 'test-id export button'
+[22:01:18] Tableau: downloaded 'data.csv' (1222326 bytes)
+[22:01:18] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv (1.17 MB)
+[22:01:18] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv  ->  FOUND
+[22:01:18] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[22:01:18] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[22:01:18] 2026-11-10: 314 district rows, 12 delivery dates, T+0 total 966, all dates total 16283
+[22:01:18] wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/rolling_orders.json  (order dates 2026-11-10)
+[22:01:18] cleanup: deleted AI Fetching for Order Date T-1 (Nov-09).csv (1.2 MB) - written to the json
+[22:01:19] embedded rolling_orders.json into index.html
+[22:01:26] push: dashboard pushed (attempt 1) -    95469ab..27ea62d  main -> main
+[23:00:01] run 2026-11-10 23:00  T+0=2026-11-10  ->  order dates to update: 2026-11-10
+[23:00:01] Tableau: login (TABLEAU_USER)
+[23:00:05] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[23:00:08] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[23:00:23] Tableau: forced reload so the toolbar initialises correctly
+[23:00:34] Tableau: view loaded
+[23:00:49] Tableau: view title OK ('Number of Order with unique...' found)
+[23:01:15] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[23:01:15] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[23:01:16] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[23:01:17] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[23:01:18] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[23:01:18] Tableau: pressing the dialog Download button via 'test-id export button'
+[23:01:19] Tableau: downloaded 'data.csv' (1222326 bytes)
+[23:01:19] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv (1.17 MB)
+[23:01:19] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-09).csv  ->  FOUND
+[23:01:19] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[23:01:19] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[23:01:19] 2026-11-10: 314 district rows, 12 delivery dates, T+0 total 966, all dates total 16283
+[23:01:19] wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/rolling_orders.json  (order dates 2026-11-10)
+[23:01:19] cleanup: deleted AI Fetching for Order Date T-1 (Nov-09).csv (1.2 MB) - written to the json
+[23:01:20] embedded rolling_orders.json into index.html
+[23:01:29] push: dashboard pushed (attempt 1) -    27ea62d..cade7b6  main -> main
+[00:00:01] run 2026-11-11 00:00  T+0=2026-11-11  ->  order dates to update: 2026-11-10 (final), 2026-11-11
+[00:00:02] Tableau: login (TABLEAU_USER)
+[00:00:05] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[00:00:08] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[00:00:23] Tableau: forced reload so the toolbar initialises correctly
+[00:00:34] Tableau: view loaded
+[00:00:49] Tableau: view title OK ('Number of Order with unique...' found)
+[00:01:15] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[00:01:15] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[00:01:16] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[00:01:17] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[00:01:18] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[00:01:18] Tableau: pressing the dialog Download button via 'test-id export button'
+[00:01:19] Tableau: downloaded 'data.csv' (1222326 bytes)
+[00:01:19] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv (1.17 MB)
+[00:01:19] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv  ->  FOUND
+[00:01:19] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[00:01:19] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[00:01:19] 2026-11-10 (final): 314 district rows, 12 delivery dates, T+0 total 966, all dates total 16283
+[00:01:19] WARNING: no rows with Order Date = 2026-11-11 in the report - 2026-11-11 not updated
+[00:01:19] wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/rolling_orders.json  (order dates 2026-11-10)
+[00:01:19] cleanup: deleted AI Fetching for Order Date T-1 (Nov-10).csv (1.2 MB) - written to the json
+[00:01:20] embedded rolling_orders.json into index.html
+[00:01:31] push: dashboard pushed (attempt 1) -    cade7b6..c12c4b9  main -> main
+[01:00:01] run 2026-11-11 01:00  T+0=2026-11-11  ->  order dates to update: 2026-11-11
+[01:00:01] Tableau: login (TABLEAU_USER)
+[01:00:05] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[01:00:08] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[01:00:23] Tableau: forced reload so the toolbar initialises correctly
+[01:00:34] Tableau: view loaded
+[01:00:49] Tableau: view title OK ('Number of Order with unique...' found)
+[01:01:14] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[01:01:14] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[01:01:15] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[01:01:16] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[01:01:17] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[01:01:17] Tableau: pressing the dialog Download button via 'test-id export button'
+[01:01:18] Tableau: downloaded 'data.csv' (1222326 bytes)
+[01:01:18] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv (1.17 MB)
+[01:01:18] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv  ->  FOUND
+[01:01:18] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[01:01:18] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[01:01:18] WARNING: no rows with Order Date = 2026-11-11 in the report - 2026-11-11 not updated
+no usable rows for the order date(s) 2026-11-11 - nothing written
+[02:00:02] run 2026-11-11 02:00  T+0=2026-11-11  ->  order dates to update: 2026-11-11
+[02:00:02] Tableau: login (TABLEAU_USER)
+[02:00:05] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[02:00:08] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[02:00:23] Tableau: forced reload so the toolbar initialises correctly
+[02:00:35] Tableau: view loaded
+[02:00:50] Tableau: view title OK ('Number of Order with unique...' found)
+[02:01:15] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[02:01:15] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[02:01:16] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[02:01:17] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[02:01:18] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[02:01:18] Tableau: pressing the dialog Download button via 'test-id export button'
+[02:01:19] Tableau: downloaded 'data.csv' (1222326 bytes)
+[02:01:19] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv (1.17 MB)
+[02:01:19] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv  ->  FOUND
+[02:01:19] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[02:01:19] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[02:01:19] WARNING: no rows with Order Date = 2026-11-11 in the report - 2026-11-11 not updated
+no usable rows for the order date(s) 2026-11-11 - nothing written
+[03:00:02] run 2026-11-11 03:00  T+0=2026-11-11  ->  order dates to update: 2026-11-11
+[03:00:02] Tableau: login (TABLEAU_USER)
+[03:00:02] Tableau: attempt 1/3 failed: Error: Page.goto: net::ERR_CONNECTION_REFUSED at https://inhouse-analytics.hktv.com.hk/#/signin
+Call log:
+  - navigating to "https://inhouse-analytics.hktv.com.hk/#/signin", waiting until "load"
+
+[03:00:02] Tableau: retry 2/3 (fresh browser + login)
+[03:00:22] Tableau: login (TABLEAU_USER)
+[03:00:23] Tableau: attempt 2/3 failed: Error: Page.goto: net::ERR_CONNECTION_REFUSED at https://inhouse-analytics.hktv.com.hk/#/signin
+Call log:
+  - navigating to "https://inhouse-analytics.hktv.com.hk/#/signin", waiting until "load"
+
+[03:00:23] Tableau: retry 3/3 (fresh browser + login)
+[03:00:43] Tableau: login (TABLEAU_USER)
+[03:00:43] Tableau: attempt 3/3 failed: Error: Page.goto: net::ERR_CONNECTION_REFUSED at https://inhouse-analytics.hktv.com.hk/#/signin
+Call log:
+  - navigating to "https://inhouse-analytics.hktv.com.hk/#/signin", waiting until "load"
+
+Traceback (most recent call last):
+  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/rolling_orders.py", line 1179, in <module>
+    main()
+  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/rolling_orders.py", line 1139, in main
+    download_tableau_report(path)
+  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/rolling_orders.py", line 610, in download_tableau_report
+    raise RuntimeError(f"Tableau 'Number of Order with unique Cus+Adress+Timeslot' download failed after {TABLEAU_ATTEMPTS} sessions: {last}")
+RuntimeError: Tableau 'Number of Order with unique Cus+Adress+Timeslot' download failed after 3 sessions: Page.goto: net::ERR_CONNECTION_REFUSED at https://inhouse-analytics.hktv.com.hk/#/signin
+Call log:
+  - navigating to "https://inhouse-analytics.hktv.com.hk/#/signin", waiting until "load"
+
+[04:00:01] run 2026-11-11 04:00  T+0=2026-11-11  ->  order dates to update: 2026-11-11
+[04:00:01] Tableau: login (TABLEAU_USER)
+[04:00:05] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[04:00:08] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[04:00:23] Tableau: forced reload so the toolbar initialises correctly
+[04:00:34] Tableau: view loaded
+[04:00:49] Tableau: view title OK ('Number of Order with unique...' found)
+[04:01:15] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[04:01:15] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[04:01:16] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[04:01:17] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[04:01:18] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[04:01:18] Tableau: pressing the dialog Download button via 'test-id export button'
+[04:01:19] Tableau: downloaded 'data.csv' (1222326 bytes)
+[04:01:19] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv (1.17 MB)
+[04:01:19] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv  ->  FOUND
+[04:01:19] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[04:01:19] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[04:01:19] WARNING: no rows with Order Date = 2026-11-11 in the report - 2026-11-11 not updated
+no usable rows for the order date(s) 2026-11-11 - nothing written
+[05:00:02] run 2026-11-11 05:00  T+0=2026-11-11  ->  order dates to update: 2026-11-11
+[05:00:02] Tableau: login (TABLEAU_USER)
+[05:00:06] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[05:00:09] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[05:00:24] Tableau: forced reload so the toolbar initialises correctly
+[05:00:35] Tableau: view loaded
+[05:00:50] Tableau: view title OK ('Number of Order with unique...' found)
+[05:01:15] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[05:01:15] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[05:01:16] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[05:01:18] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[05:01:19] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[05:01:19] Tableau: pressing the dialog Download button via 'test-id export button'
+[05:01:20] Tableau: downloaded 'data.csv' (1222326 bytes)
+[05:01:20] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv (1.17 MB)
+[05:01:20] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv  ->  FOUND
+[05:01:20] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[05:01:20] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[05:01:20] WARNING: no rows with Order Date = 2026-11-11 in the report - 2026-11-11 not updated
+no usable rows for the order date(s) 2026-11-11 - nothing written
+[06:00:01] run 2026-11-11 06:00  T+0=2026-11-11  ->  order dates to update: 2026-11-11
+[06:00:02] Tableau: login (TABLEAU_USER)
+[06:00:05] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[06:00:08] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[06:00:23] Tableau: forced reload so the toolbar initialises correctly
+[06:00:35] Tableau: view loaded
+[06:00:50] Tableau: view title OK ('Number of Order with unique...' found)
+[06:01:15] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[06:01:15] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[06:01:16] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[06:01:17] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[06:01:18] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[06:01:18] Tableau: pressing the dialog Download button via 'test-id export button'
+[06:01:19] Tableau: downloaded 'data.csv' (1222326 bytes)
+[06:01:19] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv (1.17 MB)
+[06:01:19] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv  ->  FOUND
+[06:01:19] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[06:01:19] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[06:01:19] WARNING: no rows with Order Date = 2026-11-11 in the report - 2026-11-11 not updated
+no usable rows for the order date(s) 2026-11-11 - nothing written
+[07:00:01] run 2026-11-11 07:00  T+0=2026-11-11  ->  order dates to update: 2026-11-11
+[07:00:01] Tableau: login (TABLEAU_USER)
+[07:00:05] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[07:00:08] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[07:00:23] Tableau: forced reload so the toolbar initialises correctly
+[07:00:34] Tableau: view loaded
+[07:00:49] Tableau: view title OK ('Number of Order with unique...' found)
+[07:01:14] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[07:01:14] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[07:01:15] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[07:01:16] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[07:01:17] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[07:01:17] Tableau: pressing the dialog Download button via 'test-id export button'
+[07:01:19] Tableau: downloaded 'data.csv' (1222326 bytes)
+[07:01:19] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv (1.17 MB)
+[07:01:19] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv  ->  FOUND
+[07:01:19] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[07:01:19] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[07:01:19] WARNING: no rows with Order Date = 2026-11-11 in the report - 2026-11-11 not updated
+no usable rows for the order date(s) 2026-11-11 - nothing written
+[08:00:01] run 2026-11-11 08:00  T+0=2026-11-11  ->  order dates to update: 2026-11-11
+[08:00:02] Tableau: login (TABLEAU_USER)
+[08:00:06] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[08:00:09] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[08:00:24] Tableau: forced reload so the toolbar initialises correctly
+[08:00:35] Tableau: view loaded
+[08:00:50] Tableau: view title OK ('Number of Order with unique...' found)
+[08:01:15] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[08:01:15] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[08:01:16] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[08:01:17] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[08:01:18] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[08:01:18] Tableau: pressing the dialog Download button via 'test-id export button'
+[08:01:20] Tableau: downloaded 'data.csv' (1222326 bytes)
+[08:01:20] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv (1.17 MB)
+[08:01:20] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv  ->  FOUND
+[08:01:20] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[08:01:20] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[08:01:20] WARNING: no rows with Order Date = 2026-11-11 in the report - 2026-11-11 not updated
+no usable rows for the order date(s) 2026-11-11 - nothing written
+[09:00:01] run 2026-11-11 09:00  T+0=2026-11-11  ->  order dates to update: 2026-11-11
+[09:00:02] Tableau: login (TABLEAU_USER)
+[09:00:06] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[09:00:09] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[09:00:24] Tableau: forced reload so the toolbar initialises correctly
+[09:00:35] Tableau: view loaded
+[09:00:50] Tableau: view title OK ('Number of Order with unique...' found)
+[09:01:15] Tableau: sheets in the Crosstab dialog: ['data [selected]']
+[09:01:15] Tableau: sheet 'data' is already selected - not clicked (a click would de-select it)
+[09:01:16] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[09:01:17] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[09:01:18] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|on]
+[09:01:18] Tableau: pressing the dialog Download button via 'test-id export button'
+[09:01:20] Tableau: downloaded 'data.csv' (1222326 bytes)
+[09:01:20] Tableau: saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv (1.17 MB)
+[09:01:20] tableau file: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-10).csv  ->  FOUND
+[09:01:20] report: 2540 data rows, delivery dates 2026-11-10 -> 2026-11-21 (12), order dates 2026-05-11 -> 2026-11-10, date format data
+[09:01:20] skipped 489 district (group) values that are not one of the 10 districts (pick-up points, Macau, overseas ...)
+[09:01:20] WARNING: no rows with Order Date = 2026-11-11 in the report - 2026-11-11 not updated
+no usable rows for the order date(s) 2026-11-11 - nothing written
