@@ -1,224 +1,5 @@
 {
   "daily": {
-    "2026-09-14": {
-      "courier": {
-        "districts": {
-          "ETH": 16,
-          "ETK": 9,
-          "ETX": 12,
-          "NT-ST": 12,
-          "NT-TM": 11,
-          "NT-TSM": 20,
-          "NT-TW": 10,
-          "WTH": 16,
-          "WTK": 16,
-          "WTX": 21
-        },
-        "total": 143
-      },
-      "driver": {
-        "districts": {
-          "ETH": 15,
-          "ETK": 10,
-          "ETX": 14,
-          "NT-ST": 18,
-          "NT-TM": 14,
-          "NT-TSM": 14,
-          "NT-TW": 15,
-          "WTH": 15,
-          "WTK": 14,
-          "WTX": 15
-        },
-        "total": 144
-      },
-      "courierPT": {
-        "districts": {
-          "ETH": 0,
-          "ETK": 0,
-          "ETX": 0,
-          "NT-ST": 0,
-          "NT-TM": 0,
-          "NT-TSM": 0,
-          "NT-TW": 0,
-          "WTH": 0,
-          "WTK": 0,
-          "WTX": 0
-        },
-        "total": 0
-      },
-      "driverPT": {
-        "districts": {
-          "ETH": 0,
-          "ETK": 0,
-          "ETX": 0,
-          "NT-ST": 2,
-          "NT-TM": 2,
-          "NT-TSM": 0,
-          "NT-TW": 2,
-          "WTH": 3,
-          "WTK": 2,
-          "WTX": 6
-        },
-        "total": 17
-      },
-      "_source": "costReport"
-    },
-    "2026-09-15": {
-      "courier": {
-        "districts": {
-          "ETH": 26,
-          "ETK": 13,
-          "ETX": 22,
-          "NT-ST": 15,
-          "NT-TM": 14,
-          "NT-TSM": 30,
-          "NT-TW": 20,
-          "WTH": 28,
-          "WTK": 19,
-          "WTX": 27
-        },
-        "total": 214
-      },
-      "driver": {
-        "districts": {
-          "ETH": 26,
-          "ETK": 21,
-          "ETX": 21,
-          "NT-ST": 22,
-          "NT-TM": 23,
-          "NT-TSM": 19,
-          "NT-TW": 19,
-          "WTH": 23,
-          "WTK": 19,
-          "WTX": 18
-        },
-        "total": 211
-      },
-      "odsVan": {
-        "districts": {
-          "ETH": 32,
-          "ETK": 13,
-          "ETX": 19,
-          "NT-ST": 18,
-          "NT-TM": 8,
-          "NT-TSM": 13,
-          "NT-TW": 19,
-          "WTH": 40,
-          "WTK": 19,
-          "WTX": 30
-        },
-        "total": 211
-      },
-      "courierPT": {
-        "districts": {
-          "ETH": 0,
-          "ETK": 0,
-          "ETX": 0,
-          "NT-ST": 0,
-          "NT-TM": 0,
-          "NT-TSM": 0,
-          "NT-TW": 0,
-          "WTH": 0,
-          "WTK": 0,
-          "WTX": 0
-        },
-        "total": 0
-      },
-      "driverPT": {
-        "districts": {
-          "ETH": 3,
-          "ETK": 0,
-          "ETX": 2,
-          "NT-ST": 2,
-          "NT-TM": 2,
-          "NT-TSM": 4,
-          "NT-TW": 3,
-          "WTH": 4,
-          "WTK": 4,
-          "WTX": 6
-        },
-        "total": 30
-      },
-      "_source": "costReport"
-    },
-    "2026-09-16": {
-      "courier": {
-        "districts": {
-          "ETH": 17,
-          "ETK": 11,
-          "ETX": 21,
-          "NT-ST": 15,
-          "NT-TM": 17,
-          "NT-TSM": 23,
-          "NT-TW": 14,
-          "WTH": 22,
-          "WTK": 19,
-          "WTX": 21
-        },
-        "total": 180
-      },
-      "driver": {
-        "districts": {
-          "ETH": 27,
-          "ETK": 21,
-          "ETX": 17,
-          "NT-ST": 21,
-          "NT-TM": 21,
-          "NT-TSM": 17,
-          "NT-TW": 18,
-          "WTH": 20,
-          "WTK": 17,
-          "WTX": 16
-        },
-        "total": 195
-      },
-      "odsVan": {
-        "districts": {
-          "ETH": 25,
-          "ETK": 9,
-          "ETX": 21,
-          "NT-ST": 14,
-          "NT-TM": 8,
-          "NT-TSM": 13,
-          "NT-TW": 15,
-          "WTH": 37,
-          "WTK": 14,
-          "WTX": 23
-        },
-        "total": 179
-      },
-      "courierPT": {
-        "districts": {
-          "ETH": 0,
-          "ETK": 0,
-          "ETX": 0,
-          "NT-ST": 0,
-          "NT-TM": 0,
-          "NT-TSM": 0,
-          "NT-TW": 0,
-          "WTH": 0,
-          "WTK": 0,
-          "WTX": 0
-        },
-        "total": 0
-      },
-      "driverPT": {
-        "districts": {
-          "ETH": 0,
-          "ETK": 0,
-          "ETX": 2,
-          "NT-ST": 1,
-          "NT-TM": 0,
-          "NT-TSM": 3,
-          "NT-TW": 0,
-          "WTH": 4,
-          "WTK": 3,
-          "WTX": 6
-        },
-        "total": 19
-      },
-      "_source": "costReport"
-    },
     "2026-09-17": {
       "courier": {
         "districts": {
@@ -4632,6 +4413,147 @@
           "WTX": 24
         },
         "total": 188
+      }
+    },
+    "2026-11-13": {
+      "courier": {
+        "districts": {
+          "ETH": 24,
+          "ETK": 11,
+          "ETX": 24,
+          "NT-ST": 14,
+          "NT-TM": 17,
+          "NT-TSM": 27,
+          "NT-TW": 20,
+          "WTH": 19,
+          "WTK": 20,
+          "WTX": 22
+        },
+        "total": 198
+      },
+      "driver": {
+        "districts": {
+          "ETH": 23,
+          "ETK": 18,
+          "ETX": 19,
+          "NT-ST": 19,
+          "NT-TM": 22,
+          "NT-TSM": 18,
+          "NT-TW": 18,
+          "WTH": 16,
+          "WTK": 19,
+          "WTX": 19
+        },
+        "total": 191
+      },
+      "odsVan": {
+        "districts": {
+          "ETH": 30,
+          "ETK": 12,
+          "ETX": 20,
+          "NT-ST": 18,
+          "NT-TM": 8,
+          "NT-TSM": 11,
+          "NT-TW": 18,
+          "WTH": 38,
+          "WTK": 16,
+          "WTX": 21
+        },
+        "total": 192
+      }
+    },
+    "2026-11-14": {
+      "courier": {
+        "districts": {
+          "ETH": 22,
+          "ETK": 11,
+          "ETX": 20,
+          "NT-ST": 14,
+          "NT-TM": 20,
+          "NT-TSM": 27,
+          "NT-TW": 16,
+          "WTH": 17,
+          "WTK": 20,
+          "WTX": 21
+        },
+        "total": 188
+      },
+      "driver": {
+        "districts": {
+          "ETH": 20,
+          "ETK": 19,
+          "ETX": 16,
+          "NT-ST": 19,
+          "NT-TM": 23,
+          "NT-TSM": 17,
+          "NT-TW": 16,
+          "WTH": 12,
+          "WTK": 19,
+          "WTX": 14
+        },
+        "total": 175
+      },
+      "odsVan": {
+        "districts": {
+          "ETH": 29,
+          "ETK": 9,
+          "ETX": 22,
+          "NT-ST": 17,
+          "NT-TM": 9,
+          "NT-TSM": 12,
+          "NT-TW": 19,
+          "WTH": 36,
+          "WTK": 17,
+          "WTX": 21
+        },
+        "total": 191
+      }
+    },
+    "2026-11-15": {
+      "courier": {
+        "districts": {
+          "ETH": 22,
+          "ETK": 12,
+          "ETX": 20,
+          "NT-ST": 13,
+          "NT-TM": 19,
+          "NT-TSM": 25,
+          "NT-TW": 17,
+          "WTH": 18,
+          "WTK": 17,
+          "WTX": 21
+        },
+        "total": 184
+      },
+      "driver": {
+        "districts": {
+          "ETH": 20,
+          "ETK": 19,
+          "ETX": 16,
+          "NT-ST": 20,
+          "NT-TM": 24,
+          "NT-TSM": 19,
+          "NT-TW": 17,
+          "WTH": 14,
+          "WTK": 15,
+          "WTX": 16
+        },
+        "total": 180
+      },
+      "odsVan": {
+        "districts": {
+          "ETH": 23,
+          "ETK": 4,
+          "ETX": 20,
+          "NT-ST": 16,
+          "NT-TM": 6,
+          "NT-TSM": 11,
+          "NT-TW": 12,
+          "WTH": 25,
+          "WTK": 9,
+          "WTX": 16
+        },
+        "total": 142
       }
     }
   }
