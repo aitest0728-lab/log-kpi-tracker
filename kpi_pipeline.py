@@ -1436,49 +1436,75 @@ def parse_percent(val, decimals=2):
 
 def load_crosstab(filename, marker_col0_values):
     path = os.path.join(REPORT_FOLDER, filename)
+    if not os.path.exists(path):   # v12.0 - also accept "Summary_By_RP_Group__MTD_.csv"-style names (spaces / brackets -> "_")
+        alt = os.path.join(REPORT_FOLDER, re.sub(r"[ ()]", "_", filename))
+        if os.path.exists(alt):
+            path = alt
     raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str)
     for i in range(min(10, len(raw))):
         if str(raw.iloc[i, 0]).strip() in marker_col0_values:
             return raw.iloc[i + 1:].reset_index(drop=True)
     raise ValueError(f"無法在 {path} 中找到標頭 {marker_col0_values}。")
 
-def split_district_and_other(df, rp_group_idx, final_rp_idx, total_idx, allowed_rp_groups, month_idx=None):
+# v12.0 (Nov 2026): Missing & Lost reports re-built at the source - the RP Group is now "Amanda (Log)" (was "Bert (Log)") and ALL
+# THREE reports now carry a month column (col 2: "Month of Max return accepted date" / "Month of today" / "Month of max date"),
+# with extra "Total" sub-rows. Logic is unchanged: sum each report's Total column per district for the CURRENT month only
+# (e.g. 2026年11月), NT-YT folds into WTH (district_from_party_name), then A + B + C = final amount (combine_missing_lost()).
+ML_RP_GROUP = "Amanda (Log)"
+ML_RP_GROUP_DAMUP = "Amanda (Log) - DAMUP"
+
+def current_month_label(day=None):
+    day = day or today_hkt()
+    return f"{day.year}年{day.month}月"
+
+def split_district_and_other(df, rp_group_idx, final_rp_idx, total_idx, allowed_rp_groups, month_idx=None, month_label=None):
     per_district = {d: 0.0 for d in DISTRICTS}
     other_total = 0.0
+    matched = 0
     for _, row in df.iterrows():
         rp_group = str(row.iloc[rp_group_idx]).strip()
         if rp_group not in allowed_rp_groups: continue
-        
+
         final_rp = str(row.iloc[final_rp_idx]).strip()
         if final_rp in ("Total", "nan", "NaN", "None"): continue
-        
-        # Report A 專用過濾：僅計算 YYYY年MM月 的 Row
+
+        # Month filter: only the current "YYYY年MM月" row; skips the per-party "Total" month sub-rows
+        # (which would otherwise double count) and any other month the export might carry.
         if month_idx is not None:
-            if not MONTH_RE.match(str(row.iloc[month_idx]).strip()):
+            m = str(row.iloc[month_idx]).strip()
+            if not MONTH_RE.match(m):
                 continue
-                
+            if month_label is not None and m != month_label:
+                continue
+
         val = parse_money(row.iloc[total_idx])
+        matched += 1
         d = district_from_party_name(final_rp)
         if d:
             per_district[d] += val
         else:
             other_total += val
+    if month_idx is not None and month_label is not None and matched == 0:
+        print(f"  ⚠️ Missing & Lost: no {sorted(allowed_rp_groups)} rows for {month_label} - amount counted as 0 (check the report's month).")
     return per_district, round(other_total, 2)
 
-def parse_report_a():
-    df = load_crosstab(REPORT_FILES["report_a"], {"RP Group"})
-    per_d, other = split_district_and_other(df, 0, 1, 6, {"Bert (Log)"}, month_idx=2)
+def _missing_lost_report(file_key, total_idx, groups, month_label=None):
+    df = load_crosstab(REPORT_FILES[file_key], {"RP Group"})
+    label = month_label or current_month_label()
+    per_d, other = split_district_and_other(df, 0, 1, total_idx, groups, month_idx=2, month_label=label)
     return {"overall": round(sum(per_d.values()) + other, 2), "districts": {d: round(v, 2) for d, v in per_d.items()}}
 
-def parse_report_b():
-    df = load_crosstab(REPORT_FILES["report_b"], {"RP Group"})
-    per_d, other = split_district_and_other(df, 0, 1, 5, {"Bert (Log)", "Bert (Log) - DAMUP"})
-    return {"overall": round(sum(per_d.values()) + other, 2), "districts": {d: round(v, 2) for d, v in per_d.items()}}
+def parse_report_a(month_label=None):
+    # Summary By RP Group (MTD): cols = RP Group | Final RP | Month | Damage | Lost | Other | Total  -> Total = col 6
+    return _missing_lost_report("report_a", 6, {ML_RP_GROUP}, month_label)
 
-def parse_report_c():
-    df = load_crosstab(REPORT_FILES["report_c"], {"RP Group"})
-    per_d, other = split_district_and_other(df, 0, 1, 5, {"Bert (Log)"})
-    return {"overall": round(sum(per_d.values()) + other, 2), "districts": {d: round(v, 2) for d, v in per_d.items()}}
+def parse_report_b(month_label=None):
+    # MTD Summary By RP: cols = RP Group | Final Responsible Party | Month | Consignment | Non-Consignment | Total  -> Total = col 5
+    return _missing_lost_report("report_b", 5, {ML_RP_GROUP, ML_RP_GROUP_DAMUP}, month_label)
+
+def parse_report_c(month_label=None):
+    # MTD Summary By RP Group: cols = RP Group | Final RP | Month | False | True | Total  -> Total = col 5
+    return _missing_lost_report("report_c", 5, {ML_RP_GROUP}, month_label)
 
 def parse_actual_delivery_timeslot(file_key):
     """v4.0 §1/§4 — parses 'Actual Delivery by Timeslot(.csv)' (T-1 daily) or
@@ -3757,6 +3783,39 @@ def combine_missing_lost(a, b, c):
     return {"overall": overall, "districts": per_district}
 
 
+def run_missing_lost_section(day=None):
+    """v12.0 - `--section missinglost [--date YYYY-MM-DD]`: (re)build ONLY the Missing & Lost Amount figures from the three CSVs that are
+    already in REPORT_FOLDER - NO Tableau download, no freshness check - and refresh data.json, history.json, other_aspects_history.json
+    and index.html's embedded snapshot. Every other matrix is left exactly as it is. `--date` = the date the figures are filed under
+    (also decides the month that is read and the forecast pro-rating); default today. Safe to re-run: the same day is overwritten."""
+    day = day or today_hkt()
+    month = current_month_label(day)
+    total_days = (dt.date(day.year + (day.month == 12), (day.month % 12) + 1, 1) - dt.timedelta(days=1)).day
+    print(f"🚀 Missing & Lost backfill (no download) - {day.isoformat()}, month {month}")
+    a, b, c = parse_report_a(month), parse_report_b(month), parse_report_c(month)
+    missing_lost = combine_missing_lost(a, b, c)
+
+    history = load_history()
+    payload = load_data_json()
+    matrices = payload.setdefault("matrices", {})
+    matrices["missingLostAmount"] = {
+        "actual": missing_lost,
+        "forecast": {
+            "overall": prorate_forecast(missing_lost["overall"], day.day, total_days),
+            "districts": {d: prorate_forecast(missing_lost["districts"][d], day.day, total_days) for d in DISTRICTS},
+        },
+        "target": MISSING_LOST_TARGETS,
+        "asOf": day.isoformat(),
+    }
+    append_history(history, "missingLostAmount", day.isoformat(), missing_lost["overall"], missing_lost["districts"])
+    save_other_aspects_history(build_other_aspects_monthly(history, matrices, payload))
+    save_history(history)
+    save_data_json(payload)
+    update_embedded_data()
+    print(f"✅ Missing & Lost Amount updated: overall {missing_lost['overall']:,.2f}; "
+          + ", ".join(f"{d} {missing_lost['districts'][d]:,.0f}" for d in DISTRICTS))
+
+
 # =============================================================================
 # 7. GMV / Basket Size (v3.0 §3)
 # =============================================================================
@@ -4759,9 +4818,10 @@ def run_section_tableau():
     }
 
     # --- Missing & Lost Amount (prorate forecast) ---
-    a = parse_report_a()
-    b = parse_report_b()
-    c = parse_report_c()
+    ml_month = current_month_label(today)
+    a = parse_report_a(ml_month)
+    b = parse_report_b(ml_month)
+    c = parse_report_c(ml_month)
     missing_lost = combine_missing_lost(a, b, c)
     matrices["missingLostAmount"] = {
         "actual": missing_lost,
@@ -6499,7 +6559,7 @@ def main():
     # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
     parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "oixbackfill", "map", "maptemp", "newestate",
-                                              "delay", "delayreport", "lastreceived", "mapperf", "odspoints", "all"], required=True)
+                                              "delay", "delayreport", "lastreceived", "mapperf", "odspoints", "missinglost", "all"], required=True)
     parser.add_argument("--date", default=None,
                         help="v10.6 — with --section delayreport: the data date YYYY-MM-DD to report (default: T-1).")
     parser.add_argument("--resume", action="store_true",
@@ -6562,6 +6622,10 @@ def main():
                 pass
         fetch_tableau_reports(only_keys={"delay_early", "actual_delivery_district"})
         run_section_delay(force=args.force)
+        return
+
+    if args.section == "missinglost":   # v12.0 - Missing & Lost Amount only, from the CSVs already in REPORT_FOLDER (no download)
+        run_missing_lost_section(dt.datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else None)
         return
 
     if args.section == "lastreceived":  # v10.8 — last Received-by-Customer time on its own / backfill a day
