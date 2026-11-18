@@ -2,18 +2,18 @@
   "poorRating": {
     "current": {
       "monthKey": "2026-11",
-      "overall": 0.054,
+      "overall": 0.062,
       "districts": {
-        "ETH": 0.041,
-        "ETK": 0.019,
-        "ETX": 0.066,
-        "NT-ST": 0.039,
-        "NT-TM": 0.071,
-        "NT-TSM": 0.032,
-        "NT-TW": 0.054,
-        "WTH": 0.052,
-        "WTK": 0.055,
-        "WTX": 0.103
+        "ETH": 0.048,
+        "ETK": 0.023,
+        "ETX": 0.065,
+        "NT-ST": 0.051,
+        "NT-TM": 0.097,
+        "NT-TSM": 0.044,
+        "NT-TW": 0.058,
+        "WTH": 0.055,
+        "WTK": 0.062,
+        "WTX": 0.112
       }
     },
     "monthly": {
@@ -917,6 +917,21 @@
           "WTH": 0.052,
           "WTK": 0.055,
           "WTX": 0.103
+        }
+      },
+      "2026-11-18": {
+        "overall": 0.062,
+        "districts": {
+          "ETH": 0.048,
+          "ETK": 0.023,
+          "ETX": 0.065,
+          "NT-ST": 0.051,
+          "NT-TM": 0.097,
+          "NT-TSM": 0.044,
+          "NT-TW": 0.058,
+          "WTH": 0.055,
+          "WTK": 0.062,
+          "WTX": 0.112
         }
       }
     }
@@ -1975,19 +1990,34 @@
           "WTK": 0.0,
           "WTX": 0.0
         }
+      },
+      "2026-11-18": {
+        "overall": 0.0,
+        "districts": {
+          "ETH": 0.0,
+          "ETK": 0.0,
+          "ETX": 0.0,
+          "NT-ST": 0.0,
+          "NT-TM": 0.0,
+          "NT-TSM": 0.0,
+          "NT-TW": 0.0,
+          "WTH": 0.0,
+          "WTK": 0.0,
+          "WTX": 0.0
+        }
       }
     }
   },
   "rfidMissingTote": {
     "current": {
       "monthKey": "2026-11",
-      "overall": 315.0,
+      "overall": 318.0,
       "districts": {
-        "ETH": 17.0,
+        "ETH": 18.0,
         "ETK": 5.0,
-        "ETX": 10.0,
+        "ETX": 11.0,
         "NT-ST": 31.0,
-        "NT-TM": 18.0,
+        "NT-TM": 19.0,
         "NT-TSM": 6.0,
         "NT-TW": 81.0,
         "WTH": 45.0,
@@ -2876,6 +2906,21 @@
           "ETX": 10.0,
           "NT-ST": 31.0,
           "NT-TM": 18.0,
+          "NT-TSM": 6.0,
+          "NT-TW": 81.0,
+          "WTH": 45.0,
+          "WTK": 9.0,
+          "WTX": 93.0
+        }
+      },
+      "2026-11-14": {
+        "overall": 318.0,
+        "districts": {
+          "ETH": 18.0,
+          "ETK": 5.0,
+          "ETX": 11.0,
+          "NT-ST": 31.0,
+          "NT-TM": 19.0,
           "NT-TSM": 6.0,
           "NT-TW": 81.0,
           "WTH": 45.0,
