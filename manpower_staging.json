@@ -1,93 +1,93 @@
 {
-  "date": "2026-11-18",
+  "date": "2026-11-19",
   "hktvStaffManpower": {
-    "overall": 404,
+    "overall": 412,
     "districts": {
-      "ETH": 47,
-      "ETK": 33,
-      "ETX": 41,
-      "NT-ST": 34,
-      "NT-TM": 38,
-      "NT-TSM": 47,
-      "NT-TW": 36,
-      "WTH": 34,
-      "WTK": 44,
-      "WTX": 50
+      "ETH": 48,
+      "ETK": 34,
+      "ETX": 45,
+      "NT-ST": 35,
+      "NT-TM": 42,
+      "NT-TSM": 48,
+      "NT-TW": 31,
+      "WTH": 30,
+      "WTK": 48,
+      "WTX": 51
     }
   },
   "odsRatioManpower": {
-    "overall": 187,
+    "overall": 177,
     "districts": {
-      "ETH": 24,
+      "ETH": 28,
       "ETK": 3,
-      "ETX": 21,
-      "NT-ST": 20,
-      "NT-TM": 9,
-      "NT-TSM": 14,
+      "ETX": 13,
+      "NT-ST": 18,
+      "NT-TM": 7,
+      "NT-TSM": 11,
       "NT-TW": 17,
-      "WTH": 40,
-      "WTK": 15,
-      "WTX": 24
+      "WTH": 41,
+      "WTK": 16,
+      "WTX": 23
     }
   },
   "courierGroup": {
     "districts": {
-      "ETH": 23,
+      "ETH": 24,
       "ETK": 13,
-      "ETX": 21,
-      "NT-ST": 14,
-      "NT-TM": 15,
-      "NT-TSM": 26,
-      "NT-TW": 17,
-      "WTH": 13,
-      "WTK": 22,
-      "WTX": 26
-    },
-    "total": 190
-  },
-  "driverGroup": {
-    "districts": {
-      "ETH": 22,
-      "ETK": 19,
-      "ETX": 18,
-      "NT-ST": 20,
-      "NT-TM": 22,
-      "NT-TSM": 18,
-      "NT-TW": 19,
-      "WTH": 15,
-      "WTK": 17,
-      "WTX": 19
+      "ETX": 23,
+      "NT-ST": 15,
+      "NT-TM": 17,
+      "NT-TSM": 27,
+      "NT-TW": 11,
+      "WTH": 11,
+      "WTK": 24,
+      "WTX": 24
     },
     "total": 189
   },
-  "odsOrderCount": {
-    "overall": 7072,
+  "driverGroup": {
     "districts": {
-      "ETH": 659,
-      "ETK": 97,
-      "ETX": 774,
-      "NT-ST": 725,
-      "NT-TM": 400,
-      "NT-TSM": 550,
-      "NT-TW": 691,
-      "WTH": 1598,
-      "WTK": 656,
-      "WTX": 922
+      "ETH": 23,
+      "ETK": 19,
+      "ETX": 19,
+      "NT-ST": 19,
+      "NT-TM": 24,
+      "NT-TSM": 19,
+      "NT-TW": 17,
+      "WTH": 14,
+      "WTK": 19,
+      "WTX": 20
+    },
+    "total": 193
+  },
+  "odsOrderCount": {
+    "overall": 7324,
+    "districts": {
+      "ETH": 829,
+      "ETK": 149,
+      "ETX": 502,
+      "NT-ST": 774,
+      "NT-TM": 381,
+      "NT-TSM": 460,
+      "NT-TW": 766,
+      "WTH": 1804,
+      "WTK": 735,
+      "WTX": 924
     }
   },
   "odsWaybillCount": {
-    "overall": 7110,
+    "overall": 7371,
     "districts": {
-      "ETH": 664,
-      "ETK": 97,
-      "ETX": 776,
-      "NT-ST": 731,
-      "NT-TM": 401,
-      "NT-TSM": 550,
-      "NT-TW": 695,
-      "WTH": 1615,
-      "WTK": 658,
-      "WTX": 923
+      "ETH": 836,
+      "ETK": 151,
+      "ETX": 502,
+      "NT-ST": 774,
+      "NT-TM": 381,
+      "NT-TSM": 460,
+      "NT-TW": 771,
+      "WTH": 1825,
+      "WTK": 744,
+      "WTX": 927
     }
   }
 }
