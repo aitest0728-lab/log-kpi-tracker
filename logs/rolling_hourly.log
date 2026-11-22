@@ -19003,3 +19003,45 @@ Traceback (most recent call last):
   File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/rolling_orders.py", line 610, in download_tableau_report
     raise RuntimeError(f"Tableau 'Number of Order with unique Cus+Adress+Timeslot' download failed after {TABLEAU_ATTEMPTS} sessions: {last}")
 RuntimeError: Tableau 'Number of Order with unique Cus+Adress+Timeslot' download failed after 3 sessions: no Download button of the Crosstab dialog started a download (screenshot /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-21)_dlbutton.png)
+[15:00:01] run 2026-11-22 15:00  T+0=2026-11-22  ->  order dates to update: 2026-11-22
+[15:00:02] Tableau: login (TABLEAU_USER)
+[15:00:06] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[15:00:09] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[15:00:24] Tableau: forced reload so the toolbar initialises correctly
+[15:00:35] Tableau: view loaded
+[15:00:50] Tableau: view title OK ('Number of Order with unique...' found)
+[15:01:16] Tableau: sheets in the Crosstab dialog: none detected
+[15:01:16] Tableau: sheet 'data' is expected to be pre-selected - not clicked (selected state read as None); continuing
+[15:01:17] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[15:01:18] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[15:01:19] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|OFF]
+[15:01:19] Tableau: pressing the dialog Download button via 'test-id export button'
+[15:01:44] Tableau: 'test-id export button' did not start a download (Timeout 25000ms exceeded while waiting for event "download") - trying the next one
+[15:01:44] Tableau: pressing the dialog Download button via 'dialog button named Download'
+[15:02:09] Tableau: 'dialog button named Download' did not start a download (Timeout 25000ms exceeded while waiting for event "download") - trying the next one
+[15:02:09] Tableau: pressing the dialog Download button via 'last button of the dialog'
+[15:02:34] Tableau: 'last button of the dialog' did not start a download (Timeout 25000ms exceeded while waiting for event "download") - trying the next one
+[15:02:34] Tableau: pressing the dialog Download button via 'last button of the dialog body'
+[15:02:59] Tableau: 'last button of the dialog body' did not start a download (Timeout 25000ms exceeded while waiting for event "download") - trying the next one
+[15:02:59] Tableau: pressing the dialog Download button via 'button with text Download'
+[15:03:24] Tableau: 'button with text Download' did not start a download (Timeout 25000ms exceeded while waiting for event "download") - trying the next one
+[15:03:24] Tableau: attempt 1/3 failed: RuntimeError: no Download button of the Crosstab dialog started a download (screenshot /mnt/c/Users/chipanl/Downloads/Whatsapp Session/Folder for Rolling Orders/AI Fetching for Order Date T-1 (Nov-21)_dlbutton.png)
+[15:03:24] Tableau: retry 2/3 (fresh browser + login)
+[15:03:45] Tableau: login (TABLEAU_USER)
+[15:03:47] Tableau: signed in, landed on https://inhouse-analytics.hktv.com.hk/#/user/local/Warehouse/settings
+[15:03:50] Tableau: opening 'Number of Order with unique Cus+Adress+Timeslot'
+[15:04:05] Tableau: forced reload so the toolbar initialises correctly
+[15:04:17] Tableau: view loaded
+[15:04:32] Tableau: view title OK ('Number of Order with unique...' found)
+[15:04:57] Tableau: sheets in the Crosstab dialog: none detected
+[15:04:57] Tableau: sheet 'data' is expected to be pre-selected - not clicked (selected state read as None); continuing
+[15:04:58] Tableau: file formats in the dialog (try 1): [('Excel', True), ('CSV', False)]
+[15:04:59] Tableau: file formats in the dialog (try 2): [('Excel', False), ('CSV', True)]
+[15:05:00] Tableau: buttons in the Crosstab dialog: [|None|export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-CloseButton|on] [Download|None|export-crosstab-export-Button|OFF]
+[15:05:00] Tableau: pressing the dialog Download button via 'test-id export button'
+[15:05:25] Tableau: 'test-id export button' did not start a download (Timeout 25000ms exceeded while waiting for event "download") - trying the next one
+[15:05:25] Tableau: pressing the dialog Download button via 'dialog button named Download'
+[15:05:50] Tableau: 'dialog button named Download' did not start a download (Timeout 25000ms exceeded while waiting for event "download") - trying the next one
+[15:05:50] Tableau: pressing the dialog Download button via 'last button of the dialog'
+[15:06:15] Tableau: 'last button of the dialog' did not start a download (Timeout 25000ms exceeded while waiting for event "download") - trying the next one
+[15:06:16] Tableau: pressing the dialog Download button via 'last button of the dialog body'
