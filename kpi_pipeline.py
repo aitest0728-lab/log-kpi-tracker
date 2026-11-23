@@ -2,6 +2,19 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v11.10 — Overview (Business Aspect) no longer shows or fetches GMV / Basket Size.
+  The daily GMV Tableau download (Sheet 1.csv / fetch_gmv_report) and the write/embed of
+  public/gmv_history.json are removed. The file is left on disk if it already exists.
+  Fulfillment Cost % on Other Aspects Tracking still uses history['gmv'] already stored
+  in history.json — it will not gain new daily GMV after this change. Delivery Map
+  GMV / Basket Size still comes from the monthly mapperf Tableau reports
+  (TABLEAU_GMV_USER / TABLEAU_GMV_PASS / TABLEAU_GMV_URL), which are unchanged.
+  Rolling Orders now reads rolling_report.json: T+0..T+2 are copied from the hourly
+  job's Rolling_Orders_Report.html (no recomputation); T+3..T+6 are built in the same
+  shape. New sections: `--section rolling` (hourly, a few minutes after the :15 image
+  job) and `--section oixhistory` (daily OIX actual-delivered logging, with --date and
+  --hist-backfill). A T+3..T+6 RRP download is merged so it cannot replace T+0..T+2 in
+  rrp-data/latest/snapshot.json or those dates' Overall-Order xlsx.
 v11.9 — Daily Cost Report file name + layout: `--section costreport` (09:00 Tue/Fri) now accepts ANY .xlsx whose name starts with "Daily_Cost_Report" /
   "Daily Cost Report" (e.g. Daily_Cost_Report_as_of_8_Nov.xlsx) - in the WhatsApp group scan, the local-folder fallback and the map-Excel exclusion.
   The newest is chosen by the date in the name (YYYYMM_Last Update_MMM DD, "as of 8 Nov", YYYYMMDD ...), ties by chat order / file time. The report date is
@@ -169,28 +182,13 @@ if not TABLEAU_USER or not TABLEAU_PASS:
         "longer falls back to a hardcoded password."
     )
 
-# --- v3.0 §3: GMV lives on a SEPARATE Tableau account from TABLEAU_USER/PASS
-# above ("LOG GMV for AI Fetching" is only visible under that other login),
-# so it gets its own sign-in URL + credentials. fetch_gmv_report() opens its
-# own browser context and logs in with these, independently of
-# fetch_tableau_reports(). Not required unless you actually run the GMV
-# fetch, so no SystemExit here — run_section_tableau() just skips GMV with a
-# warning if the file never showed up (see there).
+# v11.10 — TABLEAU_GMV_USER / TABLEAU_GMV_PASS / TABLEAU_GMV_URL are still used by
+# --section mapperf (monthly Delivery Map estate / zone performance). The daily
+# GMV Tableau report (Sheet 1.csv / fetch_gmv_report / TABLEAU_GMV_DASHBOARD_URL /
+# TABLEAU_GMV_WORKBOOK_ID) is no longer downloaded.
 TABLEAU_GMV_URL = os.environ.get("TABLEAU_GMV_URL", "https://inhouse-analytics.hktv.com.hk/#/signin")
-TABLEAU_GMV_DASHBOARD_URL = os.environ.get(
-    "TABLEAU_GMV_DASHBOARD_URL",
-    "https://inhouse-analytics.hktv.com.hk/#/views/LogGMVforAIFetching/Sheet1?:iid=1",
-)
 TABLEAU_GMV_USER = os.environ.get("TABLEAU_GMV_USER", "")
 TABLEAU_GMV_PASS = os.environ.get("TABLEAU_GMV_PASS", "")
-# v3.0 §3 fix: numeric workbook ID for "LOG GMV for AI Fetching", used to log
-# in via a redirect straight to that workbook's views listing — same pattern
-# as oix_returning_waybill.py's TABLEAU_URL ("...?redirect=%2Fworkbooks%2F4896%2Fviews").
-# Find it by opening the GMV workbook itself (not the direct view link) while
-# logged in as the GMV account, and copying the number from the resulting
-# "#/workbooks/<ID>/views" URL. Left blank, fetch_gmv_report() falls back to
-# the old direct-view goto()+reload() approach, which is what was failing.
-TABLEAU_GMV_WORKBOOK_ID = os.environ.get("TABLEAU_GMV_WORKBOOK_ID", "")
 
 # v10.9 - the pipeline now also runs under WSL cron (run_tableau_0830.sh), where a Windows path such as
 # C:\Users\... does not exist: it would silently create a folder literally named "C:\Users\..." next to the script.
@@ -310,9 +308,11 @@ OTHER_ASPECTS_HISTORY_PATH = os.environ.get("OTHER_ASPECTS_HISTORY_PATH", "./pub
 COST_PLAN_PATH = os.environ.get("COST_PLAN_PATH", "./public/cost_plan.json")
 # v11.7 - the 03:00 job re-checks the OIX files of the last N days for the ODS first / non-first point counts (`--section odspoints` = all files).
 ODS_POINTS_LOOKBACK_DAYS = int(os.environ.get("ODS_POINTS_LOOKBACK_DAYS", "7"))
-# v11.8 - rolling_orders.json is written by rolling_orders.py (not by this pipeline) but must stay inside the embedded snapshot:
-# update_embedded_data() rebuilds the whole block on every run, so it re-reads this file (or, failing that, keeps the copy already embedded).
+# v11.8 / v11.10 — rolling_orders.json was written by rolling_orders.py; the Rolling Orders tab
+# now reads rolling_report.json (written by --section rolling). The old path is kept only so a
+# leftover file is never mistaken for the new feed.
 ROLLING_ORDERS_PATH = os.environ.get("ROLLING_ORDERS_PATH", "./public/rolling_orders.json")
+ROLLING_REPORT_JSON_PATH_DEFAULT = os.environ.get("ROLLING_REPORT_JSON_PATH", "./public/rolling_report.json")
 # v28.0 — single deployable dashboard file. Every JSON file's parsed content
 # gets burned into a window.__EMBEDDED_DATA__ script tag inside this same
 # file at the end of every "tableau" run, so it works both live off a real
@@ -334,10 +334,10 @@ DAILY_PRODUCTIVITY_KEEP_DAYS = int(os.environ.get("DAILY_PRODUCTIVITY_KEEP_DAYS"
 # existence-check would pass, and the pipeline would silently recompute
 # today's dashboard numbers from stale data with no warning. A file older
 # than this many hours is now treated the same as a missing file. 2h is
-# generous slack over how long fetch_tableau_reports()+fetch_gmv_report()
+# generous slack over how long fetch_tableau_reports()
 # actually take to run immediately before run_section_tableau() reads them.
 STALE_REPORT_HOURS = float(os.environ.get("STALE_REPORT_HOURS", "2"))
-# v11.2 - download robustness (see fetch_tableau_reports / fetch_gmv_report): tries per report inside one browser session (was 2),
+# v11.2 - download robustness (see fetch_tableau_reports): tries per report inside one browser session (was 2),
 # and how many extra "recovery" sessions (fresh browser + login, only the reports still missing) follow the normal pass.
 TABLEAU_DOWNLOAD_ATTEMPTS = max(1, int(os.environ.get("TABLEAU_DOWNLOAD_ATTEMPTS", "3")))
 TABLEAU_RECOVERY_ROUNDS = max(0, int(os.environ.get("TABLEAU_RECOVERY_ROUNDS", "2")))
@@ -1241,174 +1241,8 @@ def _fetch_tableau_session(targets, user, password, login_url, succeeded):
         print("🎉 Tableau 報表下載完畢！\n")
 
 
-def fetch_gmv_report():
-    """v3.0 §3 — downloads 'Sheet 1.csv' (GMV) from the SEPARATE 'LOG GMV
-    for AI Fetching' Tableau account. Its own browser/login, independent of
-    fetch_tableau_reports() above, since it's a different account entirely.
-
-    v11.2 - same hardening as fetch_tableau_reports(): up to TABLEAU_DOWNLOAD_ATTEMPTS (3) fresh sessions
-    (new browser + login each time; any exception inside a session just counts as a failed try). Returns True once the file
-    was saved (or when GMV is not configured), False if every session failed - run_section_tableau() then skips the GMV update."""
-    if not TABLEAU_GMV_USER or not TABLEAU_GMV_PASS:
-        print("  ⚠️ TABLEAU_GMV_USER / TABLEAU_GMV_PASS not set — skipping GMV download. "
-              "Set these in .env (separate account from TABLEAU_USER/PASS) to enable it.")
-        return True
-    tries = TABLEAU_DOWNLOAD_ATTEMPTS            # 3 fresh sessions
-    for n in range(1, tries + 1):
-        if n > 1:
-            print(f"\n🛟 GMV 補下載 (第 {n}/{tries} 次，全新瀏覽器 + 重新登入)...")
-            time.sleep(TABLEAU_RECOVERY_WAIT_S)
-        try:
-            if _fetch_gmv_once():
-                return True
-        except Exception as e:
-            print(f"  ❌ GMV session aborted: {type(e).__name__}: {e}")
-    print(f"  ❌ GMV report still missing after {tries} sessions.")
-    return False
-
-
-def _fetch_gmv_once():
-    """One GMV download session (see fetch_gmv_report). True if 'Sheet 1.csv' was saved."""
-    print("🚀 啟動 GMV Tableau 自動化下載程序 (獨立帳號)...")
-    target_filepath = os.path.join(REPORT_FOLDER, REPORT_FILES["gmv"])
-
-    # v3.0 §3 fix: same "log in via a redirect straight to the workbook's
-    # views listing" approach as oix_returning_waybill.py's download_tableau_raw(),
-    # instead of logging in then goto()-ing the deep view URL directly. The
-    # GMV account doesn't land on /#/user/ after login the way the main
-    # account does (it lands on /#/explore), so jumping straight to a
-    # deep-linked view hash right after login was racing the SPA's own
-    # routing/toolbar init — Download would click something, but the
-    # Crosstab menu item never actually rendered.
-    login_url = TABLEAU_GMV_URL
-    if TABLEAU_GMV_WORKBOOK_ID:
-        login_url = (f"https://inhouse-analytics.hktv.com.hk/#/signin"
-                     f"?redirect=%2Fworkbooks%2F{TABLEAU_GMV_WORKBOOK_ID}%2Fviews")
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--disable-popup-blocking"])
-        context = browser.new_context(accept_downloads=True)
-        page = context.new_page()
-        page.set_viewport_size({"width": 1920, "height": 1080})
-
-        print("  🌐 導航至 GMV Tableau 登入頁面...")
-        page.goto(login_url)
-        page.wait_for_selector("input[type='text'], input[name='username']", timeout=30000)
-        page.locator("input[type='text'], input[name='username']").first.fill(TABLEAU_GMV_USER)
-        page.locator("input[type='password'], input[name='password']").first.fill(TABLEAU_GMV_PASS)
-        page.locator("button:has-text('Sign In'), [aria-label='Sign In']").first.click()
-
-        if TABLEAU_GMV_WORKBOOK_ID:
-            print("  📄 等待並點擊 Sheet1...")
-            loc1 = page.locator('[aria-label="Sheet1"][role="link"]')
-            loc2 = page.get_by_text("Sheet1", exact=True)
-            loc3 = page.get_by_text("Sheet 1", exact=True)
-            sheet_link = loc1.or_(loc2).or_(loc3)
-            sheet_link.first.wait_for(state="visible", timeout=60000)
-            sheet_link.first.click()
-            time.sleep(3)
-        else:
-            # Fallback: old direct-view approach. Kept only for the case
-            # TABLEAU_GMV_WORKBOOK_ID hasn't been set yet — this is the path
-            # that was producing "找不到 Crosstab 選項".
-            print("  ⚠ TABLEAU_GMV_WORKBOOK_ID not set — using the older direct-view "
-                  "navigation, which is the flow that was failing. Set "
-                  "TABLEAU_GMV_WORKBOOK_ID in .env to use the more reliable path.")
-            print("  ⏳ 等待登入後的跳轉完成...")
-            page.wait_for_load_state("networkidle", timeout=60000)
-            try:
-                page.wait_for_url("**/#/user/**", timeout=30000)
-            except Exception:
-                print(f"  ⚠ 未偵測到預期的 /#/user/ 跳轉，目前網址: {page.url}（仍會繼續嘗試導航）")
-            time.sleep(3)
-
-            print(f"\n🌐 Opening GMV Tableau Report: {TABLEAU_GMV_DASHBOARD_URL}")
-            page.goto(TABLEAU_GMV_DASHBOARD_URL)
-            try:
-                page.wait_for_load_state("networkidle", timeout=30000)
-            except Exception:
-                pass
-            time.sleep(10)
-            page.wait_for_timeout(5000)
-            try:
-                page.reload(wait_until="load", timeout=45000)
-            except Exception as e:
-                print(f"  ⚠ reload() 等待逾時或發生問題（{e}），仍繼續嘗試後續步驟...")
-            time.sleep(8)
-            page.wait_for_timeout(3000)
-
-        print("  ⬇️ 正在下載 GMV 報表...")
-        dl_selectors = ["#download", '[aria-label="Download"]', "button:has-text('Download')"]
-        if not fast_click(page, dl_selectors, 4000):
-            if not smart_click(page, dl_selectors, 15):
-                print("  ❌ 找不到 Download 按鈕，GMV 下載中止")
-                context.close(); browser.close()
-                return False
-
-        crosstab_selectors = [
-            "#viz-viewer-toolbar-download-menu > div:nth-of-type(3)",
-            "#viz-viewer-toolbar-download-menu div:nth-of-type(3) span",
-            "xpath=//*[@id='viz-viewer-toolbar-download-menu']/div[3]",
-            "xpath=//*[@id='viz-viewer-toolbar-download-menu']/div[3]/div/div/span[2]",
-            '[data-tb-test-id="download-crosstab-Button-MenuItem"]',
-            "span:has-text('Crosstab')",
-            "text='Crosstab'"
-        ]
-        if not fast_click(page, crosstab_selectors, 4000):
-            if not smart_click(page, crosstab_selectors, 10):
-                print("  ❌ 找不到 Crosstab 選項，GMV 下載中止")
-                context.close(); browser.close()
-                return False
-        time.sleep(2)
-
-        # Sheet is pre-selected per spec — no thumbnail click needed. If a
-        # future export ever isn't pre-selected, is_sheet_already_selected()
-        # returning False just means we fall through to the CSV step anyway
-        # (same graceful-skip behavior as the 6-report loop).
-        if not is_sheet_already_selected(page, "Sheet1"):
-            sheet_option_selectors = [
-                '[role="option"][title="Sheet1"]',
-                '[data-tb-test-id^="sheet-thumbnail"][title="Sheet1"]',
-                "[role='option']:has-text('Sheet1')",
-            ]
-            fast_click(page, sheet_option_selectors, 2000)
-        time.sleep(1)
-
-        csv_selectors = [
-            "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id label:nth-of-type(2) input",
-            "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id label:nth-of-type(2)",
-            "xpath=//*[@id='export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id']/div/div[2]/div[2]/label[2]",
-            "label:has-text('CSV')",
-            "text='CSV'"
-        ]
-        if not fast_click(page, csv_selectors, 2000):
-            smart_click(page, csv_selectors, 5)
-        time.sleep(1)
-
-        confirm_selectors = [
-            "#export-crosstab-options-dialog-Dialog-BodyWrapper-Dialog-Body-Id button",
-            "button[aria-label='Download Crosstab']",
-            "button[aria-label='Download']",
-            'button[data-tb-test-id="export-crosstab-export-Button"]'
-        ]
-        try:
-            with page.expect_download(timeout=60000) as download_info:
-                if not fast_click(page, confirm_selectors, 3000):
-                    if not smart_click(page, confirm_selectors, 30):
-                        raise TimeoutError("Unable to click download button for GMV Sheet1")
-            download = download_info.value
-            download.save_as(target_filepath)
-            print(f"  ✅ 成功儲存: {REPORT_FILES['gmv']}")
-            saved = True
-        except Exception as e:
-            print(f"  ❌ 下載 GMV 報表失敗: {e}")
-            saved = False
-
-        context.close()
-        browser.close()
-        print("🎉 GMV 報表下載完畢！\n" if saved else "  ⚠️ GMV 報表本次下載失敗。\n")
-        return saved
-
+# v11.10 — fetch_gmv_report() removed (GMV Tableau fetch / gmv_history.json write path).
+# v11.10 — _fetch_gmv_once() removed (GMV Tableau fetch / gmv_history.json write path).
 # =============================================================================
 # 4. 數據處理邏輯 (Tableau CSV 解析)
 # =============================================================================
@@ -1985,113 +1819,8 @@ def parse_rfid(target_date):
     return {"overall": round(sum(per_district.values()), 2), "districts": {d: round(v, 2) for d, v in per_district.items()}}
 
 
-def parse_gmv(target_date):
-    """v3.0 §3 — parses REPORT_FILES['gmv'] ("Sheet 1.csv"), downloaded by
-    fetch_gmv_report() from the separate GMV Tableau account.
-
-    Layout (same UTF-16 tab-separated crosstab shape as the other reports):
-      row 0: 'delivery_district' marker row (ignored)
-      row 1: real header — col 0 is the date-pivot label, remaining columns
-             are district codes as exported by Tableau. If a "NT-YT" column
-             is present, its values are merged into "WTH" (v3.1, Sept 2026 —
-             was "NT-TW" under v3.0 §3, changed when the district grouping
-             itself changed at the source) via normalize_district_code(),
-             same helper §1/§2 use.
-      row 2+: one row per date, col 0 = "YYYY年M月D日" (no zero-padding —
-             confirmed against the sample export), remaining columns = GMV
-             amounts (may contain "$"/"," — parsed with parse_money()).
-
-    Returns the row for target_date (T-1) as {"overall", "districts"}.
-    """
-    path = os.path.join(REPORT_FOLDER, REPORT_FILES["gmv"])
-    raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str)
-    header = raw.iloc[1].tolist()
-    data_rows = raw.iloc[2:].reset_index(drop=True)
-
-    col_to_district = {}
-    for idx, label in enumerate(header):
-        if idx == 0:
-            continue
-        norm = normalize_district_code(str(label).strip())
-        if norm in DISTRICTS:
-            col_to_district[idx] = norm
-
-    missing = [d for d in DISTRICTS if d not in col_to_district.values()]
-    if missing:
-        print(f"  ⚠️ GMV export is missing column(s) for district(s): {missing} "
-              f"— those will be treated as $0 for every date.")
-
-    target_label = f"{target_date.year}年{target_date.month}月{target_date.day}日"
-    for _, row in data_rows.iterrows():
-        if str(row.iloc[0]).strip() == target_label:
-            per_district = {d: 0.0 for d in DISTRICTS}
-            for idx, dist in col_to_district.items():
-                per_district[dist] += parse_money(row.iloc[idx])
-            return {"overall": round(sum(per_district.values()), 2),
-                    "districts": {d: round(v, 2) for d, v in per_district.items()}}
-
-    raise ValueError(f"Could not find GMV row for {target_label!r} in {path!r}.")
-
-
-def backfill_gmv_history(history, cutoff_date=None):
-    """v4.0 §3 — 'Sheet 1.csv' (the GMV crosstab) contains one row per date,
-    not just T-1 — so if a day's GMV never made it into history["gmv"] (a
-    missed run, a past failure, etc.), we can recover it straight from
-    whatever date rows happen to still be present in today's download,
-    instead of leaving a permanent gap. Only fills gaps; never overwrites a
-    date that's already recorded (today's own T-1 write from parse_gmv()
-    still happens separately/normally after this).
-
-    v4.0.1 §3 correction — never backfills a day AFTER T-1 (cutoff_date,
-    default = today - 1). Tableau's GMV export can include a row for today
-    (or, in theory, later) that's still accumulating and not yet a complete
-    day's GMV — e.g. if today is Sept 10, only Sept 9 and earlier are
-    eligible; a same-day or future row is skipped even if present in the
-    download, so a partial number never gets treated as that day's final
-    GMV.
-    """
-    if cutoff_date is None:
-        cutoff_date = dt.date.today() - dt.timedelta(days=1)  # T-1
-
-    path = os.path.join(REPORT_FOLDER, REPORT_FILES["gmv"])
-    if not os.path.exists(path):
-        return
-    raw = pd.read_csv(path, encoding="utf-16", sep="\t", header=None, dtype=str)
-    header = raw.iloc[1].tolist()
-    col_to_district = {}
-    for idx, label in enumerate(header):
-        if idx == 0:
-            continue
-        norm = normalize_district_code(str(label).strip())
-        if norm in DISTRICTS:
-            col_to_district[idx] = norm
-
-    gmv_log = history.setdefault("gmv", {})
-    filled, skipped_future = [], []
-    for _, row in raw.iloc[2:].iterrows():
-        label = str(row.iloc[0]).strip()
-        m = re.match(r"^(\d{4})年(\d{1,2})月(\d{1,2})日$", label)
-        if not m:
-            continue
-        row_date = dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
-        if row_date > cutoff_date:
-            skipped_future.append(row_date.isoformat())
-            continue  # never backfill past T-1, even if the export has the row
-        date_str = row_date.isoformat()
-        if date_str in gmv_log:
-            continue  # already have this day — don't overwrite
-        per_district = {d: 0.0 for d in DISTRICTS}
-        for idx, dist in col_to_district.items():
-            per_district[dist] += parse_money(row.iloc[idx])
-        gmv_log[date_str] = {"overall": round(sum(per_district.values()), 2),
-                              "districts": {d: round(v, 2) for d, v in per_district.items()}}
-        filled.append(date_str)
-    if filled:
-        print(f"  🩹 Backfilled {len(filled)} missing GMV day(s) from this run's download: {filled}")
-    if skipped_future:
-        print(f"  ⏭️  Skipped {len(skipped_future)} GMV row(s) newer than T-1 ({cutoff_date.isoformat()}) "
-              f"— not backfilled: {skipped_future}")
-
+# v11.10 — parse_gmv() removed (GMV Tableau fetch / gmv_history.json write path).
+# v11.10 — backfill_gmv_history() removed (GMV Tableau fetch / gmv_history.json write path).
 # =============================================================================
 # 5. OIX Productivity 處理 (03:00 job — Excel/CSV-based, no Tableau involved)
 # =============================================================================
@@ -3653,11 +3382,12 @@ def update_embedded_data():
     sources = {
         "data.json": DATA_JSON_PATH,
         "productivity_history.json": PRODUCTIVITY_HISTORY_PATH,
-        "gmv_history.json": GMV_HISTORY_PATH,
+        # v11.10 — gmv_history.json is no longer written or embedded (Overview no longer displays GMV).
         "manpower_distribution.json": MANPOWER_HISTORY_PATH,
         "delay_history.json": DELAY_HISTORY_PATH,
         "other_aspects_history.json": OTHER_ASPECTS_HISTORY_PATH,
         "cost_plan.json": COST_PLAN_PATH,          # v11.6 - forecast cost plan from the Daily Cost Report
+        "rolling_report.json": str(ROLLING_REPORT_JSON_PATH) if "ROLLING_REPORT_JSON_PATH" in globals() else os.environ.get("ROLLING_REPORT_JSON_PATH", "./public/rolling_report.json"),
     }
     embedded = {}
     missing = []
@@ -3667,21 +3397,19 @@ def update_embedded_data():
                 embedded[filename] = json.load(f)
         else:
             missing.append(filename)
-    # v11.8 - keep the Rolling Orders data (rolling_orders.py's file) instead of dropping it from the rebuilt block
+    # v11.10 — keep rolling_report.json already in the embedded block when this run did not write it
+    # (other sections call update_embedded_data() too). The old rolling_orders.json feed is no longer embedded.
     try:
-        if os.path.exists(ROLLING_ORDERS_PATH):
-            with open(ROLLING_ORDERS_PATH, "r", encoding="utf-8") as f:
-                embedded["rolling_orders.json"] = json.load(f)
-        else:
+        if "rolling_report.json" not in embedded:
             m_old = re.search(r"window\.__EMBEDDED_DATA__\s*=\s*", html[start_idx:end_idx])
             if m_old:
                 old_js = html[start_idx:end_idx][m_old.end():]
                 old_js = old_js[:old_js.rindex("</script>")].rstrip().rstrip(";")
                 old_emb = json.loads(old_js.replace("<\\/", "</"))
-                if "rolling_orders.json" in old_emb:
-                    embedded["rolling_orders.json"] = old_emb["rolling_orders.json"]
+                if "rolling_report.json" in old_emb:
+                    embedded["rolling_report.json"] = old_emb["rolling_report.json"]
     except Exception as ex:
-        print(f"  ⚠️ could not keep rolling_orders.json in the embedded data: {ex}")
+        print(f"  ⚠️ could not keep rolling_report.json in the embedded data: {ex}")
     if missing:
         print(f"  ⚠️ embedded data: {', '.join(missing)} not found — embedding whatever "
               f"the rest of this run did produce; index.html's own fetchJSON() will "
@@ -3820,14 +3548,7 @@ def run_missing_lost_section(day=None):
 # 7. GMV / Basket Size (v3.0 §3)
 # =============================================================================
 
-def append_gmv_history(history, date_str, gmv_group):
-    """Durable full daily GMV log, in history.json — same role as
-    append_history() for the other metrics, kept as its own top-level key
-    ("gmv") since GMV also needs month-closing rollups (build_gmv_monthly)
-    that the plain rolling_average()-style metrics don't."""
-    history.setdefault("gmv", {})[date_str] = gmv_group
-
-
+# v11.10 — append_gmv_history() removed (GMV Tableau fetch / gmv_history.json write path).
 def total_parent_orders_for(history, date_str):
     """Basket Size's denominator ("GMV / Total Parent Order") for date_str,
     read from the SAME dailyProductivityLog entry the Productivity Detail tab
@@ -3859,142 +3580,8 @@ def total_parent_orders_for(history, date_str):
     return overall, districts
 
 
-def basket_size(gmv_group, orders_overall, orders_districts):
-    """Basket Size = GMV / Total Parent Order (v3.0 §3), per district and
-    overall. None wherever either side is missing/zero, rather than a
-    misleading 0 or a divide-by-zero."""
-    def bs(gmv_val, orders_val):
-        return round(gmv_val / orders_val, 2) if gmv_val is not None and orders_val else None
-    overall = bs(gmv_group["overall"], orders_overall)
-    districts = {d: bs(gmv_group["districts"][d], orders_districts.get(d)) for d in DISTRICTS}
-    return {"overall": overall, "districts": districts}
-
-
-def build_gmv_monthly(history):
-    """v3.0 §3 — recomputed fresh from history.json's full "gmv" log every
-    run (same disposable-derived-file pattern as productivity_history.json /
-    rfidMonthly):
-      - "daily": one row per date in the CURRENT (still-open) calendar month
-        — the "show it like the Daily Records Tab" requirement.
-      - "monthly": one accumulated row per CLOSED month, keyed "YYYY-MM" —
-        "after each month, the GMV information can be stacked in 1 row ...
-        this is accumulated, please do not remove". Every closed month that
-        has ever been logged stays here permanently (there are only ~12/yr,
-        so this never needs trimming the way daily logs do).
-    Both GMV and Basket Size ($ = GMV, # = GMV ÷ Total Parent Order) are
-    included at every granularity.
-    """
-    gmv_log = history.get("gmv", {})
-    if not gmv_log:
-        return {"daily": {}, "monthly": {}, "monthDaily": {}, "mtd": None}
-
-    # v4.0.2 fix (trial-run adjustment #2) — "GMV information for dates after
-    # T-1" turned out to be contamination sitting in history["gmv"] itself,
-    # not a bug in *today's* write path: backfill_gmv_history() already
-    # refuses to backfill anything past its cutoff_date (T-1), but it also
-    # only ever FILLS gaps and never removes/overwrites an entry that's
-    # already on record — so any future-dated (or otherwise bogus, e.g. a
-    # garbled crosstab date label parsed into a bad year) row that made it
-    # into history["gmv"] before that cutoff existed, or from any other
-    # source, stays there forever and gets faithfully re-served by this
-    # function on every single run. Guard against that here, at the point
-    # this file is actually built, so a clean gmv_history.json doesn't
-    # depend on history["gmv"] having never been contaminated.
-    #
-    # v4.0.3 correction: the first cut of this guard only dropped dates
-    # LATER than today, which still let TODAY ITSELF (T-0) through — and
-    # that's exactly what happened: 2026-09-10 (today, at the time of that
-    # run) was sitting in history["gmv"] with basketSize entirely null (a
-    # dead giveaway of a still-accumulating, not-yet-complete day), because
-    # it had been legitimately backfilled on an earlier run when "today"
-    # was a later date and 09-10 was that run's genuine T-1. GMV is only
-    # ever a FINAL, complete figure as of T-1 — today's own number is still
-    # accumulating intraday and is never valid to show, no matter how it
-    # got into the log. So the cutoff here now matches every other T-1
-    # cutoff in this file (cutoff_date = today - 1 in backfill_gmv_history,
-    # gmv_date = today - 1 in run_section_tableau's normal write): any date
-    # >= today, or implausibly far outside a +/-2 year window, is dropped
-    # from the rollup and removed from history["gmv"] itself, so it stops
-    # being carried forward and re-checked on every future run too.
-    today = dt.date.today()
-    cutoff_date = today - dt.timedelta(days=1)  # T-1 — the last date GMV can ever be "final" for
-    valid_year_range = (today.year - 2, today.year + 2)
-    bad_dates = []
-    for date_str in list(gmv_log.keys()):
-        try:
-            row_date = dt.date.fromisoformat(date_str)
-        except ValueError:
-            bad_dates.append(date_str)
-            continue
-        if row_date > cutoff_date or not (valid_year_range[0] <= row_date.year <= valid_year_range[1]):
-            bad_dates.append(date_str)
-    if bad_dates:
-        for date_str in bad_dates:
-            del gmv_log[date_str]
-        print(f"  🧹 Dropped {len(bad_dates)} contaminated/future-or-today-dated GMV day(s) "
-              f"found in history[\"gmv\"] (later than T-1 {cutoff_date.isoformat()!r} — "
-              f"GMV is never final for today itself — or an implausible year): {sorted(bad_dates)}")
-
-    current_month = today.strftime("%Y-%m")
-    daily = {}
-    month_daily = {}  # v10.9 - EVERY month's daily rows (closed months too), so the dashboard can expand a month into its days
-    sums = {}  # month -> running totals, used to build the closed-month rollup
-
-    for date_str, gmv_group in sorted(gmv_log.items()):
-        month = date_str[:7]
-        orders_overall, orders_districts = total_parent_orders_for(history, date_str)
-
-        day_rec = {
-            "gmv": gmv_group,
-            "basketSize": basket_size(gmv_group, orders_overall, orders_districts),
-        }
-        month_daily.setdefault(month, {})[date_str] = day_rec
-        if month == current_month:
-            daily[date_str] = day_rec
-
-        bucket = sums.setdefault(month, {
-            "gmv_overall": 0.0, "gmv_districts": {d: 0.0 for d in DISTRICTS},
-            "orders_overall": 0, "orders_districts": {d: 0 for d in DISTRICTS},
-            "days_counted": 0, "days_excluded": [],
-        })
-        # v11.2 - a day with no order count on record (e.g. Aug 1-5 / Aug 31, before the productivity log started or where it never ran)
-        # has no basket size, and adding only its GMV (not its orders) inflated the month's Basket Size (August showed 864.76 instead
-        # of ~702). Such days are left out of the month's GMV total AND its basket size, so both are computed over the same days.
-        if not orders_overall:
-            bucket["days_excluded"].append(date_str)
-            continue
-        bucket["days_counted"] += 1
-        bucket["gmv_overall"] += gmv_group["overall"] or 0
-        bucket["orders_overall"] += orders_overall or 0
-        for d in DISTRICTS:
-            bucket["gmv_districts"][d] += gmv_group["districts"].get(d) or 0
-            bucket["orders_districts"][d] += orders_districts.get(d) or 0
-
-    monthly = {}
-    mtd = None
-    for month, b in sums.items():
-        gmv_group = {
-            "overall": round(b["gmv_overall"], 2),
-            "districts": {d: round(v, 2) for d, v in b["gmv_districts"].items()},
-        }
-        rec = {
-            "gmv": gmv_group,
-            "basketSize": basket_size(gmv_group, b["orders_overall"], b["orders_districts"]),
-            "daysCounted": b["days_counted"],        # v11.2 - days that make up this GMV / Basket Size
-            "daysExcluded": b["days_excluded"],      # v11.2 - days left out because no order count was on record
-        }
-        if month == current_month:
-            # v10.9 - the still-open month is NOT a closed-month row; it is the month-to-date row of the same
-            # expandable layout ("mtd"), and "monthly" keeps holding closed months only.
-            mtd = dict(rec, month=month)
-            continue
-        monthly[month] = rec
-
-    # v10.9 - "monthDaily": {"YYYY-MM": {"YYYY-MM-DD": {gmv, basketSize}}} for every month in the log. "daily" (current
-    # month only) and "monthly" (closed months only) keep their old meaning for everything else that reads this file.
-    return {"daily": daily, "monthly": monthly, "monthDaily": month_daily, "mtd": mtd}
-
-
+# v11.10 — basket_size() removed (GMV Tableau fetch / gmv_history.json write path).
+# v11.10 — build_gmv_monthly() removed (GMV Tableau fetch / gmv_history.json write path).
 # =============================================================================
 # 6a. v10.8 (Dashboard Version 9.2) — "Last Received by Customer" time per district (Delay % tab)
 # =============================================================================
@@ -4528,13 +4115,7 @@ def save_other_aspects_history(payload):
     print(f"Wrote {OTHER_ASPECTS_HISTORY_PATH}")
 
 
-def save_gmv_history(payload):
-    os.makedirs(os.path.dirname(GMV_HISTORY_PATH) or ".", exist_ok=True)
-    with open(GMV_HISTORY_PATH, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-    print(f"Wrote {GMV_HISTORY_PATH}")
-
-
+# v11.10 — save_gmv_history() removed (GMV Tableau fetch / gmv_history.json write path).
 def update_rfid_missing_tote(payload, history, matrices, today):
     """RFID Missing Tote - a T-4 record. The Tableau extract pulled on day D reports the records of D-4 (the Oct 1 run
     reports Sep 27), so every record belongs to the month of its T-4 date, NOT to the month of the run date.
@@ -4844,31 +4425,7 @@ def run_section_tableau():
     # recomputed fresh from the ledger, never incremented directly.
     update_rfid_missing_tote(payload, history, matrices, today)   # v9.4 - T-4 month attribution, see function
 
-    # --- v3.0 §3: GMV / Basket Size — separate account/file, so handled as
-    # its own soft-fail block rather than being added to the `missing` check
-    # above: a GMV-account hiccup shouldn't block the other 6 reports that
-    # already downloaded fine. Same T-1 cadence as OIX productivity, since
-    # basket size needs that same day's Total Parent Order to divide by.
-    gmv_path = os.path.join(REPORT_FOLDER, REPORT_FILES["gmv"])
-    if os.path.exists(gmv_path):
-        gmv_date = today - dt.timedelta(days=1)  # T-1
-        try:
-            gmv_group = parse_gmv(gmv_date)
-            append_gmv_history(history, gmv_date.isoformat(), gmv_group)
-            backfill_gmv_history(history)  # v4.0 §3 — fill any other missing days this download still has
-            orders_overall, orders_districts = total_parent_orders_for(history, gmv_date.isoformat())
-            matrices["gmv"] = {
-                "actual": gmv_group,
-                "basketSize": basket_size(gmv_group, orders_overall, orders_districts),
-                "asOf": gmv_date.isoformat(),
-            }
-            save_gmv_history(build_gmv_monthly(history))
-        except Exception as e:
-            print(f"  ⚠️ GMV parse failed, skipping this run's GMV update: {e}")
-    else:
-        print(f"  ⚠️ {REPORT_FILES['gmv']!r} not found in {REPORT_FOLDER!r} — skipping GMV/Basket "
-              f"Size update. fetch_gmv_report() should have downloaded it (needs "
-              f"TABLEAU_GMV_USER/PASS set in .env).")
+    # v11.10 — daily GMV / Basket Size fetch and gmv_history.json write removed.
 
     # v4.0 §4 — "Other Aspects Tracking" tab (poor rating %, missing & lost
     # amount, RFID missing tote), monthly.
@@ -5848,7 +5405,7 @@ def write_fulfillment_cost_to_other_aspects(history):
 # v11.5 - built-in push used when DEPLOY_CMD is not set. Run from DEPLOY_CWD (default: the folder the job starts in, i.e. the repo root).
 # Pulls first so it never collides with the 08:15 job's push; the commit is skipped when nothing changed.
 DEFAULT_DEPLOY_CMD = os.environ.get("DEFAULT_DEPLOY_CMD") or (
-    'git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/gmv_history.json public/delay_history.json public/other_aspects_history.json public/index.html history.json && '
+    'git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/index.html history.json && '
     '{ git add public/cost_plan.json 2>/dev/null || true; } && '
     '(git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push')
 
@@ -6551,6 +6108,637 @@ def run_map_perf_section(download=True, perf_date=None):
         run_deploy_hook()
 
 
+
+# =============================================================================
+# v11.10 — Rolling Orders dashboard feed (--section rolling) and OIX history
+#           logging (--section oixhistory)
+# =============================================================================
+# T+0..T+2 are copied from the hourly job's Rolling_Orders_Report.html (no
+# recomputation). T+3..T+6 are built in the same slim-report shape, using the
+# live wsl-hourly-rrp modules. A T+3..T+6 RRP download is wrapped so it cannot
+# replace T+0..T+2 in rrp-data/latest/snapshot.json or their Overall-Order xlsx.
+# =============================================================================
+
+def _default_rolling_project_dir():
+    """Folder that holds html_report.py / oix_route_resource_hourly.py.
+
+    Override with ROLLING_PROJECT_DIR. Otherwise prefer the live wsl-hourly-rrp
+    project on this PC (Windows or WSL path); fall back to this pipeline's folder.
+    """
+    env = os.environ.get("ROLLING_PROJECT_DIR", "").strip()
+    if env:
+        return Path(_native_path(env))
+    candidates = [
+        Path(r"C:\Users\chipanl\Downloads\wsl-hourly-rrp"),
+        Path("/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp"),
+        Path(__file__).resolve().parent,
+    ]
+    for cand in candidates:
+        if (cand / "html_report.py").is_file() or (cand / "oix_route_resource_hourly.py").is_file():
+            return cand
+    return Path(__file__).resolve().parent
+
+
+ROLLING_PROJECT_DIR = _default_rolling_project_dir()
+ROLLING_REPORT_HTML = Path(_native_path(os.environ.get(
+    "ROLLING_REPORT_HTML",
+    str(ROLLING_PROJECT_DIR / "output" / "Rolling_Orders_Report.html"),
+)))
+ROLLING_REPORT_JSON_PATH = Path(_native_path(os.environ.get(
+    "ROLLING_REPORT_JSON_PATH",
+    "./public/rolling_report.json",
+)))
+ROLLING_OIXHISTORY_BACKFILL_LIMIT = int(os.environ.get("ROLLING_OIXHISTORY_BACKFILL_LIMIT", "5"))
+# A T+3..T+6 snapshot is stale if it is older than this many hours (or older than the HTML as-of).
+ROLLING_SNAPSHOT_STALE_HOURS = float(os.environ.get("ROLLING_SNAPSHOT_STALE_HOURS", "3"))
+
+
+def _ensure_rolling_sys_path(project_dir=None):
+    project_dir = Path(project_dir or ROLLING_PROJECT_DIR)
+    path = str(project_dir)
+    if path not in sys.path:
+        sys.path.insert(0, path)
+    return project_dir
+
+
+def _hk_now():
+    try:
+        from zoneinfo import ZoneInfo
+        return dt.datetime.now(ZoneInfo("Asia/Hong_Kong"))
+    except Exception:
+        return dt.datetime.now()
+
+
+def _hk_today():
+    return _hk_now().date()
+
+
+def extract_rolling_html_payload(html_path):
+    """Read the hourly Rolling_Orders_Report.html and return its JSON payload.
+
+    That file embeds one slim report per horizon (typically T+0..T+2) in
+    <script type="application/json" id="data">. Returns None if missing/unreadable.
+    """
+    path = Path(html_path)
+    if not path.is_file():
+        print(f"  ⚠️ rolling HTML not found: {path}")
+        return None
+    text = path.read_text(encoding="utf-8")
+    m = re.search(r'<script type="application/json" id="data">(.*?)</script>', text, re.S)
+    if not m:
+        print(f"  ⚠️ {path} has no <script type=\"application/json\" id=\"data\"> block")
+        return None
+    blob = m.group(1).replace("<\\/", "</")
+    try:
+        payload = json.loads(blob)
+    except ValueError as e:
+        print(f"  ⚠️ could not parse rolling HTML data: {e}")
+        return None
+    if not isinstance(payload, dict) or "reports" not in payload:
+        print(f"  ⚠️ rolling HTML data is missing a 'reports' object")
+        return None
+    return payload
+
+
+def _parse_html_asof(payload):
+    """Best-effort datetime from the HTML payload's generated / report asof strings."""
+    texts = [payload.get("generated") or ""]
+    for rec in (payload.get("reports") or {}).values():
+        if isinstance(rec, dict) and rec.get("asof"):
+            texts.append(rec["asof"])
+            break
+    for raw in texts:
+        raw = str(raw).strip()
+        for fmt in ("%d %b %Y %H:%M", "%d %b %Y"):
+            try:
+                return dt.datetime.strptime(raw, fmt)
+            except ValueError:
+                continue
+    return None
+
+
+def _iso_from_delivery_label(label):
+    """'23 Nov 2026 [MON]' -> date, or None."""
+    if not label:
+        return None
+    m = re.match(r"^\s*(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})", str(label))
+    if not m:
+        return None
+    try:
+        return dt.datetime.strptime(f"{m.group(1)} {m.group(2)} {m.group(3)}", "%d %b %Y").date()
+    except ValueError:
+        return None
+
+
+def _horizon_dates(today, html_payload=None):
+    """Map offset 0..6 -> delivery date, preferring the HTML's T+0/T+1/T+2 labels."""
+    dates = {i: today + dt.timedelta(days=i) for i in range(7)}
+    reports = (html_payload or {}).get("reports") or {}
+    anchors = {}
+    for key, rec in reports.items():
+        if not isinstance(rec, dict):
+            continue
+        try:
+            off = int(rec.get("offset", key))
+        except (TypeError, ValueError):
+            continue
+        d = _iso_from_delivery_label(rec.get("delivery"))
+        if d:
+            anchors[off] = d
+    if anchors:
+        # Align the whole 0..6 window to the HTML's delivery dates when present.
+        base_off, base_day = next(iter(sorted(anchors.items())))
+        for i in range(7):
+            dates[i] = base_day + dt.timedelta(days=i - base_off)
+        for off, d in anchors.items():
+            dates[int(off)] = d
+    return dates
+
+
+def _snapshot_entry_ok(snap, iso):
+    entry = ((snap or {}).get("dates") or {}).get(iso) or {}
+    return bool(entry.get("ok"))
+
+
+def _parse_snap_generated_at(snap):
+    raw = (snap or {}).get("generated_at") or ""
+    if not raw:
+        return None
+    try:
+        return dt.datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _horizon_needs_download(offset, delivery, html_payload, load_latest_snapshot, latest_snapshot_with_date):
+    """True when T+3..T+6 has no usable snapshot, or it looks stale vs the HTML as-of / 3h rule."""
+    if offset < 3:
+        return False
+    iso = delivery.isoformat()
+    snap = load_latest_snapshot()
+    entry_snap = snap if _snapshot_entry_ok(snap, iso) else None
+    if entry_snap is None:
+        found = latest_snapshot_with_date(delivery)
+        if found:
+            entry_snap = found[0]
+    if entry_snap is None or not _snapshot_entry_ok(entry_snap, iso):
+        return True
+    gen = _parse_snap_generated_at(entry_snap)
+    html_asof = _parse_html_asof(html_payload) if html_payload else None
+    now = _hk_now()
+    # The :00 RRP job already refreshes T+3..T+6. Its snapshot is expected to be
+    # older than the :15 HTML (which only recomputes T+0..T+2), so do not treat
+    # "older than the HTML as-of" as stale — that would re-download every hour.
+    # Missing (no successful entry) or older than ROLLING_SNAPSHOT_STALE_HOURS
+    # (default 3h, i.e. a missed :00 run) still triggers a download.
+    if gen is not None:
+        if gen.tzinfo and now.tzinfo:
+            age_h = (now - gen.astimezone(now.tzinfo)).total_seconds() / 3600.0
+        else:
+            g, n = gen.replace(tzinfo=None), now.replace(tzinfo=None)
+            age_h = (n - g).total_seconds() / 3600.0
+        if age_h > ROLLING_SNAPSHOT_STALE_HOURS:
+            return True
+    return False
+
+
+def _file_sig(path):
+    path = Path(path)
+    try:
+        st = path.stat()
+    except OSError:
+        return None
+    return (st.st_size, int(st.st_mtime_ns) if hasattr(st, "st_mtime_ns") else int(st.st_mtime), st.st_ino if hasattr(st, "st_ino") else 0)
+
+
+def _protected_rrp_download(dates, project_dir, runner):
+    """Run oix_route_resource_hourly for `dates` without wiping T+0..T+2 (or any
+    other pre-existing latest snapshot dates / Overall-Order xlsx).
+
+    The live downloader's write_snapshot() overwrites latest/snapshot.json with
+    ONLY the dates from that run, and --out-dir (default: Folder for Rolling
+    Orders) also deletes past-date workbooks. This wrapper:
+
+      * passes --out-dir '' so the default copy/prune folder is not touched;
+      * backups latest/snapshot.json, order_changes_latest.json, and every
+        Overall-Order xlsx already in latest/;
+      * after the run, merges the new dates into the previous snapshot and
+        restores any protected xlsx whose size/mtime changed;
+      * on failure or if T+0..T+2 would still be missing, restores the backup.
+    """
+    import shutil
+    import tempfile
+
+    dates = sorted({d if isinstance(d, dt.date) else dt.date.fromisoformat(str(d)) for d in dates})
+    if not dates:
+        return {"ok": True, "downloaded": [], "restored": False}
+
+    latest_dir = Path(runner.LATEST_DIR)
+    latest_snap = Path(runner.LATEST_SNAPSHOT)
+    overall_name = runner.overall_name
+    today = _hk_today()
+    protected = {today + dt.timedelta(days=i) for i in range(0, 3)}  # T+0..T+2
+    download_set = set(dates)
+
+    backup_dir = Path(tempfile.mkdtemp(prefix="rrp-latest-backup-"))
+    backed = {"snapshot": None, "changes": None, "xlsx": {}}
+    try:
+        if latest_snap.is_file():
+            dest = backup_dir / "snapshot.json"
+            shutil.copy2(latest_snap, dest)
+            backed["snapshot"] = dest
+        changes = latest_dir / "order_changes_latest.json"
+        if changes.is_file():
+            dest = backup_dir / "order_changes_latest.json"
+            shutil.copy2(changes, dest)
+            backed["changes"] = dest
+        for p in latest_dir.glob("Overall Order in Cargroup (*).xlsx"):
+            dest = backup_dir / p.name
+            shutil.copy2(p, dest)
+            backed["xlsx"][p.name] = {"path": dest, "sig": _file_sig(p)}
+
+        prev_snap = {}
+        if backed["snapshot"]:
+            try:
+                prev_snap = json.loads(Path(backed["snapshot"]).read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                prev_snap = {}
+
+        cmd = ["--dates", ",".join(d.isoformat() for d in dates), "--out-dir", ""]
+        print(f"  🚚 RRP download (isolated, will merge into latest snapshot): {' '.join(cmd)}")
+        rc = 1
+        try:
+            rc = runner.main(cmd)
+        except Exception as e:
+            print(f"  ❌ RRP downloader raised {type(e).__name__}: {e}")
+            _restore_latest_backup(latest_dir, latest_snap, backed, reason="downloader exception")
+            return {"ok": False, "downloaded": [d.isoformat() for d in dates], "restored": True, "returncode": None}
+
+        new_snap = {}
+        if latest_snap.is_file():
+            try:
+                new_snap = json.loads(latest_snap.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as e:
+                print(f"  ⚠️ new snapshot unreadable ({e}); restoring previous latest snapshot")
+                _restore_latest_backup(latest_dir, latest_snap, backed, reason="unreadable new snapshot")
+                return {"ok": False, "downloaded": [d.isoformat() for d in dates], "restored": True, "returncode": rc}
+
+        merged = _merge_rrp_snapshots(prev_snap, new_snap, download_set)
+        _atomic_write_json(latest_snap, merged)
+
+        # Restore any xlsx that was not in this download set if it changed or vanished.
+        restored_xlsx = []
+        for name, info in backed["xlsx"].items():
+            dest = latest_dir / name
+            # Infer the delivery date from the filename via runner if possible; otherwise
+            # treat every pre-existing workbook as protected unless we just downloaded it
+            # (same name overwritten on purpose).
+            was_download_target = any(overall_name(d) == name for d in download_set)
+            if was_download_target:
+                continue
+            if not dest.is_file() or _file_sig(dest) != info["sig"]:
+                shutil.copy2(info["path"], dest)
+                restored_xlsx.append(name)
+        if restored_xlsx:
+            print("  🔧 restored latest workbooks that the T+3..T+6 run must not replace: "
+                  + ", ".join(restored_xlsx))
+
+        # If a protected T+0..T+2 date disappeared from the merged snapshot, restore fully.
+        missing_protected = []
+        for d in sorted(protected):
+            iso = d.isoformat()
+            had = _snapshot_entry_ok(prev_snap, iso)
+            has = _snapshot_entry_ok(merged, iso)
+            if had and not has:
+                missing_protected.append(iso)
+        if missing_protected:
+            print("  ❌ merge left T+0..T+2 missing "
+                  f"({', '.join(missing_protected)}); restoring the previous latest snapshot")
+            _restore_latest_backup(latest_dir, latest_snap, backed, reason="protected dates missing after merge")
+            return {"ok": False, "downloaded": [d.isoformat() for d in dates], "restored": True, "returncode": rc}
+
+        # Restore order_changes_latest.json if the new file dropped protected dates
+        # and we have a backup — merge keys like the snapshot.
+        if backed["changes"]:
+            changes = latest_dir / "order_changes_latest.json"
+            try:
+                prev_ch = json.loads(Path(backed["changes"]).read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                prev_ch = None
+            new_ch = None
+            if changes.is_file():
+                try:
+                    new_ch = json.loads(changes.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    new_ch = None
+            if prev_ch and isinstance(prev_ch, dict):
+                if not isinstance(new_ch, dict):
+                    shutil.copy2(backed["changes"], changes)
+                else:
+                    merged_ch = _merge_order_changes(prev_ch, new_ch, download_set)
+                    _atomic_write_json(changes, merged_ch)
+
+        print(f"  ✅ latest snapshot merged; T+0..T+2 preserved. downloader exit={rc}")
+        return {"ok": rc == 0, "downloaded": [d.isoformat() for d in dates], "restored": False, "returncode": rc}
+    finally:
+        try:
+            shutil.rmtree(backup_dir, ignore_errors=True)
+        except Exception:
+            pass
+
+
+def _merge_rrp_snapshots(prev_snap, new_snap, download_dates):
+    """Keep every previously recorded date; overlay only the dates just downloaded."""
+    download_iso = {d.isoformat() if hasattr(d, "isoformat") else str(d) for d in download_dates}
+    prev_dates = dict((prev_snap or {}).get("dates") or {})
+    new_dates = dict((new_snap or {}).get("dates") or {})
+    merged_dates = dict(prev_dates)
+    for iso, entry in new_dates.items():
+        if iso in download_iso:
+            # Prefer a successful new entry; otherwise keep the previous good one.
+            if (entry or {}).get("ok") or not (merged_dates.get(iso) or {}).get("ok"):
+                merged_dates[iso] = entry
+        elif iso not in merged_dates:
+            merged_dates[iso] = entry
+    # Never let a download-run leftover drop a date we already had.
+    for iso, entry in prev_dates.items():
+        if iso not in download_iso:
+            merged_dates[iso] = entry
+    out = dict(new_snap or prev_snap or {})
+    if prev_snap and not new_snap:
+        out = dict(prev_snap)
+    out["dates"] = merged_dates
+    if new_snap and new_snap.get("generated_at"):
+        out["generated_at"] = new_snap.get("generated_at")
+        if new_snap.get("run_dir"):
+            out["run_dir"] = new_snap.get("run_dir")
+        if new_snap.get("session"):
+            out["session"] = new_snap.get("session")
+    out["merged_from_protected_backup"] = True
+    return out
+
+
+def _merge_order_changes(prev_ch, new_ch, download_dates):
+    download_iso = {d.isoformat() if hasattr(d, "isoformat") else str(d) for d in download_dates}
+    if not isinstance(prev_ch, dict):
+        return new_ch
+    if not isinstance(new_ch, dict):
+        return prev_ch
+    out = dict(new_ch)
+    # Common shapes: top-level dates, or by_delivery_date.
+    for key in ("dates", "by_delivery_date"):
+        if isinstance(prev_ch.get(key), dict) or isinstance(new_ch.get(key), dict):
+            prev_b = dict(prev_ch.get(key) or {})
+            new_b = dict(new_ch.get(key) or {})
+            merged = dict(prev_b)
+            for iso, entry in new_b.items():
+                if iso in download_iso:
+                    merged[iso] = entry
+            for iso, entry in prev_b.items():
+                if iso not in download_iso:
+                    merged[iso] = entry
+            out[key] = merged
+    return out
+
+
+def _restore_latest_backup(latest_dir, latest_snap, backed, reason=""):
+    import shutil
+    if reason:
+        print(f"  🔧 restoring rrp-data/latest from pre-download backup ({reason})")
+    if backed.get("snapshot"):
+        shutil.copy2(backed["snapshot"], latest_snap)
+    if backed.get("changes"):
+        shutil.copy2(backed["changes"], latest_dir / "order_changes_latest.json")
+    for name, info in (backed.get("xlsx") or {}).items():
+        shutil.copy2(info["path"], latest_dir / name)
+
+
+def _atomic_write_json(path, payload):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".part")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _district_order_from(payload, slim=None):
+    order = list((payload or {}).get("order") or [])
+    if slim and slim.get("districts"):
+        keys = list(slim["districts"].keys())
+        if keys:
+            return keys
+    if order:
+        return order
+    return ["Overall", "ETH", "ETK", "ETX", "NT-ST", "NT-TM", "NT-TSM", "NT-TW", "WTH", "WTK", "WTX"]
+
+
+def save_rolling_report(payload):
+    path = Path(ROLLING_REPORT_JSON_PATH)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"Wrote {path}")
+    return path
+
+
+def run_section_rolling(download=True, deploy=True):
+    """v11.10 — hourly Rolling Orders feed for the dashboard, a few minutes after the :15 image job.
+
+    T+0..T+2: read from Rolling_Orders_Report.html (no recomputation).
+    T+3..T+6: built in the same shape via compute.build_report / html_report.slim_report.
+    Missing or stale T+3..T+6 dates are downloaded with the live RRP downloader, then
+    merged so T+0..T+2 in rrp-data/latest cannot be replaced. --no-download / --no-deploy
+    skip those steps.
+    """
+    print("🚀 Rolling Orders dashboard feed (--section rolling)")
+    project_dir = _ensure_rolling_sys_path()
+    print(f"  ROLLING_PROJECT_DIR={project_dir}")
+    print(f"  rolling HTML={ROLLING_REPORT_HTML}")
+    today = _hk_today()
+    html_payload = extract_rolling_html_payload(ROLLING_REPORT_HTML)
+    horizon_dates = _horizon_dates(today, html_payload)
+
+    try:
+        import oix_route_resource_hourly as runner
+        import history_vault  # noqa: F401  (vault path is relative to project_dir)
+        from rrp import load_latest_snapshot, latest_snapshot_with_date
+        from compute import build_report
+        from html_report import slim_report, load_public_metrics
+    except Exception as e:
+        print(f"  ❌ could not import wsl-hourly-rrp modules from {project_dir}: {e}")
+        raise
+
+    need = []
+    for off in range(3, 7):
+        d = horizon_dates[off]
+        if _horizon_needs_download(off, d, html_payload, load_latest_snapshot, latest_snapshot_with_date):
+            need.append(d)
+            print(f"  T+{off} {d.isoformat()}: missing or stale snapshot")
+    if need and download:
+        result = _protected_rrp_download(need, project_dir, runner)
+        if result.get("restored"):
+            print("  ⚠️ download wrapper restored the previous latest snapshot; will build from whatever is now on disk")
+    elif need and not download:
+        print("  ℹ️ --no-download: skipping RRP fetch for "
+              + ", ".join(d.isoformat() for d in need)
+              + " (will use the snapshot already on disk, if any)")
+
+    public = load_public_metrics()
+    reports = {}
+    order = _district_order_from(html_payload)
+    # T+0..T+2 from the hourly HTML — never recomputed here.
+    if html_payload:
+        for key, rec in (html_payload.get("reports") or {}).items():
+            if not isinstance(rec, dict):
+                continue
+            try:
+                off = int(rec.get("offset", key))
+            except (TypeError, ValueError):
+                continue
+            if off <= 2:
+                reports[str(off)] = rec
+        if html_payload.get("order"):
+            order = list(html_payload["order"])
+
+    now = _hk_now()
+    for off in range(3, 7):
+        delivery = horizon_dates[off]
+        try:
+            data = build_report(delivery=delivery, now=now, use_cache=True)
+            slim = slim_report(data, public)
+            reports[str(off)] = slim
+            order = _district_order_from({"order": order}, slim)
+            print(f"  ✅ T+{off} {delivery.isoformat()} built (asof={slim.get('asof')})")
+        except Exception as e:
+            print(f"  ⚠️ T+{off} {delivery.isoformat()} could not be built: {type(e).__name__}: {e}")
+            reports.setdefault(str(off), None)
+
+    generated = (_hk_now()).strftime("%d %b %Y %H:%M")
+    if html_payload and html_payload.get("generated"):
+        # Keep the hourly HTML's stamp when T+0..T+2 came from it; still record when this feed was written.
+        generated = html_payload["generated"]
+    payload = {
+        "generated": generated,
+        "written_at": _hk_now().strftime("%d %b %Y %H:%M"),
+        "order": order,
+        "dates": {str(i): horizon_dates[i].isoformat() for i in range(7)},
+        "reports": {str(i): reports.get(str(i)) for i in range(7)},
+        "source_html": str(ROLLING_REPORT_HTML),
+    }
+    save_rolling_report(payload)
+    update_embedded_data()
+    if deploy:
+        run_deploy_hook()
+    else:
+        print("  ℹ️ --no-deploy: not pushing the dashboard")
+    print("✅ Rolling Orders dashboard feed written")
+    return payload
+
+
+def _oix_daily_cmd(project_dir, report_date, force=False):
+    script = Path(project_dir) / "oix_daily_download.py"
+    cmd = [sys.executable, str(script), "--date", report_date.isoformat()]
+    if force:
+        cmd.append("--force")
+    return cmd
+
+
+def _missing_hist_days(today, historical):
+    """Days needed for T+0..T+6 history rows that have no local delivered-order report yet."""
+    from config import previous_same_weekdays
+    need = []
+    seen = set()
+    deliveries = [today + dt.timedelta(days=i) for i in range(0, 7)]
+    for delivery in deliveries:
+        for d in previous_same_weekdays(delivery, 4):
+            if d >= today or d in seen:
+                continue
+            seen.add(d)
+            if not historical.reports_present(d):
+                need.append(d)
+    return sorted(need)
+
+
+def run_section_oixhistory(report_date=None, hist_backfill=False, force=False):
+    """v11.10 — daily OIX actual-delivered download + optional history-row backfill.
+
+    Default `--date` is yesterday. With `--hist-backfill`, also fetch up to 5 missing
+    days needed by the T+0..T+6 historical weeks, then refresh caches, back them up
+    to the history vault, and recompute every horizon's historical weeks.
+
+    Talks to OIX (uses OIX.env via oix_daily_download.py). Do not print credentials.
+    """
+    import subprocess
+    from config import CACHE_DIR  # after sys.path is set
+
+    print("🚀 OIX history logging (--section oixhistory)")
+    project_dir = _ensure_rolling_sys_path()
+    print(f"  ROLLING_PROJECT_DIR={project_dir}")
+    today = _hk_today()
+    report_date = report_date or (today - dt.timedelta(days=1))
+    print(f"  report date={report_date.isoformat()} (OIX daily download)")
+
+    cmd = _oix_daily_cmd(project_dir, report_date, force=force)
+    print("  running oix_daily_download.py for that date (credentials stay in OIX.env; they are not printed)")
+    r = subprocess.run(cmd, cwd=str(project_dir))
+    if r.returncode != 0:
+        print(f"  ⚠️ oix_daily_download.py exited {r.returncode} for {report_date.isoformat()}")
+
+    import historical
+    import history_vault
+    from historical import dates_for_cache_refresh, ensure_historical_caches, compute_historical_weeks
+    from config import previous_same_weekdays  # noqa: F401
+
+    if hist_backfill:
+        missing = _missing_hist_days(today, historical)
+        take = missing[:ROLLING_OIXHISTORY_BACKFILL_LIMIT]
+        skipped = missing[ROLLING_OIXHISTORY_BACKFILL_LIMIT:]
+        if take:
+            print(f"  --hist-backfill: fetching {len(take)} missing history day(s) "
+                  f"(limit {ROLLING_OIXHISTORY_BACKFILL_LIMIT}): "
+                  + ", ".join(d.isoformat() for d in take))
+            if skipped:
+                print("  (further missing days deferred to a later run: "
+                      + ", ".join(d.isoformat() for d in skipped) + ")")
+            for d in take:
+                br = subprocess.run(_oix_daily_cmd(project_dir, d, force=force), cwd=str(project_dir))
+                if br.returncode != 0:
+                    print(f"  ⚠️ oix_daily_download.py exited {br.returncode} for {d.isoformat()}")
+        else:
+            print("  --hist-backfill: no missing T+0..T+6 history-row days to fetch")
+
+    deliveries = [today + dt.timedelta(days=i) for i in range(0, 7)]
+    try:
+        n_pkl = history_vault.backup_cache_dir(CACHE_DIR, print)
+        print(f"  history vault: backed up {n_pkl} cache pickle(s) before refresh")
+    except Exception as e:
+        print(f"  ⚠️ vault cache backup failed: {type(e).__name__}: {e}")
+
+    dates = dates_for_cache_refresh(deliveries, today=today)
+    print("  refreshing historical caches for: " + ", ".join(d.isoformat() for d in dates))
+    status = ensure_historical_caches(dates)
+    rebuilt = [iso for iso, st in status.items() if st == "rebuilt"]
+    missing = [iso for iso, st in status.items() if st in {"missing", "unavailable", "failed"}]
+    if rebuilt:
+        print("  rebuilt caches: " + ", ".join(rebuilt))
+    if missing:
+        print("  ⚠️ still no cache for: " + ", ".join(missing))
+
+    try:
+        n_pkl = history_vault.backup_cache_dir(CACHE_DIR, print)
+        print(f"  history vault: backed up {n_pkl} cache pickle(s) after refresh")
+    except Exception as e:
+        print(f"  ⚠️ vault cache backup failed: {type(e).__name__}: {e}")
+
+    for delivery in deliveries:
+        try:
+            compute_historical_weeks(delivery, use_cache=True)
+            print(f"  ✅ recomputed historical weeks for {delivery.isoformat()}")
+        except Exception as e:
+            print(f"  ⚠️ historical weeks for {delivery.isoformat()} failed: {type(e).__name__}: {e}")
+
+    print("✅ OIX history logging finished")
+
+
 def main():
     # v4.0 §1: "productivity" (03:00, OIX) now only stages MANPOWER —
     # HKTV Manpower Distribution's own file is still written directly, but
@@ -6559,9 +6747,11 @@ def main():
     # See MANPOWER_STAGING_PATH / finish_productivity_with_orders().
     parser = argparse.ArgumentParser()
     parser.add_argument("--section", choices=["productivity", "tableau", "costreport", "oixbackfill", "map", "maptemp", "newestate",
-                                              "delay", "delayreport", "lastreceived", "mapperf", "odspoints", "missinglost", "all"], required=True)
+                                              "delay", "delayreport", "lastreceived", "mapperf", "odspoints", "missinglost",
+                                              "rolling", "oixhistory", "all"], required=True)
     parser.add_argument("--date", default=None,
-                        help="v10.6 — with --section delayreport: the data date YYYY-MM-DD to report (default: T-1).")
+                        help="v10.6 / v11.10 — with --section delayreport: the data date YYYY-MM-DD to report (default: T-1); "
+                             "with --section oixhistory: the OIX report day (default: yesterday).")
     parser.add_argument("--resume", action="store_true",
                         help="v11.2 — with --section tableau: skip every report whose CSV is already fresh (downloaded within STALE_REPORT_HOURS) "
                              "and only fetch the missing ones; used by run_tableau_0815.sh when it re-runs after a failed attempt.")
@@ -6581,7 +6771,12 @@ def main():
                         help="Delivery Map v2 — with --section map: estate/address Excel (Delivery Zone in Column C, Latitude, Longitude); "
                              "default = newest matching file in MAP_EXCEL_FOLDER.")
     parser.add_argument("--no-download", action="store_true",
-                        help="v11.0 — with --section mapperf: skip the Tableau download and re-parse the CSVs already in REPORT_FOLDER.")
+                        help="v11.0 / v11.10 — with --section mapperf: skip the Tableau download and re-parse the CSVs already in REPORT_FOLDER; "
+                             "with --section rolling: do not call the RRP downloader (use the latest snapshot and the hourly HTML already on disk).")
+    parser.add_argument("--no-deploy", action="store_true",
+                        help="v11.10 — with --section rolling: write rolling_report.json and re-embed index.html but do not run the deploy / git push hook.")
+    parser.add_argument("--hist-backfill", action="store_true",
+                        help="v11.10 — with --section oixhistory: also fetch missing days needed by T+0..T+6 history rows, at most 5 per run.")
     parser.add_argument("--perf-date", default=None,
                         help="v11.0 — with --section mapperf: the date shown on the Delivery Map performance tables (default: today, HKT).")
     parser.add_argument("--dry-run", action="store_true",
@@ -6652,11 +6847,19 @@ def main():
 
     if args.section in ("productivity", "all"):
         run_productivity_section()
+    if args.section == "rolling":  # v11.10 — hourly Rolling Orders dashboard feed (T+0..T+2 from the HTML, T+3..T+6 built)
+        run_section_rolling(download=not args.no_download, deploy=not args.no_deploy)
+        return
+
+    if args.section == "oixhistory":  # v11.10 — daily OIX actual-delivered logging (talks to OIX)
+        day = dt.datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else None
+        run_section_oixhistory(report_date=day, hist_backfill=args.hist_backfill, force=args.force)
+        return
+
     if args.section in ("tableau", "all"):
         # v11.2 - --resume: only fetch reports whose CSV is not already fresh (re-run after a partial failure, no full re-download)
         fetch_tableau_reports(resume=args.resume)  # 1. 執行 Playwright 下載 (Delivery Dashboard + Logistics KPI 報表); 3 tries each + recovery rounds
-        if not (args.resume and _report_is_fresh("gmv")):
-            fetch_gmv_report()   # 1b. 下載 GMV 報表 (獨立帳號，v3.0 §3); fresh-session retries built in
+        # v11.10 — daily GMV Tableau download removed
         run_section_tableau()    # 2. 執行 CSV 解析、完成 Productivity 計算並寫入 (raises, listing the missing report(s), if any is still stale)
     if args.section == "all":
         try:
