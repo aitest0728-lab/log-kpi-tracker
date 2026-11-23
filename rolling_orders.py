@@ -4,7 +4,7 @@
 rolling_orders.py  -  KPI Dashboard Version 11.17  "Rolling Orders"   (Tableau report: Number of Order with unique "Cus+Adress+Timeslot")
 
 Runs EVERY HOUR, non-stop (00:00 ... 23:00). Each run reads the orders created TODAY (T+0), counted per Expected Delivery Date x Timeslot.
-  1. Logs in to Tableau with TABLEAU_USER / TABLEAU_PASS (read from the .env file in the log-kpi-tracker folder, see below), opens the view
+  1. Logs in to Tableau with TABLEAU_USER / TABLEAU_PASS (read from rolling_orders.env, then the .env file in the log-kpi-tracker folder, see below), opens the view
          https://inhouse-analytics.hktv.com.hk/#/views/NumberofOrderwithuniqueCusAdressTimeslot/data?:iid=2
      (v11.17: the sheet "data" is ALREADY selected in the Crosstab dialog, so the script never clicks a sheet thumbnail - a click would
      de-select it):  Download -> Crosstab -> CSV -> Download. The file is saved to "Folder for Rolling Orders" under the original name and
@@ -42,8 +42,8 @@ Usage (WSL):
 Cron (WSL, machine timezone = HKT) - ONE line, every hour, all day. Replace the old 06:00 line:
     0 * * * *  cd "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker" && python3 rolling_orders.py >> logs/rolling_hourly.log 2>&1
 
-Credentials (never hard-code them): TABLEAU_USER / TABLEAU_PASS in  C:\\Users\\chipanl\\Downloads\\Whatsapp Session\\log-kpi-tracker\\.env
-(= KPI_DIR/.env, KEY=VALUE lines). Real environment variables win over the file. Needs: pip install playwright && playwright install chromium.
+Credentials (never hard-code them): load KEY=VALUE from C:\\Users\\chipanl\\Downloads\\Whatsapp Session\\rolling_orders.env first,
+then KPI_DIR/.env (log-kpi-tracker\\.env). Real environment variables win over the files. Needs: pip install playwright && playwright install chromium.
 """
 import argparse
 import contextlib
@@ -68,10 +68,22 @@ KPI_DIR = os.environ.get("KPI_DIR", "/mnt/c/Users/chipanl/Downloads/Whatsapp Ses
 
 
 # ----------------------------------------------------------------------------- config
+DEFAULT_ROLLING_ENV = "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/rolling_orders.env"
+DEFAULT_ROLLING_ENV_WIN = r"C:\Users\chipanl\Downloads\Whatsapp Session\rolling_orders.env"
+
+
 def _load_env_file():
-    """KPI_DIR/.env first (the file named in the task), then next to the script / one folder up. Never overrides a real environment variable."""
+    """Load rolling_orders.env first, then KPI_DIR/.env and nearby fallbacks. Never overrides a real environment variable."""
     seen = set()
-    cands = [os.path.join(KPI_DIR, ".env")]
+    cands = []
+    override = os.environ.get("ROLLING_ORDERS_ENV")
+    if override:
+        cands.append(override)
+    cands.extend([
+        DEFAULT_ROLLING_ENV,
+        DEFAULT_ROLLING_ENV_WIN,
+        os.path.join(KPI_DIR, ".env"),
+    ])
     for folder in (HERE, os.path.dirname(HERE)):
         for name in (".env", "rolling_orders.env"):
             cands.append(os.path.join(folder, name))
@@ -581,7 +593,7 @@ def _tableau_session(final_path):
 def download_tableau_report(final_path):
     """Fresh browser session per attempt (up to TABLEAU_ATTEMPTS), as the GMV download does. Saved as .part, checked, then renamed over the old copy."""
     if not TABLEAU_USER or not TABLEAU_PASS:
-        raise RuntimeError(f"TABLEAU_USER / TABLEAU_PASS not set (put them in {os.path.join(KPI_DIR, '.env')})")
+        raise RuntimeError(f"TABLEAU_USER / TABLEAU_PASS not set (put them in {DEFAULT_ROLLING_ENV} or {os.path.join(KPI_DIR, '.env')})")
     last = None
     for n in range(1, TABLEAU_ATTEMPTS + 1):
         if n > 1:
@@ -952,6 +964,36 @@ def embed_in_index(data, path=None):
 
 
 # ----------------------------------------------------------------------------- git push to the dashboard
+# Auto-push may only publish the dashboard JSON and index.html. Secret filenames
+# are never added, committed, or pushed, even if they were already staged.
+_SECRET_BASENAMES = {
+    "token.json",
+    "client_secret.json",
+    "credentials.json",
+    "id_rsa",
+    "id_ed25519",
+}
+_SECRET_BASENAME_RE = re.compile(
+    r"^(?:\.env(?:\..*)?|.*\.env|.*credentials.*|.*secret.*|.*password.*)$",
+    re.I,
+)
+# Allow a public .env.example template only.
+_SECRET_BASENAME_ALLOW = {".env.example"}
+
+
+def _is_secret_path(rel: str) -> bool:
+    name = rel.replace("\\", "/").rsplit("/", 1)[-1]
+    if name in _SECRET_BASENAME_ALLOW:
+        return False
+    if name in _SECRET_BASENAMES:
+        return True
+    return bool(_SECRET_BASENAME_RE.match(name))
+
+
+def _secret_paths(paths) -> list[str]:
+    return [p for p in paths if p and _is_secret_path(p)]
+
+
 def _git(args, cwd):
     env = dict(os.environ, GIT_EDITOR="true", GIT_TERMINAL_PROMPT="0")
     r = subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True, timeout=GIT_TIMEOUT, env=env)
@@ -1045,10 +1087,20 @@ def _push_dashboard(order_date, slot, data):
         log("push: nothing to push")
         return False
     files = list(rels.values())
+    blocked = _secret_paths(files)
+    if blocked:
+        log("push: blocked - dashboard path looks like a secret file: " + ", ".join(blocked))
+        return False
     rc, out = _git(["add", "--"] + files, top)
     if rc != 0:
         log(f"push: git add failed (is public/rolling_orders.json in .gitignore?): {out[-400:]}")
         return False
+    rc, staged = _git(["diff", "--cached", "--name-only"], top)
+    staged_files = [x.strip().replace("\\", "/") for x in staged.splitlines() if x.strip()]
+    staged_secrets = _secret_paths(staged_files)
+    if staged_secrets:
+        _git(["restore", "--staged", "--"] + staged_secrets, top)
+        log("push: unstaged secret file(s) and will not commit them: " + ", ".join(staged_secrets))
     if _git(["diff", "--cached", "--quiet", "--"] + files, top)[0] != 0:          # something to commit (only OUR files)
         rc, out = _git(["commit", "-m", f"Rolling orders auto update - order date {order_date:%Y-%m-%d}, run {datetime.now():%Y-%m-%d} {slot}", "--"] + files, top)
         if rc != 0:
@@ -1056,6 +1108,17 @@ def _push_dashboard(order_date, slot, data):
             return False
     else:
         log("push: files unchanged since the last commit")
+    def _unpushed_has_secrets():
+        rc, unpushed = _git(["log", "--name-only", "--diff-filter=AM", "--pretty=format:", "@{u}..HEAD"], top)
+        if rc != 0:
+            return False
+        found = _secret_paths([x.strip() for x in unpushed.splitlines() if x.strip()])
+        if found:
+            log("push: blocked - unpushed commit(s) contain secret file(s): " + ", ".join(sorted(set(found))))
+            return True
+        return False
+    if _unpushed_has_secrets():
+        return False
     for attempt in range(1, PUSH_ATTEMPTS + 1):
         rc, out = _git(["pull", "--rebase", "--autostash"], top)
         if rc != 0:
@@ -1066,6 +1129,8 @@ def _push_dashboard(order_date, slot, data):
             else:
                 # rebase itself completed; typically the autostash of someone else's uncommitted file did not re-apply cleanly
                 log(f"push: pull reported a problem but no rebase is pending - continuing ({out[-300:]})")
+        if _unpushed_has_secrets():
+            return False
         rc, out = _git(["push"], top)
         if rc == 0:
             log(f"push: dashboard pushed (attempt {attempt})" + (" - " + out.splitlines()[-1] if out else ""))

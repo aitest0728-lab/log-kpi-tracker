@@ -1,4 +1,11 @@
+# Secrets — never commit env or credential files
 .env
+*.env
+.env.*
+!.env.example
+token.json
+client_secret.json
+
 raw_dumps/
 pipeline_log.txt
 __pycache__/
