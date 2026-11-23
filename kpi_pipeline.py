@@ -2,6 +2,11 @@
 """
 LOG · KPI Tracker — Data Pipeline  (v9.5)
 ==================================
+v11.11 — T+3..T+6 forecasts are stored from now in wsl-hourly-rrp/history_vault/forecast/.
+  An empty (0-row, ok=True) RRP pull is not treated as a usable snapshot, except
+  2026-11-26 which is a known no-delivery day and is kept as zeros. Other T+3 dates
+  are not assumed to be no-delivery. The dashboard falls back to the last stored slim
+  report, and a later empty download will not replace a previously good workbook.
 v11.10 — Overview (Business Aspect) no longer shows or fetches GMV / Basket Size.
   The daily GMV Tableau download (Sheet 1.csv / fetch_gmv_report) and the write/embed of
   public/gmv_history.json are removed. The file is left on disk if it already exists.
@@ -6110,13 +6115,20 @@ def run_map_perf_section(download=True, perf_date=None):
 
 
 # =============================================================================
-# v11.10 — Rolling Orders dashboard feed (--section rolling) and OIX history
+# v11.11 — Rolling Orders dashboard feed (--section rolling) and OIX history
 #           logging (--section oixhistory)
 # =============================================================================
 # T+0..T+2 are copied from the hourly job's Rolling_Orders_Report.html (no
 # recomputation). T+3..T+6 are built in the same slim-report shape, using the
 # live wsl-hourly-rrp modules. A T+3..T+6 RRP download is wrapped so it cannot
 # replace T+0..T+2 in rrp-data/latest/snapshot.json or their Overall-Order xlsx.
+# Usable snapshots must have real rows (ok=True with 0 unique parents is empty,
+# not a real pull), except 2026-11-26 which is a known no-delivery day and is
+# shown and stored as zeros. Do not treat other T+3 (or any other horizon)
+# dates as no-delivery. From v11.11, each usable T+3..T+6 slim report is stored
+# in history_vault/forecast/ so later hours can be checked even if a later
+# download comes back empty. An empty current pull falls back to that store,
+# and an empty download will not replace a previously good workbook.
 # =============================================================================
 
 def _default_rolling_project_dir():
@@ -6255,9 +6267,45 @@ def _horizon_dates(today, html_payload=None):
     return dates
 
 
+def _snapshot_entry(snap, iso):
+    return ((snap or {}).get("dates") or {}).get(iso) or {}
+
+
 def _snapshot_entry_ok(snap, iso):
-    entry = ((snap or {}).get("dates") or {}).get(iso) or {}
-    return bool(entry.get("ok"))
+    return bool(_snapshot_entry(snap, iso).get("ok"))
+
+
+def _entry_has_orders(entry):
+    """True when a snapshot entry is a successful pull with at least one order/row."""
+    entry = entry or {}
+    if not entry.get("ok"):
+        return False
+    net = entry.get("network") or {}
+    counts = [entry.get("n_unique_parents"), entry.get("n_rows_raw"), entry.get("n_rows_kept"), net.get("total")]
+    present = [c for c in counts if isinstance(c, (int, float))]
+    return bool(present) and max(present) > 0
+
+
+def _snapshot_entry_usable(snap, iso):
+    """Successful and non-empty. An ok=True 0-row workbook is not usable."""
+    return _entry_has_orders(_snapshot_entry(snap, iso))
+
+
+# Only this calendar date is a known no-delivery day. Other T+3 dates are not.
+NO_DELIVERY_DATES = {dt.date(2026, 11, 26)}
+
+
+def _is_no_delivery_date(delivery):
+    if delivery is None:
+        return False
+    if isinstance(delivery, dt.datetime):
+        delivery = delivery.date()
+    if not isinstance(delivery, dt.date):
+        try:
+            delivery = dt.date.fromisoformat(str(delivery)[:10])
+        except ValueError:
+            return False
+    return delivery in NO_DELIVERY_DATES
 
 
 def _parse_snap_generated_at(snap):
@@ -6271,26 +6319,29 @@ def _parse_snap_generated_at(snap):
 
 
 def _horizon_needs_download(offset, delivery, html_payload, load_latest_snapshot, latest_snapshot_with_date):
-    """True when T+3..T+6 has no usable snapshot, or it looks stale vs the HTML as-of / 3h rule."""
+    """True when T+3..T+6 has no usable snapshot, or it looks stale vs the HTML as-of / 3h rule.
+
+    A successful 0-row pull is not usable in general (keep trying). The only
+    exception is 2026-11-26, a known no-delivery day, which is already checked
+    and should not be re-downloaded just because the total is zero.
+    """
     if offset < 3:
         return False
     iso = delivery.isoformat()
     snap = load_latest_snapshot()
-    entry_snap = snap if _snapshot_entry_ok(snap, iso) else None
+    entry_snap = snap if _snapshot_entry_usable(snap, iso) else None
     if entry_snap is None:
         found = latest_snapshot_with_date(delivery)
         if found:
             entry_snap = found[0]
-    if entry_snap is None or not _snapshot_entry_ok(entry_snap, iso):
+    if entry_snap is None or not _snapshot_entry_usable(entry_snap, iso):
+        ok_snap = snap if _snapshot_entry_ok(snap, iso) else entry_snap
+        if _is_no_delivery_date(delivery) and ok_snap is not None and _snapshot_entry_ok(ok_snap, iso):
+            return False
         return True
     gen = _parse_snap_generated_at(entry_snap)
     html_asof = _parse_html_asof(html_payload) if html_payload else None
     now = _hk_now()
-    # The :00 RRP job already refreshes T+3..T+6. Its snapshot is expected to be
-    # older than the :15 HTML (which only recomputes T+0..T+2), so do not treat
-    # "older than the HTML as-of" as stale — that would re-download every hour.
-    # Missing (no successful entry) or older than ROLLING_SNAPSHOT_STALE_HOURS
-    # (default 3h, i.e. a missed :00 run) still triggers a download.
     if gen is not None:
         if gen.tzinfo and now.tzinfo:
             age_h = (now - gen.astimezone(now.tzinfo)).total_seconds() / 3600.0
@@ -6299,6 +6350,11 @@ def _horizon_needs_download(offset, delivery, html_payload, load_latest_snapshot
             age_h = (n - g).total_seconds() / 3600.0
         if age_h > ROLLING_SNAPSHOT_STALE_HOURS:
             return True
+        if html_asof is not None:
+            h = html_asof.replace(tzinfo=None)
+            g2 = gen.replace(tzinfo=None)
+            if g2 + dt.timedelta(minutes=5) < h:
+                return True
     return False
 
 
@@ -6395,6 +6451,12 @@ def _protected_rrp_download(dates, project_dir, runner):
             # (same name overwritten on purpose).
             was_download_target = any(overall_name(d) == name for d in download_set)
             if was_download_target:
+                # Don't let an empty new workbook replace a previously good one.
+                new_size = dest.stat().st_size if dest.is_file() else 0
+                old_size = Path(info["path"]).stat().st_size if Path(info["path"]).is_file() else 0
+                if old_size > 10_000 and new_size <= 10_000:
+                    shutil.copy2(info["path"], dest)
+                    restored_xlsx.append(f"{name} (empty download)")
                 continue
             if not dest.is_file() or _file_sig(dest) != info["sig"]:
                 shutil.copy2(info["path"], dest)
@@ -6455,8 +6517,9 @@ def _merge_rrp_snapshots(prev_snap, new_snap, download_dates):
     merged_dates = dict(prev_dates)
     for iso, entry in new_dates.items():
         if iso in download_iso:
-            # Prefer a successful new entry; otherwise keep the previous good one.
-            if (entry or {}).get("ok") or not (merged_dates.get(iso) or {}).get("ok"):
+            # Prefer a usable (non-empty) new entry; never replace a good
+            # previous pull with an ok-but-empty workbook.
+            if _entry_has_orders(entry) or not _entry_has_orders(merged_dates.get(iso)):
                 merged_dates[iso] = entry
         elif iso not in merged_dates:
             merged_dates[iso] = entry
@@ -6532,6 +6595,89 @@ def _district_order_from(payload, slim=None):
     return ["Overall", "ETH", "ETK", "ETX", "NT-ST", "NT-TM", "NT-TSM", "NT-TW", "WTH", "WTK", "WTX"]
 
 
+def _forecast_store_dir(project_dir):
+    return Path(project_dir) / "history_vault" / "forecast"
+
+
+def _slim_current_total(slim):
+    if not isinstance(slim, dict):
+        return None
+    overall = (slim.get("districts") or {}).get("Overall") or {}
+    cur = next((w for w in (overall.get("weeks") or []) if not w.get("hist")), None)
+    if not cur:
+        return None
+    total = cur.get("total")
+    return total if isinstance(total, (int, float)) else None
+
+
+def _slim_is_usable(slim):
+    total = _slim_current_total(slim)
+    return total is not None and total > 0
+
+
+def load_forecast_slim(project_dir, delivery, require_orders=True):
+    """Latest stored slim report for this delivery date, or None.
+
+    By default only a report with orders is returned. Pass require_orders=False
+    to also accept a stored zero row (used for the known no-delivery date).
+    """
+    iso = delivery.isoformat() if hasattr(delivery, "isoformat") else str(delivery)
+    path = _forecast_store_dir(project_dir) / f"slim_{iso}.json"
+    if not path.is_file():
+        return None
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    slim = (record or {}).get("report")
+    if require_orders and not _slim_is_usable(slim):
+        return None
+    if slim is None:
+        return None
+    return record
+
+
+def save_forecast_slim(project_dir, slim, delivery, offset=None, allow_empty=False):
+    """Persist a T+3..T+6 slim report so later hours can be checked.
+
+    Writes history_vault/forecast/slim_YYYY-MM-DD.json (latest) and appends
+    one line to slim_YYYY-MM-DD.jsonl. Never overwrites a stored report that
+    has orders with an empty one. A zero row is recorded only when
+    allow_empty=True (the known no-delivery date) and nothing better is stored.
+    Does not print secret values.
+    """
+    if slim is None or not isinstance(slim, dict):
+        return False
+    if not _slim_is_usable(slim):
+        if not allow_empty:
+            return False
+        if load_forecast_slim(project_dir, delivery, require_orders=True):
+            return False
+    iso = delivery.isoformat() if hasattr(delivery, "isoformat") else str(delivery)
+    folder = _forecast_store_dir(project_dir)
+    folder.mkdir(parents=True, exist_ok=True)
+    total = _slim_current_total(slim)
+    record = {
+        "saved_at": _hk_now().strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "delivery": iso,
+        "offset": offset if offset is not None else slim.get("offset"),
+        "asof": slim.get("asof"),
+        "total": 0 if total is None else total,
+        "report": slim,
+    }
+    latest = folder / f"slim_{iso}.json"
+    latest.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    jsonl = folder / f"slim_{iso}.jsonl"
+    line = {k: record[k] for k in ("saved_at", "delivery", "offset", "asof", "total")}
+    line["report"] = slim
+    with jsonl.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(line, ensure_ascii=False) + "\n")
+    shown = record["total"]
+    shown = f"{shown:,}" if isinstance(shown, (int, float)) else shown
+    print(f"  💾 stored T+{record['offset']} {iso} (total={shown}) in history_vault/forecast/")
+    return True
+
+
 def save_rolling_report(payload):
     path = Path(ROLLING_REPORT_JSON_PATH)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -6541,12 +6687,14 @@ def save_rolling_report(payload):
 
 
 def run_section_rolling(download=True, deploy=True):
-    """v11.10 — hourly Rolling Orders feed for the dashboard, a few minutes after the :15 image job.
+    """v11.11 — hourly Rolling Orders feed for the dashboard, a few minutes after the :15 image job.
 
     T+0..T+2: read from Rolling_Orders_Report.html (no recomputation).
     T+3..T+6: built in the same shape via compute.build_report / html_report.slim_report.
     Missing or stale T+3..T+6 dates are downloaded with the live RRP downloader, then
-    merged so T+0..T+2 in rrp-data/latest cannot be replaced. --no-download / --no-deploy
+    merged so T+0..T+2 in rrp-data/latest cannot be replaced. Empty (0-row) pulls are
+    not treated as usable; the last stored report in history_vault/forecast/ is used
+    instead, and each usable pull is stored from now. --no-download / --no-deploy
     skip those steps.
     """
     print("🚀 Rolling Orders dashboard feed (--section rolling)")
@@ -6602,15 +6750,39 @@ def run_section_rolling(download=True, deploy=True):
     now = _hk_now()
     for off in range(3, 7):
         delivery = horizon_dates[off]
+        slim = None
         try:
             data = build_report(delivery=delivery, now=now, use_cache=True)
             slim = slim_report(data, public)
-            reports[str(off)] = slim
-            order = _district_order_from({"order": order}, slim)
-            print(f"  ✅ T+{off} {delivery.isoformat()} built (asof={slim.get('asof')})")
         except Exception as e:
             print(f"  ⚠️ T+{off} {delivery.isoformat()} could not be built: {type(e).__name__}: {e}")
-            reports.setdefault(str(off), None)
+            slim = None
+        if _slim_is_usable(slim):
+            slim["offset"] = off
+            reports[str(off)] = slim
+            order = _district_order_from({"order": order}, slim)
+            print(f"  ✅ T+{off} {delivery.isoformat()} built (asof={slim.get('asof')}, total={_slim_current_total(slim):,})")
+            save_forecast_slim(project_dir, slim, delivery, offset=off)
+        else:
+            stored = load_forecast_slim(project_dir, delivery, require_orders=True)
+            if stored and _slim_is_usable(stored.get("report")):
+                slim = stored["report"]
+                slim["offset"] = off
+                reports[str(off)] = slim
+                order = _district_order_from({"order": order}, slim)
+                print(f"  ℹ️ T+{off} {delivery.isoformat()} current pull is empty; "
+                      f"using stored report from {stored.get('saved_at')} "
+                      f"(asof={slim.get('asof')}, total={_slim_current_total(slim):,})")
+            elif slim is not None and _is_no_delivery_date(delivery):
+                slim["offset"] = off
+                reports[str(off)] = slim
+                print(f"  ℹ️ T+{off} {delivery.isoformat()} is a known no-delivery day; "
+                      f"keeping the zero row (asof={slim.get('asof')})")
+                save_forecast_slim(project_dir, slim, delivery, offset=off, allow_empty=True)
+            else:
+                reports[str(off)] = None
+                print(f"  ⚠️ T+{off} {delivery.isoformat()} has no usable snapshot yet; "
+                      "nothing was stored earlier, so this horizon will start being kept from the next good pull")
 
     generated = (_hk_now()).strftime("%d %b %Y %H:%M")
     if html_payload and html_payload.get("generated"):
@@ -6737,7 +6909,6 @@ def run_section_oixhistory(report_date=None, hist_backfill=False, force=False):
             print(f"  ⚠️ historical weeks for {delivery.isoformat()} failed: {type(e).__name__}: {e}")
 
     print("✅ OIX history logging finished")
-
 
 def main():
     # v4.0 §1: "productivity" (03:00, OIX) now only stages MANPOWER —
