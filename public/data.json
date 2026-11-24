@@ -1,6 +1,6 @@
 {
   "_readme": "PLACEHOLDER seed data in the new 6-key schema (5 matrices, Matrix 1 split into hktvStaff + odsRatio). This file is overwritten automatically by kpi_pipeline.py via run_productivity_0300.bat (03:00) and run_tableau_1500.bat (15:00) once Task Scheduler is set up. Delete this _readme field or leave it; the page ignores it.",
-  "generatedAt": "2026-11-24T09:28",
+  "generatedAt": "2026-11-24T19:42",
   "matrices": {
     "hktvStaff": {
       "actual": {
@@ -19,18 +19,18 @@
         }
       },
       "forecast": {
-        "overall": 46.13,
+        "overall": 45.76,
         "districts": {
-          "ETH": 41.14,
-          "ETK": 54.94,
-          "ETX": 39.3,
-          "NT-ST": 53.44,
-          "NT-TM": 51.63,
+          "ETH": 38.49,
+          "ETK": 53.37,
+          "ETX": 35.09,
+          "NT-ST": 58.16,
+          "NT-TM": 51.11,
           "NT-TSM": 45.1,
-          "NT-TW": 52.82,
-          "WTH": 45.92,
+          "NT-TW": 52.28,
+          "WTH": 48.92,
           "WTK": 43.69,
-          "WTX": 41.74
+          "WTX": 41.8
         }
       },
       "asOf": "2026-11-23"
@@ -1239,7 +1239,7 @@
     "_note": "Actual total FT manpower deployed per district, Sept 1-20 2026 (manually supplied). Drives the Forecast tab's Keep Current Status model (fcCurrentStatusHeadcountFor) as the weekly-pool total, replacing the manpower_distribution.json-derived average."
   },
   "costReport": {
-    "source": "Daily Cost Report_202611_Last Update_Nov 23.xlsx",
+    "source": "fixed.xlsx",
     "asOf": "2026-11-22",
     "latestDay": "2026-11-22",
     "latest": {
@@ -1263,14 +1263,14 @@
         "districts": {
           "ETH": 41.609756097560975,
           "ETK": 58.74193548387097,
-          "ETX": 47.80952380952381,
+          "ETX": 32.79,
           "NT-TSM": 49.8780487804878,
           "WTK": 44.22222222222222,
           "NT-TW": 51.25806451612903,
-          "WTH": 43.25,
+          "WTH": 39.56,
           "WTX": 42.15555555555556,
-          "NT-TM": 64.36363636363636,
-          "NT-ST": 45.93939393939394
+          "NT-TM": 60.74,
+          "NT-ST": 63.0
         }
       }
     },
@@ -1291,18 +1291,18 @@
         }
       },
       "productivity": {
-        "overall": 50.2060223624488,
+        "overall": 48.004649618067084,
         "districts": {
-          "ETH": 43.97067448680352,
-          "ETK": 53.904371584699454,
-          "ETX": 43.00541125541125,
+          "ETH": 40.48,
+          "ETK": 51.35,
+          "ETX": 39.71,
           "NT-TSM": 47.37549019607843,
           "WTK": 46.32223415682062,
-          "NT-TW": 52.54043645699615,
-          "WTH": 65.36382978723404,
+          "NT-TW": 50.17,
+          "WTH": 50.62,
           "WTX": 42.984805318138655,
           "NT-TM": 53.14025085518814,
-          "NT-ST": 57.88726790450929
+          "NT-ST": 61.99
         }
       }
     },
