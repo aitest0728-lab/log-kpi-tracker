@@ -8860,7 +8860,7 @@
     if(!M.rows.length){ wrap.innerHTML = '<div class="ofp-empty">No finished orders recorded for this selection.</div>'; return; }
     const n = M.cols.length, tc = M.all;                       // total column per type only when several districts
     const span = n + (tc?1:0);
-    let h = '<table class="ofp"><thead><tr><th class="ofp-hour" rowspan="2">Hour</th>' +
+    let h = '<table class="ofp" data-dl="1"><thead><tr><th class="ofp-hour" rowspan="2">Hour</th>' +
       `<th class="g-hktv" colspan="${span}">HKTV</th><th class="g-ods" colspan="${span}">ODS</th><th class="g-split" rowspan="2">Type-split total</th></tr><tr class="sub">`;
     ['hktv','ods'].forEach(g=>{ M.cols.forEach(d=>{ h += `<th class="g-${g}">${d}</th>`; }); if(tc) h += `<th class="g-${g}">Total</th>`; });
     h += '</tr></thead><tbody>';
