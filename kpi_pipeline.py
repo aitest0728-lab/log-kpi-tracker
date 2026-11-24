@@ -4998,6 +4998,12 @@ def _cr_num(v):
     return float(v)
 
 
+def _cr_is_mtd_header(ws, r):
+    """v11.10 - section header row of the Overview tab. Older layout: 'MTD' in column C. Nov-23 layout: 'MTD' moved to
+    column B and column C became 'By Delivery Date' (its MTD figures are still read from column C, as before)."""
+    return any(str(ws.cell(r, c).value or "").strip() == "MTD" for c in (2, 3))
+
+
 def _cr_overview_district(label):
     s = str(label or "").strip()
     if s.lower() == "overall":
@@ -5153,7 +5159,7 @@ def parse_cost_report(path):
     total_cost = blank()      # v9.0 — Overview 'Total Cost' row, column C (MTD), Overall + per district
     r, max_r = 1, ws_o.max_row
     while r <= max_r:
-        if str(ws_o.cell(r, 3).value or "").strip() != "MTD":
+        if not _cr_is_mtd_header(ws_o, r):
             r += 1
             continue
         key = _cr_overview_district(ws_o.cell(r, 1).value)
@@ -5165,7 +5171,7 @@ def parse_cost_report(path):
             if isinstance(v, dt.date) and v <= upd:
                 date_cols[c] = v.isoformat()
         rr = r + 1
-        while rr <= max_r and str(ws_o.cell(rr, 3).value or "").strip() != "MTD":
+        while rr <= max_r and not _cr_is_mtd_header(ws_o, rr):
             if key and str(ws_o.cell(rr, 1).value or "").strip() == "Total Cost":     # exact: not '...(Controllable Cost)'
                 tc = _cr_num(ws_o.cell(rr, 3).value)
                 if tc is not None and tc > 0:
