@@ -1,6 +1,6 @@
 {
   "_readme": "PLACEHOLDER seed data in the new 6-key schema (5 matrices, Matrix 1 split into hktvStaff + odsRatio). This file is overwritten automatically by kpi_pipeline.py via run_productivity_0300.bat (03:00) and run_tableau_1500.bat (15:00) once Task Scheduler is set up. Delete this _readme field or leave it; the page ignores it.",
-  "generatedAt": "2026-11-24T09:00",
+  "generatedAt": "2026-11-24T09:28",
   "matrices": {
     "hktvStaff": {
       "actual": {
@@ -19,18 +19,18 @@
         }
       },
       "forecast": {
-        "overall": 45.72,
+        "overall": 46.13,
         "districts": {
-          "ETH": 38.76,
-          "ETK": 53.34,
-          "ETX": 34.7,
-          "NT-ST": 57.28,
-          "NT-TM": 51.44,
-          "NT-TSM": 45.15,
-          "NT-TW": 52.17,
-          "WTH": 47.45,
-          "WTK": 44.06,
-          "WTX": 42.0
+          "ETH": 41.14,
+          "ETK": 54.94,
+          "ETX": 39.3,
+          "NT-ST": 53.44,
+          "NT-TM": 51.63,
+          "NT-TSM": 45.1,
+          "NT-TW": 52.82,
+          "WTH": 45.92,
+          "WTK": 43.69,
+          "WTX": 41.74
         }
       },
       "asOf": "2026-11-23"
@@ -1242,20 +1242,84 @@
     "source": "Daily Cost Report_202611_Last Update_Nov 23.xlsx",
     "asOf": "2026-11-22",
     "latestDay": "2026-11-22",
-    "latest": null,
-    "mtd": {
+    "latest": {
       "costPerOrder": {
-        "overall": null,
-        "districts": {}
+        "overall": 44.19061183792038,
+        "districts": {
+          "ETH": 48.345251332133316,
+          "ETK": 37.51511677022198,
+          "ETX": 42.19776291972955,
+          "NT-TSM": 41.095294174532576,
+          "WTK": 45.70642668064977,
+          "NT-TW": 44.70141102787846,
+          "WTH": 47.83071896389737,
+          "WTX": 47.03151975954237,
+          "NT-TM": 38.307042943502786,
+          "NT-ST": 47.35717266299302
+        }
       },
       "productivity": {
-        "overall": null,
-        "districts": {}
+        "overall": 48.33243967828418,
+        "districts": {
+          "ETH": 41.609756097560975,
+          "ETK": 58.74193548387097,
+          "ETX": 47.80952380952381,
+          "NT-TSM": 49.8780487804878,
+          "WTK": 44.22222222222222,
+          "NT-TW": 51.25806451612903,
+          "WTH": 43.25,
+          "WTX": 42.15555555555556,
+          "NT-TM": 64.36363636363636,
+          "NT-ST": 45.93939393939394
+        }
+      }
+    },
+    "mtd": {
+      "costPerOrder": {
+        "overall": 43.859658786540535,
+        "districts": {
+          "ETH": 46.454347699203,
+          "ETK": 39.735467037678674,
+          "ETX": 43.79163234515314,
+          "NT-TSM": 40.44667943141546,
+          "WTK": 44.982276333016834,
+          "NT-TW": 42.776000727792606,
+          "WTH": 49.3798357170083,
+          "WTX": 45.968107203932774,
+          "NT-TM": 40.43842799438209,
+          "NT-ST": 41.536015831013984
+        }
+      },
+      "productivity": {
+        "overall": 50.2060223624488,
+        "districts": {
+          "ETH": 43.97067448680352,
+          "ETK": 53.904371584699454,
+          "ETX": 43.00541125541125,
+          "NT-TSM": 47.37549019607843,
+          "WTK": 46.32223415682062,
+          "NT-TW": 52.54043645699615,
+          "WTH": 65.36382978723404,
+          "WTX": 42.984805318138655,
+          "NT-TM": 53.14025085518814,
+          "NT-ST": 57.88726790450929
+        }
       }
     },
     "totalCost": {
-      "overall": null,
-      "districts": {}
+      "overall": 27058401.10880489,
+      "districts": {
+        "ETH": 3127814.868523218,
+        "ETK": 1952439.5589323502,
+        "ETX": 2535615.237200412,
+        "NT-TSM": 2503167.4827361754,
+        "WTK": 2654730.587765817,
+        "NT-TW": 2515854.240973881,
+        "WTH": 3840847.57223251,
+        "WTX": 3023737.791149046,
+        "NT-TM": 2395095.092851471,
+        "NT-ST": 2509098.6764400075
+      }
     }
   }
 }
