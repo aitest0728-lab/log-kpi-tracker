@@ -1,83 +1,5 @@
 {
   "daily": {
-    "2026-09-25": {
-      "courier": {
-        "districts": {
-          "ETH": 22,
-          "ETK": 11,
-          "ETX": 24,
-          "NT-ST": 12,
-          "NT-TM": 11,
-          "NT-TSM": 23,
-          "NT-TW": 18,
-          "WTH": 21,
-          "WTK": 22,
-          "WTX": 24
-        },
-        "total": 188
-      },
-      "driver": {
-        "districts": {
-          "ETH": 20,
-          "ETK": 19,
-          "ETX": 17,
-          "NT-ST": 21,
-          "NT-TM": 21,
-          "NT-TSM": 19,
-          "NT-TW": 17,
-          "WTH": 22,
-          "WTK": 18,
-          "WTX": 19
-        },
-        "total": 193
-      },
-      "odsVan": {
-        "districts": {
-          "ETH": 26,
-          "ETK": 8,
-          "ETX": 20,
-          "NT-ST": 14,
-          "NT-TM": 7,
-          "NT-TSM": 9,
-          "NT-TW": 15,
-          "WTH": 35,
-          "WTK": 17,
-          "WTX": 21
-        },
-        "total": 172
-      },
-      "courierPT": {
-        "districts": {
-          "ETH": 1,
-          "ETK": 0,
-          "ETX": 0,
-          "NT-ST": 0,
-          "NT-TM": 0,
-          "NT-TSM": 0,
-          "NT-TW": 0,
-          "WTH": 0,
-          "WTK": 0,
-          "WTX": 0
-        },
-        "total": 1
-      },
-      "driverPT": {
-        "districts": {
-          "ETH": 1,
-          "ETK": 0,
-          "ETX": 3,
-          "NT-ST": 1,
-          "NT-TM": 0,
-          "NT-TSM": 2,
-          "NT-TW": 2,
-          "WTH": 3,
-          "WTK": 3,
-          "WTX": 4
-        },
-        "total": 19
-      },
-      "_source": "costReport"
-    },
     "2026-09-26": {
       "courier": {
         "districts": {
@@ -4647,6 +4569,53 @@
           "WTX": 3
         },
         "total": 54
+      }
+    },
+    "2026-11-24": {
+      "courier": {
+        "districts": {
+          "ETH": 28,
+          "ETK": 14,
+          "ETX": 29,
+          "NT-ST": 18,
+          "NT-TM": 20,
+          "NT-TSM": 30,
+          "NT-TW": 21,
+          "WTH": 26,
+          "WTK": 26,
+          "WTX": 27
+        },
+        "total": 239
+      },
+      "driver": {
+        "districts": {
+          "ETH": 24,
+          "ETK": 21,
+          "ETX": 21,
+          "NT-ST": 21,
+          "NT-TM": 26,
+          "NT-TSM": 19,
+          "NT-TW": 19,
+          "WTH": 15,
+          "WTK": 21,
+          "WTX": 21
+        },
+        "total": 208
+      },
+      "odsVan": {
+        "districts": {
+          "ETH": 32,
+          "ETK": 12,
+          "ETX": 24,
+          "NT-ST": 17,
+          "NT-TM": 10,
+          "NT-TSM": 11,
+          "NT-TW": 18,
+          "WTH": 42,
+          "WTK": 10,
+          "WTX": 23
+        },
+        "total": 199
       }
     }
   }
