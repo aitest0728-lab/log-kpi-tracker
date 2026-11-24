@@ -319,6 +319,8 @@ ODS_POINTS_LOOKBACK_DAYS = int(os.environ.get("ODS_POINTS_LOOKBACK_DAYS", "7"))
 ROLLING_ORDERS_PATH = os.environ.get("ROLLING_ORDERS_PATH", "./public/rolling_orders.json")
 ROLLING_REPORT_JSON_PATH_DEFAULT = os.environ.get("ROLLING_REPORT_JSON_PATH", "./public/rolling_report.json")
 SNOWBALL_TABLE_PATH = os.environ.get("SNOWBALL_TABLE_PATH", "./public/snowball_table.json")
+# Order Finished Pattern tab - written hourly by order_finished_pattern.py (every earlier day stays in the file)
+ORDER_FINISHED_PATTERN_PATH = os.environ.get("ORDER_FINISHED_PATTERN_PATH", "./public/order_finished_pattern.json")
 # v28.0 — single deployable dashboard file. Every JSON file's parsed content
 # gets burned into a window.__EMBEDDED_DATA__ script tag inside this same
 # file at the end of every "tableau" run, so it works both live off a real
@@ -3395,6 +3397,7 @@ def update_embedded_data():
         "cost_plan.json": COST_PLAN_PATH,          # v11.6 - forecast cost plan from the Daily Cost Report
         "rolling_report.json": str(ROLLING_REPORT_JSON_PATH) if "ROLLING_REPORT_JSON_PATH" in globals() else os.environ.get("ROLLING_REPORT_JSON_PATH", "./public/rolling_report.json"),
         "snowball_table.json": SNOWBALL_TABLE_PATH,
+        "order_finished_pattern.json": ORDER_FINISHED_PATTERN_PATH,
     }
     embedded = {}
     missing = []
@@ -3407,7 +3410,7 @@ def update_embedded_data():
     # v11.10 — keep rolling_report.json already in the embedded block when this run did not write it
     # (other sections call update_embedded_data() too). The old rolling_orders.json feed is no longer embedded.
     try:
-        if "rolling_report.json" not in embedded or "snowball_table.json" not in embedded:
+        if "rolling_report.json" not in embedded or "snowball_table.json" not in embedded or "order_finished_pattern.json" not in embedded:
             m_old = re.search(r"window\.__EMBEDDED_DATA__\s*=\s*", html[start_idx:end_idx])
             if m_old:
                 old_js = html[start_idx:end_idx][m_old.end():]
@@ -3417,6 +3420,8 @@ def update_embedded_data():
                     embedded["rolling_report.json"] = old_emb["rolling_report.json"]
                 if "snowball_table.json" not in embedded and "snowball_table.json" in old_emb:
                     embedded["snowball_table.json"] = old_emb["snowball_table.json"]
+                if "order_finished_pattern.json" not in embedded and "order_finished_pattern.json" in old_emb:
+                    embedded["order_finished_pattern.json"] = old_emb["order_finished_pattern.json"]
     except Exception as ex:
         print(f"  ⚠️ could not keep rolling_report.json / snowball_table.json in the embedded data: {ex}")
     if missing:
@@ -5421,7 +5426,7 @@ def write_fulfillment_cost_to_other_aspects(history):
 # Pulls first so it never collides with the 08:15 job's push; the commit is skipped when nothing changed.
 DEFAULT_DEPLOY_CMD = os.environ.get("DEFAULT_DEPLOY_CMD") or (
     'git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && '
-    '{ git add public/cost_plan.json 2>/dev/null || true; } && '
+    '{ git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && '
     '(git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push')
 
 
