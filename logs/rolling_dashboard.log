@@ -15430,3 +15430,1561 @@ Updated ./public/index.html (7,354,427 bytes, embedded data refreshed)
         baa433e..a8420c2  main -> main
   ✅ dashboard pushed.
 ✅ Rolling Orders dashboard feed written
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/kpi_pipeline.py", line 154, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/kpi_pipeline.py", line 154, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+🚀 Rolling Orders dashboard feed (--section rolling)
+  ROLLING_PROJECT_DIR=/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp
+  rolling HTML=/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/output/Rolling_Orders_Report.html
+  T+3 2026-11-27: missing or stale snapshot
+  T+4 2026-11-28: missing or stale snapshot
+  T+5 2026-11-29: missing or stale snapshot
+  T+6 2026-11-30: missing or stale snapshot
+  🚚 RRP download (isolated, will merge into latest snapshot): --dates 2026-11-27,2026-11-28,2026-11-29,2026-11-30 --out-dir 
+[2026-11-24 16:20:04] RRP hourly run 2026-11-24T16:20:04+08:00; dates=['2026-11-27', '2026-11-28', '2026-11-29', '2026-11-30']; dir=/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T162004
+[2026-11-24 16:20:04] Downloading 4 date(s) with 4 parallel browser(s)
+[2026-11-24 16:20:04] [browser 1] OIX session attempt 1/3; 1 date(s) pending: ['Nov-27']
+[2026-11-24 16:20:05] OIX login OK
+[2026-11-24 16:20:05] [browser 1] Downloading delivery 2026-11-27 (Nov-27) try 1/2 ...
+[2026-11-24 16:20:05] Downloading Route Resources Planning Report ...
+[2026-11-24 16:20:05]   step 1/4: delivery date
+[2026-11-24 16:20:05]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-27' (wanted '2026-11-27')
+[2026-11-24 16:20:05]   step 2/4: districts
+[2026-11-24 16:20:07] [browser 2] OIX session attempt 1/3; 1 date(s) pending: ['Nov-28']
+[2026-11-24 16:20:08] OIX login OK
+[2026-11-24 16:20:08] [browser 2] Downloading delivery 2026-11-28 (Nov-28) try 1/2 ...
+[2026-11-24 16:20:08] Downloading Route Resources Planning Report ...
+[2026-11-24 16:20:08]   step 1/4: delivery date
+[2026-11-24 16:20:08]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-28' (wanted '2026-11-28')
+[2026-11-24 16:20:08]   step 2/4: districts
+[2026-11-24 16:20:10] [browser 3] OIX session attempt 1/3; 1 date(s) pending: ['Nov-29']
+[2026-11-24 16:20:11] OIX login OK
+[2026-11-24 16:20:11] [browser 3] Downloading delivery 2026-11-29 (Nov-29) try 1/2 ...
+[2026-11-24 16:20:11] Downloading Route Resources Planning Report ...
+[2026-11-24 16:20:11]   step 1/4: delivery date
+[2026-11-24 16:20:11]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-29' (wanted '2026-11-29')
+[2026-11-24 16:20:11]   step 2/4: districts
+[2026-11-24 16:20:12]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 16:20:12]   step 3/4: clients
+[2026-11-24 16:20:12]   5 client_id ticked
+[2026-11-24 16:20:12]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 16:20:13] [browser 4] OIX session attempt 1/3; 1 date(s) pending: ['Nov-30']
+[2026-11-24 16:20:14] OIX login OK
+[2026-11-24 16:20:14] [browser 4] Downloading delivery 2026-11-30 (Nov-30) try 1/2 ...
+[2026-11-24 16:20:14] Downloading Route Resources Planning Report ...
+[2026-11-24 16:20:14]   step 1/4: delivery date
+[2026-11-24 16:20:14]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-30' (wanted '2026-11-30')
+[2026-11-24 16:20:14]   step 2/4: districts
+[2026-11-24 16:20:15]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 16:20:15]   step 3/4: clients
+[2026-11-24 16:20:16]   5 client_id ticked
+[2026-11-24 16:20:16]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 16:20:18]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 16:20:18]   step 3/4: clients
+[2026-11-24 16:20:18]   5 client_id ticked
+[2026-11-24 16:20:18]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 16:20:21]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 16:20:21]   step 3/4: clients
+[2026-11-24 16:20:21]   5 client_id ticked
+[2026-11-24 16:20:21]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 16:20:42]   [download event] route_resource_planning_report_20261124162013.xlsx
+[2026-11-24 16:20:42]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:20:44]   SAVED -> /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T162004/Overall Order in Cargroup (Nov-27).xlsx (4.4 MB)
+[2026-11-24 16:20:46]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:20:48]   [download event] route_resource_planning_report_20261124162018.xlsx
+[2026-11-24 16:20:48]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:20:49]   SAVED -> /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T162004/Overall Order in Cargroup (Nov-29).xlsx (1.3 MB)
+[2026-11-24 16:20:51]   [download event] route_resource_planning_report_20261124162021.xlsx
+[2026-11-24 16:20:51]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:20:52] [browser 4]   WARNING: 2026-11-30 attempt 1/2 failed: FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T162004/Overall Order in Cargroup (Nov-30).xlsx'
+[2026-11-24 16:20:52]   screenshot: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/logs/error_2026-11-30_20261124_162052.png
+[2026-11-24 16:20:52] [browser 4] Downloading delivery 2026-11-30 (Nov-30) try 2/2 ...
+[2026-11-24 16:20:52] Downloading Route Resources Planning Report ...
+[2026-11-24 16:20:53]   step 1/4: delivery date
+[2026-11-24 16:20:53]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-30' (wanted '2026-11-30')
+[2026-11-24 16:20:53]   step 2/4: districts
+[2026-11-24 16:20:53]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 16:20:53]   step 3/4: clients
+[2026-11-24 16:20:53]   5 client_id ticked
+[2026-11-24 16:20:53]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 16:21:16]   waiting for Route Resources Planning Report (60s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:21:23]   [download event] route_resource_planning_report_20261124162053.xlsx
+[2026-11-24 16:21:23]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:21:24]   SAVED -> /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T162004/Overall Order in Cargroup (Nov-30).xlsx (0.6 MB)
+[2026-11-24 16:21:24] [browser 4] finished with last_error=FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T162004/Overall Order in Cargroup (Nov-30).xlsx'
+[2026-11-24 16:21:46]   waiting for Route Resources Planning Report (90s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:22:16]   waiting for Route Resources Planning Report (120s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:22:46]   waiting for Route Resources Planning Report (150s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:23:16]   waiting for Route Resources Planning Report (180s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:23:46]   waiting for Route Resources Planning Report (210s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:24:16]   waiting for Route Resources Planning Report (240s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:24:46]   waiting for Route Resources Planning Report (270s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:25:16]   waiting for Route Resources Planning Report (300s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:25:46]   waiting for Route Resources Planning Report (330s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:26:16]   waiting for Route Resources Planning Report (360s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:26:46]   waiting for Route Resources Planning Report (390s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:27:16]   waiting for Route Resources Planning Report (420s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:27:46]   waiting for Route Resources Planning Report (450s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:28:16]   waiting for Route Resources Planning Report (480s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:28:46]   waiting for Route Resources Planning Report (510s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:29:16]   waiting for Route Resources Planning Report (540s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:29:46]   waiting for Route Resources Planning Report (570s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:30:16]   waiting for Route Resources Planning Report (600s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:30:46]   waiting for Route Resources Planning Report (630s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:31:16]   waiting for Route Resources Planning Report (660s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:31:46]   waiting for Route Resources Planning Report (690s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:32:16]   waiting for Route Resources Planning Report (720s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:32:46]   waiting for Route Resources Planning Report (750s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:33:16]   waiting for Route Resources Planning Report (780s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:33:46]   waiting for Route Resources Planning Report (810s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:34:16]   waiting for Route Resources Planning Report (840s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:34:46]   waiting for Route Resources Planning Report (870s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:35:16] [browser 2]   WARNING: 2026-11-28 attempt 1/2 failed: TimeoutError: Route Resources Planning Report: no download after 900s
+[2026-11-24 16:35:16]   screenshot: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/logs/error_2026-11-28_20261124_163516.png
+[2026-11-24 16:35:16] [browser 2] Downloading delivery 2026-11-28 (Nov-28) try 2/2 ...
+[2026-11-24 16:35:16] Downloading Route Resources Planning Report ...
+[2026-11-24 16:35:16]   step 1/4: delivery date
+[2026-11-24 16:35:16]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-28' (wanted '2026-11-28')
+[2026-11-24 16:35:16]   step 2/4: districts
+[2026-11-24 16:35:16]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 16:35:16]   step 3/4: clients
+[2026-11-24 16:35:16]   5 client_id ticked
+[2026-11-24 16:35:16]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 16:35:46]   [download event] route_resource_planning_report_20261124163517.xlsx
+[2026-11-24 16:35:46]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:35:48] [browser 2]   WARNING: 2026-11-28 attempt 2/2 failed: FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T162004/Overall Order in Cargroup (Nov-28).xlsx'
+[2026-11-24 16:35:48]   screenshot: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/logs/error_2026-11-28_20261124_163548.png
+[2026-11-24 16:35:48] [browser 2] OIX session attempt 2/3; 1 date(s) pending: ['Nov-28']
+[2026-11-24 16:35:48] OIX login OK
+[2026-11-24 16:35:48] [browser 2] Downloading delivery 2026-11-28 (Nov-28) try 1/1 ...
+[2026-11-24 16:35:48] Downloading Route Resources Planning Report ...
+[2026-11-24 16:35:48]   step 1/4: delivery date
+[2026-11-24 16:35:48]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-28' (wanted '2026-11-28')
+[2026-11-24 16:35:48]   step 2/4: districts
+[2026-11-24 16:35:56]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 16:35:56]   step 3/4: clients
+[2026-11-24 16:35:56]   5 client_id ticked
+[2026-11-24 16:35:56]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 16:36:26]   [download event] route_resource_planning_report_20261124163556.xlsx
+[2026-11-24 16:36:26]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 16:36:27]   SAVED -> /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T162004/Overall Order in Cargroup (Nov-28).xlsx (2.4 MB)
+[2026-11-24 16:36:27] [browser 2] finished with last_error=FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T162004/Overall Order in Cargroup (Nov-28).xlsx'
+[2026-11-24 16:36:27] Shop Code List zones: 681 from /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/shop-code-list.csv
+[2026-11-24 16:36:27] Reading Overall Order in Cargroup (Nov-27).xlsx (Route Resource Data) for delivery 2026-11-27 ...
+[2026-11-24 16:36:32]   Overall Order in Cargroup (Nov-27).xlsx: rows 29,249 -> kept 29,075; 5,475 unique parents; cross-district=0; unknown_od=0; plus_od=0; identity_A=True
+[2026-11-24 16:36:32] Reading Overall Order in Cargroup (Nov-28).xlsx (Route Resource Data) for delivery 2026-11-28 ...
+[2026-11-24 16:36:35]   Overall Order in Cargroup (Nov-28).xlsx: rows 15,858 -> kept 15,721; 2,594 unique parents; cross-district=0; unknown_od=0; plus_od=0; identity_A=True
+[2026-11-24 16:36:35] Reading Overall Order in Cargroup (Nov-29).xlsx (Route Resource Data) for delivery 2026-11-29 ...
+[2026-11-24 16:36:36]   Overall Order in Cargroup (Nov-29).xlsx: rows 8,441 -> kept 8,422; 1,362 unique parents; cross-district=0; unknown_od=0; plus_od=0; identity_A=True
+[2026-11-24 16:36:36] Reading Overall Order in Cargroup (Nov-30).xlsx (Route Resource Data) for delivery 2026-11-30 ...
+[2026-11-24 16:36:36]   Overall Order in Cargroup (Nov-30).xlsx: rows 3,766 -> kept 3,755; 666 unique parents; cross-district=0; unknown_od=0; plus_od=0; identity_A=True
+[2026-11-24 16:36:37]   latest <- Overall Order in Cargroup (Nov-27).xlsx (4.4 MB)
+[2026-11-24 16:36:37]   latest <- Overall Order in Cargroup (Nov-28).xlsx (2.4 MB)
+[2026-11-24 16:36:37]   latest <- Overall Order in Cargroup (Nov-29).xlsx (1.3 MB)
+[2026-11-24 16:36:37]   latest <- Overall Order in Cargroup (Nov-30).xlsx (0.6 MB)
+[2026-11-24 16:36:37] No successful T+1 (2026-11-25) result; session increment not computed
+[2026-11-24 16:36:37] Order change log: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/changes/order_changes_2026-11-24.json (total change +64 across all dates; changed: ['2026-11-27', '2026-11-28', '2026-11-29', '2026-11-30']; first seen: none)
+[2026-11-24 16:36:37]   2026-11-27: 5,475 (+44 vs 2026-11-24T16:00:01+08:00)
+[2026-11-24 16:36:37]   2026-11-28: 2,594 (+1 vs 2026-11-24T16:00:01+08:00)
+[2026-11-24 16:36:37]   2026-11-29: 1,362 (+6 vs 2026-11-24T16:00:01+08:00)
+[2026-11-24 16:36:37]   2026-11-30: 666 (+13 vs 2026-11-24T16:00:01+08:00)
+[2026-11-24 16:36:37] Wrote snapshot /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/latest/snapshot.json and /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/snapshots/snapshot_2026-11-24T162004_0800.json
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T111314 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T111413 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T111644 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T112429 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T112716 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T120001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T130001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T140002 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T150002 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T160002 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T170001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T180001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T190002 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T200002 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T210002 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T220001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-13T230001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T000001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T010001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T020001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T030001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T040001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T050001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T060001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T070001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T080001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T090001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T100001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T110001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T120001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T130001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T140002 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T150001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T160001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T170001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T180001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T190001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T200002 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T210001 (0.0 MB); kept manifest
+[2026-11-24 16:36:37]   pruned 0 workbooks from 2026-11-14T220001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-14T230001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T000002 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T010001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T020002 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T030001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T040001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T050001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T060001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T070001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T080001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T090002 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T100001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T110001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T120001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T130001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T140001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T150001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T160001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T170001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T180001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T190001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T200002 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T210001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T220001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-15T230002 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T000002 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T010001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T020001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T030001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T040001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T050002 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T060001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T070001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T080001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T090001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T100001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T110001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T120001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T130001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T140002 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T150001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T160002 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T170001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T180001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T190001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T200001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T210001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T220001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-16T230002 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-17T000002 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-17T010001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-17T020001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-17T030001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-17T040001 (0.0 MB); kept manifest
+[2026-11-24 16:36:38]   pruned 0 workbooks from 2026-11-17T050001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T060001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T070001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T080001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T090001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T100001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T110001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T120001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T130001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T140001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T150001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T170001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T180001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T190002 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T200001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T210001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T220001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-17T230001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T000002 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T010001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T020001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T030001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T040001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T050002 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T060002 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T070001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T080001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T090001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T100001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T110001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T120001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T130001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T140001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T150001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T160001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T170001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T180002 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T190001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T200002 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T210001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T220001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-18T230002 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T000001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T010001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T020001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T030001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T040002 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T050001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T060001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T070001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T080001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T090001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T100001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T110001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T120002 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T130002 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T140001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T150001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T160001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T170001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T180001 (0.0 MB); kept manifest
+[2026-11-24 16:36:39]   pruned 0 workbooks from 2026-11-19T190002 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-19T200001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-19T210001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-19T220002 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-19T230001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T000001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T010001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T020001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T030001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T040001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T050001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T060001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T070001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T080001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T090001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T100001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T100718 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T110001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T120001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T130002 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T140002 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T150001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T160001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T170003 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T180001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T190001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T200002 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T210001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T220001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-20T230001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T000001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T010001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T020001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T030001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T040001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T050001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T060001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T070001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T080001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T090002 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T100001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T110001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T120001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T130001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T140001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T150001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T160001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T170002 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T180001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T190001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T200001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T210002 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T220002 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-21T230001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T000001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T010001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T020001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T030001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T040001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T050001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T060001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T070001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T080001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T090001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T100001 (0.0 MB); kept manifest
+[2026-11-24 16:36:40]   pruned 0 workbooks from 2026-11-22T110002 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T120001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T130001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T140001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T150001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T160001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T170001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T180001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T190001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T200001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T210001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T220002 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-22T230001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T000001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T010002 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T020001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T030001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T040001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T050001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T060001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T070001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T080002 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T090001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T100001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T110001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T120001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T130001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T140001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T150001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T160001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T170001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T172004 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T180001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T182005 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T190001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T192004 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T200002 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T202004 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T210001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T212003 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T220002 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T222004 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T230001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-23T232004 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-24T000001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-24T002004 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-24T010001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-24T012004 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-24T020001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-24T022003 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-24T030001 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-24T032004 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-24T040002 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-24T042004 (0.0 MB); kept manifest
+[2026-11-24 16:36:41]   pruned 0 workbooks from 2026-11-24T050001 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T052003 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T060001 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T062003 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T070001 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T072004 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T080001 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T082004 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T090001 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T092004 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T100001 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T102004 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T110001 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T112004 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T120001 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T122004 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T130001 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T132004 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T140001 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T142004 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T150001 (0.0 MB); kept manifest
+[2026-11-24 16:36:42]   pruned 0 workbooks from 2026-11-24T152004 (0.0 MB); kept manifest
+[2026-11-24 16:36:42] Finished: 4 ok, 0 failed. Snapshot: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/latest/snapshot.json
+[2026-11-24 16:36:42] Delivery 2026-11-27: network unique parents=5,475 identity_A=True cross=0 unknown=0 plus=0 delta=44
+[2026-11-24 16:36:42]   T-n: T-7+=679 (raw 679) T-6..T-1=[656, 1175, 775, 2190, 0, 0] T-0=0 sum=5475
+[2026-11-24 16:36:42]   timeslots={'PM': 2380, 'AM': 1296, 'EV': 1799} same-day=0 same-day slots={} EV2=0
+[2026-11-24 16:36:42]   ETH: total=557 T-7+=86 T-6..T-1=[57, 106, 61, 247, 0, 0] T-0=0 identity_A=True delta=3
+[2026-11-24 16:36:42]   ETK: total=387 T-7+=41 T-6..T-1=[50, 101, 52, 143, 0, 0] T-0=0 identity_A=True delta=7
+[2026-11-24 16:36:42]   ETX: total=593 T-7+=81 T-6..T-1=[101, 111, 99, 201, 0, 0] T-0=0 identity_A=True delta=3
+[2026-11-24 16:36:42]   NT-ST: total=584 T-7+=60 T-6..T-1=[91, 149, 86, 198, 0, 0] T-0=0 identity_A=True delta=2
+[2026-11-24 16:36:42]   NT-TM: total=448 T-7+=57 T-6..T-1=[53, 115, 59, 164, 0, 0] T-0=0 identity_A=True delta=4
+[2026-11-24 16:36:42]   NT-TSM: total=567 T-7+=73 T-6..T-1=[84, 139, 87, 184, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   NT-TW: total=495 T-7+=59 T-6..T-1=[49, 113, 69, 205, 0, 0] T-0=0 identity_A=True delta=5
+[2026-11-24 16:36:42]   WTH: total=717 T-7+=75 T-6..T-1=[56, 107, 81, 398, 0, 0] T-0=0 identity_A=True delta=8
+[2026-11-24 16:36:42]   WTK: total=513 T-7+=66 T-6..T-1=[45, 90, 90, 222, 0, 0] T-0=0 identity_A=True delta=7
+[2026-11-24 16:36:42]   WTX: total=614 T-7+=81 T-6..T-1=[70, 144, 91, 228, 0, 0] T-0=0 identity_A=True delta=5
+[2026-11-24 16:36:42] Delivery 2026-11-28: network unique parents=2,594 identity_A=True cross=0 unknown=0 plus=0 delta=1
+[2026-11-24 16:36:42]   T-n: T-7+=1030 (raw 1030) T-6..T-1=[916, 340, 308, 0, 0, 0] T-0=0 sum=2594
+[2026-11-24 16:36:42]   timeslots={'PM': 1217, 'AM': 673, 'EV': 704} same-day=0 same-day slots={} EV2=0
+[2026-11-24 16:36:42]   ETH: total=231 T-7+=95 T-6..T-1=[81, 36, 19, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   ETK: total=244 T-7+=96 T-6..T-1=[87, 33, 28, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   ETX: total=364 T-7+=164 T-6..T-1=[117, 50, 33, 0, 0, 0] T-0=0 identity_A=True delta=1
+[2026-11-24 16:36:42]   NT-ST: total=326 T-7+=114 T-6..T-1=[127, 38, 47, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   NT-TM: total=305 T-7+=98 T-6..T-1=[135, 32, 40, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   NT-TSM: total=220 T-7+=78 T-6..T-1=[76, 30, 36, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   NT-TW: total=219 T-7+=91 T-6..T-1=[78, 28, 22, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   WTH: total=193 T-7+=95 T-6..T-1=[47, 25, 26, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   WTK: total=210 T-7+=88 T-6..T-1=[72, 23, 27, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   WTX: total=282 T-7+=111 T-6..T-1=[96, 45, 30, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42] Delivery 2026-11-29: network unique parents=1,362 identity_A=True cross=0 unknown=0 plus=0 delta=6
+[2026-11-24 16:36:42]   T-n: T-7+=1057 (raw 1057) T-6..T-1=[167, 138, 0, 0, 0, 0] T-0=0 sum=1362
+[2026-11-24 16:36:42]   timeslots={'AM': 370, 'EV': 371, 'PM': 621} same-day=0 same-day slots={} EV2=0
+[2026-11-24 16:36:42]   ETH: total=116 T-7+=90 T-6..T-1=[13, 13, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   ETK: total=92 T-7+=67 T-6..T-1=[18, 7, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   ETX: total=180 T-7+=150 T-6..T-1=[15, 15, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   NT-ST: total=178 T-7+=147 T-6..T-1=[16, 15, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   NT-TM: total=171 T-7+=123 T-6..T-1=[28, 20, 0, 0, 0, 0] T-0=0 identity_A=True delta=1
+[2026-11-24 16:36:42]   NT-TSM: total=150 T-7+=118 T-6..T-1=[16, 16, 0, 0, 0, 0] T-0=0 identity_A=True delta=1
+[2026-11-24 16:36:42]   NT-TW: total=139 T-7+=104 T-6..T-1=[17, 18, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   WTH: total=70 T-7+=51 T-6..T-1=[12, 7, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   WTK: total=110 T-7+=84 T-6..T-1=[11, 15, 0, 0, 0, 0] T-0=0 identity_A=True delta=1
+[2026-11-24 16:36:42]   WTX: total=156 T-7+=123 T-6..T-1=[21, 12, 0, 0, 0, 0] T-0=0 identity_A=True delta=3
+[2026-11-24 16:36:42] Delivery 2026-11-30: network unique parents=666 identity_A=True cross=0 unknown=0 plus=0 delta=13
+[2026-11-24 16:36:42]   T-n: T-7+=559 (raw 559) T-6..T-1=[107, 0, 0, 0, 0, 0] T-0=0 sum=666
+[2026-11-24 16:36:42]   timeslots={'AM': 186, 'PM': 278, 'EV': 202} same-day=0 same-day slots={} EV2=0
+[2026-11-24 16:36:42]   ETH: total=67 T-7+=57 T-6..T-1=[10, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=3
+[2026-11-24 16:36:42]   ETK: total=44 T-7+=39 T-6..T-1=[5, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=1
+[2026-11-24 16:36:42]   ETX: total=79 T-7+=68 T-6..T-1=[11, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   NT-ST: total=57 T-7+=48 T-6..T-1=[9, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=2
+[2026-11-24 16:36:42]   NT-TM: total=65 T-7+=59 T-6..T-1=[6, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   NT-TSM: total=54 T-7+=45 T-6..T-1=[9, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   NT-TW: total=64 T-7+=56 T-6..T-1=[8, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 16:36:42]   WTH: total=63 T-7+=50 T-6..T-1=[13, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=1
+[2026-11-24 16:36:42]   WTK: total=61 T-7+=43 T-6..T-1=[18, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=2
+[2026-11-24 16:36:42]   WTX: total=112 T-7+=94 T-6..T-1=[18, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=4
+  🔧 restored latest workbooks that the T+3..T+6 run must not replace: Overall Order in Cargroup (Dec-01).xlsx, Overall Order in Cargroup (Nov-25).xlsx
+  ✅ latest snapshot merged; T+0..T+2 preserved. downloader exit=0
+[16:36:42] Building T+3 report: today=2026-11-24 delivery=2026-11-27 as_of=2026-11-24T16:36:42.627493+08:00
+[16:36:42] Historical weeks for T+1 2026-11-27 [FRI]: 2026-11-20 [FRI], 2026-11-13 [FRI], 2026-11-06 [FRI], 2026-10-30 [FRI]
+[16:36:42] OIX input files not present for 2026-11-20; using cached day_res in oix_delivered_2026-11-20.pkl as-is
+[16:36:42] Loaded cached OIX-delivered week 2026-11-20
+[16:36:42] OIX input files not present for 2026-11-13; using cached day_res in oix_delivered_2026-11-13.pkl as-is
+[16:36:42] Loaded cached OIX-delivered week 2026-11-13
+[16:36:42] OIX input files not present for 2026-11-06; using cached day_res in oix_delivered_2026-11-06.pkl as-is
+[16:36:42] Loaded cached OIX-delivered week 2026-11-06
+[16:36:42] OIX input files not present for 2026-10-30; using cached day_res in oix_delivered_2026-10-30.pkl as-is
+[16:36:42] Loaded cached OIX-delivered week 2026-10-30
+[16:36:42] Vault: saved week 2026-11-20 (10 districts)
+[16:36:42] Vault: saved week 2026-11-13 (10 districts)
+[16:36:42] Vault: saved week 2026-11-06 (10 districts)
+[16:36:42] Vault: saved week 2026-10-30 (10 districts)
+[16:36:42] Historical identities hold for all 10 districts and the network (4 of 4 weeks). Missing weeks: none. Provisional maps: none. Metric gaps: 0.
+[16:36:42] Historical weeks (previous 4 FRIs): ['2026-11-20', '2026-11-13', '2026-11-06', '2026-10-30'] — ['20/11 [FRI]', '13/11 [FRI]', '6/11 [FRI]', '30/10 [FRI]']
+[16:36:42] T+1 column: OIX RRP unique parents from snapshot 2026-11-24T16:20:04+08:00 (network=5,475, identity_A=True)
+[16:36:42] Bucket trace network vs 2026-11-24T15:20:04+08:00 (T+3): T-7+ -1, T-6 +2, T-5 +0, T-4 +6, T-3 +522, T-2 +0, T-1 +0, T-0 +0
+[16:36:42] Buckets that went DOWN (cancelled / removed): ETK T-7+ -2; ETK T-5 -2; WTH T-7+ -1
+  ✅ T+3 2026-11-27 built (asof=24 Nov 2026 16:20, total=5,475)
+  💾 stored T+3 2026-11-27 (total=5,475) in history_vault/forecast/
+[16:36:42] Building T+4 report: today=2026-11-24 delivery=2026-11-28 as_of=2026-11-24T16:36:42.627493+08:00
+[16:36:42] Historical weeks for T+1 2026-11-28 [SAT]: 2026-11-21 [SAT], 2026-11-14 [SAT], 2026-11-07 [SAT], 2026-10-31 [SAT]
+[16:36:42] OIX input files not present for 2026-11-21; using cached day_res in oix_delivered_2026-11-21.pkl as-is
+[16:36:42] Loaded cached OIX-delivered week 2026-11-21
+[16:36:42] OIX input files not present for 2026-11-14; using cached day_res in oix_delivered_2026-11-14.pkl as-is
+[16:36:42] Loaded cached OIX-delivered week 2026-11-14
+[16:36:42] OIX input files not present for 2026-11-07; using cached day_res in oix_delivered_2026-11-07.pkl as-is
+[16:36:42] Loaded cached OIX-delivered week 2026-11-07
+[16:36:42] OIX input files not present for 2026-10-31; using cached day_res in oix_delivered_2026-10-31.pkl as-is
+[16:36:42] Loaded cached OIX-delivered week 2026-10-31
+[16:36:42] Vault: saved week 2026-11-21 (10 districts)
+[16:36:43] Vault: saved week 2026-11-14 (10 districts)
+[16:36:43] Vault: saved week 2026-11-07 (10 districts)
+[16:36:43] Vault: saved week 2026-10-31 (10 districts)
+[16:36:43] Historical identities hold for all 10 districts and the network (4 of 4 weeks). Missing weeks: none. Provisional maps: none. Metric gaps: 0.
+[16:36:43] Historical weeks (previous 4 SATs): ['2026-11-21', '2026-11-14', '2026-11-07', '2026-10-31'] — ['21/11 [SAT]', '14/11 [SAT]', '7/11 [SAT]', '31/10 [SAT]']
+[16:36:43] T+1 column: OIX RRP unique parents from snapshot 2026-11-24T16:20:04+08:00 (network=2,594, identity_A=True)
+[16:36:43] Bucket trace network vs 2026-11-24T15:20:04+08:00 (T+4): T-7+ +1, T-6 +2, T-5 +0, T-4 +38, T-3 +0, T-2 +0, T-1 +0, T-0 +0
+[16:36:43] Buckets that went DOWN (cancelled / removed): ETH T-7+ -1; NT-ST T-7+ -1; WTH T-7+ -1
+  ✅ T+4 2026-11-28 built (asof=24 Nov 2026 16:20, total=2,594)
+  💾 stored T+4 2026-11-28 (total=2,594) in history_vault/forecast/
+[16:36:43] Building T+5 report: today=2026-11-24 delivery=2026-11-29 as_of=2026-11-24T16:36:42.627493+08:00
+[16:36:43] Historical weeks for T+1 2026-11-29 [SUN]: 2026-11-22 [SUN], 2026-11-15 [SUN], 2026-11-08 [SUN], 2026-11-01 [SUN]
+[16:36:43] OIX input files not present for 2026-11-22; using cached day_res in oix_delivered_2026-11-22.pkl as-is
+[16:36:43] Loaded cached OIX-delivered week 2026-11-22
+[16:36:43] OIX input files not present for 2026-11-15; using cached day_res in oix_delivered_2026-11-15.pkl as-is
+[16:36:43] Loaded cached OIX-delivered week 2026-11-15
+[16:36:43] OIX input files not present for 2026-11-08; using cached day_res in oix_delivered_2026-11-08.pkl as-is
+[16:36:43] Loaded cached OIX-delivered week 2026-11-08
+[16:36:43] OIX input files not present for 2026-11-01; using cached day_res in oix_delivered_2026-11-01.pkl as-is
+[16:36:43] Loaded cached OIX-delivered week 2026-11-01
+[16:36:43] Vault: saved week 2026-11-22 (10 districts)
+[16:36:43] Vault: saved week 2026-11-15 (10 districts)
+[16:36:43] Vault: saved week 2026-11-08 (10 districts)
+[16:36:43] Vault: saved week 2026-11-01 (10 districts)
+[16:36:43] Historical identities hold for all 10 districts and the network (4 of 4 weeks). Missing weeks: none. Provisional maps: none. Metric gaps: 1.
+[16:36:43] Historical weeks (previous 4 SUNs): ['2026-11-22', '2026-11-15', '2026-11-08', '2026-11-01'] — ['22/11 [SUN]', '15/11 [SUN]', '8/11 [SUN]', '1/11 [SUN]']
+[16:36:43] T+1 column: OIX RRP unique parents from snapshot 2026-11-24T16:20:04+08:00 (network=1,362, identity_A=True)
+[16:36:43] Bucket trace network vs 2026-11-24T15:20:04+08:00 (T+5): T-7+ +0, T-6 -1, T-5 +16, T-4 +0, T-3 +0, T-2 +0, T-1 +0, T-0 +0
+[16:36:43] Buckets that went DOWN (cancelled / removed): ETH T-7+ -1; ETX T-7+ -1; ETX T-6 -1
+  ✅ T+5 2026-11-29 built (asof=24 Nov 2026 16:20, total=1,362)
+  💾 stored T+5 2026-11-29 (total=1,362) in history_vault/forecast/
+[16:36:43] Building T+6 report: today=2026-11-24 delivery=2026-11-30 as_of=2026-11-24T16:36:42.627493+08:00
+[16:36:43] Historical weeks for T+1 2026-11-30 [MON]: 2026-11-23 [MON], 2026-11-16 [MON], 2026-11-09 [MON], 2026-11-02 [MON]
+[16:36:43] OIX input files not present for 2026-11-23; using cached day_res in oix_delivered_2026-11-23.pkl as-is
+[16:36:43] Loaded cached OIX-delivered week 2026-11-23
+[16:36:43] OIX input files not present for 2026-11-16; using cached day_res in oix_delivered_2026-11-16.pkl as-is
+[16:36:43] Loaded cached OIX-delivered week 2026-11-16
+[16:36:43] OIX input files not present for 2026-11-09; using cached day_res in oix_delivered_2026-11-09.pkl as-is
+[16:36:43] Loaded cached OIX-delivered week 2026-11-09
+[16:36:43] OIX input files not present for 2026-11-02; using cached day_res in oix_delivered_2026-11-02.pkl as-is
+[16:36:43] Loaded cached OIX-delivered week 2026-11-02
+[16:36:43] Vault: saved week 2026-11-23 (10 districts)
+[16:36:43] Vault: saved week 2026-11-16 (10 districts)
+[16:36:43] Vault: saved week 2026-11-09 (10 districts)
+[16:36:43] Vault: saved week 2026-11-02 (10 districts)
+[16:36:43] Historical identities hold for all 10 districts and the network (4 of 4 weeks). Missing weeks: none. Provisional maps: ['2026-11-23']. Metric gaps: 5.
+[16:36:43] Historical weeks (previous 4 MONs): ['2026-11-23', '2026-11-16', '2026-11-09', '2026-11-02'] — ['23/11 [MON]', '16/11 [MON]', '9/11 [MON]', '2/11 [MON]']
+[16:36:43] T+1 column: OIX RRP unique parents from snapshot 2026-11-24T16:20:04+08:00 (network=666, identity_A=True)
+[16:36:43] Bucket trace network vs 2026-11-24T15:20:04+08:00 (T+6): T-7+ +2, T-6 +22, T-5 +0, T-4 +0, T-3 +0, T-2 +0, T-1 +0, T-0 +0
+  ✅ T+6 2026-11-30 built (asof=24 Nov 2026 16:20, total=666)
+  💾 stored T+6 2026-11-30 (total=666) in history_vault/forecast/
+Wrote public/rolling_report.json
+[snowball 16:36:43] Refreshing Snowball Table from unique-parent raw CSVs and stored RRP snapshots
+[snowball 16:36:43] No raw CSV for 2026-11-01; preserved 1 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-02; preserved 2 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-03; preserved 3 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-04; preserved 4 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-05; preserved 5 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-06; preserved 6 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-07; preserved 7 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-08; preserved 8 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-09; preserved 9 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-10; preserved 10 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-11; preserved 11 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-12; preserved 12 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-13; preserved 13 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-14; preserved 14 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-15; preserved 15 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-16; preserved 16 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-17; preserved 16 existing order-date cells
+[snowball 16:36:43] No raw CSV for 2026-11-18; preserved 18 existing order-date cells
+[snowball 16:36:47] RRP cache hit for 2026-11-24 (Overall Order in Cargroup (Nov-24).xlsx)
+[snowball 16:36:48] Counting RRP Overall Order in Cargroup (Nov-25).xlsx for 2026-11-25 (20.2 MB)
+[snowball 16:37:11]   Overall Order in Cargroup (Nov-25).xlsx: rows 137,573 kept 137,283; 26,009 unique parents; cross=0; unknown_od=0
+[snowball 16:37:12] Counting RRP Overall Order in Cargroup (Nov-27).xlsx for 2026-11-27 (4.4 MB)
+[snowball 16:37:15]   Overall Order in Cargroup (Nov-27).xlsx: rows 29,249 kept 29,075; 5,475 unique parents; cross=0; unknown_od=0
+[snowball 16:37:16] Counting RRP Overall Order in Cargroup (Nov-28).xlsx for 2026-11-28 (2.4 MB)
+[snowball 16:37:18]   Overall Order in Cargroup (Nov-28).xlsx: rows 15,858 kept 15,721; 2,594 unique parents; cross=0; unknown_od=0
+[snowball 16:37:19] Counting RRP Overall Order in Cargroup (Nov-29).xlsx for 2026-11-29 (1.3 MB)
+[snowball 16:37:20]   Overall Order in Cargroup (Nov-29).xlsx: rows 8,441 kept 8,422; 1,362 unique parents; cross=0; unknown_od=0
+[snowball 16:37:20] Counting RRP Overall Order in Cargroup (Nov-30).xlsx for 2026-11-30 (0.6 MB)
+[snowball 16:37:21]   Overall Order in Cargroup (Nov-30).xlsx: rows 3,766 kept 3,755; 666 unique parents; cross=0; unknown_od=0
+[snowball 16:37:22] Counting RRP Overall Order in Cargroup (Dec-01).xlsx for 2026-12-01 (0.3 MB)
+[snowball 16:37:22]   Overall Order in Cargroup (Dec-01).xlsx: rows 2,238 kept 2,226; 379 unique parents; cross=0; unknown_od=0
+[snowball 16:37:22] Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/snowball_table.json (231 KB, 85 order dates)
+Updated ./public/index.html (7,369,845 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - using the built-in git push.
+  🚚 deploying dashboard: git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && { git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && (git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push
+     Already up to date.
+     [main 9434863] KPI dashboard auto update 2026-11-24_1637
+      3 files changed, 134 insertions(+), 134 deletions(-)
+     To https://github.com/aitest0728-lab/log-kpi-tracker.git
+        210228d..9434863  main -> main
+  ✅ dashboard pushed.
+✅ Rolling Orders dashboard feed written
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/kpi_pipeline.py", line 154, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/kpi_pipeline.py", line 154, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+🚀 Rolling Orders dashboard feed (--section rolling)
+  ROLLING_PROJECT_DIR=/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp
+  rolling HTML=/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/output/Rolling_Orders_Report.html
+  T+3 2026-11-27: missing or stale snapshot
+  T+4 2026-11-28: missing or stale snapshot
+  T+5 2026-11-29: missing or stale snapshot
+  T+6 2026-11-30: missing or stale snapshot
+  🚚 RRP download (isolated, will merge into latest snapshot): --dates 2026-11-27,2026-11-28,2026-11-29,2026-11-30 --out-dir 
+[2026-11-24 17:20:05] RRP hourly run 2026-11-24T17:20:05+08:00; dates=['2026-11-27', '2026-11-28', '2026-11-29', '2026-11-30']; dir=/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T172005
+[2026-11-24 17:20:05] Downloading 4 date(s) with 4 parallel browser(s)
+[2026-11-24 17:20:06] [browser 1] OIX session attempt 1/3; 1 date(s) pending: ['Nov-27']
+[2026-11-24 17:20:06] OIX login OK
+[2026-11-24 17:20:06] [browser 1] Downloading delivery 2026-11-27 (Nov-27) try 1/2 ...
+[2026-11-24 17:20:06] Downloading Route Resources Planning Report ...
+[2026-11-24 17:20:07]   step 1/4: delivery date
+[2026-11-24 17:20:07]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-27' (wanted '2026-11-27')
+[2026-11-24 17:20:07]   step 2/4: districts
+[2026-11-24 17:20:09] [browser 2] OIX session attempt 1/3; 1 date(s) pending: ['Nov-28']
+[2026-11-24 17:20:09] OIX login OK
+[2026-11-24 17:20:09] [browser 2] Downloading delivery 2026-11-28 (Nov-28) try 1/2 ...
+[2026-11-24 17:20:09] Downloading Route Resources Planning Report ...
+[2026-11-24 17:20:09]   step 1/4: delivery date
+[2026-11-24 17:20:09]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-28' (wanted '2026-11-28')
+[2026-11-24 17:20:09]   step 2/4: districts
+[2026-11-24 17:20:12] [browser 3] OIX session attempt 1/3; 1 date(s) pending: ['Nov-29']
+[2026-11-24 17:20:12] OIX login OK
+[2026-11-24 17:20:12] [browser 3] Downloading delivery 2026-11-29 (Nov-29) try 1/2 ...
+[2026-11-24 17:20:12] Downloading Route Resources Planning Report ...
+[2026-11-24 17:20:12]   step 1/4: delivery date
+[2026-11-24 17:20:12]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-29' (wanted '2026-11-29')
+[2026-11-24 17:20:12]   step 2/4: districts
+[2026-11-24 17:20:14]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 17:20:14]   step 3/4: clients
+[2026-11-24 17:20:14]   5 client_id ticked
+[2026-11-24 17:20:14]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 17:20:15] [browser 4] OIX session attempt 1/3; 1 date(s) pending: ['Nov-30']
+[2026-11-24 17:20:15] OIX login OK
+[2026-11-24 17:20:15] [browser 4] Downloading delivery 2026-11-30 (Nov-30) try 1/2 ...
+[2026-11-24 17:20:15] Downloading Route Resources Planning Report ...
+[2026-11-24 17:20:15]   step 1/4: delivery date
+[2026-11-24 17:20:15]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-30' (wanted '2026-11-30')
+[2026-11-24 17:20:15]   step 2/4: districts
+[2026-11-24 17:20:17]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 17:20:17]   step 3/4: clients
+[2026-11-24 17:20:17]   5 client_id ticked
+[2026-11-24 17:20:17]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 17:20:20]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 17:20:20]   step 3/4: clients
+[2026-11-24 17:20:20]   5 client_id ticked
+[2026-11-24 17:20:20]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 17:20:23]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 17:20:23]   step 3/4: clients
+[2026-11-24 17:20:23]   5 client_id ticked
+[2026-11-24 17:20:23]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 17:20:44]   [download event] route_resource_planning_report_20261124172015.xlsx
+[2026-11-24 17:20:44]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:20:46] [browser 1]   WARNING: 2026-11-27 attempt 1/2 failed: FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T172005/Overall Order in Cargroup (Nov-27).xlsx'
+[2026-11-24 17:20:46]   screenshot: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/logs/error_2026-11-27_20261124_172046.png
+[2026-11-24 17:20:46] [browser 1] Downloading delivery 2026-11-27 (Nov-27) try 2/2 ...
+[2026-11-24 17:20:46] Downloading Route Resources Planning Report ...
+[2026-11-24 17:20:46]   step 1/4: delivery date
+[2026-11-24 17:20:46]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-27' (wanted '2026-11-27')
+[2026-11-24 17:20:46]   step 2/4: districts
+[2026-11-24 17:20:46]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 17:20:46]   step 3/4: clients
+[2026-11-24 17:20:46]   5 client_id ticked
+[2026-11-24 17:20:46]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 17:20:47]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:20:50]   [download event] route_resource_planning_report_20261124172020.xlsx
+[2026-11-24 17:20:50]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:20:51]   SAVED -> /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T172005/Overall Order in Cargroup (Nov-29).xlsx (1.3 MB)
+[2026-11-24 17:20:53]   [download event] route_resource_planning_report_20261124172023.xlsx
+[2026-11-24 17:20:53]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:20:54] [browser 4]   WARNING: 2026-11-30 attempt 1/2 failed: FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T172005/Overall Order in Cargroup (Nov-30).xlsx'
+[2026-11-24 17:20:54]   screenshot: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/logs/error_2026-11-30_20261124_172054.png
+[2026-11-24 17:20:54] [browser 4] Downloading delivery 2026-11-30 (Nov-30) try 2/2 ...
+[2026-11-24 17:20:54] Downloading Route Resources Planning Report ...
+[2026-11-24 17:20:54]   step 1/4: delivery date
+[2026-11-24 17:20:54]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-30' (wanted '2026-11-30')
+[2026-11-24 17:20:54]   step 2/4: districts
+[2026-11-24 17:20:54]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 17:20:54]   step 3/4: clients
+[2026-11-24 17:20:55]   5 client_id ticked
+[2026-11-24 17:20:55]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 17:21:16]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:21:17]   waiting for Route Resources Planning Report (60s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:21:25]   [download event] route_resource_planning_report_20261124172055.xlsx
+[2026-11-24 17:21:25]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:21:26]   SAVED -> /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T172005/Overall Order in Cargroup (Nov-30).xlsx (0.6 MB)
+[2026-11-24 17:21:26] [browser 4] finished with last_error=FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T172005/Overall Order in Cargroup (Nov-30).xlsx'
+[2026-11-24 17:21:46]   waiting for Route Resources Planning Report (60s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:21:47]   waiting for Route Resources Planning Report (90s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:22:16]   waiting for Route Resources Planning Report (90s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:22:17]   waiting for Route Resources Planning Report (120s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:22:46]   waiting for Route Resources Planning Report (120s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:22:47]   waiting for Route Resources Planning Report (150s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:23:16]   waiting for Route Resources Planning Report (150s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:23:17]   waiting for Route Resources Planning Report (180s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:23:46]   waiting for Route Resources Planning Report (180s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:23:47]   waiting for Route Resources Planning Report (210s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:24:16]   waiting for Route Resources Planning Report (210s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:24:17]   waiting for Route Resources Planning Report (240s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:24:46]   waiting for Route Resources Planning Report (240s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:24:47]   waiting for Route Resources Planning Report (270s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:25:16]   waiting for Route Resources Planning Report (270s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:25:17]   waiting for Route Resources Planning Report (300s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:25:46]   waiting for Route Resources Planning Report (300s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:25:47]   waiting for Route Resources Planning Report (330s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:26:16]   waiting for Route Resources Planning Report (330s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:26:17]   waiting for Route Resources Planning Report (360s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:26:46]   waiting for Route Resources Planning Report (360s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:26:47]   waiting for Route Resources Planning Report (390s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:27:16]   waiting for Route Resources Planning Report (390s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:27:17]   waiting for Route Resources Planning Report (420s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:27:46]   waiting for Route Resources Planning Report (420s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:27:47]   waiting for Route Resources Planning Report (450s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:28:16]   waiting for Route Resources Planning Report (450s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:28:17]   waiting for Route Resources Planning Report (480s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:28:46]   waiting for Route Resources Planning Report (480s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:28:47]   waiting for Route Resources Planning Report (510s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:29:16]   waiting for Route Resources Planning Report (510s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:29:17]   waiting for Route Resources Planning Report (540s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:29:46]   waiting for Route Resources Planning Report (540s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:29:47]   waiting for Route Resources Planning Report (570s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:30:16]   waiting for Route Resources Planning Report (570s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:30:17]   waiting for Route Resources Planning Report (600s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:30:46]   waiting for Route Resources Planning Report (600s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:30:47]   waiting for Route Resources Planning Report (630s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:31:16]   waiting for Route Resources Planning Report (630s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:31:17]   waiting for Route Resources Planning Report (660s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:31:46]   waiting for Route Resources Planning Report (660s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:31:47]   waiting for Route Resources Planning Report (690s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:32:16]   waiting for Route Resources Planning Report (690s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:32:17]   waiting for Route Resources Planning Report (720s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:32:46]   waiting for Route Resources Planning Report (720s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:32:47]   waiting for Route Resources Planning Report (750s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:33:16]   waiting for Route Resources Planning Report (750s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:33:17]   waiting for Route Resources Planning Report (780s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:33:46]   waiting for Route Resources Planning Report (780s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:33:47]   waiting for Route Resources Planning Report (810s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:34:16]   waiting for Route Resources Planning Report (810s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:34:17]   waiting for Route Resources Planning Report (840s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:34:46]   waiting for Route Resources Planning Report (840s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:34:47]   waiting for Route Resources Planning Report (870s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:35:16]   waiting for Route Resources Planning Report (870s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:35:17] [browser 2]   WARNING: 2026-11-28 attempt 1/2 failed: TimeoutError: Route Resources Planning Report: no download after 900s
+[2026-11-24 17:35:18]   screenshot: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/logs/error_2026-11-28_20261124_173517.png
+[2026-11-24 17:35:18] [browser 2] Downloading delivery 2026-11-28 (Nov-28) try 2/2 ...
+[2026-11-24 17:35:18] Downloading Route Resources Planning Report ...
+[2026-11-24 17:35:18]   step 1/4: delivery date
+[2026-11-24 17:35:18]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-28' (wanted '2026-11-28')
+[2026-11-24 17:35:18]   step 2/4: districts
+[2026-11-24 17:35:18]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 17:35:18]   step 3/4: clients
+[2026-11-24 17:35:18]   5 client_id ticked
+[2026-11-24 17:35:18]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 17:35:46] [browser 1]   WARNING: 2026-11-27 attempt 2/2 failed: TimeoutError: Route Resources Planning Report: no download after 900s
+[2026-11-24 17:35:46]   screenshot: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/logs/error_2026-11-27_20261124_173546.png
+[2026-11-24 17:35:47] [browser 1] OIX session attempt 2/3; 1 date(s) pending: ['Nov-27']
+[2026-11-24 17:35:47] OIX login OK
+[2026-11-24 17:35:47] [browser 1] Downloading delivery 2026-11-27 (Nov-27) try 1/1 ...
+[2026-11-24 17:35:47] Downloading Route Resources Planning Report ...
+[2026-11-24 17:35:47]   step 1/4: delivery date
+[2026-11-24 17:35:47]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-27' (wanted '2026-11-27')
+[2026-11-24 17:35:47]   step 2/4: districts
+[2026-11-24 17:35:48]   [download event] route_resource_planning_report_20261124173518.xlsx
+[2026-11-24 17:35:48]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:35:49] [browser 2]   WARNING: 2026-11-28 attempt 2/2 failed: FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T172005/Overall Order in Cargroup (Nov-28).xlsx'
+[2026-11-24 17:35:49]   screenshot: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/logs/error_2026-11-28_20261124_173549.png
+[2026-11-24 17:35:49] [browser 2] OIX session attempt 2/3; 1 date(s) pending: ['Nov-28']
+[2026-11-24 17:35:50] OIX login OK
+[2026-11-24 17:35:50] [browser 2] Downloading delivery 2026-11-28 (Nov-28) try 1/1 ...
+[2026-11-24 17:35:50] Downloading Route Resources Planning Report ...
+[2026-11-24 17:35:50]   step 1/4: delivery date
+[2026-11-24 17:35:50]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-28' (wanted '2026-11-28')
+[2026-11-24 17:35:50]   step 2/4: districts
+[2026-11-24 17:35:55]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 17:35:55]   step 3/4: clients
+[2026-11-24 17:35:55]   5 client_id ticked
+[2026-11-24 17:35:55]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 17:35:57]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 17:35:57]   step 3/4: clients
+[2026-11-24 17:35:58]   5 client_id ticked
+[2026-11-24 17:35:58]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 17:36:25]   [download event] route_resource_planning_report_20261124173555.xlsx
+[2026-11-24 17:36:25]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:36:26]   SAVED -> /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T172005/Overall Order in Cargroup (Nov-27).xlsx (4.8 MB)
+[2026-11-24 17:36:26] [browser 1] finished with last_error=TimeoutError: Route Resources Planning Report: no download after 900s
+[2026-11-24 17:36:28]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:36:58]   waiting for Route Resources Planning Report (60s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:37:28]   waiting for Route Resources Planning Report (90s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:37:58]   waiting for Route Resources Planning Report (120s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:38:28]   waiting for Route Resources Planning Report (150s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:38:58]   waiting for Route Resources Planning Report (180s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:39:28]   waiting for Route Resources Planning Report (210s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:39:58]   waiting for Route Resources Planning Report (240s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:40:28]   waiting for Route Resources Planning Report (270s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:40:58]   waiting for Route Resources Planning Report (300s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:41:28]   waiting for Route Resources Planning Report (330s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:41:58]   waiting for Route Resources Planning Report (360s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:42:28]   waiting for Route Resources Planning Report (390s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:42:58]   waiting for Route Resources Planning Report (420s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:43:28]   waiting for Route Resources Planning Report (450s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:43:58]   waiting for Route Resources Planning Report (480s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:44:28]   waiting for Route Resources Planning Report (510s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:44:58]   waiting for Route Resources Planning Report (540s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:45:28]   waiting for Route Resources Planning Report (570s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:45:58]   waiting for Route Resources Planning Report (600s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:46:28]   waiting for Route Resources Planning Report (630s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:46:58]   waiting for Route Resources Planning Report (660s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:47:28]   waiting for Route Resources Planning Report (690s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:47:58]   waiting for Route Resources Planning Report (720s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:48:28]   waiting for Route Resources Planning Report (750s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:48:58]   waiting for Route Resources Planning Report (780s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:49:28]   waiting for Route Resources Planning Report (810s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:49:58]   waiting for Route Resources Planning Report (840s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:50:28]   waiting for Route Resources Planning Report (870s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:50:58] [browser 2]   WARNING: 2026-11-28 attempt 1/1 failed: TimeoutError: Route Resources Planning Report: no download after 900s
+[2026-11-24 17:50:58]   screenshot: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/logs/error_2026-11-28_20261124_175058.png
+[2026-11-24 17:50:58] [browser 2] OIX session attempt 3/3; 1 date(s) pending: ['Nov-28']
+[2026-11-24 17:50:59] OIX login OK
+[2026-11-24 17:50:59] [browser 2] Downloading delivery 2026-11-28 (Nov-28) try 1/1 ...
+[2026-11-24 17:50:59] Downloading Route Resources Planning Report ...
+[2026-11-24 17:50:59]   step 1/4: delivery date
+[2026-11-24 17:50:59]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-28' (wanted '2026-11-28')
+[2026-11-24 17:50:59]   step 2/4: districts
+[2026-11-24 17:51:06]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[2026-11-24 17:51:06]   step 3/4: clients
+[2026-11-24 17:51:07]   5 client_id ticked
+[2026-11-24 17:51:07]   step 4/4: submit (提交) - waiting for OIX to generate the file
+[2026-11-24 17:51:37]   [download event] route_resource_planning_report_20261124175107.xlsx
+[2026-11-24 17:51:37]   waiting for Route Resources Planning Report (30s) | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[2026-11-24 17:51:38]   SAVED -> /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/runs/2026-11-24T172005/Overall Order in Cargroup (Nov-28).xlsx (2.4 MB)
+[2026-11-24 17:51:38] [browser 2] finished with last_error=TimeoutError: Route Resources Planning Report: no download after 900s
+[2026-11-24 17:51:38] Shop Code List zones: 681 from /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/shop-code-list.csv
+[2026-11-24 17:51:39] Reading Overall Order in Cargroup (Nov-27).xlsx (Route Resource Data) for delivery 2026-11-27 ...
+[2026-11-24 17:51:43]   Overall Order in Cargroup (Nov-27).xlsx: rows 32,490 -> kept 32,320; 6,193 unique parents; cross-district=0; unknown_od=0; plus_od=0; identity_A=True
+[2026-11-24 17:51:43] Reading Overall Order in Cargroup (Nov-28).xlsx (Route Resource Data) for delivery 2026-11-28 ...
+[2026-11-24 17:51:46]   Overall Order in Cargroup (Nov-28).xlsx: rows 16,199 -> kept 16,075; 2,655 unique parents; cross-district=0; unknown_od=0; plus_od=0; identity_A=True
+[2026-11-24 17:51:46] Reading Overall Order in Cargroup (Nov-29).xlsx (Route Resource Data) for delivery 2026-11-29 ...
+[2026-11-24 17:51:47]   Overall Order in Cargroup (Nov-29).xlsx: rows 8,562 -> kept 8,542; 1,388 unique parents; cross-district=0; unknown_od=0; plus_od=0; identity_A=True
+[2026-11-24 17:51:47] Reading Overall Order in Cargroup (Nov-30).xlsx (Route Resource Data) for delivery 2026-11-30 ...
+[2026-11-24 17:51:48]   Overall Order in Cargroup (Nov-30).xlsx: rows 3,906 -> kept 3,895; 694 unique parents; cross-district=0; unknown_od=0; plus_od=0; identity_A=True
+[2026-11-24 17:51:48]   latest <- Overall Order in Cargroup (Nov-27).xlsx (4.8 MB)
+[2026-11-24 17:51:48]   latest <- Overall Order in Cargroup (Nov-28).xlsx (2.4 MB)
+[2026-11-24 17:51:48]   latest <- Overall Order in Cargroup (Nov-29).xlsx (1.3 MB)
+[2026-11-24 17:51:48]   latest <- Overall Order in Cargroup (Nov-30).xlsx (0.6 MB)
+[2026-11-24 17:51:48] No successful T+1 (2026-11-25) result; session increment not computed
+[2026-11-24 17:51:48] Order change log: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/changes/order_changes_2026-11-24.json (total change +217 across all dates; changed: ['2026-11-27', '2026-11-28', '2026-11-29', '2026-11-30']; first seen: none)
+[2026-11-24 17:51:48]   2026-11-27: 6,193 (+173 vs 2026-11-24T17:00:01+08:00)
+[2026-11-24 17:51:48]   2026-11-28: 2,655 (+30 vs 2026-11-24T17:00:01+08:00)
+[2026-11-24 17:51:48]   2026-11-29: 1,388 (+4 vs 2026-11-24T17:00:01+08:00)
+[2026-11-24 17:51:48]   2026-11-30: 694 (+10 vs 2026-11-24T17:00:01+08:00)
+[2026-11-24 17:51:48] Wrote snapshot /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/latest/snapshot.json and /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/snapshots/snapshot_2026-11-24T172005_0800.json
+[2026-11-24 17:51:48]   pruned 0 workbooks from 2026-11-13T111314 (0.0 MB); kept manifest
+[2026-11-24 17:51:48]   pruned 0 workbooks from 2026-11-13T111413 (0.0 MB); kept manifest
+[2026-11-24 17:51:48]   pruned 0 workbooks from 2026-11-13T111644 (0.0 MB); kept manifest
+[2026-11-24 17:51:48]   pruned 0 workbooks from 2026-11-13T112429 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T112716 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T120001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T130001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T140002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T150002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T160002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T170001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T180001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T190002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T200002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T210002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T220001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-13T230001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T000001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T010001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T020001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T030001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T040001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T050001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T060001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T070001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T080001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T090001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T100001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T110001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T120001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T130001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T140002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T150001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T160001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T170001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T180001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T190001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T200002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T210001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T220001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-14T230001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T000002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T010001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T020002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T030001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T040001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T050001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T060001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T070001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T080001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T090002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T100001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T110001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T120001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T130001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T140001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T150001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T160001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T170001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T180001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T190001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T200002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T210001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T220001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-15T230002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-16T000002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-16T010001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-16T020001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-16T030001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-16T040001 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-16T050002 (0.0 MB); kept manifest
+[2026-11-24 17:51:49]   pruned 0 workbooks from 2026-11-16T060001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T070001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T080001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T090001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T100001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T110001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T120001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T130001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T140002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T150001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T160002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T170001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T180001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T190001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T200001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T210001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T220001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-16T230002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T000002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T010001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T020001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T030001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T040001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T050001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T060001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T070001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T080001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T090001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T100001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T110001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T120001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T130001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T140001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T150001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T170001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T180001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T190002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T200001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T210001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T220001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-17T230001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T000002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T010001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T020001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T030001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T040001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T050002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T060002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T070001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T080001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T090001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T100001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T110001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T120001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T130001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T140001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T150001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T160001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T170001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T180002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T190001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T200002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T210001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T220001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-18T230002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-19T000001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-19T010001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-19T020001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-19T030001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-19T040002 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-19T050001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-19T060001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-19T070001 (0.0 MB); kept manifest
+[2026-11-24 17:51:50]   pruned 0 workbooks from 2026-11-19T080001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T090001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T100001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T110001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T120002 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T130002 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T140001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T150001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T160001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T170001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T180001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T190002 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T200001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T210001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T220002 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-19T230001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T000001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T010001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T020001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T030001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T040001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T050001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T060001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T070001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T080001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T090001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T100001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T100718 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T110001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T120001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T130002 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T140002 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T150001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T160001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T170003 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T180001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T190001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T200002 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T210001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T220001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-20T230001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T000001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T010001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T020001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T030001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T040001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T050001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T060001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T070001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T080001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T090002 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T100001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T110001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T120001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T130001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T140001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T150001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T160001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T170002 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T180001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T190001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T200001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T210002 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T220002 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-21T230001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-22T000001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-22T010001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-22T020001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-22T030001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-22T040001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-22T050001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-22T060001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-22T070001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-22T080001 (0.0 MB); kept manifest
+[2026-11-24 17:51:51]   pruned 0 workbooks from 2026-11-22T090001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T100001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T110002 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T120001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T130001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T140001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T150001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T160001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T170001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T180001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T190001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T200001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T210001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T220002 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-22T230001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T000001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T010002 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T020001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T030001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T040001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T050001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T060001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T070001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T080002 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T090001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T100001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T110001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T120001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T130001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T140001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T150001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T160001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T170001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T172004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T180001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T182005 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T190001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T192004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T200002 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T202004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T210001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T212003 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T220002 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T222004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T230001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-23T232004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T000001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T002004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T010001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T012004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T020001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T022003 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T030001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T032004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T040002 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T042004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T050001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T052003 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T060001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T062003 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T070001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T072004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T080001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T082004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T090001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T092004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T100001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T102004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T110001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T112004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T120001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T122004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T130001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T132004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T140001 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T142004 (0.0 MB); kept manifest
+[2026-11-24 17:51:52]   pruned 0 workbooks from 2026-11-24T150001 (0.0 MB); kept manifest
+[2026-11-24 17:51:53]   pruned 0 workbooks from 2026-11-24T152004 (0.0 MB); kept manifest
+[2026-11-24 17:51:53]   pruned 0 workbooks from 2026-11-24T160001 (0.0 MB); kept manifest
+[2026-11-24 17:51:53]   pruned 4 workbooks from 2026-11-24T162004 (8.6 MB); kept manifest
+[2026-11-24 17:51:53] Finished: 4 ok, 0 failed. Snapshot: /mnt/c/Users/chipanl/Downloads/wsl-hourly-rrp/rrp-data/latest/snapshot.json
+[2026-11-24 17:51:53] Delivery 2026-11-27: network unique parents=6,193 identity_A=True cross=0 unknown=0 plus=0 delta=173
+[2026-11-24 17:51:53]   T-n: T-7+=677 (raw 677) T-6..T-1=[664, 1179, 778, 2895, 0, 0] T-0=0 sum=6193
+[2026-11-24 17:51:53]   timeslots={'AM': 1483, 'PM': 2671, 'EV': 2039} same-day=0 same-day slots={} EV2=0
+[2026-11-24 17:51:53]   ETH: total=627 T-7+=86 T-6..T-1=[56, 107, 61, 317, 0, 0] T-0=0 identity_A=True delta=18
+[2026-11-24 17:51:53]   ETK: total=439 T-7+=41 T-6..T-1=[51, 101, 52, 194, 0, 0] T-0=0 identity_A=True delta=19
+[2026-11-24 17:51:53]   ETX: total=664 T-7+=81 T-6..T-1=[101, 111, 100, 271, 0, 0] T-0=0 identity_A=True delta=16
+[2026-11-24 17:51:53]   NT-ST: total=633 T-7+=60 T-6..T-1=[93, 150, 86, 244, 0, 0] T-0=0 identity_A=True delta=13
+[2026-11-24 17:51:53]   NT-TM: total=508 T-7+=55 T-6..T-1=[53, 115, 59, 226, 0, 0] T-0=0 identity_A=True delta=14
+[2026-11-24 17:51:53]   NT-TSM: total=631 T-7+=73 T-6..T-1=[86, 140, 88, 244, 0, 0] T-0=0 identity_A=True delta=14
+[2026-11-24 17:51:53]   NT-TW: total=567 T-7+=59 T-6..T-1=[50, 114, 69, 275, 0, 0] T-0=0 identity_A=True delta=16
+[2026-11-24 17:51:53]   WTH: total=844 T-7+=75 T-6..T-1=[57, 106, 81, 525, 0, 0] T-0=0 identity_A=True delta=26
+[2026-11-24 17:51:53]   WTK: total=602 T-7+=66 T-6..T-1=[46, 90, 91, 309, 0, 0] T-0=0 identity_A=True delta=22
+[2026-11-24 17:51:53]   WTX: total=678 T-7+=81 T-6..T-1=[71, 145, 91, 290, 0, 0] T-0=0 identity_A=True delta=15
+[2026-11-24 17:51:53] Delivery 2026-11-28: network unique parents=2,655 identity_A=True cross=0 unknown=0 plus=0 delta=30
+[2026-11-24 17:51:53]   T-n: T-7+=1031 (raw 1031) T-6..T-1=[918, 338, 368, 0, 0, 0] T-0=0 sum=2655
+[2026-11-24 17:51:53]   timeslots={'EV': 720, 'PM': 1244, 'AM': 691} same-day=0 same-day slots={} EV2=0
+[2026-11-24 17:51:53]   ETH: total=237 T-7+=96 T-6..T-1=[81, 36, 24, 0, 0, 0] T-0=0 identity_A=True delta=4
+[2026-11-24 17:51:53]   ETK: total=248 T-7+=95 T-6..T-1=[88, 32, 33, 0, 0, 0] T-0=0 identity_A=True delta=2
+[2026-11-24 17:51:53]   ETX: total=374 T-7+=165 T-6..T-1=[117, 50, 42, 0, 0, 0] T-0=0 identity_A=True delta=4
+[2026-11-24 17:51:53]   NT-ST: total=336 T-7+=113 T-6..T-1=[127, 38, 58, 0, 0, 0] T-0=0 identity_A=True delta=5
+[2026-11-24 17:51:53]   NT-TM: total=308 T-7+=98 T-6..T-1=[135, 32, 43, 0, 0, 0] T-0=0 identity_A=True delta=2
+[2026-11-24 17:51:53]   NT-TSM: total=223 T-7+=78 T-6..T-1=[76, 30, 39, 0, 0, 0] T-0=0 identity_A=True delta=2
+[2026-11-24 17:51:53]   NT-TW: total=227 T-7+=92 T-6..T-1=[78, 28, 29, 0, 0, 0] T-0=0 identity_A=True delta=3
+[2026-11-24 17:51:53]   WTH: total=198 T-7+=95 T-6..T-1=[48, 25, 30, 0, 0, 0] T-0=0 identity_A=True delta=2
+[2026-11-24 17:51:53]   WTK: total=218 T-7+=88 T-6..T-1=[72, 22, 36, 0, 0, 0] T-0=0 identity_A=True delta=2
+[2026-11-24 17:51:53]   WTX: total=286 T-7+=111 T-6..T-1=[96, 45, 34, 0, 0, 0] T-0=0 identity_A=True delta=4
+[2026-11-24 17:51:53] Delivery 2026-11-29: network unique parents=1,388 identity_A=True cross=0 unknown=0 plus=0 delta=4
+[2026-11-24 17:51:53]   T-n: T-7+=1064 (raw 1064) T-6..T-1=[167, 157, 0, 0, 0, 0] T-0=0 sum=1388
+[2026-11-24 17:51:53]   timeslots={'AM': 381, 'EV': 376, 'PM': 631} same-day=0 same-day slots={} EV2=0
+[2026-11-24 17:51:53]   ETH: total=117 T-7+=90 T-6..T-1=[13, 14, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 17:51:53]   ETK: total=94 T-7+=67 T-6..T-1=[18, 9, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 17:51:53]   ETX: total=186 T-7+=151 T-6..T-1=[15, 20, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 17:51:53]   NT-ST: total=182 T-7+=149 T-6..T-1=[16, 17, 0, 0, 0, 0] T-0=0 identity_A=True delta=2
+[2026-11-24 17:51:53]   NT-TM: total=172 T-7+=123 T-6..T-1=[28, 21, 0, 0, 0, 0] T-0=0 identity_A=True delta=1
+[2026-11-24 17:51:53]   NT-TSM: total=153 T-7+=118 T-6..T-1=[16, 19, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 17:51:53]   NT-TW: total=142 T-7+=106 T-6..T-1=[17, 19, 0, 0, 0, 0] T-0=0 identity_A=True delta=1
+[2026-11-24 17:51:53]   WTH: total=72 T-7+=51 T-6..T-1=[12, 9, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 17:51:53]   WTK: total=111 T-7+=85 T-6..T-1=[11, 15, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 17:51:53]   WTX: total=159 T-7+=124 T-6..T-1=[21, 14, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 17:51:53] Delivery 2026-11-30: network unique parents=694 identity_A=True cross=0 unknown=0 plus=0 delta=10
+[2026-11-24 17:51:53]   T-n: T-7+=561 (raw 561) T-6..T-1=[133, 0, 0, 0, 0, 0] T-0=0 sum=694
+[2026-11-24 17:51:53]   timeslots={'AM': 193, 'PM': 295, 'EV': 206} same-day=0 same-day slots={} EV2=0
+[2026-11-24 17:51:53]   ETH: total=71 T-7+=57 T-6..T-1=[14, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=2
+[2026-11-24 17:51:53]   ETK: total=45 T-7+=39 T-6..T-1=[6, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 17:51:53]   ETX: total=81 T-7+=68 T-6..T-1=[13, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 17:51:53]   NT-ST: total=58 T-7+=48 T-6..T-1=[10, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=1
+[2026-11-24 17:51:53]   NT-TM: total=68 T-7+=60 T-6..T-1=[8, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=1
+[2026-11-24 17:51:53]   NT-TSM: total=54 T-7+=45 T-6..T-1=[9, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 17:51:53]   NT-TW: total=64 T-7+=56 T-6..T-1=[8, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=0
+[2026-11-24 17:51:53]   WTH: total=68 T-7+=51 T-6..T-1=[17, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=2
+[2026-11-24 17:51:53]   WTK: total=70 T-7+=43 T-6..T-1=[27, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=3
+[2026-11-24 17:51:53]   WTX: total=115 T-7+=94 T-6..T-1=[21, 0, 0, 0, 0, 0] T-0=0 identity_A=True delta=1
+  ✅ latest snapshot merged; T+0..T+2 preserved. downloader exit=0
+[17:51:53] Building T+3 report: today=2026-11-24 delivery=2026-11-27 as_of=2026-11-24T17:51:53.290460+08:00
+[17:51:53] Historical weeks for T+1 2026-11-27 [FRI]: 2026-11-20 [FRI], 2026-11-13 [FRI], 2026-11-06 [FRI], 2026-10-30 [FRI]
+[17:51:53] OIX input files not present for 2026-11-20; using cached day_res in oix_delivered_2026-11-20.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-20
+[17:51:53] OIX input files not present for 2026-11-13; using cached day_res in oix_delivered_2026-11-13.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-13
+[17:51:53] OIX input files not present for 2026-11-06; using cached day_res in oix_delivered_2026-11-06.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-06
+[17:51:53] OIX input files not present for 2026-10-30; using cached day_res in oix_delivered_2026-10-30.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-10-30
+[17:51:53] Vault: saved week 2026-11-20 (10 districts)
+[17:51:53] Vault: saved week 2026-11-13 (10 districts)
+[17:51:53] Vault: saved week 2026-11-06 (10 districts)
+[17:51:53] Vault: saved week 2026-10-30 (10 districts)
+[17:51:53] Historical identities hold for all 10 districts and the network (4 of 4 weeks). Missing weeks: none. Provisional maps: none. Metric gaps: 0.
+[17:51:53] Historical weeks (previous 4 FRIs): ['2026-11-20', '2026-11-13', '2026-11-06', '2026-10-30'] — ['20/11 [FRI]', '13/11 [FRI]', '6/11 [FRI]', '30/10 [FRI]']
+[17:51:53] T+1 column: OIX RRP unique parents from snapshot 2026-11-24T17:20:05+08:00 (network=6,193, identity_A=True)
+[17:51:53] Bucket trace network vs 2026-11-24T16:20:04+08:00 (T+3): T-7+ -2, T-6 +8, T-5 +4, T-4 +3, T-3 +705, T-2 +0, T-1 +0, T-0 +0
+[17:51:53] Buckets that went DOWN (cancelled / removed): ETH T-6 -1; NT-TM T-7+ -2; WTH T-5 -1
+  ✅ T+3 2026-11-27 built (asof=24 Nov 2026 17:20, total=6,193)
+  💾 stored T+3 2026-11-27 (total=6,193) in history_vault/forecast/
+[17:51:53] Building T+4 report: today=2026-11-24 delivery=2026-11-28 as_of=2026-11-24T17:51:53.290460+08:00
+[17:51:53] Historical weeks for T+1 2026-11-28 [SAT]: 2026-11-21 [SAT], 2026-11-14 [SAT], 2026-11-07 [SAT], 2026-10-31 [SAT]
+[17:51:53] OIX input files not present for 2026-11-21; using cached day_res in oix_delivered_2026-11-21.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-21
+[17:51:53] OIX input files not present for 2026-11-14; using cached day_res in oix_delivered_2026-11-14.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-14
+[17:51:53] OIX input files not present for 2026-11-07; using cached day_res in oix_delivered_2026-11-07.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-07
+[17:51:53] OIX input files not present for 2026-10-31; using cached day_res in oix_delivered_2026-10-31.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-10-31
+[17:51:53] Vault: saved week 2026-11-21 (10 districts)
+[17:51:53] Vault: saved week 2026-11-14 (10 districts)
+[17:51:53] Vault: saved week 2026-11-07 (10 districts)
+[17:51:53] Vault: saved week 2026-10-31 (10 districts)
+[17:51:53] Historical identities hold for all 10 districts and the network (4 of 4 weeks). Missing weeks: none. Provisional maps: none. Metric gaps: 0.
+[17:51:53] Historical weeks (previous 4 SATs): ['2026-11-21', '2026-11-14', '2026-11-07', '2026-10-31'] — ['21/11 [SAT]', '14/11 [SAT]', '7/11 [SAT]', '31/10 [SAT]']
+[17:51:53] T+1 column: OIX RRP unique parents from snapshot 2026-11-24T17:20:05+08:00 (network=2,655, identity_A=True)
+[17:51:53] Bucket trace network vs 2026-11-24T16:20:04+08:00 (T+4): T-7+ +1, T-6 +2, T-5 -2, T-4 +60, T-3 +0, T-2 +0, T-1 +0, T-0 +0
+[17:51:53] Buckets that went DOWN (cancelled / removed): ETK T-7+ -1; ETK T-5 -1; NT-ST T-7+ -1; WTK T-5 -1
+  ✅ T+4 2026-11-28 built (asof=24 Nov 2026 17:20, total=2,655)
+  💾 stored T+4 2026-11-28 (total=2,655) in history_vault/forecast/
+[17:51:53] Building T+5 report: today=2026-11-24 delivery=2026-11-29 as_of=2026-11-24T17:51:53.290460+08:00
+[17:51:53] Historical weeks for T+1 2026-11-29 [SUN]: 2026-11-22 [SUN], 2026-11-15 [SUN], 2026-11-08 [SUN], 2026-11-01 [SUN]
+[17:51:53] OIX input files not present for 2026-11-22; using cached day_res in oix_delivered_2026-11-22.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-22
+[17:51:53] OIX input files not present for 2026-11-15; using cached day_res in oix_delivered_2026-11-15.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-15
+[17:51:53] OIX input files not present for 2026-11-08; using cached day_res in oix_delivered_2026-11-08.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-08
+[17:51:53] OIX input files not present for 2026-11-01; using cached day_res in oix_delivered_2026-11-01.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-01
+[17:51:53] Vault: saved week 2026-11-22 (10 districts)
+[17:51:53] Vault: saved week 2026-11-15 (10 districts)
+[17:51:53] Vault: saved week 2026-11-08 (10 districts)
+[17:51:53] Vault: saved week 2026-11-01 (10 districts)
+[17:51:53] Historical identities hold for all 10 districts and the network (4 of 4 weeks). Missing weeks: none. Provisional maps: none. Metric gaps: 1.
+[17:51:53] Historical weeks (previous 4 SUNs): ['2026-11-22', '2026-11-15', '2026-11-08', '2026-11-01'] — ['22/11 [SUN]', '15/11 [SUN]', '8/11 [SUN]', '1/11 [SUN]']
+[17:51:53] T+1 column: OIX RRP unique parents from snapshot 2026-11-24T17:20:05+08:00 (network=1,388, identity_A=True)
+[17:51:53] Bucket trace network vs 2026-11-24T16:20:04+08:00 (T+5): T-7+ +7, T-6 +0, T-5 +19, T-4 +0, T-3 +0, T-2 +0, T-1 +0, T-0 +0
+  ✅ T+5 2026-11-29 built (asof=24 Nov 2026 17:20, total=1,388)
+  💾 stored T+5 2026-11-29 (total=1,388) in history_vault/forecast/
+[17:51:53] Building T+6 report: today=2026-11-24 delivery=2026-11-30 as_of=2026-11-24T17:51:53.290460+08:00
+[17:51:53] Historical weeks for T+1 2026-11-30 [MON]: 2026-11-23 [MON], 2026-11-16 [MON], 2026-11-09 [MON], 2026-11-02 [MON]
+[17:51:53] OIX input files not present for 2026-11-23; using cached day_res in oix_delivered_2026-11-23.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-23
+[17:51:53] OIX input files not present for 2026-11-16; using cached day_res in oix_delivered_2026-11-16.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-16
+[17:51:53] OIX input files not present for 2026-11-09; using cached day_res in oix_delivered_2026-11-09.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-09
+[17:51:53] OIX input files not present for 2026-11-02; using cached day_res in oix_delivered_2026-11-02.pkl as-is
+[17:51:53] Loaded cached OIX-delivered week 2026-11-02
+[17:51:53] Vault: saved week 2026-11-23 (10 districts)
+[17:51:53] Vault: saved week 2026-11-16 (10 districts)
+[17:51:53] Vault: saved week 2026-11-09 (10 districts)
+[17:51:53] Vault: saved week 2026-11-02 (10 districts)
+[17:51:53] Historical identities hold for all 10 districts and the network (4 of 4 weeks). Missing weeks: none. Provisional maps: ['2026-11-23']. Metric gaps: 5.
+[17:51:53] Historical weeks (previous 4 MONs): ['2026-11-23', '2026-11-16', '2026-11-09', '2026-11-02'] — ['23/11 [MON]', '16/11 [MON]', '9/11 [MON]', '2/11 [MON]']
+[17:51:53] T+1 column: OIX RRP unique parents from snapshot 2026-11-24T17:20:05+08:00 (network=694, identity_A=True)
+[17:51:54] Bucket trace network vs 2026-11-24T16:20:04+08:00 (T+6): T-7+ +2, T-6 +26, T-5 +0, T-4 +0, T-3 +0, T-2 +0, T-1 +0, T-0 +0
+  ✅ T+6 2026-11-30 built (asof=24 Nov 2026 17:20, total=694)
+  💾 stored T+6 2026-11-30 (total=694) in history_vault/forecast/
+Wrote public/rolling_report.json
+[snowball 17:51:54] Refreshing Snowball Table from unique-parent raw CSVs and stored RRP snapshots
+[snowball 17:51:54] No raw CSV for 2026-11-01; preserved 1 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-02; preserved 2 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-03; preserved 3 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-04; preserved 4 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-05; preserved 5 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-06; preserved 6 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-07; preserved 7 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-08; preserved 8 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-09; preserved 9 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-10; preserved 10 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-11; preserved 11 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-12; preserved 12 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-13; preserved 13 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-14; preserved 14 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-15; preserved 15 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-16; preserved 16 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-17; preserved 16 existing order-date cells
+[snowball 17:51:54] No raw CSV for 2026-11-18; preserved 18 existing order-date cells
+[snowball 17:51:56] RRP cache hit for 2026-11-24 (Overall Order in Cargroup (Nov-24).xlsx)
+[snowball 17:51:58] Counting RRP Overall Order in Cargroup (Nov-25).xlsx for 2026-11-25 (20.3 MB)
+[snowball 17:52:20]   Overall Order in Cargroup (Nov-25).xlsx: rows 138,943 kept 138,648; 26,273 unique parents; cross=0; unknown_od=0
+[snowball 17:52:21] Counting RRP Overall Order in Cargroup (Nov-27).xlsx for 2026-11-27 (4.8 MB)
+[snowball 17:52:25]   Overall Order in Cargroup (Nov-27).xlsx: rows 32,490 kept 32,320; 6,193 unique parents; cross=0; unknown_od=0
+[snowball 17:52:26] Counting RRP Overall Order in Cargroup (Nov-28).xlsx for 2026-11-28 (2.4 MB)
+[snowball 17:52:28]   Overall Order in Cargroup (Nov-28).xlsx: rows 16,199 kept 16,075; 2,655 unique parents; cross=0; unknown_od=0
+[snowball 17:52:30] Counting RRP Overall Order in Cargroup (Nov-29).xlsx for 2026-11-29 (1.3 MB)
+[snowball 17:52:31]   Overall Order in Cargroup (Nov-29).xlsx: rows 8,562 kept 8,542; 1,388 unique parents; cross=0; unknown_od=0
+[snowball 17:52:32] Counting RRP Overall Order in Cargroup (Nov-30).xlsx for 2026-11-30 (0.6 MB)
+[snowball 17:52:32]   Overall Order in Cargroup (Nov-30).xlsx: rows 3,906 kept 3,895; 694 unique parents; cross=0; unknown_od=0
+[snowball 17:52:33] Counting RRP Overall Order in Cargroup (Dec-01).xlsx for 2026-12-01 (0.4 MB)
+[snowball 17:52:34]   Overall Order in Cargroup (Dec-01).xlsx: rows 2,309 kept 2,302; 394 unique parents; cross=0; unknown_od=0
+[snowball 17:52:34] Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/snowball_table.json (231 KB, 85 order dates)
+Updated ./public/index.html (7,384,589 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - using the built-in git push.
+  🚚 deploying dashboard: git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && { git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && (git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push
+     Already up to date.
+     [main 01f1b4b] KPI dashboard auto update 2026-11-24_1752
+      3 files changed, 138 insertions(+), 138 deletions(-)
+     To https://github.com/aitest0728-lab/log-kpi-tracker.git
+        4702cdc..01f1b4b  main -> main
+  ✅ dashboard pushed.
+✅ Rolling Orders dashboard feed written
