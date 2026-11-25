@@ -5281,39 +5281,136 @@ def parse_cost_report(path):
             "manpower": manpower, "daily": daily, "mtd": mtd, "totalCost": total_cost, "costPlan": cost_plan}
 
 
+# v11.11 - sanity guard on the Daily Cost Report's Staff Productivity. The report's figure is only used when it is
+# within this many orders-per-man-day of the script's own figure (orderCount / manpower from the OIX/Tableau
+# calculation); a bigger gap means the Excel is off (e.g. a broken SUM range), so the script's own figure is kept
+# and the Excel one dismissed. Cost/Order is NOT affected by this guard.
+PRODUCTIVITY_MAX_DIFF = 2.0
+
+
+def _script_productivity(rec):
+    """The script's own productivity of one dailyProductivityLog group record: orderCount / manpower
+    (None when either is missing, i.e. nothing to compare against)."""
+    if not rec:
+        return None
+    oc, mp = rec.get("orderCount"), rec.get("manpower")
+    if oc is None or not mp:
+        return None
+    return round(oc / mp, 2)
+
+
+def _use_excel_productivity(excel_val, own_val):
+    """True = take the Daily Cost Report figure. It is dismissed only when the script has its own figure and the
+    two differ by more than PRODUCTIVITY_MAX_DIFF (absolute)."""
+    if excel_val is None:
+        return False
+    if own_val is None:
+        return True
+    return abs(excel_val - own_val) <= PRODUCTIVITY_MAX_DIFF
+
+
+def guard_productivity_block(block, own_block, label):
+    """For the data.json 'costReport' block ({overall, districts:{d:v}}): returns a copy where every figure that
+    differs from the script's own (own_block, same shape) by more than PRODUCTIVITY_MAX_DIFF is replaced by the
+    script's figure. Prints one line per dismissed figure."""
+    if not block:
+        return block
+    out = {"overall": block.get("overall"), "districts": dict(block.get("districts") or {})}
+    for k in ["overall"] + list(out["districts"]):
+        excel_val = out["overall"] if k == "overall" else out["districts"][k]
+        own_val = (own_block or {}).get("overall") if k == "overall" else ((own_block or {}).get("districts") or {}).get(k)
+        if excel_val is None or own_val is None or _use_excel_productivity(excel_val, own_val):
+            continue
+        print(f"  ⚠️ Cost Report {label} productivity {k}: Excel {excel_val:.2f} vs script {own_val:.2f} "
+              f"(diff {abs(excel_val - own_val):.2f} > {PRODUCTIVITY_MAX_DIFF}) — Excel dismissed, script figure kept.")
+        if k == "overall":
+            out["overall"] = own_val
+        else:
+            out["districts"][k] = own_val
+    return out
+
+
+def script_productivity_for_day(history, date_str):
+    """The script's own HKTV Staff productivity {overall, districts} for one logged day, or None."""
+    entry = history.get("dailyProductivityLog", {}).get(date_str, {}).get("hktvStaff")
+    if not entry:
+        return None
+    return {"overall": _script_productivity(entry.get("total")),
+            "districts": {d: _script_productivity((entry.get("districts") or {}).get(d)) for d in DISTRICTS}}
+
+
+def script_productivity_mtd(history, as_of):
+    """The script's own (Tableau-based) HKTV Staff MTD productivity at as_of, or the latest snapshot of the same
+    month before it. None when no snapshot exists."""
+    log = history.get("productivityMtdLog", {})
+    days = sorted(d for d in log if d[:7] == as_of[:7] and d <= as_of)
+    return log[days[-1]] if days else None
+
+
 def reapply_cost_report_fields(history):
     """v8.0 §2 — (re)writes the report's real Cost/Order and Staff Productivity into
     dailyProductivityLog's hktvStaff entries (and the 7-day rolling-forecast series). Everything
     comes from history['costReportDaily'] (the durable copy), so it can be called again after any
-    other job rebuilds a day's entry from OIX/Tableau. ODS/VAN is untouched (spec: no effect)."""
+    other job rebuilds a day's entry from OIX/Tableau. ODS/VAN is untouched (spec: no effect).
+    v11.11 — a Staff Productivity figure that differs from the script's own (orderCount / manpower) by more than
+    PRODUCTIVITY_MAX_DIFF is dismissed: the script's figure stays (no 'costReport' source tag), the Excel one is
+    not written. The raw report stays untouched in costReportDaily, so the check is re-run every time."""
     stored = history.get("costReportDaily", {})
     plog = history.get("dailyProductivityLog", {})
     series = history.setdefault("hktvStaff", {})
     for date_str, d in stored.items():
         prod, cost = d["productivity"], d["costPerOrder"]
         entry = plog.get(date_str, {}).get("hktvStaff")
+        use_dist, own_dist = {}, {}
+        use_overall, own_overall = prod["overall"] is not None, None
+        dismissed = []
         if entry:
             for dist in DISTRICTS:
                 rec = entry.get("districts", {}).get(dist)
                 if rec is None:
                     continue
-                if prod["districts"].get(dist) is not None:
-                    rec["productivity"] = round(prod["districts"][dist], 2)
-                    rec["productivitySource"] = "costReport"
+                own = _script_productivity(rec)
+                own_dist[dist] = own
+                xl = prod["districts"].get(dist)
+                if xl is not None:
+                    if _use_excel_productivity(xl, own):
+                        use_dist[dist] = True
+                        rec["productivity"] = round(xl, 2)
+                        rec["productivitySource"] = "costReport"
+                    else:
+                        use_dist[dist] = False
+                        dismissed.append(f"{dist} {xl:.2f}→{own:.2f}")
+                        rec["productivity"] = own                  # back to the script's own figure
+                        rec.pop("productivitySource", None)
                 if cost["districts"].get(dist) is not None:
                     rec["costPerOrder"] = round(cost["districts"][dist], 2)
             tot = entry.get("total")
             if tot is not None:
+                own_overall = _script_productivity(tot)
                 if prod["overall"] is not None:
-                    tot["productivity"] = round(prod["overall"], 2)
-                    tot["productivitySource"] = "costReport"
+                    if _use_excel_productivity(prod["overall"], own_overall):
+                        tot["productivity"] = round(prod["overall"], 2)
+                        tot["productivitySource"] = "costReport"
+                    else:
+                        use_overall = False
+                        dismissed.append(f"overall {prod['overall']:.2f}→{own_overall:.2f}")
+                        tot["productivity"] = own_overall
+                        tot.pop("productivitySource", None)
                 if cost["overall"] is not None:
                     tot["costPerOrder"] = round(cost["overall"], 2)
+            if dismissed:
+                print(f"  ⚠️ Cost Report productivity {date_str}: Excel differs from the script by more than "
+                      f"{PRODUCTIVITY_MAX_DIFF} — dismissed (Excel→script): {', '.join(dismissed)}")
         cur = series.get(date_str, {"overall": None, "districts": {}})
+
+        def _pick(xl, own, ok, cur_v):
+            if xl is None:
+                return cur_v
+            return round(xl, 2) if ok else (own if own is not None else cur_v)
         series[date_str] = {
-            "overall": round(prod["overall"], 2) if prod["overall"] is not None else cur.get("overall"),
-            "districts": {dist: (round(prod["districts"][dist], 2) if prod["districts"].get(dist) is not None
-                                 else cur.get("districts", {}).get(dist)) for dist in DISTRICTS},
+            "overall": _pick(prod["overall"], own_overall, use_overall, cur.get("overall")),
+            "districts": {dist: _pick(prod["districts"].get(dist), own_dist.get(dist), use_dist.get(dist, True),
+                                      cur.get("districts", {}).get(dist)) for dist in DISTRICTS},
         }
 
 
@@ -5490,10 +5587,21 @@ def run_cost_report_section(local_file=None):
 
     payload = load_data_json()
     last_day = max(report["daily"]) if report["daily"] else report["asOf"]
+    # v11.11 - same guard as reapply_cost_report_fields(): a productivity figure more than PRODUCTIVITY_MAX_DIFF away
+    # from the script's own calculation is dismissed in the costReport block too (latest day and MTD).
+    latest = report["daily"].get(last_day)
+    if latest and latest.get("productivity"):
+        latest = dict(latest)
+        latest["productivity"] = guard_productivity_block(
+            latest["productivity"], script_productivity_for_day(history, last_day), f"latest {last_day}")
+    mtd_report = dict(report["mtd"])
+    if mtd_report.get("productivity"):
+        mtd_report["productivity"] = guard_productivity_block(
+            mtd_report["productivity"], script_productivity_mtd(history, report["asOf"]), "MTD")
     payload["costReport"] = {
         "source": report["file"], "asOf": report["asOf"], "latestDay": last_day,
-        "latest": report["daily"].get(last_day),
-        "mtd": report["mtd"],     # the report's own MTD column, kept for reference (Overview 'actual' is unchanged)
+        "latest": latest,
+        "mtd": mtd_report,        # the report's own MTD column, kept for reference (Overview 'actual' is unchanged)
         "totalCost": report.get("totalCost"),      # v9.0 - Overview 'Total Cost' (MTD), overall + per district
     }
     matrices = payload.setdefault("matrices", {})
