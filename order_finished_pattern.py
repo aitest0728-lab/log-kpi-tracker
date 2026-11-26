@@ -48,7 +48,7 @@ WHAT IT DOES (every hour 10:00 ... 23:00 and 00:00)
                                 routes that map to no district (EDS / express WM*, Macau, shop routes ...) are not counted
         * finished            = RECEIVED_BY_CUSTOMER or FAIL_TO_DELIVER (FAILED_AS_FINISHED, as in the monitor)
         * NOT counted         = shop / outsource pick-up point orders: Delivery Zone in the Shop Code List, zone KN015,
-                                waybill starting with R / U, route containing CASE / CK / 舖, JHC* users,
+                                route containing CASE / CK / 舖, JHC* users,
                                 routes that are not a T+0 route, the parent orders of EXCLUDE_PARENT_ORDERS
   3. Counting rule (per HKTV / ODS separately)
         * one parent order finished inside an hour range            -> 1 in that hour
@@ -112,7 +112,8 @@ BACKFILL_OFFSET_DAYS = int(os.environ.get("FINISH_BACKFILL_OFFSET_DAYS", "7"))  
 STATUSES = (("RECEIVED_BY_CUSTOMER", "delivered"), ("FAIL_TO_DELIVER", "failed"))
 ODS_PREFIXES = ("ODS", "VAN")                       # car groups of the ODS table (VAN counts as ODS)
 EXCLUDE_ZONES = ("KN015",)                          # outsource pick-up point zone (with or without "-n")
-EXCLUDE_WAYBILL_PREFIXES = ("R", "U")               # pick-up waybills
+# R / U pick-up waybills are KEPT now (to match the Rolling / Snowball tables). Set env FINISH_EXCLUDE_WAYBILL_PREFIXES=R,U to drop them again.
+EXCLUDE_WAYBILL_PREFIXES = tuple(x.strip().upper() for x in os.environ.get("FINISH_EXCLUDE_WAYBILL_PREFIXES", "").split(",") if x.strip())
 EXCLUDE_ROUTE_KEYWORDS = ("CASE", "CK", "舖")       # route names of shop / case routes
 EXCLUDE_USER_PREFIXES = ("JHC",)                    # shop staff
 EXCLUDE_PARENT_ORDERS = frozenset({
@@ -284,7 +285,7 @@ def load_overall_orders(path: Path, t0: datetime, shop_zones, audit: dict) -> pd
     drop(out["Parent"].isin(EXCLUDE_PARENT_ORDERS), "ovListedParents")
     shop = (out["Zone"].isin(shop_zones) if shop_zones else pd.Series(False, index=out.index)) | out["Zone"].str.split("-").str[0].isin(EXCLUDE_ZONES)
     drop(shop, "ovShopPickupZone")
-    if wb_c:
+    if wb_c and EXCLUDE_WAYBILL_PREFIXES:
         drop(out["Waybill"].str.startswith(EXCLUDE_WAYBILL_PREFIXES), "ovPickupWaybill")
     drop(~out["Route"].str.startswith(f"{t0:%y%m%d}"), "ovNotT0Route")
     out = out.copy()
@@ -350,7 +351,10 @@ def build_day(delivered: pd.DataFrame, failed: pd.DataFrame, shop_zones, t0: dat
     drop(ev["Parent"].isin(EXCLUDE_PARENT_ORDERS), "listedParents")
     shop = (ev["Zone"].isin(shop_zones) if shop_zones else pd.Series(False, index=ev.index)) | zone_id.isin(EXCLUDE_ZONES)
     drop(shop, "shopPickupZone")                                                         # shop / outsource pick-up point
-    drop(ev["Waybill"].str.startswith(EXCLUDE_WAYBILL_PREFIXES), "pickupWaybill")        # R* / U* pick-up waybills
+    if EXCLUDE_WAYBILL_PREFIXES:                                                         # R* / U* pick-up waybills (off by default)
+        drop(ev["Waybill"].str.startswith(EXCLUDE_WAYBILL_PREFIXES), "pickupWaybill")
+    else:
+        audit["pickupWaybill"] = 0
     drop(ev["Route"].str.upper().str.contains("|".join(re.escape(k) for k in EXCLUDE_ROUTE_KEYWORDS), regex=True), "shopRoute")
     drop(ev["User"].str.startswith(EXCLUDE_USER_PREFIXES), "shopStaff")
     drop(~ev["Route"].str.startswith(f"{t0:%y%m%d}"), "notT0Route")                     # only T+0 routes are in the monitor
