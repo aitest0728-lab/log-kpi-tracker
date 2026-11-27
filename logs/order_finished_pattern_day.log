@@ -3833,3 +3833,1983 @@ Updated ./public/index.html (7,397,719 bytes, embedded data refreshed)
      To https://github.com/aitest0728-lab/log-kpi-tracker.git
         b78018b..c2ab88a  main -> main
   ✅ dashboard pushed.
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+2026-11-26 10:20:01,657 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 10:20:02,013 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 10:20:02,303 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:20:02,975 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=D73FDE037F44B7B2A7BD3756F78F641 | type=- | disp=-
+2026-11-26 10:20:02,983 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+[10:20:03] OIX login OK
+[10:20:03] Downloading Route Resources Planning Report ...
+2026-11-26 10:20:03,105 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[10:20:03]   step 1/4: delivery date
+[10:20:03]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[10:20:03]   step 2/4: districts
+[10:20:03]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[10:20:03]   step 3/4: clients
+[10:20:03]   5 client_id ticked
+[10:20:03]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 10:20:33,544 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:20:33,545 INFO   [download event] route_resource_planning_report_20261126102003.xlsx
+[10:20:33]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[10:20:34]   WARNING: Overall download attempt 1/3 failed: FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx'
+[10:20:54] Downloading Route Resources Planning Report ...
+2026-11-26 10:20:54,671 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[10:20:54]   step 1/4: delivery date
+[10:20:54]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[10:20:54]   step 2/4: districts
+[10:20:54]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[10:20:54]   step 3/4: clients
+[10:20:55]   5 client_id ticked
+[10:20:55]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 10:21:25,116 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:21:25,118 INFO   [download event] route_resource_planning_report_20261126102055.xlsx
+[10:21:25]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[10:21:26]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[10:21:26]   Overall extract: 0.0 MB, 63 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[10:21:26]   WARNING: Overall extract looks short (file is 0.0 MB (minimum 5 MB)) [attempt 2/3]
+[10:21:46] Downloading Route Resources Planning Report ...
+2026-11-26 10:21:46,364 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[10:21:46]   step 1/4: delivery date
+[10:21:46]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[10:21:46]   step 2/4: districts
+[10:21:46]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[10:21:46]   step 3/4: clients
+[10:21:46]   5 client_id ticked
+[10:21:46]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 10:22:16,768 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:22:16,771 INFO   [download event] route_resource_planning_report_20261126102146.xlsx
+[10:22:16]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[10:22:17]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[10:22:17]   Overall extract: 0.0 MB, 65 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[10:22:17]   WARNING: Overall extract looks short (file is 0.0 MB (minimum 5 MB)) [attempt 3/3]
+[10:22:17]   WARNING: no last good Overall to fall back to - continuing with the short extract; Finish Time may be blank for every car group
+[10:22:17] Downloading Delivery Route Zone ID Report ...
+2026-11-26 10:22:17,971 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+[10:22:18]   start date picked: 2026-11-26
+[10:22:19]   end date picked: 2026-11-26
+[10:22:19]   submit (提交) - waiting for OIX to generate the file
+2026-11-26 10:22:49,294 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:22:49,298 INFO   [download event] delivery_route_zone_id_report_20261126102219.xlsx
+[10:22:49]   waiting for Delivery Route Zone ID Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | page text: 'Delivery Route Zone ID Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybil'
+2026-11-26 10:22:50,413 WARNING 2026-11-26: carline map download failed (FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-26).xlsx')
+[10:22:50] Downloading Waybill Status History [RECEIVED_BY_CUSTOMER] ...
+2026-11-26 10:22:50,454 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[10:22:50]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[10:22:50]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[10:22:50]   5 client_id ticked
+[10:22:50]   status selected: RECEIVED_BY_CUSTOMER
+2026-11-26 10:23:20,944 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126102250.c
+2026-11-26 10:23:20,946 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 10:23:20,949 INFO   [download event] waybill_status_history_20261126102250.csv
+[10:23:20]   waiting for Waybill History RECEIVED_BY_CUSTOMER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+2026-11-26 10:23:22,062 ERROR OIX download attempt 1/3 failed: FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv.part'
+2026-11-26 10:23:52,151 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 10:23:52,317 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:23:52,997 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=40F6578952D9640F78A8FE42674357A | type=- | disp=-
+2026-11-26 10:23:53,005 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+[10:23:53] OIX login OK
+[10:23:53] Downloading Delivery Route Zone ID Report ...
+2026-11-26 10:23:53,125 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+[10:23:53]   start date picked: 2026-11-26
+[10:23:54]   end date picked: 2026-11-26
+[10:23:54]   submit (提交) - waiting for OIX to generate the file
+2026-11-26 10:24:24,488 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:24:24,491 INFO   [download event] delivery_route_zone_id_report_20261126102354.xlsx
+[10:24:24]   waiting for Delivery Route Zone ID Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | page text: 'Delivery Route Zone ID Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybil'
+[10:24:25]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[10:24:25]   route report columns used: A='Carline Code', E='Car Group Code', F='Car Group 類別', District=None
+[10:24:25]   route report: 0 carline / car group rows (0 Default, 0 Support), 0 carlines
+2026-11-26 10:24:25,647 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+[10:24:25] Downloading Waybill Status History [RECEIVED_BY_CUSTOMER] ...
+2026-11-26 10:24:25,675 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[10:24:25]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[10:24:25]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[10:24:26]   5 client_id ticked
+[10:24:26]   status selected: RECEIVED_BY_CUSTOMER
+2026-11-26 10:24:56,240 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126102426.c
+2026-11-26 10:24:56,242 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 10:24:56,243 INFO   [download event] waybill_status_history_20261126102426.csv
+[10:24:56]   waiting for Waybill History RECEIVED_BY_CUSTOMER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[10:24:57]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv.part (0.7 MB)
+[10:24:57] Downloading Waybill Status History [FAIL_TO_DELIVER] ...
+2026-11-26 10:24:57,425 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[10:24:57]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[10:24:57]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[10:24:57]   5 client_id ticked
+[10:24:57]   status selected: FAIL_TO_DELIVER
+2026-11-26 10:25:27,925 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126102457.c
+2026-11-26 10:25:27,927 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 10:25:27,928 INFO   [download event] waybill_status_history_20261126102457.csv
+[10:25:27]   waiting for Waybill History FAIL_TO_DELIVER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[10:25:29]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv.part (0.0 MB)
+2026-11-26 10:25:29,247 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 10:25:29,254 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+[10:25:29]   Tableau login for the Shop Code List: TABLEAU_GMV_USER / TABLEAU_GMV_PASS
+[10:26:45]   Shop Code List saved: Shop Code List (Nov-26).csv
+[10:26:45] Shop Code List: 697 delivery zone codes
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-11-26 10:26:46,071 INFO 2026-11-26: finished records 2431 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 525, R/U waybill 0, shop route 0, JHC 0, not T+0 route 1725, no district 181
+2026-11-26 10:26:46,071 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 10:26:46,072 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 10:26:46,072 INFO   Overall Order Report: 65 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 10:26:46,072 INFO data as of 2026-11-26 10:25 (report download time)
+2026-11-26 10:26:46,105 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (5 day(s) kept, latest 2026-11-26)
+2026-11-26 10:26:46,239 INFO back-fill: 2026-11-19 missing in the dashboard data - building it from OIX
+2026-11-26 10:26:46,494 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 10:26:46,660 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:26:47,092 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=CF8177FF19C2A3A53B79ACAB0635F12 | type=- | disp=-
+2026-11-26 10:26:47,105 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+[10:26:47] OIX login OK
+[10:26:47] Downloading Route Resources Planning Report ...
+2026-11-26 10:26:47,218 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[10:26:47]   step 1/4: delivery date
+[10:26:47]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-19' (wanted '2026-11-19')
+[10:26:47]   step 2/4: districts
+[10:26:47]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[10:26:47]   step 3/4: clients
+[10:26:47]   5 client_id ticked
+[10:26:47]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 10:27:17,665 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:27:17,668 INFO   [download event] route_resource_planning_report_20261126102647.xlsx
+[10:27:17]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[10:27:19]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-19).xlsx (21.5 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[10:27:46]   Overall extract: 21.5 MB, 154314 raw rows -> 26982 after filters, 26652 parent orders, 585 routes
+[10:27:46]   Overall looks complete - saved as last good (Overall Order in Cargroup (Nov-19).last_good.xlsx)
+[10:27:46] Downloading Delivery Route Zone ID Report ...
+2026-11-26 10:27:46,853 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+[10:27:47]   start date picked: 2026-11-19
+[10:27:48]   end date picked: 2026-11-19
+[10:27:48]   submit (提交) - waiting for OIX to generate the file
+2026-11-26 10:28:18,172 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:28:18,176 INFO   [download event] delivery_route_zone_id_report_20261126102748.xlsx
+[10:28:18]   waiting for Delivery Route Zone ID Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | page text: 'Delivery Route Zone ID Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybil'
+2026-11-26 10:28:19,490 WARNING 2026-11-19: carline map download failed (FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-19).xlsx')
+[10:28:19] Downloading Waybill Status History [RECEIVED_BY_CUSTOMER] ...
+2026-11-26 10:28:19,533 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[10:28:19]   date input '#displayStatusUpdateDateDateFrom' = '20261119' (wanted '20261119')
+[10:28:19]   date input '#displayStatusUpdateDateDateTo' = '20261120' (wanted '20261120')
+[10:28:19]   5 client_id ticked
+[10:28:19]   status selected: RECEIVED_BY_CUSTOMER
+2026-11-26 10:28:50,010 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126102820.c
+2026-11-26 10:28:50,011 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 10:28:50,012 INFO   [download event] waybill_status_history_20261126102820.csv
+[10:28:50]   waiting for Waybill History RECEIVED_BY_CUSTOMER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[10:28:52]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-19).csv.part (60.9 MB)
+[10:28:52] Downloading Waybill Status History [FAIL_TO_DELIVER] ...
+2026-11-26 10:28:52,273 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[10:28:52]   date input '#displayStatusUpdateDateDateFrom' = '20261119' (wanted '20261119')
+[10:28:52]   date input '#displayStatusUpdateDateDateTo' = '20261120' (wanted '20261120')
+[10:28:52]   5 client_id ticked
+[10:28:52]   status selected: FAIL_TO_DELIVER
+2026-11-26 10:29:22,798 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126102852.c
+2026-11-26 10:29:22,800 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 10:29:22,800 INFO   [download event] waybill_status_history_20261126102852.csv
+[10:29:22]   waiting for Waybill History FAIL_TO_DELIVER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[10:29:23]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-19).csv.part (0.3 MB)
+2026-11-26 10:29:24,045 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-19).csv
+2026-11-26 10:29:24,050 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-19).csv
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-11-26 10:29:54,094 INFO 2026-11-19: finished records 184118 -> 26655 parent orders, 27129 finishes | left out: shop/pick-up zone 30051, R/U waybill 0, shop route 357, JHC 0, not T+0 route 3429, no district 10056
+2026-11-26 10:29:54,094 INFO   HKTV: Finished Orders 19446 | Unique Orders Count 19207 | Duplicate Orders 239 | Outstanding Order Count 91
+2026-11-26 10:29:54,095 INFO   ODS: Finished Orders 7683 | Unique Orders Count 7566 | Duplicate Orders 117 | Outstanding Order Count 9
+2026-11-26 10:29:54,095 INFO   Overall Order Report: 154314 rows -> 26652 parent orders (orders whose type could not be resolved, counted as HKTV: 6 rows)
+2026-11-26 10:29:54,114 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+Updated ./public/index.html (7,414,388 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - using the built-in git push.
+  🚚 deploying dashboard: git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && { git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && (git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push
+     Already up to date.
+     [main c75c092] KPI dashboard auto update 2026-11-26_1029
+      2 files changed, 2 insertions(+), 2 deletions(-)
+     To https://github.com/aitest0728-lab/log-kpi-tracker.git
+        eb4c52a..c75c092  main -> main
+  ✅ dashboard pushed.
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+2026-11-26 11:20:01,675 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 11:20:01,995 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 11:20:02,191 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 11:20:02,684 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=C00886802656D431D8B36F691D0115D | type=- | disp=-
+2026-11-26 11:20:02,694 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+[11:20:02] OIX login OK
+[11:20:02] Downloading Route Resources Planning Report ...
+2026-11-26 11:20:02,797 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[11:20:02]   step 1/4: delivery date
+[11:20:02]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[11:20:02]   step 2/4: districts
+[11:20:02]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[11:20:02]   step 3/4: clients
+[11:20:03]   5 client_id ticked
+[11:20:03]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 11:20:33,285 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 11:20:33,293 INFO   [download event] route_resource_planning_report_20261126112003.xlsx
+[11:20:33]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[11:20:34]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[11:20:34]   Overall extract: 0.0 MB, 345 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[11:20:34]   WARNING: Overall extract looks short (file is 0.0 MB (minimum 5 MB)) [attempt 1/3]
+[11:20:54] Downloading Route Resources Planning Report ...
+2026-11-26 11:20:54,571 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[11:20:54]   step 1/4: delivery date
+[11:20:54]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[11:20:54]   step 2/4: districts
+[11:20:54]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[11:20:54]   step 3/4: clients
+[11:20:54]   5 client_id ticked
+[11:20:54]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 11:21:24,960 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 11:21:24,963 INFO   [download event] route_resource_planning_report_20261126112055.xlsx
+[11:21:24]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[11:21:26]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[11:21:26]   Overall extract: 0.0 MB, 355 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[11:21:26]   WARNING: Overall extract looks short (file is 0.0 MB (minimum 5 MB)) [attempt 2/3]
+[11:21:46] Downloading Route Resources Planning Report ...
+2026-11-26 11:21:46,198 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[11:21:46]   step 1/4: delivery date
+[11:21:46]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[11:21:46]   step 2/4: districts
+[11:21:46]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[11:21:46]   step 3/4: clients
+[11:21:46]   5 client_id ticked
+[11:21:46]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 11:22:16,577 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 11:22:16,579 INFO   [download event] route_resource_planning_report_20261126112146.xlsx
+[11:22:16]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[11:22:17]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[11:22:17]   Overall extract: 0.0 MB, 358 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[11:22:17]   WARNING: Overall extract looks short (file is 0.0 MB (minimum 5 MB)) [attempt 3/3]
+[11:22:17]   WARNING: no last good Overall to fall back to - continuing with the short extract; Finish Time may be blank for every car group
+[11:22:17] Downloading Delivery Route Zone ID Report ...
+2026-11-26 11:22:17,763 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+[11:22:18]   start date picked: 2026-11-26
+[11:22:19]   end date picked: 2026-11-26
+[11:22:19]   submit (提交) - waiting for OIX to generate the file
+2026-11-26 11:22:49,061 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 11:22:49,062 INFO   [download event] delivery_route_zone_id_report_20261126112219.xlsx
+[11:22:49]   waiting for Delivery Route Zone ID Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | page text: 'Delivery Route Zone ID Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybil'
+[11:22:50]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[11:22:50]   route report columns used: A='Carline Code', E='Car Group Code', F='Car Group 類別', District=None
+[11:22:50]   route report: 0 carline / car group rows (0 Default, 0 Support), 0 carlines
+2026-11-26 11:22:50,183 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+[11:22:50] Downloading Waybill Status History [RECEIVED_BY_CUSTOMER] ...
+2026-11-26 11:22:50,222 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[11:22:50]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[11:22:50]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[11:22:50]   5 client_id ticked
+[11:22:50]   status selected: RECEIVED_BY_CUSTOMER
+2026-11-26 11:23:20,694 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126112250.c
+2026-11-26 11:23:20,695 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 11:23:20,696 INFO   [download event] waybill_status_history_20261126112250.csv
+[11:23:20]   waiting for Waybill History RECEIVED_BY_CUSTOMER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[11:23:21]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv.part (1.4 MB)
+[11:23:21] Downloading Waybill Status History [FAIL_TO_DELIVER] ...
+2026-11-26 11:23:21,828 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[11:23:21]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[11:23:21]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[11:23:22]   5 client_id ticked
+[11:23:22]   status selected: FAIL_TO_DELIVER
+2026-11-26 11:23:52,358 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126112322.c
+2026-11-26 11:23:52,359 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 11:23:52,360 INFO   [download event] waybill_status_history_20261126112322.csv
+[11:23:52]   waiting for Waybill History FAIL_TO_DELIVER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[11:23:53]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv.part (0.0 MB)
+2026-11-26 11:23:53,542 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 11:23:53,546 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+[11:23:53] Shop Code List: 697 delivery zone codes
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-11-26 11:23:53,694 INFO 2026-11-26: finished records 4318 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 934, R/U waybill 0, shop route 0, JHC 0, not T+0 route 1858, no district 1526
+2026-11-26 11:23:53,695 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 11:23:53,696 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 11:23:53,696 INFO   Overall Order Report: 358 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 11:23:53,696 INFO data as of 2026-11-26 11:23 (report download time)
+2026-11-26 11:23:53,709 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 11:23:53,771 INFO back-fill: 2026-11-19 is complete in the dashboard data
+Updated ./public/index.html (7,414,411 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - using the built-in git push.
+  🚚 deploying dashboard: git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && { git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && (git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push
+     Already up to date.
+     [main eb4311f] KPI dashboard auto update 2026-11-26_1123
+      2 files changed, 2 insertions(+), 2 deletions(-)
+     To https://github.com/aitest0728-lab/log-kpi-tracker.git
+        4f3aac5..eb4311f  main -> main
+  ✅ dashboard pushed.
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+2026-11-26 12:20:01,677 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 12:20:01,962 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 12:20:02,119 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 12:20:02,635 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=2D9CB517DEA7F743247D19FAD926BD2 | type=- | disp=-
+2026-11-26 12:20:02,643 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+[12:20:02] OIX login OK
+[12:20:02] Downloading Route Resources Planning Report ...
+2026-11-26 12:20:02,738 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[12:20:02]   step 1/4: delivery date
+[12:20:02]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[12:20:02]   step 2/4: districts
+[12:20:02]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[12:20:02]   step 3/4: clients
+[12:20:03]   5 client_id ticked
+[12:20:03]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 12:20:33,203 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 12:20:33,206 INFO   [download event] route_resource_planning_report_20261126122003.xlsx
+[12:20:33]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[12:20:34]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.1 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[12:20:34]   Overall extract: 0.1 MB, 1002 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[12:20:34]   WARNING: Overall extract looks short (file is 0.1 MB (minimum 5 MB)) [attempt 1/3]
+[12:20:54] Downloading Route Resources Planning Report ...
+2026-11-26 12:20:54,605 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[12:20:54]   step 1/4: delivery date
+[12:20:54]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[12:20:54]   step 2/4: districts
+[12:20:54]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[12:20:54]   step 3/4: clients
+[12:20:54]   5 client_id ticked
+[12:20:54]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 12:21:25,002 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 12:21:25,003 INFO   [download event] route_resource_planning_report_20261126122055.xlsx
+[12:21:25]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[12:21:26]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.1 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[12:21:26]   Overall extract: 0.1 MB, 1016 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[12:21:26]   WARNING: Overall extract looks short (file is 0.1 MB (minimum 5 MB)) [attempt 2/3]
+[12:21:46] Downloading Route Resources Planning Report ...
+2026-11-26 12:21:46,285 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[12:21:46]   step 1/4: delivery date
+[12:21:46]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[12:21:46]   step 2/4: districts
+[12:21:46]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[12:21:46]   step 3/4: clients
+[12:21:46]   5 client_id ticked
+[12:21:46]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 12:22:16,668 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 12:22:16,670 INFO   [download event] route_resource_planning_report_20261126122146.xlsx
+[12:22:16]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[12:22:17]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.1 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[12:22:17]   Overall extract: 0.1 MB, 1037 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[12:22:17]   WARNING: Overall extract looks short (file is 0.1 MB (minimum 5 MB)) [attempt 3/3]
+[12:22:17]   WARNING: no last good Overall to fall back to - continuing with the short extract; Finish Time may be blank for every car group
+[12:22:17] Downloading Delivery Route Zone ID Report ...
+2026-11-26 12:22:18,036 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+[12:22:18]   start date picked: 2026-11-26
+[12:22:19]   end date picked: 2026-11-26
+[12:22:19]   submit (提交) - waiting for OIX to generate the file
+2026-11-26 12:22:49,335 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 12:22:49,336 INFO   [download event] delivery_route_zone_id_report_20261126122219.xlsx
+[12:22:49]   waiting for Delivery Route Zone ID Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | page text: 'Delivery Route Zone ID Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybil'
+[12:22:50]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[12:22:50]   route report columns used: A='Carline Code', E='Car Group Code', F='Car Group 類別', District=None
+[12:22:50]   route report: 0 carline / car group rows (0 Default, 0 Support), 0 carlines
+2026-11-26 12:22:50,541 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+[12:22:50] Downloading Waybill Status History [RECEIVED_BY_CUSTOMER] ...
+2026-11-26 12:22:50,583 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[12:22:50]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[12:22:50]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[12:22:50]   5 client_id ticked
+[12:22:51]   status selected: RECEIVED_BY_CUSTOMER
+2026-11-26 12:23:21,084 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126122251.c
+2026-11-26 12:23:21,093 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 12:23:21,094 INFO   [download event] waybill_status_history_20261126122251.csv
+[12:23:21]   waiting for Waybill History RECEIVED_BY_CUSTOMER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[12:23:22]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv.part (1.9 MB)
+[12:23:22] Downloading Waybill Status History [FAIL_TO_DELIVER] ...
+2026-11-26 12:23:22,535 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[12:23:22]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[12:23:22]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[12:23:22]   5 client_id ticked
+[12:23:22]   status selected: FAIL_TO_DELIVER
+2026-11-26 12:23:52,999 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126122323.c
+2026-11-26 12:23:52,999 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 12:23:53,001 INFO   [download event] waybill_status_history_20261126122323.csv
+[12:23:53]   waiting for Waybill History FAIL_TO_DELIVER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[12:23:54]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv.part (0.0 MB)
+2026-11-26 12:23:54,148 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 12:23:54,151 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+[12:23:54] Shop Code List: 697 delivery zone codes
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-11-26 12:23:54,372 INFO 2026-11-26: finished records 6020 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 1860, R/U waybill 0, shop route 0, JHC 0, not T+0 route 1909, no district 2251
+2026-11-26 12:23:54,373 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 12:23:54,373 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 12:23:54,373 INFO   Overall Order Report: 1037 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 12:23:54,374 INFO data as of 2026-11-26 12:23 (report download time)
+2026-11-26 12:23:54,396 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 12:23:54,434 INFO back-fill: 2026-11-19 is complete in the dashboard data
+Updated ./public/index.html (7,414,411 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - using the built-in git push.
+  🚚 deploying dashboard: git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && { git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && (git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push
+     Already up to date.
+     [main 5d7fdb4] KPI dashboard auto update 2026-11-26_1223
+      2 files changed, 2 insertions(+), 2 deletions(-)
+     To https://github.com/aitest0728-lab/log-kpi-tracker.git
+        ee6421a..5d7fdb4  main -> main
+  ✅ dashboard pushed.
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+2026-11-26 13:20:02,207 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 13:20:02,508 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 13:20:02,680 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 13:20:03,162 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=24C5FE494C80E966B4CB33BEE976A12 | type=- | disp=-
+2026-11-26 13:20:03,173 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+[13:20:03] OIX login OK
+[13:20:03] Downloading Route Resources Planning Report ...
+2026-11-26 13:20:03,267 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[13:20:03]   step 1/4: delivery date
+[13:20:03]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[13:20:03]   step 2/4: districts
+[13:20:03]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[13:20:03]   step 3/4: clients
+[13:20:03]   5 client_id ticked
+[13:20:03]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 13:20:33,645 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 13:20:33,646 INFO   [download event] route_resource_planning_report_20261126132003.xlsx
+[13:20:33]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[13:20:34]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.2 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[13:20:35]   Overall extract: 0.2 MB, 1991 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[13:20:35]   WARNING: Overall extract looks short (file is 0.2 MB (minimum 5 MB)) [attempt 1/3]
+[13:20:55] Downloading Route Resources Planning Report ...
+2026-11-26 13:20:55,118 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[13:20:55]   step 1/4: delivery date
+[13:20:55]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[13:20:55]   step 2/4: districts
+[13:20:55]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[13:20:55]   step 3/4: clients
+[13:20:55]   5 client_id ticked
+[13:20:55]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 13:21:25,479 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 13:21:25,481 INFO   [download event] route_resource_planning_report_20261126132055.xlsx
+[13:21:25]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[13:21:26]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.2 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[13:21:26]   Overall extract: 0.2 MB, 2000 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[13:21:26]   WARNING: Overall extract looks short (file is 0.2 MB (minimum 5 MB)) [attempt 2/3]
+[13:21:46] Downloading Route Resources Planning Report ...
+2026-11-26 13:21:46,973 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[13:21:47]   step 1/4: delivery date
+[13:21:47]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[13:21:47]   step 2/4: districts
+[13:21:47]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[13:21:47]   step 3/4: clients
+[13:21:47]   5 client_id ticked
+[13:21:47]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 13:22:17,339 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 13:22:17,343 INFO   [download event] route_resource_planning_report_20261126132147.xlsx
+[13:22:17]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[13:22:18]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.2 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[13:22:18]   Overall extract: 0.2 MB, 2014 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[13:22:18]   WARNING: Overall extract looks short (file is 0.2 MB (minimum 5 MB)) [attempt 3/3]
+[13:22:18]   WARNING: no last good Overall to fall back to - continuing with the short extract; Finish Time may be blank for every car group
+[13:22:18] Downloading Delivery Route Zone ID Report ...
+2026-11-26 13:22:18,731 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+[13:22:19]   start date picked: 2026-11-26
+[13:22:19]   end date picked: 2026-11-26
+[13:22:19]   submit (提交) - waiting for OIX to generate the file
+2026-11-26 13:22:50,002 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 13:22:50,005 INFO   [download event] delivery_route_zone_id_report_20261126132220.xlsx
+[13:22:50]   waiting for Delivery Route Zone ID Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | page text: 'Delivery Route Zone ID Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybil'
+[13:22:51]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[13:22:51]   route report columns used: A='Carline Code', E='Car Group Code', F='Car Group 類別', District=None
+[13:22:51]   route report: 0 carline / car group rows (0 Default, 0 Support), 0 carlines
+2026-11-26 13:22:51,302 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+[13:22:51] Downloading Waybill Status History [RECEIVED_BY_CUSTOMER] ...
+2026-11-26 13:22:51,341 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[13:22:51]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[13:22:51]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[13:22:51]   5 client_id ticked
+[13:22:51]   status selected: RECEIVED_BY_CUSTOMER
+2026-11-26 13:23:21,776 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126132251.c
+2026-11-26 13:23:21,779 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 13:23:21,780 INFO   [download event] waybill_status_history_20261126132251.csv
+[13:23:21]   waiting for Waybill History RECEIVED_BY_CUSTOMER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[13:23:22]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv.part (2.6 MB)
+[13:23:22] Downloading Waybill Status History [FAIL_TO_DELIVER] ...
+2026-11-26 13:23:22,919 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[13:23:22]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[13:23:22]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[13:23:23]   5 client_id ticked
+[13:23:23]   status selected: FAIL_TO_DELIVER
+2026-11-26 13:23:53,332 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126132323.c
+2026-11-26 13:23:53,336 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 13:23:53,342 INFO   [download event] waybill_status_history_20261126132323.csv
+[13:23:53]   waiting for Waybill History FAIL_TO_DELIVER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[13:23:54]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv.part (0.0 MB)
+2026-11-26 13:23:54,494 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 13:23:54,497 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+[13:23:54] Shop Code List: 697 delivery zone codes
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-11-26 13:23:54,846 INFO 2026-11-26: finished records 8106 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 3059, R/U waybill 0, shop route 0, JHC 0, not T+0 route 1961, no district 3086
+2026-11-26 13:23:54,847 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 13:23:54,847 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 13:23:54,847 INFO   Overall Order Report: 2014 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 13:23:54,848 INFO data as of 2026-11-26 13:23 (report download time)
+2026-11-26 13:23:54,855 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 13:23:54,884 INFO back-fill: 2026-11-19 is complete in the dashboard data
+Updated ./public/index.html (7,414,439 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - using the built-in git push.
+  🚚 deploying dashboard: git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && { git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && (git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push
+     Already up to date.
+     [main 57fdd33] KPI dashboard auto update 2026-11-26_1323
+      2 files changed, 2 insertions(+), 2 deletions(-)
+     To https://github.com/aitest0728-lab/log-kpi-tracker.git
+        67a942d..57fdd33  main -> main
+  ✅ dashboard pushed.
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+2026-11-26 14:20:01,581 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 14:20:01,884 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 14:20:02,048 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 14:20:02,450 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=3EA3F99AF415D7B06AAAEA18591904A | type=- | disp=-
+2026-11-26 14:20:02,463 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+[14:20:02] OIX login OK
+[14:20:02] Downloading Route Resources Planning Report ...
+2026-11-26 14:20:02,563 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[14:20:02]   step 1/4: delivery date
+[14:20:02]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[14:20:02]   step 2/4: districts
+[14:20:02]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[14:20:02]   step 3/4: clients
+[14:20:02]   5 client_id ticked
+[14:20:02]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 14:20:32,954 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 14:20:32,956 INFO   [download event] route_resource_planning_report_20261126142003.xlsx
+[14:20:32]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[14:20:34]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.3 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[14:20:34]   Overall extract: 0.3 MB, 2998 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[14:20:34]   WARNING: Overall extract looks short (file is 0.3 MB (minimum 5 MB)) [attempt 1/3]
+[14:20:54] Downloading Route Resources Planning Report ...
+2026-11-26 14:20:54,746 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[14:20:54]   step 1/4: delivery date
+[14:20:54]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[14:20:54]   step 2/4: districts
+[14:20:54]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[14:20:54]   step 3/4: clients
+[14:20:55]   5 client_id ticked
+[14:20:55]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 14:21:25,167 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 14:21:25,169 INFO   [download event] route_resource_planning_report_20261126142055.xlsx
+[14:21:25]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[14:21:26]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.3 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[14:21:26]   Overall extract: 0.3 MB, 3013 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[14:21:26]   WARNING: Overall extract looks short (file is 0.3 MB (minimum 5 MB)) [attempt 2/3]
+[14:21:46] Downloading Route Resources Planning Report ...
+2026-11-26 14:21:46,775 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[14:21:46]   step 1/4: delivery date
+[14:21:46]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[14:21:46]   step 2/4: districts
+[14:21:46]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[14:21:46]   step 3/4: clients
+[14:21:47]   5 client_id ticked
+[14:21:47]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 14:22:17,164 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 14:22:17,167 INFO   [download event] route_resource_planning_report_20261126142147.xlsx
+[14:22:17]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[14:22:18]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.3 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[14:22:18]   Overall extract: 0.3 MB, 3039 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[14:22:18]   WARNING: Overall extract looks short (file is 0.3 MB (minimum 5 MB)) [attempt 3/3]
+[14:22:18]   WARNING: no last good Overall to fall back to - continuing with the short extract; Finish Time may be blank for every car group
+[14:22:18] Downloading Delivery Route Zone ID Report ...
+2026-11-26 14:22:18,810 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+[14:22:19]   start date picked: 2026-11-26
+[14:22:20]   end date picked: 2026-11-26
+[14:22:20]   submit (提交) - waiting for OIX to generate the file
+2026-11-26 14:22:50,114 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 14:22:50,117 INFO   [download event] delivery_route_zone_id_report_20261126142220.xlsx
+[14:22:50]   waiting for Delivery Route Zone ID Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | page text: 'Delivery Route Zone ID Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybil'
+[14:22:51]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[14:22:51]   route report columns used: A='Carline Code', E='Car Group Code', F='Car Group 類別', District=None
+[14:22:51]   route report: 0 carline / car group rows (0 Default, 0 Support), 0 carlines
+2026-11-26 14:22:51,270 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+[14:22:51] Downloading Waybill Status History [RECEIVED_BY_CUSTOMER] ...
+2026-11-26 14:22:51,310 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[14:22:51]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[14:22:51]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[14:22:51]   5 client_id ticked
+[14:22:51]   status selected: RECEIVED_BY_CUSTOMER
+2026-11-26 14:23:21,766 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126142251.c
+2026-11-26 14:23:21,767 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 14:23:21,767 INFO   [download event] waybill_status_history_20261126142251.csv
+[14:23:21]   waiting for Waybill History RECEIVED_BY_CUSTOMER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[14:23:22]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv.part (3.6 MB)
+[14:23:22] Downloading Waybill Status History [FAIL_TO_DELIVER] ...
+2026-11-26 14:23:22,924 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[14:23:23]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[14:23:23]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[14:23:23]   5 client_id ticked
+[14:23:23]   status selected: FAIL_TO_DELIVER
+2026-11-26 14:23:53,362 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126142323.c
+2026-11-26 14:23:53,363 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 14:23:53,363 INFO   [download event] waybill_status_history_20261126142323.csv
+[14:23:53]   waiting for Waybill History FAIL_TO_DELIVER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[14:23:54]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv.part (0.0 MB)
+2026-11-26 14:23:54,538 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 14:23:54,541 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+[14:23:54] Shop Code List: 697 delivery zone codes
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-11-26 14:23:55,127 INFO 2026-11-26: finished records 10859 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 4222, R/U waybill 0, shop route 0, JHC 0, not T+0 route 1983, no district 4654
+2026-11-26 14:23:55,128 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 14:23:55,128 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 14:23:55,128 INFO   Overall Order Report: 3039 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 14:23:55,128 INFO data as of 2026-11-26 14:23 (report download time)
+2026-11-26 14:23:55,137 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 14:23:55,178 INFO back-fill: 2026-11-19 is complete in the dashboard data
+Updated ./public/index.html (7,414,473 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - using the built-in git push.
+  🚚 deploying dashboard: git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && { git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && (git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push
+     Already up to date.
+     [main 8ec40b8] KPI dashboard auto update 2026-11-26_1423
+      2 files changed, 2 insertions(+), 2 deletions(-)
+     To https://github.com/aitest0728-lab/log-kpi-tracker.git
+        56b8e03..8ec40b8  main -> main
+  ✅ dashboard pushed.
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+2026-11-26 15:20:01,688 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 15:20:02,008 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 15:20:02,200 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 15:20:03,174 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=7709A7CE49D141F00C25A9911EFD074 | type=- | disp=-
+2026-11-26 15:20:03,186 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+[15:20:03] OIX login OK
+[15:20:03] Downloading Route Resources Planning Report ...
+2026-11-26 15:20:03,326 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[15:20:03]   step 1/4: delivery date
+[15:20:03]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[15:20:03]   step 2/4: districts
+[15:20:03]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[15:20:03]   step 3/4: clients
+[15:20:03]   5 client_id ticked
+[15:20:03]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 15:20:33,749 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 15:20:33,751 INFO   [download event] route_resource_planning_report_20261126152003.xlsx
+[15:20:33]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[15:20:34]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.4 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[15:20:35]   Overall extract: 0.4 MB, 4048 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[15:20:35]   WARNING: Overall extract looks short (file is 0.4 MB (minimum 5 MB)) [attempt 1/3]
+[15:20:55] Downloading Route Resources Planning Report ...
+2026-11-26 15:20:55,655 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[15:20:55]   step 1/4: delivery date
+[15:20:55]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[15:20:55]   step 2/4: districts
+[15:20:55]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[15:20:55]   step 3/4: clients
+[15:20:56]   5 client_id ticked
+[15:20:56]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 15:21:26,073 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 15:21:26,075 INFO   [download event] route_resource_planning_report_20261126152056.xlsx
+[15:21:26]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[15:21:27]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.4 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[15:21:27]   Overall extract: 0.4 MB, 4064 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[15:21:27]   WARNING: Overall extract looks short (file is 0.4 MB (minimum 5 MB)) [attempt 2/3]
+[15:21:47] Downloading Route Resources Planning Report ...
+2026-11-26 15:21:47,770 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[15:21:47]   step 1/4: delivery date
+[15:21:47]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[15:21:47]   step 2/4: districts
+[15:21:47]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[15:21:47]   step 3/4: clients
+[15:21:48]   5 client_id ticked
+[15:21:48]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 15:22:18,151 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 15:22:18,153 INFO   [download event] route_resource_planning_report_20261126152148.xlsx
+[15:22:18]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[15:22:19]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.4 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[15:22:19]   Overall extract: 0.4 MB, 4085 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[15:22:19]   WARNING: Overall extract looks short (file is 0.4 MB (minimum 5 MB)) [attempt 3/3]
+[15:22:19]   WARNING: no last good Overall to fall back to - continuing with the short extract; Finish Time may be blank for every car group
+[15:22:19] Downloading Delivery Route Zone ID Report ...
+2026-11-26 15:22:19,822 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+[15:22:20]   start date picked: 2026-11-26
+[15:22:21]   end date picked: 2026-11-26
+[15:22:21]   submit (提交) - waiting for OIX to generate the file
+2026-11-26 15:22:51,153 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 15:22:51,156 INFO   [download event] delivery_route_zone_id_report_20261126152221.xlsx
+[15:22:51]   waiting for Delivery Route Zone ID Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | page text: 'Delivery Route Zone ID Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybil'
+[15:22:52]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[15:22:52]   route report columns used: A='Carline Code', E='Car Group Code', F='Car Group 類別', District=None
+[15:22:52]   route report: 0 carline / car group rows (0 Default, 0 Support), 0 carlines
+2026-11-26 15:22:52,290 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+[15:22:52] Downloading Waybill Status History [RECEIVED_BY_CUSTOMER] ...
+2026-11-26 15:22:52,326 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[15:22:52]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[15:22:52]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[15:22:52]   5 client_id ticked
+[15:22:52]   status selected: RECEIVED_BY_CUSTOMER
+2026-11-26 15:23:22,776 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126152252.c
+2026-11-26 15:23:22,778 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 15:23:22,779 INFO   [download event] waybill_status_history_20261126152252.csv
+[15:23:22]   waiting for Waybill History RECEIVED_BY_CUSTOMER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[15:23:23]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv.part (4.0 MB)
+[15:23:23] Downloading Waybill Status History [FAIL_TO_DELIVER] ...
+2026-11-26 15:23:23,943 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[15:23:24]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[15:23:24]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[15:23:24]   5 client_id ticked
+[15:23:24]   status selected: FAIL_TO_DELIVER
+2026-11-26 15:23:54,382 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126152324.c
+2026-11-26 15:23:54,383 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 15:23:54,384 INFO   [download event] waybill_status_history_20261126152324.csv
+[15:23:54]   waiting for Waybill History FAIL_TO_DELIVER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[15:23:55]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv.part (0.0 MB)
+2026-11-26 15:23:55,588 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 15:23:55,591 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+[15:23:55] Shop Code List: 697 delivery zone codes
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-11-26 15:23:56,348 INFO 2026-11-26: finished records 12285 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 5208, R/U waybill 0, shop route 0, JHC 0, not T+0 route 2064, no district 5013
+2026-11-26 15:23:56,348 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 15:23:56,349 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 15:23:56,349 INFO   Overall Order Report: 4085 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 15:23:56,349 INFO data as of 2026-11-26 15:23 (report download time)
+2026-11-26 15:23:56,358 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 15:23:56,400 INFO back-fill: 2026-11-19 is complete in the dashboard data
+Updated ./public/index.html (7,414,517 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - using the built-in git push.
+  🚚 deploying dashboard: git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && { git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && (git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push
+     Already up to date.
+     [main 5faf39d] KPI dashboard auto update 2026-11-26_1523
+      2 files changed, 2 insertions(+), 2 deletions(-)
+     To https://github.com/aitest0728-lab/log-kpi-tracker.git
+        3c62386..5faf39d  main -> main
+  ✅ dashboard pushed.
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+2026-11-26 16:20:01,915 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 16:20:02,204 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 16:20:02,370 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 16:20:02,826 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=31139193FDAA7E8F142CCED281E796E | type=- | disp=-
+2026-11-26 16:20:02,837 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+[16:20:02] OIX login OK
+[16:20:02] Downloading Route Resources Planning Report ...
+2026-11-26 16:20:02,946 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[16:20:03]   step 1/4: delivery date
+[16:20:03]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[16:20:03]   step 2/4: districts
+[16:20:03]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[16:20:03]   step 3/4: clients
+[16:20:03]   5 client_id ticked
+[16:20:03]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 16:20:33,351 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 16:20:33,354 INFO   [download event] route_resource_planning_report_20261126162003.xlsx
+[16:20:33]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[16:20:34]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.5 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[16:20:35]   Overall extract: 0.5 MB, 5255 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[16:20:35]   WARNING: Overall extract looks short (file is 0.5 MB (minimum 5 MB)) [attempt 1/3]
+[16:20:55] Downloading Route Resources Planning Report ...
+2026-11-26 16:20:55,262 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[16:20:55]   step 1/4: delivery date
+[16:20:55]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[16:20:55]   step 2/4: districts
+[16:20:55]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[16:20:55]   step 3/4: clients
+[16:20:55]   5 client_id ticked
+[16:20:55]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 16:21:25,633 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 16:21:25,636 INFO   [download event] route_resource_planning_report_20261126162055.xlsx
+[16:21:25]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[16:21:26]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.5 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[16:21:27]   Overall extract: 0.5 MB, 5268 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[16:21:27]   WARNING: Overall extract looks short (file is 0.5 MB (minimum 5 MB)) [attempt 2/3]
+[16:21:47] Downloading Route Resources Planning Report ...
+2026-11-26 16:21:47,452 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[16:21:47]   step 1/4: delivery date
+[16:21:47]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[16:21:47]   step 2/4: districts
+[16:21:47]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[16:21:47]   step 3/4: clients
+[16:21:47]   5 client_id ticked
+[16:21:47]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 16:22:17,841 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 16:22:17,845 INFO   [download event] route_resource_planning_report_20261126162147.xlsx
+[16:22:17]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[16:22:18]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.5 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[16:22:19]   Overall extract: 0.5 MB, 5277 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[16:22:19]   WARNING: Overall extract looks short (file is 0.5 MB (minimum 5 MB)) [attempt 3/3]
+[16:22:19]   WARNING: no last good Overall to fall back to - continuing with the short extract; Finish Time may be blank for every car group
+[16:22:19] Downloading Delivery Route Zone ID Report ...
+2026-11-26 16:22:19,762 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+[16:22:20]   start date picked: 2026-11-26
+[16:22:21]   end date picked: 2026-11-26
+[16:22:21]   submit (提交) - waiting for OIX to generate the file
+2026-11-26 16:22:51,044 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 16:22:51,045 INFO   [download event] delivery_route_zone_id_report_20261126162221.xlsx
+[16:22:51]   waiting for Delivery Route Zone ID Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | page text: 'Delivery Route Zone ID Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybil'
+[16:22:52]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[16:22:52]   route report columns used: A='Carline Code', E='Car Group Code', F='Car Group 類別', District=None
+[16:22:52]   route report: 0 carline / car group rows (0 Default, 0 Support), 0 carlines
+2026-11-26 16:22:52,158 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+[16:22:52] Downloading Waybill Status History [RECEIVED_BY_CUSTOMER] ...
+2026-11-26 16:22:52,204 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[16:22:52]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[16:22:52]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[16:22:52]   5 client_id ticked
+[16:22:52]   status selected: RECEIVED_BY_CUSTOMER
+2026-11-26 16:23:22,759 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126162252.c
+2026-11-26 16:23:22,760 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 16:23:22,761 INFO   [download event] waybill_status_history_20261126162252.csv
+[16:23:22]   waiting for Waybill History RECEIVED_BY_CUSTOMER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[16:23:23]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv.part (4.7 MB)
+[16:23:23] Downloading Waybill Status History [FAIL_TO_DELIVER] ...
+2026-11-26 16:23:23,940 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[16:23:24]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[16:23:24]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[16:23:24]   5 client_id ticked
+[16:23:24]   status selected: FAIL_TO_DELIVER
+2026-11-26 16:23:54,374 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126162324.c
+2026-11-26 16:23:54,376 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 16:23:54,379 INFO   [download event] waybill_status_history_20261126162324.csv
+[16:23:54]   waiting for Waybill History FAIL_TO_DELIVER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[16:23:55]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv.part (0.0 MB)
+2026-11-26 16:23:55,610 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 16:23:55,615 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+[16:23:55] Shop Code List: 697 delivery zone codes
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-11-26 16:23:56,500 INFO 2026-11-26: finished records 14425 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 6451, R/U waybill 0, shop route 0, JHC 0, not T+0 route 2098, no district 5876
+2026-11-26 16:23:56,501 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 16:23:56,501 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 16:23:56,501 INFO   Overall Order Report: 5277 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 16:23:56,502 INFO data as of 2026-11-26 16:23 (report download time)
+2026-11-26 16:23:56,510 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 16:23:56,546 INFO back-fill: 2026-11-19 is complete in the dashboard data
+Updated ./public/index.html (7,414,569 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - using the built-in git push.
+  🚚 deploying dashboard: git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && { git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && (git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push
+     Already up to date.
+     [main b538183] KPI dashboard auto update 2026-11-26_1623
+      2 files changed, 2 insertions(+), 2 deletions(-)
+     To https://github.com/aitest0728-lab/log-kpi-tracker.git
+        2924a0c..b538183  main -> main
+  ✅ dashboard pushed.
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+2026-11-26 17:20:01,929 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 17:20:02,235 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 17:20:02,461 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 17:20:02,950 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=4D9DA393AE82A124398124BC61AC509 | type=- | disp=-
+2026-11-26 17:20:02,963 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+[17:20:03] OIX login OK
+[17:20:03] Downloading Route Resources Planning Report ...
+2026-11-26 17:20:03,066 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[17:20:03]   step 1/4: delivery date
+[17:20:03]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[17:20:03]   step 2/4: districts
+[17:20:03]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[17:20:03]   step 3/4: clients
+[17:20:03]   5 client_id ticked
+[17:20:03]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 17:20:33,452 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 17:20:33,453 INFO   [download event] route_resource_planning_report_20261126172003.xlsx
+[17:20:33]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[17:20:34]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.6 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[17:20:35]   Overall extract: 0.6 MB, 6512 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[17:20:35]   WARNING: Overall extract looks short (file is 0.6 MB (minimum 5 MB)) [attempt 1/3]
+[17:20:55] Downloading Route Resources Planning Report ...
+2026-11-26 17:20:55,480 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[17:20:55]   step 1/4: delivery date
+[17:20:55]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[17:20:55]   step 2/4: districts
+[17:20:55]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[17:20:55]   step 3/4: clients
+[17:20:55]   5 client_id ticked
+[17:20:55]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 17:21:25,966 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 17:21:25,967 INFO   [download event] route_resource_planning_report_20261126172056.xlsx
+[17:21:25]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[17:21:27]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.6 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[17:21:27]   Overall extract: 0.6 MB, 6533 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[17:21:27]   WARNING: Overall extract looks short (file is 0.6 MB (minimum 5 MB)) [attempt 2/3]
+[17:21:47] Downloading Route Resources Planning Report ...
+2026-11-26 17:21:48,003 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[17:21:48]   step 1/4: delivery date
+[17:21:48]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[17:21:48]   step 2/4: districts
+[17:21:48]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[17:21:48]   step 3/4: clients
+[17:21:48]   5 client_id ticked
+[17:21:48]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 17:22:18,364 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 17:22:18,366 INFO   [download event] route_resource_planning_report_20261126172148.xlsx
+[17:22:18]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[17:22:19]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.6 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[17:22:20]   Overall extract: 0.6 MB, 6553 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[17:22:20]   WARNING: Overall extract looks short (file is 0.6 MB (minimum 5 MB)) [attempt 3/3]
+[17:22:20]   WARNING: no last good Overall to fall back to - continuing with the short extract; Finish Time may be blank for every car group
+[17:22:20] Downloading Delivery Route Zone ID Report ...
+2026-11-26 17:22:20,376 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+[17:22:21]   start date picked: 2026-11-26
+[17:22:21]   end date picked: 2026-11-26
+[17:22:21]   submit (提交) - waiting for OIX to generate the file
+2026-11-26 17:22:51,665 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 17:22:51,669 INFO   [download event] delivery_route_zone_id_report_20261126172221.xlsx
+[17:22:51]   waiting for Delivery Route Zone ID Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | page text: 'Delivery Route Zone ID Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybil'
+[17:22:52]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[17:22:52]   route report columns used: A='Carline Code', E='Car Group Code', F='Car Group 類別', District=None
+[17:22:52]   route report: 0 carline / car group rows (0 Default, 0 Support), 0 carlines
+2026-11-26 17:22:52,808 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+[17:22:52] Downloading Waybill Status History [RECEIVED_BY_CUSTOMER] ...
+2026-11-26 17:22:52,841 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[17:22:52]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[17:22:52]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[17:22:53]   5 client_id ticked
+[17:22:53]   status selected: RECEIVED_BY_CUSTOMER
+2026-11-26 17:23:23,283 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126172253.c
+2026-11-26 17:23:23,283 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 17:23:23,284 INFO   [download event] waybill_status_history_20261126172253.csv
+[17:23:23]   waiting for Waybill History RECEIVED_BY_CUSTOMER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[17:23:24]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv.part (5.5 MB)
+[17:23:24] Downloading Waybill Status History [FAIL_TO_DELIVER] ...
+2026-11-26 17:23:24,520 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[17:23:24]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[17:23:24]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[17:23:24]   5 client_id ticked
+[17:23:24]   status selected: FAIL_TO_DELIVER
+2026-11-26 17:23:54,950 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126172325.c
+2026-11-26 17:23:54,950 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 17:23:54,951 INFO   [download event] waybill_status_history_20261126172325.csv
+[17:23:54]   waiting for Waybill History FAIL_TO_DELIVER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[17:23:56]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv.part (0.0 MB)
+2026-11-26 17:23:56,130 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 17:23:56,133 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+[17:23:56] Shop Code List: 697 delivery zone codes
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-11-26 17:23:57,169 INFO 2026-11-26: finished records 16814 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 7710, R/U waybill 0, shop route 0, JHC 0, not T+0 route 2128, no district 6976
+2026-11-26 17:23:57,169 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 17:23:57,170 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 17:23:57,170 INFO   Overall Order Report: 6553 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 17:23:57,170 INFO data as of 2026-11-26 17:23 (report download time)
+2026-11-26 17:23:57,179 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 17:23:57,227 INFO back-fill: 2026-11-19 is complete in the dashboard data
+Updated ./public/index.html (7,414,640 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - using the built-in git push.
+  🚚 deploying dashboard: git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && { git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && (git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push
+     Already up to date.
+     [main 970d092] KPI dashboard auto update 2026-11-26_1723
+      2 files changed, 2 insertions(+), 2 deletions(-)
+     To https://github.com/aitest0728-lab/log-kpi-tracker.git
+        56f052c..970d092  main -> main
+  ✅ dashboard pushed.
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 65, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/__init__.py", line 9, in <module>
+    from pandas.core.ops.array_ops import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/ops/array_ops.py", line 55, in <module>
+    from pandas.core.computation import expressions
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/expressions.py", line 23, in <module>
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/computation/check.py", line 5, in <module>
+    ne = import_optional_dependency("numexpr", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/numexpr/__init__.py", line 24, in <module>
+    from numexpr.interpreter import MAX_THREADS, use_vml, __BLOCK_SIZE1__
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+Traceback (most recent call last):  File "/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/order_finished_pattern.py", line 91, in <module>
+    import pandas as pd
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/api.py", line 27, in <module>
+    from pandas.core.arrays import Categorical
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/__init__.py", line 1, in <module>
+    from pandas.core.arrays.arrow import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/__init__.py", line 5, in <module>
+    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/arrow/array.py", line 79, in <module>
+    from pandas.core.arrays.masked import BaseMaskedArray
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/arrays/masked.py", line 56, in <module>
+    from pandas.core import (
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/core/nanops.py", line 54, in <module>
+    bn = import_optional_dependency("bottleneck", errors="warn")
+  File "/home/chipanl/.local/lib/python3.12/site-packages/pandas/compat/_optional.py", line 158, in import_optional_dependency
+    module = importlib.import_module(name)
+  File "/usr/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "/usr/lib/python3/dist-packages/bottleneck/__init__.py", line 7, in <module>
+    from .move import (move_argmax, move_argmin, move_max, move_mean, move_median,
+Traceback (most recent call last):
+  File "/home/chipanl/.local/lib/python3.12/site-packages/numpy/core/_multiarray_umath.py", line 46, in __getattr__
+    raise ImportError(msg)
+ImportError: 
+A module that was compiled using NumPy 1.x cannot be run in
+NumPy 2.5.0 as it may crash. To support both 1.x and 2.x
+versions of NumPy, modules must be compiled with NumPy 2.0.
+Some module may need to rebuild instead e.g. with 'pybind11>=2.12'.
+
+If you are a user of the module, the easiest solution will be to
+downgrade to 'numpy<2' or try to upgrade the affected module.
+We expect that some modules will need time to support NumPy 2.
+
+
+2026-11-26 18:20:01,886 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 18:20:02,191 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 18:20:02,393 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 18:20:02,790 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=B9B3519B1E6B7A1072E28093965C718 | type=- | disp=-
+2026-11-26 18:20:02,802 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+[18:20:02] OIX login OK
+[18:20:02] Downloading Route Resources Planning Report ...
+2026-11-26 18:20:02,913 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[18:20:03]   step 1/4: delivery date
+[18:20:03]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[18:20:03]   step 2/4: districts
+[18:20:03]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[18:20:03]   step 3/4: clients
+[18:20:03]   5 client_id ticked
+[18:20:03]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 18:20:33,327 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 18:20:33,329 INFO   [download event] route_resource_planning_report_20261126182003.xlsx
+[18:20:33]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[18:20:34]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.7 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[18:20:35]   Overall extract: 0.7 MB, 7991 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[18:20:35]   WARNING: Overall extract looks short (file is 0.7 MB (minimum 5 MB)) [attempt 1/3]
+[18:20:55] Downloading Route Resources Planning Report ...
+2026-11-26 18:20:55,780 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[18:20:55]   step 1/4: delivery date
+[18:20:55]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[18:20:55]   step 2/4: districts
+[18:20:55]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[18:20:55]   step 3/4: clients
+[18:20:56]   5 client_id ticked
+[18:20:56]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 18:21:26,174 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 18:21:26,175 INFO   [download event] route_resource_planning_report_20261126182056.xlsx
+[18:21:26]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[18:21:27]   WARNING: Overall download attempt 2/3 failed: FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx'
+[18:21:47] Downloading Route Resources Planning Report ...
+2026-11-26 18:21:47,357 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+[18:21:47]   step 1/4: delivery date
+[18:21:47]   date input '#generateRouteResourcePlanningReportForm input:not([type=hidden]):not([type=checkbox])' = '2026-11-26' (wanted '2026-11-26')
+[18:21:47]   step 2/4: districts
+[18:21:47]   districts selected: ['ETH', 'ETK', 'ETX', 'NT-ST', 'NT-TM', 'NT-TSM', 'NT-TW', 'NT-YT', 'WTH', 'WTK', 'WTX']
+[18:21:47]   step 3/4: clients
+[18:21:47]   5 client_id ticked
+[18:21:47]   step 4/4: submit (提交) - waiting for OIX to generate the file
+2026-11-26 18:22:17,764 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 18:22:17,765 INFO   [download event] route_resource_planning_report_20261126182147.xlsx
+[18:22:17]   waiting for Route Resources Planning Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | page text: 'Route Resource Planning Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybi'
+[18:22:18]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Overall Order in Cargroup (Nov-26).xlsx (0.7 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[18:22:19]   Overall extract: 0.7 MB, 8038 raw rows -> 0 after filters, 0 parent orders, 0 routes
+[18:22:19]   WARNING: Overall extract looks short (file is 0.7 MB (minimum 5 MB)) [attempt 3/3]
+[18:22:19]   WARNING: no last good Overall to fall back to - continuing with the short extract; Finish Time may be blank for every car group
+[18:22:19] Downloading Delivery Route Zone ID Report ...
+2026-11-26 18:22:19,975 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+[18:22:20]   start date picked: 2026-11-26
+[18:22:21]   end date picked: 2026-11-26
+[18:22:21]   submit (提交) - waiting for OIX to generate the file
+2026-11-26 18:22:51,269 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 18:22:51,270 INFO   [download event] delivery_route_zone_id_report_20261126182221.xlsx
+[18:22:51]   waiting for Delivery Route Zone ID Report (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | page text: 'Delivery Route Zone ID Report 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybil'
+[18:22:52]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-26).xlsx (0.0 MB)
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+[18:22:52]   route report columns used: A='Carline Code', E='Car Group Code', F='Car Group 類別', District=None
+[18:22:52]   route report: 0 carline / car group rows (0 Default, 0 Support), 0 carlines
+2026-11-26 18:22:52,393 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+[18:22:52] Downloading Waybill Status History [RECEIVED_BY_CUSTOMER] ...
+2026-11-26 18:22:52,429 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[18:22:52]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[18:22:52]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[18:22:52]   5 client_id ticked
+[18:22:52]   status selected: RECEIVED_BY_CUSTOMER
+2026-11-26 18:23:22,879 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126182252.c
+2026-11-26 18:23:22,881 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 18:23:22,881 INFO   [download event] waybill_status_history_20261126182252.csv
+[18:23:22]   waiting for Waybill History RECEIVED_BY_CUSTOMER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[18:23:24]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv.part (6.1 MB)
+[18:23:24] Downloading Waybill Status History [FAIL_TO_DELIVER] ...
+2026-11-26 18:23:24,093 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+[18:23:24]   date input '#displayStatusUpdateDateDateFrom' = '20261126' (wanted '20261126')
+[18:23:24]   date input '#displayStatusUpdateDateDateTo' = '20261127' (wanted '20261127')
+[18:23:24]   5 client_id ticked
+[18:23:24]   status selected: FAIL_TO_DELIVER
+2026-11-26 18:23:54,519 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126182324.c
+2026-11-26 18:23:54,520 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 18:23:54,521 INFO   [download event] waybill_status_history_20261126182324.csv
+[18:23:54]   waiting for Waybill History FAIL_TO_DELIVER (30s) | tabs=1 | url=https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | page text: 'Waybill History Status Check 我的帳戶 HKTV OIX 帳戶 商戶 車輛 送貨區編號 運單 報告 籠車紙 (Dynamic Delivery) 車紙詳情 車紙摘要 Waybill History Status Check Courier Pickup List Pallet Waybill'
+[18:23:55]   SAVED -> /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv.part (0.0 MB)
+2026-11-26 18:23:55,671 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 18:23:55,675 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+[18:23:55] Shop Code List: 697 delivery zone codes
+/home/chipanl/.local/lib/python3.12/site-packages/openpyxl/styles/stylesheet.py:237: UserWarning: Workbook contains no default style, apply openpyxl's default
+  warn("Workbook contains no default style, apply openpyxl's default")
+2026-11-26 18:23:56,980 INFO 2026-11-26: finished records 18611 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 9156, R/U waybill 0, shop route 0, JHC 0, not T+0 route 2189, no district 7266
+2026-11-26 18:23:56,980 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 18:23:56,981 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 18:23:56,981 INFO   Overall Order Report: 8038 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 18:23:56,981 INFO data as of 2026-11-26 18:23 (report download time)
+2026-11-26 18:23:56,989 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 18:23:57,027 INFO back-fill: 2026-11-19 is complete in the dashboard data
+Updated ./public/index.html (7,414,662 bytes, embedded data refreshed)
+  ℹ️ DEPLOY_CMD is not set - using the built-in git push.
+  🚚 deploying dashboard: git pull --rebase --autostash && git add public/data.json public/productivity_history.json public/manpower_distribution.json public/delay_history.json public/other_aspects_history.json public/rolling_report.json public/snowball_table.json public/index.html history.json && { git add public/cost_plan.json public/order_finished_pattern.json 2>/dev/null || true; } && (git diff --cached --quiet || git commit -m "KPI dashboard auto update $(date +%F_%H%M)") && git push
+     Already up to date.
+     [main 984ad0b] KPI dashboard auto update 2026-11-26_1823
+      2 files changed, 2 insertions(+), 2 deletions(-)
+     To https://github.com/aitest0728-lab/log-kpi-tracker.git
+        7082aa2..984ad0b  main -> main
+  ✅ dashboard pushed.

@@ -742,3 +742,357 @@ Call log:
 2026-11-26 00:22:26,164 INFO data as of 2026-11-26 00:00 (report download time)
 2026-11-26 00:22:26,173 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (4 day(s) kept, latest 2026-11-25)
 2026-11-26 00:22:26,198 INFO back-fill: 2026-11-18 is complete in the dashboard data
+2026-11-26 10:20:01,657 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 10:20:02,013 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 10:20:02,303 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:20:02,975 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=D73FDE037F44B7B2A7BD3756F78F641 | type=- | disp=-
+2026-11-26 10:20:02,983 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:20:03,105 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:20:33,544 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:20:33,545 INFO   [download event] route_resource_planning_report_20261126102003.xlsx
+2026-11-26 10:20:54,671 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:21:25,116 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:21:25,118 INFO   [download event] route_resource_planning_report_20261126102055.xlsx
+2026-11-26 10:21:46,364 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:22:16,768 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:22:16,771 INFO   [download event] route_resource_planning_report_20261126102146.xlsx
+2026-11-26 10:22:17,971 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:22:49,294 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:22:49,298 INFO   [download event] delivery_route_zone_id_report_20261126102219.xlsx
+2026-11-26 10:22:50,413 WARNING 2026-11-26: carline map download failed (FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-26).xlsx')
+2026-11-26 10:22:50,454 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:23:20,944 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126102250.c
+2026-11-26 10:23:20,946 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 10:23:20,949 INFO   [download event] waybill_status_history_20261126102250.csv
+2026-11-26 10:23:22,062 ERROR OIX download attempt 1/3 failed: FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv.part'
+2026-11-26 10:23:52,151 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 10:23:52,317 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:23:52,997 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=40F6578952D9640F78A8FE42674357A | type=- | disp=-
+2026-11-26 10:23:53,005 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:23:53,125 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:24:24,488 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:24:24,491 INFO   [download event] delivery_route_zone_id_report_20261126102354.xlsx
+2026-11-26 10:24:25,647 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+2026-11-26 10:24:25,675 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:24:56,240 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126102426.c
+2026-11-26 10:24:56,242 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 10:24:56,243 INFO   [download event] waybill_status_history_20261126102426.csv
+2026-11-26 10:24:57,425 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:25:27,925 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126102457.c
+2026-11-26 10:25:27,927 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 10:25:27,928 INFO   [download event] waybill_status_history_20261126102457.csv
+2026-11-26 10:25:29,247 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 10:25:29,254 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+2026-11-26 10:26:46,071 INFO 2026-11-26: finished records 2431 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 525, R/U waybill 0, shop route 0, JHC 0, not T+0 route 1725, no district 181
+2026-11-26 10:26:46,071 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 10:26:46,072 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 10:26:46,072 INFO   Overall Order Report: 65 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 10:26:46,072 INFO data as of 2026-11-26 10:25 (report download time)
+2026-11-26 10:26:46,105 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (5 day(s) kept, latest 2026-11-26)
+2026-11-26 10:26:46,239 INFO back-fill: 2026-11-19 missing in the dashboard data - building it from OIX
+2026-11-26 10:26:46,494 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 10:26:46,660 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:26:47,092 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=CF8177FF19C2A3A53B79ACAB0635F12 | type=- | disp=-
+2026-11-26 10:26:47,105 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:26:47,218 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:27:17,665 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:27:17,668 INFO   [download event] route_resource_planning_report_20261126102647.xlsx
+2026-11-26 10:27:46,853 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:28:18,172 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 10:28:18,176 INFO   [download event] delivery_route_zone_id_report_20261126102748.xlsx
+2026-11-26 10:28:19,490 WARNING 2026-11-19: carline map download failed (FileNotFoundError: [Errno 2] No such file or directory: '/mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivery Route Zone ID Report (Nov-19).xlsx')
+2026-11-26 10:28:19,533 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:28:50,010 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126102820.c
+2026-11-26 10:28:50,011 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 10:28:50,012 INFO   [download event] waybill_status_history_20261126102820.csv
+2026-11-26 10:28:52,273 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 10:29:22,798 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126102852.c
+2026-11-26 10:29:22,800 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 10:29:22,800 INFO   [download event] waybill_status_history_20261126102852.csv
+2026-11-26 10:29:24,045 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-19).csv
+2026-11-26 10:29:24,050 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-19).csv
+2026-11-26 10:29:54,094 INFO 2026-11-19: finished records 184118 -> 26655 parent orders, 27129 finishes | left out: shop/pick-up zone 30051, R/U waybill 0, shop route 357, JHC 0, not T+0 route 3429, no district 10056
+2026-11-26 10:29:54,094 INFO   HKTV: Finished Orders 19446 | Unique Orders Count 19207 | Duplicate Orders 239 | Outstanding Order Count 91
+2026-11-26 10:29:54,095 INFO   ODS: Finished Orders 7683 | Unique Orders Count 7566 | Duplicate Orders 117 | Outstanding Order Count 9
+2026-11-26 10:29:54,095 INFO   Overall Order Report: 154314 rows -> 26652 parent orders (orders whose type could not be resolved, counted as HKTV: 6 rows)
+2026-11-26 10:29:54,114 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 11:20:01,675 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 11:20:01,995 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 11:20:02,191 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 11:20:02,684 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=C00886802656D431D8B36F691D0115D | type=- | disp=-
+2026-11-26 11:20:02,694 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 11:20:02,797 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 11:20:33,285 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 11:20:33,293 INFO   [download event] route_resource_planning_report_20261126112003.xlsx
+2026-11-26 11:20:54,571 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 11:21:24,960 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 11:21:24,963 INFO   [download event] route_resource_planning_report_20261126112055.xlsx
+2026-11-26 11:21:46,198 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 11:22:16,577 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 11:22:16,579 INFO   [download event] route_resource_planning_report_20261126112146.xlsx
+2026-11-26 11:22:17,763 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 11:22:49,061 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 11:22:49,062 INFO   [download event] delivery_route_zone_id_report_20261126112219.xlsx
+2026-11-26 11:22:50,183 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+2026-11-26 11:22:50,222 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 11:23:20,694 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126112250.c
+2026-11-26 11:23:20,695 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 11:23:20,696 INFO   [download event] waybill_status_history_20261126112250.csv
+2026-11-26 11:23:21,828 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 11:23:52,358 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126112322.c
+2026-11-26 11:23:52,359 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 11:23:52,360 INFO   [download event] waybill_status_history_20261126112322.csv
+2026-11-26 11:23:53,542 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 11:23:53,546 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+2026-11-26 11:23:53,694 INFO 2026-11-26: finished records 4318 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 934, R/U waybill 0, shop route 0, JHC 0, not T+0 route 1858, no district 1526
+2026-11-26 11:23:53,695 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 11:23:53,696 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 11:23:53,696 INFO   Overall Order Report: 358 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 11:23:53,696 INFO data as of 2026-11-26 11:23 (report download time)
+2026-11-26 11:23:53,709 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 11:23:53,771 INFO back-fill: 2026-11-19 is complete in the dashboard data
+2026-11-26 12:20:01,677 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 12:20:01,962 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 12:20:02,119 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 12:20:02,635 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=2D9CB517DEA7F743247D19FAD926BD2 | type=- | disp=-
+2026-11-26 12:20:02,643 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 12:20:02,738 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 12:20:33,203 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 12:20:33,206 INFO   [download event] route_resource_planning_report_20261126122003.xlsx
+2026-11-26 12:20:54,605 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 12:21:25,002 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 12:21:25,003 INFO   [download event] route_resource_planning_report_20261126122055.xlsx
+2026-11-26 12:21:46,285 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 12:22:16,668 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 12:22:16,670 INFO   [download event] route_resource_planning_report_20261126122146.xlsx
+2026-11-26 12:22:18,036 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 12:22:49,335 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 12:22:49,336 INFO   [download event] delivery_route_zone_id_report_20261126122219.xlsx
+2026-11-26 12:22:50,541 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+2026-11-26 12:22:50,583 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 12:23:21,084 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126122251.c
+2026-11-26 12:23:21,093 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 12:23:21,094 INFO   [download event] waybill_status_history_20261126122251.csv
+2026-11-26 12:23:22,535 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 12:23:52,999 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126122323.c
+2026-11-26 12:23:52,999 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 12:23:53,001 INFO   [download event] waybill_status_history_20261126122323.csv
+2026-11-26 12:23:54,148 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 12:23:54,151 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+2026-11-26 12:23:54,372 INFO 2026-11-26: finished records 6020 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 1860, R/U waybill 0, shop route 0, JHC 0, not T+0 route 1909, no district 2251
+2026-11-26 12:23:54,373 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 12:23:54,373 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 12:23:54,373 INFO   Overall Order Report: 1037 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 12:23:54,374 INFO data as of 2026-11-26 12:23 (report download time)
+2026-11-26 12:23:54,396 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 12:23:54,434 INFO back-fill: 2026-11-19 is complete in the dashboard data
+2026-11-26 13:20:02,207 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 13:20:02,508 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 13:20:02,680 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 13:20:03,162 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=24C5FE494C80E966B4CB33BEE976A12 | type=- | disp=-
+2026-11-26 13:20:03,173 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 13:20:03,267 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 13:20:33,645 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 13:20:33,646 INFO   [download event] route_resource_planning_report_20261126132003.xlsx
+2026-11-26 13:20:55,118 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 13:21:25,479 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 13:21:25,481 INFO   [download event] route_resource_planning_report_20261126132055.xlsx
+2026-11-26 13:21:46,973 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 13:22:17,339 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 13:22:17,343 INFO   [download event] route_resource_planning_report_20261126132147.xlsx
+2026-11-26 13:22:18,731 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 13:22:50,002 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 13:22:50,005 INFO   [download event] delivery_route_zone_id_report_20261126132220.xlsx
+2026-11-26 13:22:51,302 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+2026-11-26 13:22:51,341 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 13:23:21,776 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126132251.c
+2026-11-26 13:23:21,779 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 13:23:21,780 INFO   [download event] waybill_status_history_20261126132251.csv
+2026-11-26 13:23:22,919 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 13:23:53,332 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126132323.c
+2026-11-26 13:23:53,336 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 13:23:53,342 INFO   [download event] waybill_status_history_20261126132323.csv
+2026-11-26 13:23:54,494 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 13:23:54,497 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+2026-11-26 13:23:54,846 INFO 2026-11-26: finished records 8106 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 3059, R/U waybill 0, shop route 0, JHC 0, not T+0 route 1961, no district 3086
+2026-11-26 13:23:54,847 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 13:23:54,847 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 13:23:54,847 INFO   Overall Order Report: 2014 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 13:23:54,848 INFO data as of 2026-11-26 13:23 (report download time)
+2026-11-26 13:23:54,855 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 13:23:54,884 INFO back-fill: 2026-11-19 is complete in the dashboard data
+2026-11-26 14:20:01,581 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 14:20:01,884 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 14:20:02,048 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 14:20:02,450 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=3EA3F99AF415D7B06AAAEA18591904A | type=- | disp=-
+2026-11-26 14:20:02,463 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 14:20:02,563 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 14:20:32,954 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 14:20:32,956 INFO   [download event] route_resource_planning_report_20261126142003.xlsx
+2026-11-26 14:20:54,746 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 14:21:25,167 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 14:21:25,169 INFO   [download event] route_resource_planning_report_20261126142055.xlsx
+2026-11-26 14:21:46,775 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 14:22:17,164 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 14:22:17,167 INFO   [download event] route_resource_planning_report_20261126142147.xlsx
+2026-11-26 14:22:18,810 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 14:22:50,114 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 14:22:50,117 INFO   [download event] delivery_route_zone_id_report_20261126142220.xlsx
+2026-11-26 14:22:51,270 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+2026-11-26 14:22:51,310 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 14:23:21,766 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126142251.c
+2026-11-26 14:23:21,767 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 14:23:21,767 INFO   [download event] waybill_status_history_20261126142251.csv
+2026-11-26 14:23:22,924 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 14:23:53,362 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126142323.c
+2026-11-26 14:23:53,363 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 14:23:53,363 INFO   [download event] waybill_status_history_20261126142323.csv
+2026-11-26 14:23:54,538 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 14:23:54,541 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+2026-11-26 14:23:55,127 INFO 2026-11-26: finished records 10859 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 4222, R/U waybill 0, shop route 0, JHC 0, not T+0 route 1983, no district 4654
+2026-11-26 14:23:55,128 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 14:23:55,128 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 14:23:55,128 INFO   Overall Order Report: 3039 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 14:23:55,128 INFO data as of 2026-11-26 14:23 (report download time)
+2026-11-26 14:23:55,137 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 14:23:55,178 INFO back-fill: 2026-11-19 is complete in the dashboard data
+2026-11-26 15:20:01,688 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 15:20:02,008 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 15:20:02,200 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 15:20:03,174 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=7709A7CE49D141F00C25A9911EFD074 | type=- | disp=-
+2026-11-26 15:20:03,186 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 15:20:03,326 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 15:20:33,749 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 15:20:33,751 INFO   [download event] route_resource_planning_report_20261126152003.xlsx
+2026-11-26 15:20:55,655 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 15:21:26,073 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 15:21:26,075 INFO   [download event] route_resource_planning_report_20261126152056.xlsx
+2026-11-26 15:21:47,770 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 15:22:18,151 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 15:22:18,153 INFO   [download event] route_resource_planning_report_20261126152148.xlsx
+2026-11-26 15:22:19,822 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 15:22:51,153 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 15:22:51,156 INFO   [download event] delivery_route_zone_id_report_20261126152221.xlsx
+2026-11-26 15:22:52,290 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+2026-11-26 15:22:52,326 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 15:23:22,776 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126152252.c
+2026-11-26 15:23:22,778 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 15:23:22,779 INFO   [download event] waybill_status_history_20261126152252.csv
+2026-11-26 15:23:23,943 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 15:23:54,382 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126152324.c
+2026-11-26 15:23:54,383 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 15:23:54,384 INFO   [download event] waybill_status_history_20261126152324.csv
+2026-11-26 15:23:55,588 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 15:23:55,591 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+2026-11-26 15:23:56,348 INFO 2026-11-26: finished records 12285 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 5208, R/U waybill 0, shop route 0, JHC 0, not T+0 route 2064, no district 5013
+2026-11-26 15:23:56,348 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 15:23:56,349 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 15:23:56,349 INFO   Overall Order Report: 4085 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 15:23:56,349 INFO data as of 2026-11-26 15:23 (report download time)
+2026-11-26 15:23:56,358 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 15:23:56,400 INFO back-fill: 2026-11-19 is complete in the dashboard data
+2026-11-26 16:20:01,915 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 16:20:02,204 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 16:20:02,370 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 16:20:02,826 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=31139193FDAA7E8F142CCED281E796E | type=- | disp=-
+2026-11-26 16:20:02,837 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 16:20:02,946 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 16:20:33,351 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 16:20:33,354 INFO   [download event] route_resource_planning_report_20261126162003.xlsx
+2026-11-26 16:20:55,262 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 16:21:25,633 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 16:21:25,636 INFO   [download event] route_resource_planning_report_20261126162055.xlsx
+2026-11-26 16:21:47,452 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 16:22:17,841 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 16:22:17,845 INFO   [download event] route_resource_planning_report_20261126162147.xlsx
+2026-11-26 16:22:19,762 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 16:22:51,044 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 16:22:51,045 INFO   [download event] delivery_route_zone_id_report_20261126162221.xlsx
+2026-11-26 16:22:52,158 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+2026-11-26 16:22:52,204 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 16:23:22,759 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126162252.c
+2026-11-26 16:23:22,760 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 16:23:22,761 INFO   [download event] waybill_status_history_20261126162252.csv
+2026-11-26 16:23:23,940 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 16:23:54,374 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126162324.c
+2026-11-26 16:23:54,376 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 16:23:54,379 INFO   [download event] waybill_status_history_20261126162324.csv
+2026-11-26 16:23:55,610 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 16:23:55,615 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+2026-11-26 16:23:56,500 INFO 2026-11-26: finished records 14425 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 6451, R/U waybill 0, shop route 0, JHC 0, not T+0 route 2098, no district 5876
+2026-11-26 16:23:56,501 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 16:23:56,501 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 16:23:56,501 INFO   Overall Order Report: 5277 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 16:23:56,502 INFO data as of 2026-11-26 16:23 (report download time)
+2026-11-26 16:23:56,510 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 16:23:56,546 INFO back-fill: 2026-11-19 is complete in the dashboard data
+2026-11-26 17:20:01,929 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 17:20:02,235 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 17:20:02,461 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 17:20:02,950 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=4D9DA393AE82A124398124BC61AC509 | type=- | disp=-
+2026-11-26 17:20:02,963 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 17:20:03,066 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 17:20:33,452 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 17:20:33,453 INFO   [download event] route_resource_planning_report_20261126172003.xlsx
+2026-11-26 17:20:55,480 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 17:21:25,966 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 17:21:25,967 INFO   [download event] route_resource_planning_report_20261126172056.xlsx
+2026-11-26 17:21:48,003 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 17:22:18,364 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 17:22:18,366 INFO   [download event] route_resource_planning_report_20261126172148.xlsx
+2026-11-26 17:22:20,376 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 17:22:51,665 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 17:22:51,669 INFO   [download event] delivery_route_zone_id_report_20261126172221.xlsx
+2026-11-26 17:22:52,808 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+2026-11-26 17:22:52,841 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 17:23:23,283 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126172253.c
+2026-11-26 17:23:23,283 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 17:23:23,284 INFO   [download event] waybill_status_history_20261126172253.csv
+2026-11-26 17:23:24,520 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 17:23:54,950 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126172325.c
+2026-11-26 17:23:54,950 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 17:23:54,951 INFO   [download event] waybill_status_history_20261126172325.csv
+2026-11-26 17:23:56,130 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 17:23:56,133 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+2026-11-26 17:23:57,169 INFO 2026-11-26: finished records 16814 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 7710, R/U waybill 0, shop route 0, JHC 0, not T+0 route 2128, no district 6976
+2026-11-26 17:23:57,169 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 17:23:57,170 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 17:23:57,170 INFO   Overall Order Report: 6553 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 17:23:57,170 INFO data as of 2026-11-26 17:23 (report download time)
+2026-11-26 17:23:57,179 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 17:23:57,227 INFO back-fill: 2026-11-19 is complete in the dashboard data
+2026-11-26 18:20:01,886 INFO === Order Finished Pattern v1.1.1 | T+0 2026-11-26 ===
+2026-11-26 18:20:02,191 INFO OIX browser profile: /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/.ofp-browser-profile (headless=True)
+2026-11-26 18:20:02,393 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/login | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 18:20:02,790 INFO   [net] 302 POST https://oix.hktvmall.com/hktv-oix/j_spring_security_check;jsessionid=B9B3519B1E6B7A1072E28093965C718 | type=- | disp=-
+2026-11-26 18:20:02,802 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/ | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 18:20:02,913 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 18:20:33,327 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 18:20:33,329 INFO   [download event] route_resource_planning_report_20261126182003.xlsx
+2026-11-26 18:20:55,780 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 18:21:26,174 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 18:21:26,175 INFO   [download event] route_resource_planning_report_20261126182056.xlsx
+2026-11-26 18:21:47,357 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 18:22:17,764 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/route_resource_planning_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 18:22:17,765 INFO   [download event] route_resource_planning_report_20261126182147.xlsx
+2026-11-26 18:22:19,975 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 18:22:51,269 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/delivery_route_zone_id_report | type=application/json;charset=UTF-8 | disp=-
+2026-11-26 18:22:51,270 INFO   [download event] delivery_route_zone_id_report_20261126182221.xlsx
+2026-11-26 18:22:52,393 WARNING 2026-11-26: carline map download failed (RuntimeError: Delivery Route Zone ID Report has no DEFAULT car group rows (check ROUTE_COL_* positions) - not used)
+2026-11-26 18:22:52,429 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 18:23:22,879 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126182252.c
+2026-11-26 18:23:22,881 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 18:23:22,881 INFO   [download event] waybill_status_history_20261126182252.csv
+2026-11-26 18:23:24,093 INFO   [net] 200 GET https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/html;charset=UTF-8 | disp=-
+2026-11-26 18:23:54,519 INFO   [net] 200 POST https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | type=text/csv;charset=utf-8 | disp=attachment;filename="waybill_status_history_20261126182324.c
+2026-11-26 18:23:54,520 INFO   [net] FAILED https://oix.hktvmall.com/hktv-oix/internal/report/waybill_status_history_report | net::ERR_ABORTED
+2026-11-26 18:23:54,521 INFO   [download event] waybill_status_history_20261126182324.csv
+2026-11-26 18:23:55,671 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Delivered Order in Cargroup (Nov-26).csv
+2026-11-26 18:23:55,675 INFO saved /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/Folder for KPI Dashboard/Failed Order in Cargroup (Nov-26).csv
+2026-11-26 18:23:56,980 INFO 2026-11-26: finished records 18611 -> 0 parent orders, 0 finishes | left out: shop/pick-up zone 9156, R/U waybill 0, shop route 0, JHC 0, not T+0 route 2189, no district 7266
+2026-11-26 18:23:56,980 INFO   HKTV: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 18:23:56,981 INFO   ODS: Finished Orders 0 | Unique Orders Count 0 | Duplicate Orders 0 | Outstanding Order Count 0
+2026-11-26 18:23:56,981 INFO   Overall Order Report: 8038 rows -> 0 parent orders (orders whose type could not be resolved, counted as HKTV: 0 rows)
+2026-11-26 18:23:56,981 INFO data as of 2026-11-26 18:23 (report download time)
+2026-11-26 18:23:56,989 INFO Wrote /mnt/c/Users/chipanl/Downloads/Whatsapp Session/log-kpi-tracker/public/order_finished_pattern.json (6 day(s) kept, latest 2026-11-26)
+2026-11-26 18:23:57,027 INFO back-fill: 2026-11-19 is complete in the dashboard data
