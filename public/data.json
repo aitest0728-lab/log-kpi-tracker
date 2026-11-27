@@ -1,6 +1,6 @@
 {
   "_readme": "PLACEHOLDER seed data in the new 6-key schema (5 matrices, Matrix 1 split into hktvStaff + odsRatio). This file is overwritten automatically by kpi_pipeline.py via run_productivity_0300.bat (03:00) and run_tableau_1500.bat (15:00) once Task Scheduler is set up. Delete this _readme field or leave it; the page ignores it.",
-  "generatedAt": "2026-11-26T08:39",
+  "generatedAt": "2026-11-27T10:32",
   "matrices": {
     "hktvStaff": {
       "actual": {
@@ -1269,7 +1269,7 @@
     "_note": "Actual total FT manpower deployed per district, Sept 1-20 2026 (manually supplied). Drives the Forecast tab's Keep Current Status model (fcCurrentStatusHeadcountFor) as the weekly-pool total, replacing the manpower_distribution.json-derived average."
   },
   "costReport": {
-    "source": "fixed.xlsx",
+    "source": "Daily Cost Report_202611_Last Update_Nov 23.xlsx",
     "asOf": "2026-11-22",
     "latestDay": "2026-11-22",
     "latest": {
@@ -1321,7 +1321,7 @@
         }
       },
       "productivity": {
-        "overall": 48.004649618067084,
+        "overall": 47.61,
         "districts": {
           "ETH": 40.48,
           "ETK": 51.35,
