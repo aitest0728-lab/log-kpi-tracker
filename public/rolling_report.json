@@ -1,6 +1,6 @@
 {
-  "generated": "27 Nov 2026 21:15",
-  "written_at": "27 Nov 2026 21:27",
+  "generated": "27 Nov 2026 22:15",
+  "written_at": "27 Nov 2026 22:27",
   "order": [
     "Overall",
     "ETH",
@@ -3384,7 +3384,7 @@
     "1": {
       "offset": 1,
       "delivery": "28 Nov 2026 [SAT]",
-      "asof": "27 Nov 2026 21:00",
+      "asof": "27 Nov 2026 21:25",
       "identity_ok": true,
       "districts": {
         "Overall": {
@@ -3694,7 +3694,7 @@
               "delay": "4.5%"
             }
           ],
-          "quota": "Quota already cut: NT-TW (AM, PM, EV); WTK (AM, PM, EV); WTX (AM, EV)"
+          "quota": "Quota already cut: NT-TW (AM, PM, EV); WTK (AM, EV); WTX (PM, EV)"
         },
         "ETH": {
           "weeks": [
@@ -6430,7 +6430,7 @@
               }
             }
           ],
-          "quota": "Quota already cut on AM, PM and EV as of 19:15 on 27/11"
+          "quota": "Quota already cut on AM and EV as of 19:15 on 27/11"
         },
         "WTX": {
           "weeks": [
@@ -6734,14 +6734,14 @@
               }
             }
           ],
-          "quota": "Quota already cut on AM and EV as of 20:15 on 27/11"
+          "quota": "Quota already cut on PM and EV as of 20:15 on 27/11"
         }
       }
     },
     "2": {
       "offset": 2,
       "delivery": "29 Nov 2026 [SUN]",
-      "asof": "27 Nov 2026 21:00",
+      "asof": "27 Nov 2026 21:25",
       "identity_ok": true,
       "districts": {
         "Overall": {
@@ -10098,7 +10098,7 @@
     "3": {
       "offset": 3,
       "delivery": "30 Nov 2026 [MON]",
-      "asof": "27 Nov 2026 21:25",
+      "asof": "27 Nov 2026 22:25",
       "identity_ok": true,
       "districts": {
         "Overall": {
@@ -10109,13 +10109,13 @@
               "range": "30/11 – 6/12",
               "label": "30/11 [MON]",
               "restored": false,
-              "total": 7978,
-              "t7": 673,
+              "total": 8243,
+              "t7": 675,
               "tn": [
-                321,
-                2726,
+                322,
+                2728,
                 1908,
-                2350,
+                2610,
                 0,
                 0
               ],
@@ -10418,13 +10418,13 @@
               "range": "30/11 – 6/12",
               "label": "30/11 [MON]",
               "restored": false,
-              "total": 824,
+              "total": 849,
               "t7": 67,
               "tn": [
                 35,
                 261,
                 208,
-                253,
+                278,
                 0,
                 0
               ],
@@ -10722,13 +10722,13 @@
               "range": "30/11 – 6/12",
               "label": "30/11 [MON]",
               "restored": false,
-              "total": 482,
+              "total": 494,
               "t7": 46,
               "tn": [
                 23,
-                186,
+                187,
                 94,
-                133,
+                144,
                 0,
                 0
               ],
@@ -11026,13 +11026,13 @@
               "range": "30/11 – 6/12",
               "label": "30/11 [MON]",
               "restored": false,
-              "total": 1014,
+              "total": 1050,
               "t7": 87,
               "tn": [
-                37,
+                38,
                 315,
                 281,
-                294,
+                329,
                 0,
                 0
               ],
@@ -11330,13 +11330,13 @@
               "range": "30/11 – 6/12",
               "label": "30/11 [MON]",
               "restored": false,
-              "total": 600,
-              "t7": 65,
+              "total": 625,
+              "t7": 64,
               "tn": [
                 24,
                 211,
                 124,
-                176,
+                202,
                 0,
                 0
               ],
@@ -11634,13 +11634,13 @@
               "range": "30/11 – 6/12",
               "label": "30/11 [MON]",
               "restored": false,
-              "total": 516,
+              "total": 537,
               "t7": 64,
               "tn": [
                 23,
                 166,
                 101,
-                162,
+                183,
                 0,
                 0
               ],
@@ -11938,13 +11938,13 @@
               "range": "30/11 – 6/12",
               "label": "30/11 [MON]",
               "restored": false,
-              "total": 736,
+              "total": 764,
               "t7": 49,
               "tn": [
                 28,
                 279,
                 171,
-                209,
+                237,
                 0,
                 0
               ],
@@ -12242,13 +12242,13 @@
               "range": "30/11 – 6/12",
               "label": "30/11 [MON]",
               "restored": false,
-              "total": 672,
-              "t7": 70,
+              "total": 694,
+              "t7": 71,
               "tn": [
                 29,
                 222,
                 132,
-                219,
+                240,
                 0,
                 0
               ],
@@ -12546,13 +12546,13 @@
               "range": "30/11 – 6/12",
               "label": "30/11 [MON]",
               "restored": false,
-              "total": 1339,
+              "total": 1374,
               "t7": 65,
               "tn": [
                 37,
                 483,
                 358,
-                396,
+                431,
                 0,
                 0
               ],
@@ -12850,13 +12850,13 @@
               "range": "30/11 – 6/12",
               "label": "30/11 [MON]",
               "restored": false,
-              "total": 875,
+              "total": 900,
               "t7": 55,
               "tn": [
                 41,
-                303,
+                304,
                 227,
-                249,
+                273,
                 0,
                 0
               ],
@@ -13154,13 +13154,13 @@
               "range": "30/11 – 6/12",
               "label": "30/11 [MON]",
               "restored": false,
-              "total": 920,
-              "t7": 105,
+              "total": 956,
+              "t7": 107,
               "tn": [
                 44,
                 300,
                 212,
-                259,
+                293,
                 0,
                 0
               ],
@@ -13455,7 +13455,7 @@
     "4": {
       "offset": 4,
       "delivery": "01 Dec 2026 [TUE]",
-      "asof": "27 Nov 2026 21:25",
+      "asof": "27 Nov 2026 22:25",
       "identity_ok": true,
       "districts": {
         "Overall": {
@@ -13466,12 +13466,12 @@
               "range": "30/11 – 6/12",
               "label": "1/12 [TUE]",
               "restored": false,
-              "total": 3086,
-              "t7": 520,
+              "total": 3232,
+              "t7": 521,
               "tn": [
-                778,
-                626,
-                1162,
+                780,
+                629,
+                1302,
                 0,
                 0,
                 0
@@ -13775,12 +13775,12 @@
               "range": "30/11 – 6/12",
               "label": "1/12 [TUE]",
               "restored": false,
-              "total": 346,
-              "t7": 52,
+              "total": 363,
+              "t7": 53,
               "tn": [
                 71,
                 73,
-                150,
+                166,
                 0,
                 0,
                 0
@@ -14079,12 +14079,12 @@
               "range": "30/11 – 6/12",
               "label": "1/12 [TUE]",
               "restored": false,
-              "total": 199,
+              "total": 212,
               "t7": 37,
               "tn": [
                 45,
                 46,
-                71,
+                84,
                 0,
                 0,
                 0
@@ -14383,12 +14383,12 @@
               "range": "30/11 – 6/12",
               "label": "1/12 [TUE]",
               "restored": false,
-              "total": 326,
+              "total": 339,
               "t7": 58,
               "tn": [
-                82,
-                70,
-                116,
+                83,
+                71,
+                127,
                 0,
                 0,
                 0
@@ -14687,12 +14687,12 @@
               "range": "30/11 – 6/12",
               "label": "1/12 [TUE]",
               "restored": false,
-              "total": 255,
+              "total": 267,
               "t7": 47,
               "tn": [
                 70,
-                42,
-                96,
+                43,
+                107,
                 0,
                 0,
                 0
@@ -14991,12 +14991,12 @@
               "range": "30/11 – 6/12",
               "label": "1/12 [TUE]",
               "restored": false,
-              "total": 175,
+              "total": 186,
               "t7": 36,
               "tn": [
                 34,
                 37,
-                68,
+                79,
                 0,
                 0,
                 0
@@ -15295,12 +15295,12 @@
               "range": "30/11 – 6/12",
               "label": "1/12 [TUE]",
               "restored": false,
-              "total": 258,
+              "total": 270,
               "t7": 45,
               "tn": [
                 66,
                 54,
-                93,
+                105,
                 0,
                 0,
                 0
@@ -15599,12 +15599,12 @@
               "range": "30/11 – 6/12",
               "label": "1/12 [TUE]",
               "restored": false,
-              "total": 291,
+              "total": 302,
               "t7": 53,
               "tn": [
-                70,
+                71,
                 55,
-                113,
+                123,
                 0,
                 0,
                 0
@@ -15903,12 +15903,12 @@
               "range": "30/11 – 6/12",
               "label": "1/12 [TUE]",
               "restored": false,
-              "total": 500,
+              "total": 514,
               "t7": 57,
               "tn": [
                 140,
                 106,
-                197,
+                211,
                 0,
                 0,
                 0
@@ -16207,12 +16207,12 @@
               "range": "30/11 – 6/12",
               "label": "1/12 [TUE]",
               "restored": false,
-              "total": 349,
+              "total": 366,
               "t7": 58,
               "tn": [
                 94,
                 69,
-                128,
+                145,
                 0,
                 0,
                 0
@@ -16511,12 +16511,12 @@
               "range": "30/11 – 6/12",
               "label": "1/12 [TUE]",
               "restored": false,
-              "total": 387,
+              "total": 413,
               "t7": 77,
               "tn": [
                 106,
-                74,
-                130,
+                75,
+                155,
                 0,
                 0,
                 0
@@ -16812,7 +16812,7 @@
     "5": {
       "offset": 5,
       "delivery": "02 Dec 2026 [WED]",
-      "asof": "27 Nov 2026 21:25",
+      "asof": "27 Nov 2026 22:25",
       "identity_ok": true,
       "districts": {
         "Overall": {
@@ -16823,11 +16823,11 @@
               "range": "30/11 – 6/12",
               "label": "2/12 [WED]",
               "restored": false,
-              "total": 985,
-              "t7": 534,
+              "total": 1017,
+              "t7": 537,
               "tn": [
                 188,
-                263,
+                292,
                 0,
                 0,
                 0,
@@ -17436,11 +17436,11 @@
               "range": "30/11 – 6/12",
               "label": "2/12 [WED]",
               "restored": false,
-              "total": 68,
+              "total": 71,
               "t7": 39,
               "tn": [
                 7,
-                22,
+                25,
                 0,
                 0,
                 0,
@@ -17740,11 +17740,11 @@
               "range": "30/11 – 6/12",
               "label": "2/12 [WED]",
               "restored": false,
-              "total": 99,
+              "total": 101,
               "t7": 46,
               "tn": [
                 29,
-                24,
+                26,
                 0,
                 0,
                 0,
@@ -18044,11 +18044,11 @@
               "range": "30/11 – 6/12",
               "label": "2/12 [WED]",
               "restored": false,
-              "total": 82,
+              "total": 83,
               "t7": 51,
               "tn": [
                 10,
-                21,
+                22,
                 0,
                 0,
                 0,
@@ -18348,11 +18348,11 @@
               "range": "30/11 – 6/12",
               "label": "2/12 [WED]",
               "restored": false,
-              "total": 68,
+              "total": 71,
               "t7": 33,
               "tn": [
                 13,
-                22,
+                25,
                 0,
                 0,
                 0,
@@ -18652,11 +18652,11 @@
               "range": "30/11 – 6/12",
               "label": "2/12 [WED]",
               "restored": false,
-              "total": 157,
-              "t7": 79,
+              "total": 166,
+              "t7": 81,
               "tn": [
                 38,
-                40,
+                47,
                 0,
                 0,
                 0,
@@ -18956,11 +18956,11 @@
               "range": "30/11 – 6/12",
               "label": "2/12 [WED]",
               "restored": false,
-              "total": 93,
+              "total": 94,
               "t7": 50,
               "tn": [
                 17,
-                26,
+                27,
                 0,
                 0,
                 0,
@@ -19260,11 +19260,11 @@
               "range": "30/11 – 6/12",
               "label": "2/12 [WED]",
               "restored": false,
-              "total": 113,
-              "t7": 62,
+              "total": 117,
+              "t7": 63,
               "tn": [
                 21,
-                30,
+                33,
                 0,
                 0,
                 0,
@@ -19564,11 +19564,11 @@
               "range": "30/11 – 6/12",
               "label": "2/12 [WED]",
               "restored": false,
-              "total": 80,
+              "total": 82,
               "t7": 40,
               "tn": [
                 15,
-                25,
+                27,
                 0,
                 0,
                 0,
@@ -19868,11 +19868,11 @@
               "range": "30/11 – 6/12",
               "label": "2/12 [WED]",
               "restored": false,
-              "total": 129,
+              "total": 136,
               "t7": 81,
               "tn": [
                 20,
-                28,
+                35,
                 0,
                 0,
                 0,
@@ -20169,7 +20169,7 @@
     "6": {
       "offset": 6,
       "delivery": "03 Dec 2026 [THU]",
-      "asof": "27 Nov 2026 21:25",
+      "asof": "27 Nov 2026 22:25",
       "identity_ok": true,
       "districts": {
         "Overall": {
@@ -20180,10 +20180,10 @@
               "range": "30/11 – 6/12",
               "label": "3/12 [THU]",
               "restored": false,
-              "total": 668,
-              "t7": 547,
+              "total": 689,
+              "t7": 548,
               "tn": [
-                121,
+                141,
                 0,
                 0,
                 0,
@@ -20489,10 +20489,10 @@
               "range": "30/11 – 6/12",
               "label": "3/12 [THU]",
               "restored": false,
-              "total": 65,
+              "total": 66,
               "t7": 55,
               "tn": [
-                10,
+                11,
                 0,
                 0,
                 0,
@@ -20793,10 +20793,10 @@
               "range": "30/11 – 6/12",
               "label": "3/12 [THU]",
               "restored": false,
-              "total": 42,
+              "total": 48,
               "t7": 34,
               "tn": [
-                8,
+                14,
                 0,
                 0,
                 0,
@@ -21097,10 +21097,10 @@
               "range": "30/11 – 6/12",
               "label": "3/12 [THU]",
               "restored": false,
-              "total": 80,
+              "total": 81,
               "t7": 64,
               "tn": [
-                16,
+                17,
                 0,
                 0,
                 0,
@@ -21401,10 +21401,10 @@
               "range": "30/11 – 6/12",
               "label": "3/12 [THU]",
               "restored": false,
-              "total": 51,
+              "total": 53,
               "t7": 43,
               "tn": [
-                8,
+                10,
                 0,
                 0,
                 0,
@@ -22009,10 +22009,10 @@
               "range": "30/11 – 6/12",
               "label": "3/12 [THU]",
               "restored": false,
-              "total": 104,
+              "total": 108,
               "t7": 81,
               "tn": [
-                23,
+                27,
                 0,
                 0,
                 0,
@@ -22313,10 +22313,10 @@
               "range": "30/11 – 6/12",
               "label": "3/12 [THU]",
               "restored": false,
-              "total": 65,
+              "total": 66,
               "t7": 51,
               "tn": [
-                14,
+                15,
                 0,
                 0,
                 0,
@@ -22617,10 +22617,10 @@
               "range": "30/11 – 6/12",
               "label": "3/12 [THU]",
               "restored": false,
-              "total": 81,
-              "t7": 69,
+              "total": 84,
+              "t7": 70,
               "tn": [
-                12,
+                14,
                 0,
                 0,
                 0,
@@ -22921,10 +22921,10 @@
               "range": "30/11 – 6/12",
               "label": "3/12 [THU]",
               "restored": false,
-              "total": 55,
+              "total": 56,
               "t7": 42,
               "tn": [
-                13,
+                14,
                 0,
                 0,
                 0,
@@ -23225,10 +23225,10 @@
               "range": "30/11 – 6/12",
               "label": "3/12 [THU]",
               "restored": false,
-              "total": 65,
+              "total": 67,
               "t7": 56,
               "tn": [
-                9,
+                11,
                 0,
                 0,
                 0,
